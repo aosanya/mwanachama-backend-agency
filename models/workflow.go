@@ -4,7 +4,10 @@ package models
 // Ported from CodeValdAgency's Workflow, dropping AgencyID (single-agency
 // deployment, no cross-agency scoping needed yet).
 type Workflow struct {
-	ID          string `json:"id"`
+	ID string `json:"id"`
+	// DraftID is "" for a live Workflow, or the owning Draft's ID for a
+	// draft-scoped copy.
+	DraftID     string `json:"draft_id,omitempty"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Ordinality  int    `json:"ordinality"`

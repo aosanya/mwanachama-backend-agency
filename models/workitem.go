@@ -6,7 +6,10 @@ type WorkItem struct {
 	ID         string `json:"id"`
 	WorkflowID string `json:"workflow_id"`
 	// GoalID is "" when this WorkItem is not tagged to a Goal.
-	GoalID      string `json:"goal_id,omitempty"`
+	GoalID string `json:"goal_id,omitempty"`
+	// DraftID is "" for a live WorkItem, or the owning Draft's ID for a
+	// draft-scoped copy.
+	DraftID     string `json:"draft_id,omitempty"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Ordinality  int    `json:"ordinality"`

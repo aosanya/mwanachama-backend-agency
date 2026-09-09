@@ -19,6 +19,7 @@ type WorkItemRow struct {
 	ID          string  `gorm:"primaryKey"`
 	WorkflowID  string  `gorm:"index"`
 	GoalID      *string `gorm:"index"`
+	DraftID     *string `gorm:"index"`
 	Title       string
 	Description string
 	Ordinality  int
