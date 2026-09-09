@@ -106,6 +106,72 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   all WorkPlan/`ContextSource` CRUD with zero RACI logic (every
   RACI-labeled hit is in generated proto code) — matching requirements.md's
   original read. AG8 does not need a closer look at it.
+- **AG5 landed 2026-09-09: `Department`/`Level`, the org chart.** Net
+  new — `CodeValdAgency` has no department concept at all. Modeled on
+  actor's Group/Hierarchy but deliberately smaller: no `Hierarchy`
+  container (this repo has exactly one implicit org chart, not actor's
+  multi-hierarchy-per-gateway-mount case), no `Attributes`/`Discoverable`/
+  `NodeType`/`AnchorLevelOverrideID` on `Department` (membership/directory
+  extension points with no analog here), no `IsDefaultAnchor` on `Level`
+  (a member-registration-default concept). `MoveDepartment`/`DeleteLevel`
+  are direct ports of `MoveGroup`/`DeleteLevel`'s bodies — same Go-loop
+  cycle/subtree check (not a recursive CTE), same targeted
+  `Updates(map[string]any{...})` re-parent write.
+- **`ErrRootCannotMove` is kept verbatim, confirmed with the user** even
+  though it means a top-level department (e.g. "software" or "mechanical"
+  in requirements.md's own example) can never be moved once created at the
+  top level, and nothing enforces a single designated root the way actor's
+  one-organizational-root assumption implicitly does. Fidelity to actor's
+  behavior was chosen over allowing top-level reorganization.
+- `RenameDepartment(ctx, id, name)` takes a plain name, not an
+  `EditGroup`-style multi-field DTO with "empty clears every call"
+  semantics — `Department` only has the one editable field, and (unlike
+  `EditGroup`) an empty name is rejected (`ErrInvalidDepartment`); there's
+  no legitimate "clear the name" case the way there is for `NodeType`.
+- `DeleteLevel` only ports the "refuse while worn by Departments" half of
+  actor's two-part check. The other half (`RoleKind.LevelID`) has no
+  analog yet — **if AG6's `Role` ever gets scoped to a `Level`, `DeleteLevel`
+  needs a second guard added then**, the same way actor's does for
+  `RoleKind`.
+- No `AgencyID`/`DraftID` on `Department`/`Level` (matches AG3's
+  single-agency posture; org-chart edits are always-live, not
+  draft-scoped like Goal/Workflow/WorkItem), and no `DepartmentID` wired
+  onto `Goal`/`Workflow`/`WorkItem` — both explicitly out of AG5's scope,
+  left for whichever future task (likely AG6) actually needs
+  department-scoped RACI.
+- **AG8 landed 2026-09-09: `WorkPlan`/`ContextSource`, the event-topic
+  matching/dispatch logic `raci.go` actually contains.** Files are named
+  after what they model (`models/workplan.go`, `contextsource.go`,
+  `gormstore/workplan.go`, `contextsource.go`, root `workplan_impl.go`,
+  `contextsource_impl.go`), not after the source filename. No `AgencyID`
+  (matches AG3's single-agency posture) and deliberately no `DraftID` —
+  requirements.md's port list only ever mentions WorkPlan/ContextSource in
+  the raci.go paragraph, never as part of AG4's draft/publication scope, so
+  they stay outside the draft lifecycle rather than being spec-creeped in.
+  `CreateWorkPlan`/`UpdateWorkPlan` take `models.WorkPlan` directly instead
+  of porting source's separate `CreateWorkPlanRequest`/
+  `UpdateWorkPlanRequest` DTOs — matches Goal/Workflow/WorkItem's own
+  full-struct-replace-plus-explicit-column-map convention, and as a side
+  effect fixes a real source bug: `CreateWorkPlanRequest` had no `Code`
+  field, so a WorkPlan's `Code` (its own doc says "the stable slug
+  `OnFailurePipeline` references") could never be set through the source's
+  actual CRUD despite `entityToWorkPlan` reading it back on every fetch.
+  `ContextSource`'s three polymorphic kinds (Git/Comm/Work) — three
+  heterogeneous entitygraph entity types in source — flatten onto one row
+  with kind-prefixed columns (`GitSignals`, `CommLookbackDays`,
+  `WorkIncludeHistory`, ...), since GORM has no polymorphic-entity
+  equivalent. **`RemoveContextSource(workPlanID, sourceID)` now actually
+  checks `sourceID` belongs to `workPlanID`** (new
+  `ErrContextSourceNotFound` on mismatch, covered by
+  `TestRemoveContextSource_WrongWorkPlan`) — the source method accepted a
+  `workPlanID` parameter it never used, so any caller who knew a bare
+  `sourceID` could delete it while claiming any `workPlanID` at all.
+  `MatchWorkPlans` ported behavior-for-behavior otherwise: enabled +
+  `TriggerTopic` regex match + optional `PayloadCondition` regex match,
+  results sorted by `Ordinality`. Landed and verified building/testing
+  alongside AG5 (Department/Level) — both additive to the same shared
+  `gormstore/tables.go`/`errors.go`/root `agency.go` interface, no actual
+  overlap.
 
 ## Conventions
 
