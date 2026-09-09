@@ -5,22 +5,28 @@ import "gorm.io/gorm"
 // TableNames names the physical tables one mounted copy of this package
 // reads and writes.
 type TableNames struct {
-	Agencies  string
-	Drafts    string
-	Goals     string
-	Workflows string
-	WorkItems string
+	Agencies           string
+	Drafts             string
+	Goals              string
+	Workflows          string
+	WorkItems          string
+	EventFlowSteps     string
+	AgencySnapshots    string
+	AgencyPublications string
 }
 
 // DefaultTableNames builds the conventional table set for one mounted
 // instance of this package.
 func DefaultTableNames(instance string) TableNames {
 	return TableNames{
-		Agencies:  instance + "_agencies",
-		Drafts:    instance + "_drafts",
-		Goals:     instance + "_goals",
-		Workflows: instance + "_workflows",
-		WorkItems: instance + "_work_items",
+		Agencies:           instance + "_agencies",
+		Drafts:             instance + "_drafts",
+		Goals:              instance + "_goals",
+		Workflows:          instance + "_workflows",
+		WorkItems:          instance + "_work_items",
+		EventFlowSteps:     instance + "_event_flow_steps",
+		AgencySnapshots:    instance + "_agency_snapshots",
+		AgencyPublications: instance + "_agency_publications",
 	}
 }
 
@@ -39,6 +45,15 @@ func Migrate(db *gorm.DB, t TableNames) error {
 		return err
 	}
 	if err := db.Table(t.WorkItems).AutoMigrate(&WorkItemRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.EventFlowSteps).AutoMigrate(&EventFlowStepRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.AgencySnapshots).AutoMigrate(&AgencySnapshotRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.AgencyPublications).AutoMigrate(&AgencyPublicationRow{}); err != nil {
 		return err
 	}
 	return nil
