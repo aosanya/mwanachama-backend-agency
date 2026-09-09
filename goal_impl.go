@@ -34,12 +34,7 @@ func (m *agencyManager) GetGoal(ctx context.Context, id string) (models.Goal, er
 // draft-scoped copies otherwise.
 func (m *agencyManager) ListGoals(ctx context.Context, draftID string) ([]models.Goal, error) {
 	var rows []gormstore.GoalRow
-	q := m.db.WithContext(ctx).Table(m.tables.Goals).Order("ordinality")
-	if draftID == "" {
-		q = q.Where("draft_id IS NULL")
-	} else {
-		q = q.Where("draft_id = ?", draftID)
-	}
+	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Goals).Order("ordinality"), draftID)
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListGoals: %w", err)
 	}
@@ -50,12 +45,26 @@ func (m *agencyManager) ListGoals(ctx context.Context, draftID string) ([]models
 	return out, nil
 }
 
+// UpdateGoal replaces g's mutable fields. GORM's struct-based Updates skips
+// zero-value fields, so this writes an explicit column map instead —
+// otherwise clearing Description to "" or Ordinality to 0 would silently
+// no-op (the same reason actor's deactivateRole uses a map, not a struct).
 func (m *agencyManager) UpdateGoal(ctx context.Context, g models.Goal) (models.Goal, error) {
-	if _, err := m.findGoalRow(ctx, m.db, g.ID); err != nil {
+	existing, err := m.findGoalRow(ctx, m.db, g.ID)
+	if err != nil {
 		return models.Goal{}, err
 	}
 	row := gormstore.GoalToRow(g)
-	if err := m.db.WithContext(ctx).Table(m.tables.Goals).Where("id = ?", g.ID).Updates(&row).Error; err != nil {
+	row.CreatedAt = existing.CreatedAt
+	cols := map[string]any{
+		"draft_id":    row.DraftID,
+		"title":       row.Title,
+		"description": row.Description,
+		"ordinality":  row.Ordinality,
+		"updated_at":  row.UpdatedAt,
+		"deleted":     row.Deleted,
+	}
+	if err := m.db.WithContext(ctx).Table(m.tables.Goals).Where("id = ?", g.ID).Updates(cols).Error; err != nil {
 		return models.Goal{}, fmt.Errorf("UpdateGoal: %w", err)
 	}
 	return gormstore.GoalFromRow(row), nil

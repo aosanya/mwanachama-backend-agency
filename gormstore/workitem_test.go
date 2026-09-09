@@ -48,6 +48,20 @@ func TestWorkItemRoundTrip_UntaggedGoal(t *testing.T) {
 	}
 }
 
+func TestWorkItemRoundTrip_DraftScoped(t *testing.T) {
+	w := models.WorkItem{ID: "wi3", WorkflowID: "w1", DraftID: "d1", Title: "Draft-scoped item"}
+
+	row := WorkItemToRow(w)
+	if row.DraftID == nil || *row.DraftID != "d1" {
+		t.Fatalf("expected DraftID column %q, got %v", "d1", row.DraftID)
+	}
+
+	got := WorkItemFromRow(row)
+	if got.DraftID != "d1" {
+		t.Fatalf("expected DraftID %q after round trip, got %q", "d1", got.DraftID)
+	}
+}
+
 func TestWorkItemRowBeforeCreateMintsID(t *testing.T) {
 	row := WorkItemRow{}
 	if err := row.BeforeCreate(nil); err != nil {

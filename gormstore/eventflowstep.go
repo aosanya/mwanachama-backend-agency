@@ -9,10 +9,10 @@ import (
 // EventFlowStepRow is the GORM row for a [models.EventFlowStep]. DraftID
 // is nullable (NULL for live), same convention as GoalRow/WorkflowRow.
 type EventFlowStepRow struct {
-	ID                 string `gorm:"primaryKey"`
+	ID                 string  `gorm:"primaryKey"`
 	DraftID            *string `gorm:"index"`
-	Code               string `gorm:"index"`
-	WorkflowCode       string `gorm:"index"`
+	Code               string  `gorm:"index"`
+	WorkflowCode       string  `gorm:"index"`
 	Step               string
 	Name               string
 	Description        string

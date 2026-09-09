@@ -22,6 +22,7 @@ func TestMigrate(t *testing.T) {
 
 	for _, table := range []string{
 		tables.Agencies, tables.Drafts, tables.Goals, tables.Workflows, tables.WorkItems,
+		tables.EventFlowSteps, tables.AgencySnapshots, tables.AgencyPublications,
 	} {
 		if !db.Migrator().HasTable(table) {
 			t.Errorf("expected table %q to exist after Migrate", table)

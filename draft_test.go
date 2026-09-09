@@ -1,0 +1,205 @@
+package mwanachamaagency_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
+	"github.com/aosanya/mwanachama-backend-agency/models"
+)
+
+// seedLiveAgency creates a live Agency with one Goal, one Workflow, and one
+// WorkItem tagged to that Goal and owned by that Workflow.
+func seedLiveAgency(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) (models.Agency, models.Goal, models.Workflow, models.WorkItem) {
+	t.Helper()
+	ag, err := mgr.CreateAgency(ctx, models.Agency{Name: "NeoLabHQ"})
+	if err != nil {
+		t.Fatalf("CreateAgency: %v", err)
+	}
+	g, err := mgr.CreateGoal(ctx, models.Goal{Title: "Grow adoption"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	w, err := mgr.CreateWorkflow(ctx, models.Workflow{Name: "Onboarding"})
+	if err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	wi, err := mgr.CreateWorkItem(ctx, models.WorkItem{WorkflowID: w.ID, GoalID: g.ID, Title: "Write charter"})
+	if err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
+	}
+	return ag, g, w, wi
+}
+
+func TestCreateDraft_ForkFromLive(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, g, w, wi := seedLiveAgency(t, mgr, ctx)
+
+	d, err := mgr.CreateDraft(ctx, "Q3 restructuring", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	if d.Status != models.DraftStatusOpen {
+		t.Fatalf("expected new draft to be open, got %q", d.Status)
+	}
+
+	liveGoals, _ := mgr.ListGoals(ctx, "")
+	if len(liveGoals) != 1 || liveGoals[0].ID != g.ID {
+		t.Fatalf("live goals should be unchanged, got %+v", liveGoals)
+	}
+
+	draftGoals, err := mgr.ListGoals(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("ListGoals(draft): %v", err)
+	}
+	if len(draftGoals) != 1 || draftGoals[0].ID == g.ID {
+		t.Fatalf("expected one draft-scoped goal copy with a new id, got %+v", draftGoals)
+	}
+
+	draftWorkflows, _ := mgr.ListWorkflows(ctx, d.ID)
+	if len(draftWorkflows) != 1 || draftWorkflows[0].ID == w.ID {
+		t.Fatalf("expected one draft-scoped workflow copy with a new id, got %+v", draftWorkflows)
+	}
+
+	draftWorkItems, err := mgr.ListWorkItems(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("ListWorkItems(draft): %v", err)
+	}
+	if len(draftWorkItems) != 1 || draftWorkItems[0].ID == wi.ID {
+		t.Fatalf("expected one draft-scoped work item copy with a new id, got %+v", draftWorkItems)
+	}
+	if draftWorkItems[0].WorkflowID != draftWorkflows[0].ID {
+		t.Fatalf("expected WorkItem.WorkflowID remapped to the draft-scoped workflow copy, got %q want %q",
+			draftWorkItems[0].WorkflowID, draftWorkflows[0].ID)
+	}
+	if draftWorkItems[0].GoalID != draftGoals[0].ID {
+		t.Fatalf("expected WorkItem.GoalID remapped to the draft-scoped goal copy, got %q want %q",
+			draftWorkItems[0].GoalID, draftGoals[0].ID)
+	}
+}
+
+func TestCreateDraft_ForkFromOpenDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, _, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	d1, err := mgr.CreateDraft(ctx, "first draft", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft d1: %v", err)
+	}
+
+	d2, err := mgr.CreateDraft(ctx, "forked from first draft", d1.ID, "draft")
+	if err != nil {
+		t.Fatalf("CreateDraft d2: %v", err)
+	}
+
+	d2Goals, err := mgr.ListGoals(ctx, d2.ID)
+	if err != nil {
+		t.Fatalf("ListGoals(d2): %v", err)
+	}
+	if len(d2Goals) != 1 {
+		t.Fatalf("expected d2 to inherit d1's one goal, got %d", len(d2Goals))
+	}
+}
+
+func TestCreateDraft_ForkFromNonOpenDraftRefused(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, _, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	d1, err := mgr.CreateDraft(ctx, "will be archived", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	if _, err := mgr.ArchiveDraft(ctx, d1.ID); err != nil {
+		t.Fatalf("ArchiveDraft: %v", err)
+	}
+
+	if _, err := mgr.CreateDraft(ctx, "forked from archived", d1.ID, "draft"); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
+		t.Fatalf("expected ErrDraftNotOpen forking from an archived draft, got %v", err)
+	}
+}
+
+func TestPromoteDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, g, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	d, err := mgr.CreateDraft(ctx, "rename the goal", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	draftGoals, _ := mgr.ListGoals(ctx, d.ID)
+	edited := draftGoals[0]
+	edited.Title = "Grow adoption worldwide"
+	if _, err := mgr.UpdateGoal(ctx, edited); err != nil {
+		t.Fatalf("UpdateGoal: %v", err)
+	}
+
+	promoted, err := mgr.PromoteDraft(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("PromoteDraft: %v", err)
+	}
+	if !promoted.Enabled {
+		t.Fatal("expected Agency.Enabled to be true after promotion")
+	}
+
+	liveGoals, err := mgr.ListGoals(ctx, "")
+	if err != nil {
+		t.Fatalf("ListGoals: %v", err)
+	}
+	if len(liveGoals) != 1 {
+		t.Fatalf("expected exactly 1 live goal after promotion, got %d", len(liveGoals))
+	}
+	if liveGoals[0].Title != "Grow adoption worldwide" {
+		t.Fatalf("expected promoted goal's edited title to be live, got %q", liveGoals[0].Title)
+	}
+	if liveGoals[0].ID == g.ID {
+		t.Fatal("expected the old live goal to have been replaced, not reused")
+	}
+
+	gotDraft, err := mgr.GetDraft(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("GetDraft: %v", err)
+	}
+	if gotDraft.Status != models.DraftStatusPromoted {
+		t.Fatalf("expected draft status promoted, got %q", gotDraft.Status)
+	}
+
+	if _, err := mgr.PromoteDraft(ctx, d.ID); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
+		t.Fatalf("expected ErrDraftNotOpen re-promoting an already-promoted draft, got %v", err)
+	}
+}
+
+func TestArchiveDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, _, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	d, err := mgr.CreateDraft(ctx, "abandoned idea", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	archived, err := mgr.ArchiveDraft(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("ArchiveDraft: %v", err)
+	}
+	if archived.Status != models.DraftStatusArchived {
+		t.Fatalf("expected archived status, got %q", archived.Status)
+	}
+
+	// Archived draft's copies are left in place, matching source.
+	draftGoals, err := mgr.ListGoals(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("ListGoals(archived draft): %v", err)
+	}
+	if len(draftGoals) != 1 {
+		t.Fatalf("expected the archived draft's goal copy to remain, got %d", len(draftGoals))
+	}
+
+	if _, err := mgr.ArchiveDraft(ctx, d.ID); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
+		t.Fatalf("expected ErrDraftNotOpen re-archiving, got %v", err)
+	}
+}

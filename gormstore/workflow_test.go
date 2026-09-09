@@ -29,6 +29,20 @@ func TestWorkflowRoundTrip(t *testing.T) {
 	}
 }
 
+func TestWorkflowRoundTrip_DraftScoped(t *testing.T) {
+	w := models.Workflow{ID: "w2", DraftID: "d1", Name: "Draft-scoped workflow"}
+
+	row := WorkflowToRow(w)
+	if row.DraftID == nil || *row.DraftID != "d1" {
+		t.Fatalf("expected DraftID column %q, got %v", "d1", row.DraftID)
+	}
+
+	got := WorkflowFromRow(row)
+	if got.DraftID != "d1" {
+		t.Fatalf("expected DraftID %q after round trip, got %q", "d1", got.DraftID)
+	}
+}
+
 func TestWorkflowRowBeforeCreateMintsID(t *testing.T) {
 	row := WorkflowRow{}
 	if err := row.BeforeCreate(nil); err != nil {
