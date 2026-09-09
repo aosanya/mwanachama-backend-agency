@@ -208,6 +208,13 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   that scope. `ListRoleAssignmentsForWorkItem` is the lookup K6 actually
   needs ("who is assigned to this WorkItem, with what RACI label").
 
+- **AG7 landed 2026-09-09: `SeedNeoLabHQ`, an exported seed function** (not
+  a script — this repo has no CLI/deployment yet). Reaffirms, rather than
+  reopens, AG6's unscoped-`Role` decision: creates a real "Software"
+  `Department` for context, but `Role` still doesn't reference it, even
+  though this task's own text frames personas as "Roles under one
+  software-type department."
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`
