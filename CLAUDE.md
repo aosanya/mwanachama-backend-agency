@@ -227,6 +227,22 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   is the one manager method deliberately not exposed (internal seeding
   hook, not a requested write surface).
 
+- **AG10 landed 2026-09-09: wired into `mwanachama-backend-api-gateway`.**
+  Last item on this repo's board — AG1–AG10 all done. Followed git/
+  taskmanager's single-instance gateway-wiring pattern (one `*gorm.DB`
+  wrapper around the gateway's existing shared connection, mounted at
+  `/v1/agency/...` behind `AGENCY_ROUTES=true`, gated by a single
+  `CapAgencyRead`/`CapAgencyWrite` pair, org-wide not chapter-scoped) —
+  not actor's multi-instance `userInstances` registry, since this
+  package's `DefaultTableNames` takes one fixed instance label the same
+  way git's/taskmanager's do. The gateway repo has its own hard test gate
+  requiring every registered route to carry a real Postman request
+  (`TestPostmanCollectionCoversEveryRoute`); satisfying it needed 60
+  chained coverage requests covering all 56 route patterns, added to that
+  repo's `operator-capabilities.postman_collection.json` (see that repo's
+  own CLAUDE.md/todo_done.md for the full record — this repo's board only
+  tracks that the wiring task is done, not the gateway's own internals).
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`
