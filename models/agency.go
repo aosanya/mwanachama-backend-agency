@@ -15,8 +15,8 @@ type Agency struct {
 	InactivityTimeoutSeconds     int    `json:"inactivity_timeout_seconds"`
 	// EventFlows is a raw JSON blob, ported as-is from CodeValdAgency —
 	// Workflow.EventFlows falls back to this value when its own is empty.
-	EventFlows   string `json:"event_flows,omitempty"`
-	CreatedAt    string `json:"created_at"`
-	LastUpdated  string `json:"last_updated"`
-	Deleted      bool   `json:"deleted"`
+	EventFlows  string `json:"event_flows,omitempty"`
+	CreatedAt   string `json:"created_at"`
+	LastUpdated string `json:"last_updated"`
+	Deleted     bool   `json:"deleted"`
 }

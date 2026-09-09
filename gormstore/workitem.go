@@ -16,8 +16,8 @@ import (
 // mounted instance via db.Table(...), which a GORM-managed association
 // would not follow).
 type WorkItemRow struct {
-	ID          string `gorm:"primaryKey"`
-	WorkflowID  string `gorm:"index"`
+	ID          string  `gorm:"primaryKey"`
+	WorkflowID  string  `gorm:"index"`
 	GoalID      *string `gorm:"index"`
 	Title       string
 	Description string

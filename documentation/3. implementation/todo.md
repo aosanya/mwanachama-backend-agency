@@ -5,7 +5,6 @@ Everything else (completed rows, board context) is in [todo_done.md](todo_done.m
 
 | ID | Pri | Status | Task | Depends on |
 |---|---|---|---|---|
-| AG3 | P1 | 📋 | Port `CodeValdAgency`'s domain types onto GORM, following `mwanachama-backend-actor`'s exact shape: `models/` (Agency, Draft, Goal, Workflow, WorkItem — one file each), `gormstore/` (row structs, `Migrate`/`TableNames`), root `doc.go`/`tables.go`. Drop `AgencyID`-style single-tenancy from `CodeValdAgency`'s model in favor of AG5's department scoping. | AG2 |
 | AG4 | P1 | 📋 | Port `drafts.go`'s edit lifecycle (`CreateDraft`→edit→`PromoteDraft`→`PublishAgency`, SHA-256 `AgencyPublication`) and `event_flow_steps.go`'s per-workflow ordered lookup, adapted onto AG3's GORM types. | AG3 |
 | AG5 | P1 | 📋 | Model the org chart as a local, self-contained type shaped like `mwanachama-backend-actor`'s Group/Hierarchy pattern (parent/child departments, named levels) — no `go.mod` dependency on actor, no live sync or provisioning calls to it (decision #8: Agency is a declarative document, not an operational store). | AG3 |
 | AG6 | P1 | 📋 | Build the RACI matrix: `Role` model, Role-to-WorkItem assignment with a Responsible/Accountable/Consulted/Informed label, and validation (e.g. at most one Accountable per WorkItem). Net new — nothing to port. **Has a real downstream dependent, 2026-09-09**: `mwanachama-backend-api-kazi`'s K6 (human-in-the-loop write approval) reads this RACI document to decide which agent-initiated writes need human approval — its own board is blocked on this landing. | AG3, AG5 |
