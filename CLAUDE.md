@@ -215,6 +215,18 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   though this task's own text frames personas as "Roles under one
   software-type department."
 
+- **AG9 landed 2026-09-09: `routes/`, matching actor's `routes/` package
+  exactly.** Pure `net/http`, Go 1.22+ `ServeMux` wildcard paths, no router
+  dependency. `Route`/`ResourceNames` (per-domain-noun overrides) live in
+  `routes.go`; every domain gets its own file with its own
+  `<domain>StatusFor`/`write<Domain>Err` pair (not shared — sentinel sets
+  differ per domain, matching actor's own duplication). No
+  `HierarchyChecker`-equivalent needed: unlike actor's `CreateGroup`/
+  `EditGroup`, none of Agency's `Create`/`Update` methods need an
+  HTTP-layer cross-check the manager doesn't already do. `CreateEventFlowStep`
+  is the one manager method deliberately not exposed (internal seeding
+  hook, not a requested write surface).
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`
