@@ -49,12 +49,63 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
 - Timestamps are hand-formatted RFC3339-nano strings (`models/time.go`,
   ported verbatim from actor's), not GORM-managed `time.Time` columns —
   same reasoning as actor's own `models/time.go` doc comment.
-- No manager interface, `*_impl.go`, or `errors.go` exist yet — AG3 was
-  scoped to data shape and migration plumbing only. AG4+ adds behavior.
-- Worth a closer read before AG8: a shallow pass over `CodeValdAgency/
-  raci.go` suggested it might be a live, non-proto RACI implementation
-  rather than purely the WorkPlan/`ContextSource` event-routing logic this
-  repo's requirements.md describes it as. Not resolved, not blocking AG3.
+- **AG4 landed 2026-09-09: the first behavior/manager layer.** `AgencyManager`
+  interface + `agencyManager` struct live in root `agency.go` (named after
+  the domain, like `CodeValdAgency`'s own `agency.go` — not copying actor's
+  `UserManager`/`user.go` naming). Explicit user instruction: GORM only, no
+  ArangoDB/entitygraph concepts, keep it simple.
+- **Draft-scoped rows reuse the live tables via a nullable `DraftID`
+  column** (`""` = live) on `Goal`/`Workflow`/`WorkItem`/`EventFlowStep`,
+  not separate `DraftGoal`/etc. types — one CRUD method per type serves
+  both scopes (`List<Type>(ctx, draftID)`). `PromoteDraft` deletes the old
+  live rows and flips the draft's own rows' `DraftID` to `""` — no
+  copy-and-swap needed at promote time, unlike source (which mints new IDs
+  on both fork *and* promote; this port only mints once, at fork time).
+- **`PublishAgency` requires `Draft.Status == promoted`** when given a
+  draftID (`ErrDraftNotPromoted` otherwise), and hashes/versions whatever
+  is currently live rather than redoing the copy-and-swap. This closes a
+  real source bug: there, `PublishAgency` never checks draft status and
+  always re-copies, so calling it after `PromoteDraft` silently
+  double-promotes. `AgencyPublicationStatus` was folded into
+  `AgencyPublication.Status` — a GORM row is already mutable, unlike an
+  immutable entitygraph entity, so the second mutable-status entity source
+  needed has no reason to exist here.
+- `models.DraftStatus.CanTransitionTo` (added in AG3, unused until now) is
+  actually called by `PromoteDraft`/`ArchiveDraft`, closing a source gap
+  where the same rule was declared but re-implemented ad hoc at every call
+  site instead of used.
+- `CreateDraft`'s fork-copy remaps both `WorkItem.WorkflowID` and `.GoalID`
+  via old→new id maps built while copying Goals/Workflows (source only
+  remapped the Workflow ref — a correctness fix, not scope creep).
+  `EventFlowStep` copies need no remap since they join `Workflow` by the
+  `WorkflowCode` business key, not a row id.
+- Content hash (`AgencyPublication.ContentHash`) covers live
+  Goal/Workflow/WorkItem/EventFlowStep + Agency name/mission/vision, sorted
+  JSON-per-row joined with `"\n"`, SHA-256, hex. Source's hash omitted
+  `EventFlowStep` entirely and included `WorkPlan`, which isn't part of
+  this repo yet (AG8) — extend the hash inputs when AG6/AG8 land their own
+  content.
+- `UpdateGoal`/`UpdateWorkflow`/`UpdateWorkItem` write an explicit
+  `map[string]any` of columns rather than `Updates(&row)` — GORM's
+  struct-based `Updates` silently skips zero-value fields, so a plain
+  struct update would no-op on clearing a field to `""`/`0`/`false`.
+- Minimal CRUD only (`Create`/`Get`/`List`/`Update`, no `Delete`) for
+  Agency/Goal/Workflow/WorkItem — necessary supporting infrastructure for
+  the draft lifecycle (nothing else on the board builds it), not itself a
+  line item. `ConfiguredRole`/`WorkPlan`/`ContextSource` stay excluded
+  (other tasks' scope); `Instruction`/`Deliverable`/`DeliverableResult`/
+  `ContentRef` are never ported at all — source's own `drafts.go` never
+  copies that family either despite the schema declaring them
+  Draft-copyable, so nothing is lost leaving them out. The
+  `Workflow.EventFlows`-JSON-to-`EventFlowStep` import pipeline is separate
+  machinery in source (`import_event_flow_steps.go`), not part of
+  `drafts.go`/`event_flow_steps.go` — out of scope; `CreateEventFlowStep`
+  exists for direct population instead.
+- **Resolved, not carried forward from AG3's note:** a peer session
+  grepped `CodeValdAgency/raci.go` directly and confirmed it's genuinely
+  all WorkPlan/`ContextSource` CRUD with zero RACI logic (every
+  RACI-labeled hit is in generated proto code) — matching requirements.md's
+  original read. AG8 does not need a closer look at it.
 
 ## Conventions
 
