@@ -13,6 +13,10 @@ type TableNames struct {
 	EventFlowSteps     string
 	AgencySnapshots    string
 	AgencyPublications string
+	WorkPlans          string
+	ContextSources     string
+	Departments        string
+	Levels             string
 }
 
 // DefaultTableNames builds the conventional table set for one mounted
@@ -27,6 +31,10 @@ func DefaultTableNames(instance string) TableNames {
 		EventFlowSteps:     instance + "_event_flow_steps",
 		AgencySnapshots:    instance + "_agency_snapshots",
 		AgencyPublications: instance + "_agency_publications",
+		WorkPlans:          instance + "_work_plans",
+		ContextSources:     instance + "_context_sources",
+		Departments:        instance + "_departments",
+		Levels:             instance + "_levels",
 	}
 }
 
@@ -54,6 +62,18 @@ func Migrate(db *gorm.DB, t TableNames) error {
 		return err
 	}
 	if err := db.Table(t.AgencyPublications).AutoMigrate(&AgencyPublicationRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.WorkPlans).AutoMigrate(&WorkPlanRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.ContextSources).AutoMigrate(&ContextSourceRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.Levels).AutoMigrate(&LevelRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.Departments).AutoMigrate(&DepartmentRow{}); err != nil {
 		return err
 	}
 	return nil

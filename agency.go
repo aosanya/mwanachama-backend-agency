@@ -73,6 +73,47 @@ type AgencyManager interface {
 	// ListEventFlowSteps returns live steps ordered by (WorkflowCode,
 	// Ordinality, Step), optionally filtered to one workflowCode.
 	ListEventFlowSteps(ctx context.Context, workflowCode string) ([]models.EventFlowStep, error)
+
+	// WorkPlan. CreateWorkPlan/UpdateWorkPlan return [ErrInvalidRegex] if
+	// TriggerTopic or PayloadCondition does not compile as a Go regexp.
+	CreateWorkPlan(ctx context.Context, w models.WorkPlan) (models.WorkPlan, error)
+	GetWorkPlan(ctx context.Context, id string) (models.WorkPlan, error)
+	ListWorkPlans(ctx context.Context) ([]models.WorkPlan, error)
+	UpdateWorkPlan(ctx context.Context, w models.WorkPlan) (models.WorkPlan, error)
+	// MatchWorkPlans evaluates topic/payload against every enabled
+	// WorkPlan's TriggerTopic/PayloadCondition regex, returning matches
+	// (with their ContextSources) ordered by Ordinality ascending.
+	MatchWorkPlans(ctx context.Context, topic, payload string) ([]models.WorkPlanMatch, error)
+
+	// ContextSource. AddContextSource/ListContextSources return
+	// [ErrWorkPlanNotFound] if workPlanID names no WorkPlan.
+	AddContextSource(ctx context.Context, workPlanID string, cs models.ContextSource) (models.ContextSource, error)
+	ListContextSources(ctx context.Context, workPlanID string) ([]models.ContextSource, error)
+	// RemoveContextSource returns [ErrContextSourceNotFound] if sourceID
+	// names no ContextSource, or names one belonging to a different
+	// WorkPlan than workPlanID.
+	RemoveContextSource(ctx context.Context, workPlanID, sourceID string) error
+
+	// Department. The org chart is a local, self-contained parent/child
+	// tree (no dependency on mwanachama-backend-actor's own Group/Hierarchy
+	// tables).
+	CreateDepartment(ctx context.Context, d models.Department) (models.Department, error)
+	GetDepartment(ctx context.Context, id string) (models.Department, error)
+	ListDepartments(ctx context.Context) ([]models.Department, error)
+	ListDepartmentChildren(ctx context.Context, parentID string) ([]models.Department, error)
+	RenameDepartment(ctx context.Context, id, name string) (models.Department, error)
+	// MoveDepartment returns [ErrParentIsSelf], [ErrRootCannotMove],
+	// [ErrParentNotFound], or [ErrParentInSubtree] where noted on each.
+	MoveDepartment(ctx context.Context, id, newParentID string) (models.Department, error)
+
+	// Level. A named rung in the Department tree.
+	CreateLevel(ctx context.Context, l models.Level) (models.Level, error)
+	GetLevel(ctx context.Context, id string) (models.Level, error)
+	ListLevels(ctx context.Context) ([]models.Level, error)
+	RenameLevel(ctx context.Context, id, name string) (models.Level, error)
+	// DeleteLevel returns [ErrLevelWornByDepartments] if any Department
+	// still references id.
+	DeleteLevel(ctx context.Context, id string) error
 }
 
 type agencyManager struct {
