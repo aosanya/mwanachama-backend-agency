@@ -173,6 +173,41 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   `gormstore/tables.go`/`errors.go`/root `agency.go` interface, no actual
   overlap.
 
+- **AG6 landed 2026-09-09: `Role`/`RoleAssignment`, the RACI matrix.** Net
+  new. `Role` stays unscoped — no `DepartmentID`, despite AG5 deferring
+  exactly this question here and AG7's task text framing personas as
+  "Roles under one software-type department." Revisit later if something
+  concrete needs it.
+- **"A live role cannot be edited. A draft is a draft of everything
+  including the role."** `Role`/`RoleAssignment` carry the same nullable
+  `DraftID` (`""` = live) as Goal/Workflow/WorkItem/EventFlowStep, and
+  `UpdateRole`/`DeleteRole`/`UpdateRoleAssignment`/`DeleteRoleAssignment`
+  refuse with `ErrCannotEditLiveRACI` on a live row — editing means fork a
+  Draft, edit the draft-scoped copy, promote. This surfaced a real gap
+  while designing AG6: `PromoteDraft` replaces *every* live WorkItem row
+  on every promotion (minting new ids even for untouched ones), so a
+  `RoleAssignment` referencing a `WorkItemID` would otherwise go stale
+  after any future promotion — confirmed to matter in practice by a peer
+  session working `mwanachama-backend-api-kazi`'s K6, which needs RACI to
+  find who to notify for a WorkItem.
+- **This reopens and extends AG4's already-shipped `CreateDraft`/
+  `PromoteDraft`/`liveContentHash`**, not just two new tables in
+  isolation: `CreateDraft`'s WorkItem-copy loop gained a `workItemIDMap`
+  (nothing needed one before Role/RoleAssignment existed), plus two new
+  copy loops (Role, then RoleAssignment remapping `RoleID`/`WorkItemID`
+  via the id maps built while copying). `PromoteDraft`'s delete-old-live
+  and flip-to-live blocks each gained `Roles`/`RoleAssignments` alongside
+  the existing four tables — same shape, no new pattern. `liveContentHash`
+  gained live Role/RoleAssignment records, so a RACI-only edit now
+  requires republishing rather than silently taking effect.
+- `CreateRoleAssignment`/`UpdateRoleAssignment` validate `Label` against
+  the four RACI values, that the referenced `Role`/`WorkItem` exist *in
+  the same scope* as the assignment (not just that the id exists
+  somewhere — a draft-scoped Role cannot be assigned to a live WorkItem or
+  vice versa), and the "at most one Accountable per WorkItem" rule within
+  that scope. `ListRoleAssignmentsForWorkItem` is the lookup K6 actually
+  needs ("who is assigned to this WorkItem, with what RACI label").
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`
