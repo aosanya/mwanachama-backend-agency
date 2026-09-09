@@ -80,6 +80,53 @@ func TestCreateDraft_ForkFromLive(t *testing.T) {
 	}
 }
 
+func TestCreateDraft_ForksRoleAssignments(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, _, _, wi := seedLiveAgency(t, mgr, ctx)
+
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable,
+	})
+	if err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+
+	d, err := mgr.CreateDraft(ctx, "restaff the work item", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+
+	draftRoles, err := mgr.ListRoles(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("ListRoles(draft): %v", err)
+	}
+	if len(draftRoles) != 1 || draftRoles[0].ID == role.ID {
+		t.Fatalf("expected one draft-scoped role copy with a new id, got %+v", draftRoles)
+	}
+
+	draftWorkItems, _ := mgr.ListWorkItems(ctx, d.ID)
+	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("ListRoleAssignments(draft): %v", err)
+	}
+	if len(draftAssignments) != 1 || draftAssignments[0].ID == assignment.ID {
+		t.Fatalf("expected one draft-scoped assignment copy with a new id, got %+v", draftAssignments)
+	}
+	if draftAssignments[0].RoleID != draftRoles[0].ID {
+		t.Fatalf("expected RoleAssignment.RoleID remapped to the draft-scoped role copy, got %q want %q",
+			draftAssignments[0].RoleID, draftRoles[0].ID)
+	}
+	if draftAssignments[0].WorkItemID != draftWorkItems[0].ID {
+		t.Fatalf("expected RoleAssignment.WorkItemID remapped to the draft-scoped work item copy, got %q want %q",
+			draftAssignments[0].WorkItemID, draftWorkItems[0].ID)
+	}
+}
+
 func TestCreateDraft_ForkFromOpenDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -125,7 +172,17 @@ func TestCreateDraft_ForkFromNonOpenDraftRefused(t *testing.T) {
 func TestPromoteDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, g, _, _ := seedLiveAgency(t, mgr, ctx)
+	ag, g, _, wi := seedLiveAgency(t, mgr, ctx)
+
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelResponsible,
+	}); err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
 
 	d, err := mgr.CreateDraft(ctx, "rename the goal", ag.ID, "live")
 	if err != nil {
@@ -136,6 +193,16 @@ func TestPromoteDraft(t *testing.T) {
 	edited.Title = "Grow adoption worldwide"
 	if _, err := mgr.UpdateGoal(ctx, edited); err != nil {
 		t.Fatalf("UpdateGoal: %v", err)
+	}
+
+	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID)
+	if err != nil {
+		t.Fatalf("ListRoleAssignments(draft): %v", err)
+	}
+	editedAssignment := draftAssignments[0]
+	editedAssignment.Label = models.RACILabelAccountable
+	if _, err := mgr.UpdateRoleAssignment(ctx, editedAssignment); err != nil {
+		t.Fatalf("UpdateRoleAssignment: %v", err)
 	}
 
 	promoted, err := mgr.PromoteDraft(ctx, d.ID)
@@ -158,6 +225,18 @@ func TestPromoteDraft(t *testing.T) {
 	}
 	if liveGoals[0].ID == g.ID {
 		t.Fatal("expected the old live goal to have been replaced, not reused")
+	}
+
+	liveAssignments, err := mgr.ListRoleAssignments(ctx, "")
+	if err != nil {
+		t.Fatalf("ListRoleAssignments: %v", err)
+	}
+	if len(liveAssignments) != 1 || liveAssignments[0].Label != models.RACILabelAccountable {
+		t.Fatalf("expected the draft's edited Accountable label to be live, got %+v", liveAssignments)
+	}
+	if liveAssignments[0].ID != editedAssignment.ID {
+		t.Fatalf("expected the draft-scoped assignment to be promoted in place (same id, DraftID flipped to live), got %q want %q",
+			liveAssignments[0].ID, editedAssignment.ID)
 	}
 
 	gotDraft, err := mgr.GetDraft(ctx, d.ID)

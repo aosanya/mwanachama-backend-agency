@@ -35,9 +35,12 @@ func (m *agencyManager) findDraftRow(ctx context.Context, tx *gorm.DB, id string
 // CreateDraft forks the sub-graph scoped to forkedFromID (an Agency.ID when
 // forkedFromType=="live", or another open Draft's ID when
 // forkedFromType=="draft") into brand-new Goal/Workflow/WorkItem/
-// EventFlowStep rows scoped to the new Draft. WorkItem's WorkflowID/GoalID
-// are remapped to the copies' new ids; EventFlowStep needs no remap (it
-// joins Workflow by the WorkflowCode business key, not a row id).
+// EventFlowStep/Role/RoleAssignment rows scoped to the new Draft.
+// WorkItem's WorkflowID/GoalID and RoleAssignment's RoleID/WorkItemID are
+// remapped to the copies' new ids; EventFlowStep needs no remap (it joins
+// Workflow by the WorkflowCode business key, not a row id). A live Role
+// can only be edited by forking it into a draft this way, editing the
+// copy, then promoting.
 func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFromID, forkedFromType string) (models.Draft, error) {
 	var out models.Draft
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -106,8 +109,10 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 		if err := scopeQuery(tx.Table(m.tables.WorkItems), sourceScope).Find(&workItemRows).Error; err != nil {
 			return fmt.Errorf("CreateDraft: %w", err)
 		}
+		workItemIDMap := make(map[string]string, len(workItemRows))
 		for _, wir := range workItemRows {
 			wi := gormstore.WorkItemFromRow(wir)
+			oldID := wi.ID
 			wi.ID, wi.DraftID, wi.CreatedAt = "", newDraftID, now
 			if mapped, ok := workflowIDMap[wi.WorkflowID]; ok {
 				wi.WorkflowID = mapped
@@ -121,6 +126,7 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			if err := tx.Table(m.tables.WorkItems).Create(&newRow).Error; err != nil {
 				return fmt.Errorf("CreateDraft: %w", err)
 			}
+			workItemIDMap[oldID] = newRow.ID
 		}
 
 		var stepRows []gormstore.EventFlowStepRow
@@ -132,6 +138,41 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			s.ID, s.DraftID, s.CreatedAt = "", newDraftID, now
 			newRow := gormstore.EventFlowStepToRow(s)
 			if err := tx.Table(m.tables.EventFlowSteps).Create(&newRow).Error; err != nil {
+				return fmt.Errorf("CreateDraft: %w", err)
+			}
+		}
+
+		var roleRows []gormstore.RoleRow
+		if err := scopeQuery(tx.Table(m.tables.Roles), sourceScope).Find(&roleRows).Error; err != nil {
+			return fmt.Errorf("CreateDraft: %w", err)
+		}
+		roleIDMap := make(map[string]string, len(roleRows))
+		for _, rr := range roleRows {
+			r := gormstore.RoleFromRow(rr)
+			oldID := r.ID
+			r.ID, r.DraftID, r.CreatedAt = "", newDraftID, now
+			newRow := gormstore.RoleToRow(r)
+			if err := tx.Table(m.tables.Roles).Create(&newRow).Error; err != nil {
+				return fmt.Errorf("CreateDraft: %w", err)
+			}
+			roleIDMap[oldID] = newRow.ID
+		}
+
+		var assignmentRows []gormstore.RoleAssignmentRow
+		if err := scopeQuery(tx.Table(m.tables.RoleAssignments), sourceScope).Find(&assignmentRows).Error; err != nil {
+			return fmt.Errorf("CreateDraft: %w", err)
+		}
+		for _, ar := range assignmentRows {
+			a := gormstore.RoleAssignmentFromRow(ar)
+			a.ID, a.DraftID, a.CreatedAt = "", newDraftID, now
+			if mapped, ok := roleIDMap[a.RoleID]; ok {
+				a.RoleID = mapped
+			}
+			if mapped, ok := workItemIDMap[a.WorkItemID]; ok {
+				a.WorkItemID = mapped
+			}
+			newRow := gormstore.RoleAssignmentToRow(a)
+			if err := tx.Table(m.tables.RoleAssignments).Create(&newRow).Error; err != nil {
 				return fmt.Errorf("CreateDraft: %w", err)
 			}
 		}
@@ -184,11 +225,11 @@ func (m *agencyManager) UpdateDraftDescription(ctx context.Context, id, descript
 }
 
 // PromoteDraft requires the Draft to be open. It deletes the current live
-// Goal/Workflow/WorkItem/EventFlowStep rows, flips the Draft's own rows'
-// DraftID to "" (making them live — no copy-and-swap needed since a
-// [models.Draft]-scoped row already exists and just needs reclassifying),
-// writes an AgencySnapshot, marks the Agency enabled, and marks the Draft
-// promoted.
+// Goal/Workflow/WorkItem/EventFlowStep/Role/RoleAssignment rows, flips the
+// Draft's own rows' DraftID to "" (making them live — no copy-and-swap
+// needed since a [models.Draft]-scoped row already exists and just needs
+// reclassifying), writes an AgencySnapshot, marks the Agency enabled, and
+// marks the Draft promoted.
 func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (models.Agency, error) {
 	var out models.Agency
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -213,6 +254,12 @@ func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (model
 		if err := tx.Table(m.tables.EventFlowSteps).Where("draft_id IS NULL").Delete(&gormstore.EventFlowStepRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
+		if err := tx.Table(m.tables.Roles).Where("draft_id IS NULL").Delete(&gormstore.RoleRow{}).Error; err != nil {
+			return fmt.Errorf("PromoteDraft: %w", err)
+		}
+		if err := tx.Table(m.tables.RoleAssignments).Where("draft_id IS NULL").Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+			return fmt.Errorf("PromoteDraft: %w", err)
+		}
 
 		now := models.NowRFC3339()
 		promote := map[string]any{"draft_id": nil, "updated_at": now}
@@ -226,6 +273,12 @@ func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (model
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
 		if err := tx.Table(m.tables.EventFlowSteps).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
+			return fmt.Errorf("PromoteDraft: %w", err)
+		}
+		if err := tx.Table(m.tables.Roles).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
+			return fmt.Errorf("PromoteDraft: %w", err)
+		}
+		if err := tx.Table(m.tables.RoleAssignments).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
 

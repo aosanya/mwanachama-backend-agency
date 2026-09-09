@@ -114,6 +114,36 @@ type AgencyManager interface {
 	// DeleteLevel returns [ErrLevelWornByDepartments] if any Department
 	// still references id.
 	DeleteLevel(ctx context.Context, id string) error
+
+	// Role. A live Role cannot be edited directly — fork a Draft, edit the
+	// draft-scoped copy, then promote. List's draftID selects scope, same
+	// as Goal/Workflow/WorkItem.
+	CreateRole(ctx context.Context, r models.Role) (models.Role, error)
+	GetRole(ctx context.Context, id string) (models.Role, error)
+	ListRoles(ctx context.Context, draftID string) ([]models.Role, error)
+	// UpdateRole/DeleteRole return [ErrCannotEditLiveRACI] if the target
+	// row is live.
+	UpdateRole(ctx context.Context, r models.Role) (models.Role, error)
+	DeleteRole(ctx context.Context, id string) error
+
+	// RoleAssignment. Assigns a Role to a WorkItem with a RACILabel; same
+	// live-immutability rule as Role.
+	//
+	// CreateRoleAssignment/UpdateRoleAssignment return [ErrInvalidRACILabel]
+	// for an invalid Label, [ErrRoleNotFound]/[ErrWorkItemNotFound] if the
+	// referenced Role/WorkItem doesn't exist in the same scope, or
+	// [ErrDuplicateAccountable] if another assignment in that scope already
+	// labels the WorkItem Accountable.
+	CreateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
+	GetRoleAssignment(ctx context.Context, id string) (models.RoleAssignment, error)
+	ListRoleAssignments(ctx context.Context, draftID string) ([]models.RoleAssignment, error)
+	// ListRoleAssignmentsForWorkItem answers "who is assigned to this
+	// WorkItem, and with what RACI label".
+	ListRoleAssignmentsForWorkItem(ctx context.Context, workItemID, draftID string) ([]models.RoleAssignment, error)
+	// UpdateRoleAssignment/DeleteRoleAssignment return
+	// [ErrCannotEditLiveRACI] if the target row is live.
+	UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
+	DeleteRoleAssignment(ctx context.Context, id string) error
 }
 
 type agencyManager struct {

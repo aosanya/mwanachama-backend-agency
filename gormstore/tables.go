@@ -17,6 +17,8 @@ type TableNames struct {
 	ContextSources     string
 	Departments        string
 	Levels             string
+	Roles              string
+	RoleAssignments    string
 }
 
 // DefaultTableNames builds the conventional table set for one mounted
@@ -35,6 +37,8 @@ func DefaultTableNames(instance string) TableNames {
 		ContextSources:     instance + "_context_sources",
 		Departments:        instance + "_departments",
 		Levels:             instance + "_levels",
+		Roles:              instance + "_roles",
+		RoleAssignments:    instance + "_role_assignments",
 	}
 }
 
@@ -74,6 +78,12 @@ func Migrate(db *gorm.DB, t TableNames) error {
 		return err
 	}
 	if err := db.Table(t.Departments).AutoMigrate(&DepartmentRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.Roles).AutoMigrate(&RoleRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.RoleAssignments).AutoMigrate(&RoleAssignmentRow{}); err != nil {
 		return err
 	}
 	return nil

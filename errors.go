@@ -64,4 +64,23 @@ var (
 	// ErrLevelWornByDepartments is returned by DeleteLevel when a
 	// Department still references the level.
 	ErrLevelWornByDepartments = errors.New("mwanachamaagency: level is in use by a department")
+	// ErrInvalidRole is returned by CreateRole/UpdateRole when Name is empty.
+	ErrInvalidRole = errors.New("mwanachamaagency: invalid role")
+	// ErrRoleNotFound is returned when a Role id has no match in the
+	// expected scope.
+	ErrRoleNotFound = errors.New("mwanachamaagency: role not found")
+	// ErrRoleAssignmentNotFound is returned when a RoleAssignment id has no
+	// match.
+	ErrRoleAssignmentNotFound = errors.New("mwanachamaagency: role assignment not found")
+	// ErrInvalidRACILabel is returned by CreateRoleAssignment/
+	// UpdateRoleAssignment when Label is not one of the four RACI values.
+	ErrInvalidRACILabel = errors.New("mwanachamaagency: invalid RACI label")
+	// ErrDuplicateAccountable is returned by CreateRoleAssignment/
+	// UpdateRoleAssignment when another assignment in the same scope
+	// already labels the WorkItem Accountable.
+	ErrDuplicateAccountable = errors.New("mwanachamaagency: work item already has an accountable role")
+	// ErrCannotEditLiveRACI is returned by UpdateRole/DeleteRole/
+	// UpdateRoleAssignment/DeleteRoleAssignment when the target row is
+	// live (DraftID == "") — edit within a draft, then promote.
+	ErrCannotEditLiveRACI = errors.New("mwanachamaagency: live RACI data cannot be edited directly, edit within a draft")
 )

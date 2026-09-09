@@ -17,10 +17,10 @@ import (
 )
 
 // liveContentHash SHA-256-hashes every live Goal/Workflow/WorkItem/
-// EventFlowStep plus the Agency's name/mission/vision: one JSON record per
-// row (fields other than timestamps), sorted lexically so row order never
-// affects the hash, joined with "\n". A change to any of those fields
-// changes the hash; nothing else does.
+// EventFlowStep/Role/RoleAssignment plus the Agency's name/mission/vision:
+// one JSON record per row (fields other than timestamps), sorted lexically
+// so row order never affects the hash, joined with "\n". A change to any
+// of those fields changes the hash; nothing else does.
 func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (string, error) {
 	var records []string
 
@@ -70,6 +70,27 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 			"consumer": r.Consumer, "handler_code": r.HandlerCode,
 			"emits_topics": r.EmitsTopics, "on_error_emits_topics": r.OnErrorEmitsTopics,
 			"ordinality": r.Ordinality, "deleted": r.Deleted,
+		}))
+	}
+
+	var roleRows []gormstore.RoleRow
+	if err := tx.WithContext(ctx).Table(m.tables.Roles).Where("draft_id IS NULL").Find(&roleRows).Error; err != nil {
+		return "", fmt.Errorf("liveContentHash: %w", err)
+	}
+	for _, r := range roleRows {
+		records = append(records, hashRecord("Role", map[string]any{
+			"id": r.ID, "name": r.Name, "description": r.Description, "deleted": r.Deleted,
+		}))
+	}
+
+	var assignmentRows []gormstore.RoleAssignmentRow
+	if err := tx.WithContext(ctx).Table(m.tables.RoleAssignments).Where("draft_id IS NULL").Find(&assignmentRows).Error; err != nil {
+		return "", fmt.Errorf("liveContentHash: %w", err)
+	}
+	for _, r := range assignmentRows {
+		records = append(records, hashRecord("RoleAssignment", map[string]any{
+			"id": r.ID, "role_id": r.RoleID, "work_item_id": r.WorkItemID,
+			"label": r.Label, "deleted": r.Deleted,
 		}))
 	}
 

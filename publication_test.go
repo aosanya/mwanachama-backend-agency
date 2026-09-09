@@ -46,6 +46,35 @@ func TestPublishAgency_NoDraft(t *testing.T) {
 	}
 }
 
+func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, _, wi := seedLiveAgency(t, mgr, ctx)
+
+	p1, err := mgr.PublishAgency(ctx, "")
+	if err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable,
+	}); err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+
+	p2, err := mgr.PublishAgency(ctx, "")
+	if err != nil {
+		t.Fatalf("expected a RACI-only change to require republishing, got %v", err)
+	}
+	if p2.Version != p1.Version+1 {
+		t.Fatalf("expected version %d, got %d", p1.Version+1, p2.Version)
+	}
+}
+
 func TestPublishAgency_RequiresPromotedDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
