@@ -86,10 +86,6 @@ var (
 	// ErrObjectiveNotFound is returned when an Objective id has no match
 	// in the expected scope.
 	ErrObjectiveNotFound = errors.New("mwanachamaagency: objective not found")
-	// ErrDuplicateObjective is returned by CreateObjective when another
-	// Objective in the same scope already references the given GoalID —
-	// Goal:Objective is 1:1.
-	ErrDuplicateObjective = errors.New("mwanachamaagency: goal already has an objective")
 	// ErrInvalidWorkItem is returned by CreateWorkItem/UpdateWorkItem when
 	// ObjectiveID is empty — every WorkItem belongs to exactly one
 	// Objective (AGD-001).

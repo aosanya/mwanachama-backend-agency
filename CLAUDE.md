@@ -255,7 +255,8 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   landed the same day via the same shared working tree, purely by
   coincidental timing — AG12's forward edits removed Mission/Vision
   outright rather than reverting AG11's commit.
-  - `Objective` is new, first-class, **1:1 with `Goal`** —
+  - `Objective` is new, first-class, **1:1 with `Goal`** (reversed by
+    AG14 below — a Goal may now have several) —
     `CreateObjective` returns new `ErrDuplicateObjective` if the
     same-scope `GoalID` already has one. Draft-scoped like
     `Goal`/`Workflow`/`WorkItem` (nullable `DraftID`, no
@@ -334,6 +335,25 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   stays there, unmoved. See `mwanachama-backend-actor/CLAUDE.md`'s new
   "MCP tools" section for the cross-repo standard this establishes, and
   when (not) to follow it.
+
+- **AG14 landed 2026-09-10: reversed AG12's "`Objective` is 1:1 with
+  `Goal`" — a Goal may now have several Objectives.** Prompted directly by
+  the user: a Goal like "Ship reliable software" needs up to ~10 granular
+  Objectives, each one the unit a single Role is RACI-assigned to, rather
+  than one broad Objective carrying many RoleAssignments. Turned out to be
+  a narrow change — `ObjectiveRow.GoalID` was already a plain index, not a
+  unique one (`gormstore/objective.go`), and neither `CreateDraft`/
+  `PromoteDraft`'s copy loops (keyed by Objective id, not GoalID) nor
+  `liveContentHash` (hashes every live row unconditionally) assumed
+  singularity — so the entire enforcement was one count-check in
+  `objective_impl.go`'s `CreateObjective`, now deleted along with the
+  `ErrDuplicateObjective` sentinel it returned (and that sentinel's 409
+  mapping in `routes/objective.go`). `RoleAssignment`'s existing "at most
+  one Accountable per Objective" rule is unchanged — it stays scoped to
+  the (now more numerous, more granular) Objective, matching each
+  Objective as one role's unit of responsibility. See
+  [documentation/2. design/todo_details/AGD-001.md](documentation/2.%20design/todo_details/AGD-001.md)'s
+  Decision #2 for the updated design record.
 
 ## Conventions
 

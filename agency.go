@@ -28,9 +28,9 @@ type AgencyManager interface {
 	ListGoals(ctx context.Context, draftID string) ([]models.Goal, error)
 	UpdateGoal(ctx context.Context, g models.Goal) (models.Goal, error)
 
-	// Objective. Exactly one per Goal (1:1) — CreateObjective returns
-	// [ErrDuplicateObjective] if the GoalID already has one in scope.
-	// Same Draft-scoping/list convention as Goal.
+	// Objective. A Goal may have several — each one a granular unit a
+	// single Role is RACI-assigned to via RoleAssignment. Same
+	// Draft-scoping/list convention as Goal.
 	CreateObjective(ctx context.Context, o models.Objective) (models.Objective, error)
 	GetObjective(ctx context.Context, id string) (models.Objective, error)
 	ListObjectives(ctx context.Context, draftID string) ([]models.Objective, error)

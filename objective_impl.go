@@ -11,18 +11,10 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// CreateObjective returns [ErrDuplicateObjective] if the same-scope GoalID
-// already has an Objective — Goal:Objective is 1:1.
+// CreateObjective creates an Objective for a Goal. A Goal may have more
+// than one Objective — each one a granular unit a single Role can be
+// RACI-assigned to (see [AgencyManager]'s doc comment).
 func (m *agencyManager) CreateObjective(ctx context.Context, o models.Objective) (models.Objective, error) {
-	var count int64
-	err := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Objectives), o.DraftID).
-		Where("goal_id = ?", o.GoalID).Count(&count).Error
-	if err != nil {
-		return models.Objective{}, fmt.Errorf("CreateObjective: %w", err)
-	}
-	if count > 0 {
-		return models.Objective{}, ErrDuplicateObjective
-	}
 	if o.CreatedAt == "" {
 		o.CreatedAt = models.NowRFC3339()
 	}

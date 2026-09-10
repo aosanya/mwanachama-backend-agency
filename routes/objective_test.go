@@ -36,7 +36,7 @@ func TestCreateObjective(t *testing.T) {
 	}
 }
 
-func TestCreateObjective_DuplicateForGoal(t *testing.T) {
+func TestCreateObjective_MultiplePerGoal(t *testing.T) {
 	mgr := newTestManager(t)
 	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
 	if _, err := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "First"}); err != nil {
@@ -48,8 +48,19 @@ func TestCreateObjective_DuplicateForGoal(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes.CreateObjective(mgr)(rec, req)
 
-	if rec.Code != http.StatusConflict {
+	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/objectives", nil)
+	listRec := httptest.NewRecorder()
+	routes.ListObjectives(mgr)(listRec, listReq)
+	var out []models.Objective
+	if err := json.Unmarshal(listRec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(out) != 2 {
+		t.Fatalf("expected 2 objectives for goal %q, got %d: %+v", g.ID, len(out), out)
 	}
 }
 

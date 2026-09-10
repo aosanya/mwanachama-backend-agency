@@ -8,11 +8,12 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// registerObjectiveTools registers Objective tools — the single measurable
-// operationalization of a Goal (exactly one Objective per Goal), and the
-// unit WorkItem/RACI attach to. Mirrors goal.go's Goal tools exactly.
+// registerObjectiveTools registers Objective tools — a measurable
+// operationalization of a Goal (a Goal may have several, each a granular
+// unit one Role is RACI-assigned to), and the unit WorkItem/RACI attach
+// to. Mirrors goal.go's Goal tools exactly.
 func registerObjectiveTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_objective", Description: "Create an Objective for a Goal (exactly one Objective per Goal)."}, mcpCreateObjective(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_objective", Description: "Create an Objective for a Goal. A Goal may have several Objectives, each a granular unit one Role can be RACI-assigned to."}, mcpCreateObjective(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_objective", Description: "Get an Objective by id."}, mcpGetObjective(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_objectives", Description: "List Objectives — live, or a Draft's scoped copies."}, mcpListObjectives(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_objective", Description: "Update an Objective (full replace — supply every field you want kept, not just the ones changing). id is required."}, mcpUpdateObjective(resolve))

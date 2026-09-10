@@ -74,7 +74,7 @@ type specGoal struct {
 
 type specObjective struct {
 	Key         string `json:"key" jsonschema:"a caller-chosen name other spec entries reference this Objective by"`
-	GoalKey     string `json:"goal_key" jsonschema:"a key from this spec's goals list — Objective is 1:1 with Goal"`
+	GoalKey     string `json:"goal_key" jsonschema:"a key from this spec's goals list — a Goal may have several Objectives"`
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
 }

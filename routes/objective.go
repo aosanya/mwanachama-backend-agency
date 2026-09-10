@@ -12,8 +12,6 @@ func objectiveStatusFor(err error) int {
 	switch {
 	case errors.Is(err, mwanachamaagency.ErrObjectiveNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, mwanachamaagency.ErrDuplicateObjective):
-		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}
@@ -28,9 +26,8 @@ func writeObjectiveErr(w http.ResponseWriter, err error) {
 	writeErr(w, code, err.Error())
 }
 
-// CreateObjective handles POST — decode, create, encode. Returns 409 if
-// the given GoalID already has an Objective — see
-// [mwanachamaagency.ErrDuplicateObjective].
+// CreateObjective handles POST — decode, create, encode. A Goal may have
+// more than one Objective.
 func CreateObjective(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var in models.Objective

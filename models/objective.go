@@ -1,9 +1,9 @@
 package models
 
-// Objective is the single measurable operationalization of a Goal —
-// exactly one Objective per Goal (1:1) — and the unit WorkItem, RoleAssignment
-// (RACI), and Objective-scoped Value/Rule all attach to. Net new, added
-// 2026-09-10 (AGD-001).
+// Objective is a measurable operationalization of a Goal — a Goal may
+// have several, each a granular unit one Role is RACI-assigned to — and
+// the unit WorkItem, RoleAssignment (RACI), and Objective-scoped
+// Value/Rule all attach to. Net new, added 2026-09-10 (AGD-001).
 type Objective struct {
 	ID     string `json:"id"`
 	GoalID string `json:"goal_id"`

@@ -9,9 +9,9 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// seedLiveAgency creates a live Agency with one Goal, its one Objective
-// (1:1), one Workflow, and one WorkItem belonging to that Objective and
-// owned by that Workflow.
+// seedLiveAgency creates a live Agency with one Goal, one Objective for
+// that Goal, one Workflow, and one WorkItem belonging to that Objective
+// and owned by that Workflow.
 func seedLiveAgency(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) (models.Agency, models.Goal, models.Objective, models.Workflow, models.WorkItem) {
 	t.Helper()
 	ag, err := mgr.CreateAgency(ctx, models.Agency{Name: "NeoLabHQ"})

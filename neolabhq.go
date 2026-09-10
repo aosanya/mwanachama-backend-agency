@@ -27,7 +27,7 @@ type NeoLabHQSeed struct {
 	Department      models.Department
 	Roles           map[string]models.Role // keyed by persona name
 	Goals           []models.Goal
-	Objectives      []models.Objective // index-aligned with Goals (1:1)
+	Objectives      []models.Objective // index-aligned with Goals — this seed creates one Objective per Goal, not a model requirement
 	Workflows       []models.Workflow
 	WorkItems       []models.WorkItem
 	RoleAssignments []models.RoleAssignment
