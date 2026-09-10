@@ -13,14 +13,14 @@ import (
 
 func TestCreateRoleAssignment(t *testing.T) {
 	mgr := newTestManager(t)
-	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
-	wi, _ := mgr.CreateWorkItem(t.Context(), models.WorkItem{WorkflowID: w.ID, Title: "Write charter"})
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
 	role, err := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 
-	body := `{"role_id":"` + role.ID + `","work_item_id":"` + wi.ID + `","label":"accountable"}`
+	body := `{"role_id":"` + role.ID + `","objective_id":"` + o.ID + `","label":"accountable"}`
 	req := httptest.NewRequest(http.MethodPost, "/role-assignments", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	routes.CreateRoleAssignment(mgr)(rec, req)
@@ -39,16 +39,16 @@ func TestCreateRoleAssignment(t *testing.T) {
 
 func TestCreateRoleAssignment_DuplicateAccountable(t *testing.T) {
 	mgr := newTestManager(t)
-	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
-	wi, _ := mgr.CreateWorkItem(t.Context(), models.WorkItem{WorkflowID: w.ID, Title: "Write charter"})
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
 	roleA, _ := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
 	roleB, _ := mgr.CreateRole(t.Context(), models.Role{Name: "developer"})
 
-	if _, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: roleA.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable}); err != nil {
+	if _, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: roleA.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable}); err != nil {
 		t.Fatalf("CreateRoleAssignment(A): %v", err)
 	}
 
-	body := `{"role_id":"` + roleB.ID + `","work_item_id":"` + wi.ID + `","label":"accountable"}`
+	body := `{"role_id":"` + roleB.ID + `","objective_id":"` + o.ID + `","label":"accountable"}`
 	req := httptest.NewRequest(http.MethodPost, "/role-assignments", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	routes.CreateRoleAssignment(mgr)(rec, req)
@@ -60,15 +60,15 @@ func TestCreateRoleAssignment_DuplicateAccountable(t *testing.T) {
 
 func TestUpdateRoleAssignment_LiveRefused(t *testing.T) {
 	mgr := newTestManager(t)
-	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
-	wi, _ := mgr.CreateWorkItem(t.Context(), models.WorkItem{WorkflowID: w.ID, Title: "Write charter"})
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
 	role, _ := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
-	ra, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelResponsible})
+	ra, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodPatch, "/role-assignments/"+ra.ID, strings.NewReader(`{"role_id":"`+role.ID+`","work_item_id":"`+wi.ID+`","label":"accountable"}`))
+	req := httptest.NewRequest(http.MethodPatch, "/role-assignments/"+ra.ID, strings.NewReader(`{"role_id":"`+role.ID+`","objective_id":"`+o.ID+`","label":"accountable"}`))
 	req.SetPathValue("assignmentID", ra.ID)
 	rec := httptest.NewRecorder()
 	routes.UpdateRoleAssignment(mgr)(rec, req)
@@ -80,10 +80,10 @@ func TestUpdateRoleAssignment_LiveRefused(t *testing.T) {
 
 func TestGetAndListRoleAssignments(t *testing.T) {
 	mgr := newTestManager(t)
-	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
-	wi, _ := mgr.CreateWorkItem(t.Context(), models.WorkItem{WorkflowID: w.ID, Title: "Write charter"})
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
 	role, _ := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
-	ra, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelResponsible})
+	ra, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}

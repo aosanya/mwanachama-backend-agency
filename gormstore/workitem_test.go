@@ -10,7 +10,7 @@ func TestWorkItemRoundTrip(t *testing.T) {
 	w := models.WorkItem{
 		ID:          "wi1",
 		WorkflowID:  "w1",
-		GoalID:      "g1",
+		ObjectiveID: "o1",
 		Title:       "Draft the department charter",
 		Description: "Write the founding charter for the new department.",
 		Ordinality:  1,
@@ -22,8 +22,8 @@ func TestWorkItemRoundTrip(t *testing.T) {
 	if row.UpdatedAt == "" {
 		t.Fatal("WorkItemToRow: expected UpdatedAt to be stamped")
 	}
-	if row.GoalID == nil || *row.GoalID != "g1" {
-		t.Fatalf("expected GoalID column %q, got %v", "g1", row.GoalID)
+	if row.ObjectiveID != "o1" {
+		t.Fatalf("expected ObjectiveID column %q, got %q", "o1", row.ObjectiveID)
 	}
 
 	got := WorkItemFromRow(row)
@@ -34,22 +34,8 @@ func TestWorkItemRoundTrip(t *testing.T) {
 	}
 }
 
-func TestWorkItemRoundTrip_UntaggedGoal(t *testing.T) {
-	w := models.WorkItem{ID: "wi2", WorkflowID: "w1", Title: "Untagged item"}
-
-	row := WorkItemToRow(w)
-	if row.GoalID != nil {
-		t.Fatalf("expected nil GoalID column for untagged WorkItem, got %v", *row.GoalID)
-	}
-
-	got := WorkItemFromRow(row)
-	if got.GoalID != "" {
-		t.Fatalf("expected empty GoalID after round trip, got %q", got.GoalID)
-	}
-}
-
 func TestWorkItemRoundTrip_DraftScoped(t *testing.T) {
-	w := models.WorkItem{ID: "wi3", WorkflowID: "w1", DraftID: "d1", Title: "Draft-scoped item"}
+	w := models.WorkItem{ID: "wi3", WorkflowID: "w1", ObjectiveID: "o1", DraftID: "d1", Title: "Draft-scoped item"}
 
 	row := WorkItemToRow(w)
 	if row.DraftID == nil || *row.DraftID != "d1" {

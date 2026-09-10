@@ -36,7 +36,7 @@ type CommContextSourceConfig struct {
 // WorkContextSourceConfig configures a ContextSourceWork source.
 type WorkContextSourceConfig struct {
 	IncludeDescription bool `json:"include_description,omitempty"`
-	IncludeHistory      bool `json:"include_history,omitempty"`
+	IncludeHistory     bool `json:"include_history,omitempty"`
 }
 
 // ContextSource is a polymorphic, typed piece of context configuration

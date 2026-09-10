@@ -10,8 +10,6 @@ import (
 type AgencyRow struct {
 	ID                           string `gorm:"primaryKey"`
 	Name                         string
-	Mission                      string
-	Vision                       string
 	Enabled                      bool
 	DefaultFailurePipelineBudget int
 	InactivityTimeoutSeconds     int
@@ -33,8 +31,6 @@ func AgencyToRow(a models.Agency) AgencyRow {
 	return AgencyRow{
 		ID:                           a.ID,
 		Name:                         a.Name,
-		Mission:                      a.Mission,
-		Vision:                       a.Vision,
 		Enabled:                      a.Enabled,
 		DefaultFailurePipelineBudget: a.DefaultFailurePipelineBudget,
 		InactivityTimeoutSeconds:     a.InactivityTimeoutSeconds,
@@ -50,8 +46,6 @@ func AgencyFromRow(r AgencyRow) models.Agency {
 	return models.Agency{
 		ID:                           r.ID,
 		Name:                         r.Name,
-		Mission:                      r.Mission,
-		Vision:                       r.Vision,
 		Enabled:                      r.Enabled,
 		DefaultFailurePipelineBudget: r.DefaultFailurePipelineBudget,
 		InactivityTimeoutSeconds:     r.InactivityTimeoutSeconds,

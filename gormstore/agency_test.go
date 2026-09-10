@@ -10,8 +10,6 @@ func TestAgencyRoundTrip(t *testing.T) {
 	a := models.Agency{
 		ID:                           "a1",
 		Name:                         "NeoLabHQ",
-		Mission:                      "Ship reliable software.",
-		Vision:                       "Every agent pulling in the same direction.",
 		Enabled:                      true,
 		DefaultFailurePipelineBudget: 3,
 		InactivityTimeoutSeconds:     600,

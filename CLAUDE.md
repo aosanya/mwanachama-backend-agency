@@ -243,6 +243,71 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   own CLAUDE.md/todo_done.md for the full record — this repo's board only
   tracks that the wiring task is done, not the gateway's own internals).
 
+- **AG12 landed 2026-09-10: `Objective`, `Value`/`Rule`, RACI moved
+  WorkItem→Objective, `Agency.Mission`/`.Vision` deleted.** Implements
+  [documentation/2. design/todo_details/AGD-001.md](documentation/2.%20design/todo_details/AGD-001.md)
+  in full for this repo — a design session (run via an adapted
+  `dev-research.md` protocol) starting from "how do goals, values and
+  rules interact?", motivated by AI agents acting as `Role`s (the
+  NeoLabHQ personas) having no access to the tacit organizational
+  knowledge a human Role-holder would just know. Superseded **AG11**
+  (`UpdateAgency` for Mission/Vision editing), which a concurrent session
+  landed the same day via the same shared working tree, purely by
+  coincidental timing — AG12's forward edits removed Mission/Vision
+  outright rather than reverting AG11's commit.
+  - `Objective` is new, first-class, **1:1 with `Goal`** —
+    `CreateObjective` returns new `ErrDuplicateObjective` if the
+    same-scope `GoalID` already has one. Draft-scoped like
+    `Goal`/`Workflow`/`WorkItem` (nullable `DraftID`, no
+    live-immutability check) — deliberately not Role/RoleAssignment's
+    stricter "live cannot be edited" rule, since the literal decision
+    text grouped Objective with the laxer three, not the stricter two.
+  - **`WorkItem.GoalID` (optional, `""` = untagged) is gone.** Replaced
+    by required `ObjectiveID` — `CreateWorkItem`/`UpdateWorkItem` return
+    new `ErrInvalidWorkItem` if empty. There is no more untagged
+    WorkItem.
+  - **RACI moved from WorkItem-scoped to Objective-scoped.**
+    `RoleAssignment.WorkItemID` → `ObjectiveID`;
+    `ListRoleAssignmentsForWorkItem` → `ListRoleAssignmentsForObjective`,
+    moved from `WorkItemRoutes` to `ObjectiveRoutes` in the HTTP layer.
+    **`mwanachama-backend-api-kazi`'s K6 needs its own follow-up** — its
+    "who to notify for a WorkItem" lookup must resolve via
+    `WorkItem.ObjectiveID` now, not a direct WorkItem-scoped RACI call.
+  - **`Value`/`Rule` are new**, same shape (`ID`, `ObjectiveID`
+    — `""` = Agency-wide —, `DraftID`, `Text`, timestamps). Plain-text
+    statements an AI agent acting as a Role needs made explicit (e.g.
+    "we prioritize correctness over speed", "never touch production
+    data") — informational only, nothing here enforces them at runtime.
+    Agency-wide rows are **permanently immutable**: new
+    `ErrCannotEditLive` on `Update`/`Delete` when live, and `CreateDraft`
+    deliberately excludes `objective_id IS NULL` rows from its
+    fork-copy loop so an Agency-wide row can never even enter a Draft to
+    be edited that way. Objective-scoped Value/Rule follow Role's
+    stricter live-immutability rule instead (fork→edit→promote); note
+    `PromoteDraft`'s delete-old-live step for these two tables is
+    scoped to `objective_id IS NOT NULL` specifically, so the always-live
+    Agency-wide rows are never caught by a promotion's cleanup.
+  - **AGD-001's write-authorization rule — only an Objective's
+    Accountable may write its Values/Rules — is explicitly NOT
+    implemented.** Flagged in `AgencyManager`'s doc comment and in
+    AGD-001 itself: this codebase has no per-RACI-label write gate
+    anywhere (auth is capability-gated at the gateway level, per AG10),
+    and designing one was out of scope for this pass.
+  - **`Agency.Mission`/`.Vision` are deleted** (model, gormstore,
+    `UpdateAgency`, `liveContentHash`) — confirmed explicitly with the
+    user ("delete them") over deprioritizing. `UpdateAgency` now only
+    ever touches `Name`. **Cross-repo follow-up, not done here**:
+    `mwanachama-wakala-api`'s AG11 (its own numbering) HTTP handlers and
+    MCP tools (`mcp_tools_agency.go`/`mcp_tools_composite.go` — the
+    AI-agent-facing surface, not just the human-facing one) and
+    `mwanachama-wakala-studio`'s identity UI still reference
+    Mission/Vision.
+  - `SeedNeoLabHQ` restructured from one Goal tagging one of three
+    WorkItems (RACI per-WorkItem) to **three independent Goal→Objective→
+    WorkItem chains** — Objective-scoped RACI means three distinct RACI
+    sets need three distinct Objectives, not three WorkItems sharing one
+    Goal.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

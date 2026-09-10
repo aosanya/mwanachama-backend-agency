@@ -8,17 +8,15 @@ import (
 
 // WorkItemRow is the GORM row for a [models.WorkItem].
 //
-// GoalID is a nullable *string (NULL for "not tagged to a goal"), not the
-// domain WorkItem's plain "" — WorkItemToRow/WorkItemFromRow map "" <-> nil
-// at the boundary. It is indexed but deliberately not a GORM
-// association/foreign key, matching mwanachama-backend-actor's
+// WorkflowID/ObjectiveID are indexed but deliberately not GORM
+// associations/foreign keys, matching mwanachama-backend-actor's
 // GroupRow.ParentID precedent (this package's tables are scoped per
 // mounted instance via db.Table(...), which a GORM-managed association
 // would not follow).
 type WorkItemRow struct {
 	ID          string  `gorm:"primaryKey"`
 	WorkflowID  string  `gorm:"index"`
-	GoalID      *string `gorm:"index"`
+	ObjectiveID string  `gorm:"index"`
 	DraftID     *string `gorm:"index"`
 	Title       string
 	Description string
@@ -41,7 +39,7 @@ func WorkItemToRow(w models.WorkItem) WorkItemRow {
 	return WorkItemRow{
 		ID:          w.ID,
 		WorkflowID:  w.WorkflowID,
-		GoalID:      StringToNullable(w.GoalID),
+		ObjectiveID: w.ObjectiveID,
 		DraftID:     StringToNullable(w.DraftID),
 		Title:       w.Title,
 		Description: w.Description,
@@ -58,7 +56,7 @@ func WorkItemFromRow(r WorkItemRow) models.WorkItem {
 	return models.WorkItem{
 		ID:          r.ID,
 		WorkflowID:  r.WorkflowID,
-		GoalID:      nullableToString(r.GoalID),
+		ObjectiveID: r.ObjectiveID,
 		DraftID:     nullableToString(r.DraftID),
 		Title:       r.Title,
 		Description: r.Description,

@@ -16,11 +16,12 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// liveContentHash SHA-256-hashes every live Goal/Workflow/WorkItem/
-// EventFlowStep/Role/RoleAssignment plus the Agency's name/mission/vision:
-// one JSON record per row (fields other than timestamps), sorted lexically
-// so row order never affects the hash, joined with "\n". A change to any
-// of those fields changes the hash; nothing else does.
+// liveContentHash SHA-256-hashes every live Goal/Objective/Workflow/
+// WorkItem/EventFlowStep/Role/RoleAssignment/Value/Rule plus the Agency's
+// name: one JSON record per row (fields other than timestamps), sorted
+// lexically so row order never affects the hash, joined with "\n". A
+// change to any of those fields changes the hash; nothing else does.
+// Mission/Vision dropped from the Agency record 2026-09-10 (AGD-001).
 func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (string, error) {
 	var records []string
 
@@ -31,6 +32,17 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	for _, r := range goalRows {
 		records = append(records, hashRecord("Goal", map[string]any{
 			"id": r.ID, "title": r.Title, "description": r.Description,
+			"ordinality": r.Ordinality, "deleted": r.Deleted,
+		}))
+	}
+
+	var objectiveRows []gormstore.ObjectiveRow
+	if err := tx.WithContext(ctx).Table(m.tables.Objectives).Where("draft_id IS NULL").Find(&objectiveRows).Error; err != nil {
+		return "", fmt.Errorf("liveContentHash: %w", err)
+	}
+	for _, r := range objectiveRows {
+		records = append(records, hashRecord("Objective", map[string]any{
+			"id": r.ID, "goal_id": r.GoalID, "title": r.Title, "description": r.Description,
 			"ordinality": r.Ordinality, "deleted": r.Deleted,
 		}))
 	}
@@ -52,7 +64,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 	for _, r := range workItemRows {
 		records = append(records, hashRecord("WorkItem", map[string]any{
-			"id": r.ID, "workflow_id": r.WorkflowID, "goal_id": r.GoalID,
+			"id": r.ID, "workflow_id": r.WorkflowID, "objective_id": r.ObjectiveID,
 			"title": r.Title, "description": r.Description, "ordinality": r.Ordinality,
 			"prompt": r.Prompt, "deleted": r.Deleted,
 		}))
@@ -89,8 +101,28 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 	for _, r := range assignmentRows {
 		records = append(records, hashRecord("RoleAssignment", map[string]any{
-			"id": r.ID, "role_id": r.RoleID, "work_item_id": r.WorkItemID,
+			"id": r.ID, "role_id": r.RoleID, "objective_id": r.ObjectiveID,
 			"label": r.Label, "deleted": r.Deleted,
+		}))
+	}
+
+	var valueRows []gormstore.ValueRow
+	if err := tx.WithContext(ctx).Table(m.tables.Values).Where("draft_id IS NULL").Find(&valueRows).Error; err != nil {
+		return "", fmt.Errorf("liveContentHash: %w", err)
+	}
+	for _, r := range valueRows {
+		records = append(records, hashRecord("Value", map[string]any{
+			"id": r.ID, "objective_id": r.ObjectiveID, "text": r.Text, "deleted": r.Deleted,
+		}))
+	}
+
+	var ruleRows []gormstore.RuleRow
+	if err := tx.WithContext(ctx).Table(m.tables.Rules).Where("draft_id IS NULL").Find(&ruleRows).Error; err != nil {
+		return "", fmt.Errorf("liveContentHash: %w", err)
+	}
+	for _, r := range ruleRows {
+		records = append(records, hashRecord("Rule", map[string]any{
+			"id": r.ID, "objective_id": r.ObjectiveID, "text": r.Text, "deleted": r.Deleted,
 		}))
 	}
 
@@ -99,7 +131,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 		return "", err
 	}
 	records = append(records, hashRecord("Agency", map[string]any{
-		"name": agencyRow.Name, "mission": agencyRow.Mission, "vision": agencyRow.Vision,
+		"name": agencyRow.Name,
 	}))
 
 	sort.Strings(records)

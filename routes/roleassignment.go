@@ -12,7 +12,7 @@ func roleAssignmentStatusFor(err error) int {
 	switch {
 	case errors.Is(err, mwanachamaagency.ErrRoleAssignmentNotFound),
 		errors.Is(err, mwanachamaagency.ErrRoleNotFound),
-		errors.Is(err, mwanachamaagency.ErrWorkItemNotFound):
+		errors.Is(err, mwanachamaagency.ErrObjectiveNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, mwanachamaagency.ErrCannotEditLiveRACI),
 		errors.Is(err, mwanachamaagency.ErrDuplicateAccountable):
@@ -109,8 +109,8 @@ func DeleteRoleAssignment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 
 // RoleAssignmentRoutes is Create/Get/List/Update/Delete for
 // RoleAssignment, addressed under names.RoleAssignment. The
-// WorkItem-nested read (ListRoleAssignmentsForWorkItem) is registered by
-// [WorkItemRoutes] instead, since it addresses under names.WorkItem.
+// Objective-nested read (ListRoleAssignmentsForObjective) is registered
+// by [ObjectiveRoutes] instead, since it addresses under names.Objective.
 func RoleAssignmentRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.RoleAssignment

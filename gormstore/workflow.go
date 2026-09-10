@@ -7,7 +7,7 @@ import (
 )
 
 // WorkflowRow is the GORM row for a [models.Workflow]. DraftID is nullable
-// (NULL for live), matching WorkItemRow.GoalID's convention: indexed, no
+// (NULL for live), matching ValueRow.ObjectiveID's convention: indexed, no
 // GORM association.
 type WorkflowRow struct {
 	ID          string  `gorm:"primaryKey"`

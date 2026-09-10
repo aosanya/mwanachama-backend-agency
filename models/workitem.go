@@ -1,12 +1,14 @@
 package models
 
-// WorkItem is a unit of work owned by exactly one Workflow, and optionally
-// tagged to a Goal it advances. Ported from CodeValdAgency's WorkItem.
+// WorkItem is a unit of work owned by exactly one Workflow, and belongs
+// to exactly one Objective it advances. Ported from CodeValdAgency's
+// WorkItem. As of 2026-09-10 (AGD-001), ObjectiveID replaces the former
+// optional GoalID tag — every WorkItem now has an Objective, there is no
+// more "untagged" WorkItem.
 type WorkItem struct {
-	ID         string `json:"id"`
-	WorkflowID string `json:"workflow_id"`
-	// GoalID is "" when this WorkItem is not tagged to a Goal.
-	GoalID string `json:"goal_id,omitempty"`
+	ID          string `json:"id"`
+	WorkflowID  string `json:"workflow_id"`
+	ObjectiveID string `json:"objective_id"`
 	// DraftID is "" for a live WorkItem, or the owning Draft's ID for a
 	// draft-scoped copy.
 	DraftID     string `json:"draft_id,omitempty"`

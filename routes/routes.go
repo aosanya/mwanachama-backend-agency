@@ -26,6 +26,7 @@ func (r Route) Pattern(prefix string) string {
 type ResourceNames struct {
 	Agency         string
 	Goal           string
+	Objective      string
 	Workflow       string
 	WorkItem       string
 	Draft          string
@@ -37,6 +38,8 @@ type ResourceNames struct {
 	RoleAssignment string
 	WorkPlan       string
 	ContextSource  string
+	Value          string
+	Rule           string
 }
 
 func (n ResourceNames) withDefaults() ResourceNames {
@@ -45,6 +48,9 @@ func (n ResourceNames) withDefaults() ResourceNames {
 	}
 	if n.Goal == "" {
 		n.Goal = "goals"
+	}
+	if n.Objective == "" {
+		n.Objective = "objectives"
 	}
 	if n.Workflow == "" {
 		n.Workflow = "workflows"
@@ -79,6 +85,12 @@ func (n ResourceNames) withDefaults() ResourceNames {
 	if n.ContextSource == "" {
 		n.ContextSource = "context-sources"
 	}
+	if n.Value == "" {
+		n.Value = "values"
+	}
+	if n.Rule == "" {
+		n.Rule = "rules"
+	}
 	return n
 }
 
@@ -92,6 +104,7 @@ func Routes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	var out []Route
 	out = append(out, AgencyRoutes(m, names)...)
 	out = append(out, GoalRoutes(m, names)...)
+	out = append(out, ObjectiveRoutes(m, names)...)
 	out = append(out, WorkflowRoutes(m, names)...)
 	out = append(out, WorkItemRoutes(m, names)...)
 	out = append(out, DraftRoutes(m, names)...)
@@ -103,5 +116,7 @@ func Routes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	out = append(out, RoleAssignmentRoutes(m, names)...)
 	out = append(out, WorkPlanRoutes(m, names)...)
 	out = append(out, ContextSourceRoutes(m, names)...)
+	out = append(out, ValueRoutes(m, names)...)
+	out = append(out, RuleRoutes(m, names)...)
 	return out
 }

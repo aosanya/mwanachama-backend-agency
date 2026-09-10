@@ -1,0 +1,5 @@
+# Design & architecture board — resolved
+
+| ID | Task | Resolved | Notes |
+|---|---|---|---|
+| AGD-001 | `Objective` (new, 1:1 with `Goal`, Draft-scoped), `Agency.Values`/`.Rules` (agency-wide, immutable), Objective-scoped Value/Rule (Accountable-RACI-gated writes — not yet enforced), RACI moved from `WorkItem` to `Objective`, and Mission/Vision deleted everywhere | 2026-09-10 | Full decision record: [todo_details/AGD-001.md](todo_details/AGD-001.md). Implemented for `mwanachama-backend-agency` as **AG12** — see [../3. implementation/todo_done.md](../3.%20implementation/todo_done.md) for the full implementation record. The write-authorization rule (only an Objective's Accountable may write its Values/Rules) was explicitly **not** implemented — flagged as new machinery needing its own design pass. Cross-repo follow-ups (`mwanachama-wakala-api`'s HTTP handlers + MCP tools, `mwanachama-wakala-studio`'s identity UI, `mwanachama-backend-api-kazi`'s K6 RACI lookup, the gateway's Postman coverage) are tracked on [../3. implementation/todo.md](../3.%20implementation/todo.md), not closed by this repo's own work. |

@@ -7,7 +7,7 @@ import (
 )
 
 // GoalRow is the GORM row for a [models.Goal]. DraftID is nullable (NULL
-// for live), matching WorkItemRow.GoalID's convention: indexed, no GORM
+// for live), matching ValueRow.ObjectiveID's convention: indexed, no GORM
 // association.
 type GoalRow struct {
 	ID          string  `gorm:"primaryKey"`

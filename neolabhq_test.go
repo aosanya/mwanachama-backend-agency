@@ -41,9 +41,9 @@ func TestSeedNeoLabHQ(t *testing.T) {
 		t.Fatal("expected a \"Review pull request\" work item to have been seeded")
 	}
 
-	assignments, err := mgr.ListRoleAssignmentsForWorkItem(ctx, reviewItem.ID, "")
+	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, reviewItem.ObjectiveID, "")
 	if err != nil {
-		t.Fatalf("ListRoleAssignmentsForWorkItem: %v", err)
+		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
 	}
 	if len(assignments) != 4 {
 		t.Fatalf("expected all four RACI labels on the review item, got %d assignments", len(assignments))
@@ -64,7 +64,7 @@ func TestSeedNeoLabHQ(t *testing.T) {
 	// The at-most-one-Accountable rule still holds against seeded data.
 	otherRole := seed.Roles["business-analyst"]
 	_, err = mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: otherRole.ID, WorkItemID: reviewItem.ID, Label: models.RACILabelAccountable,
+		RoleID: otherRole.ID, ObjectiveID: reviewItem.ObjectiveID, Label: models.RACILabelAccountable,
 	})
 	if !errors.Is(err, mwanachamaagency.ErrDuplicateAccountable) {
 		t.Fatalf("expected ErrDuplicateAccountable adding a second accountable, got %v", err)

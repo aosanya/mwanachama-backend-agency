@@ -11,10 +11,10 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// validateRoleAssignment checks a's Label, that its Role and WorkItem
+// validateRoleAssignment checks a's Label, that its Role and Objective
 // exist in the same scope (a.DraftID), and — for excludeID != "" on
 // update, "" on create — that no other assignment in that scope already
-// labels the WorkItem Accountable.
+// labels the Objective Accountable.
 func (m *agencyManager) validateRoleAssignment(ctx context.Context, tx *gorm.DB, a models.RoleAssignment, excludeID string) error {
 	if !a.Label.Valid() {
 		return ErrInvalidRACILabel
@@ -30,11 +30,11 @@ func (m *agencyManager) validateRoleAssignment(ctx context.Context, tx *gorm.DB,
 		return fmt.Errorf("validateRoleAssignment: %w", err)
 	}
 
-	var workItemRow gormstore.WorkItemRow
-	err = scopeQuery(tx.WithContext(ctx).Table(m.tables.WorkItems), a.DraftID).
-		Where("id = ?", a.WorkItemID).First(&workItemRow).Error
+	var objectiveRow gormstore.ObjectiveRow
+	err = scopeQuery(tx.WithContext(ctx).Table(m.tables.Objectives), a.DraftID).
+		Where("id = ?", a.ObjectiveID).First(&objectiveRow).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ErrWorkItemNotFound
+		return ErrObjectiveNotFound
 	}
 	if err != nil {
 		return fmt.Errorf("validateRoleAssignment: %w", err)
@@ -42,7 +42,7 @@ func (m *agencyManager) validateRoleAssignment(ctx context.Context, tx *gorm.DB,
 
 	if a.Label == models.RACILabelAccountable {
 		q := scopeQuery(tx.WithContext(ctx).Table(m.tables.RoleAssignments), a.DraftID).
-			Where("work_item_id = ? AND label = ?", a.WorkItemID, string(models.RACILabelAccountable))
+			Where("objective_id = ? AND label = ?", a.ObjectiveID, string(models.RACILabelAccountable))
 		if excludeID != "" {
 			q = q.Where("id <> ?", excludeID)
 		}
@@ -93,15 +93,17 @@ func (m *agencyManager) ListRoleAssignments(ctx context.Context, draftID string)
 	return out, nil
 }
 
-// ListRoleAssignmentsForWorkItem answers "who is assigned to this
-// WorkItem, and with what RACI label" — the lookup a caller (e.g.
-// mwanachama-backend-api-kazi's K6) uses to find who to notify.
-func (m *agencyManager) ListRoleAssignmentsForWorkItem(ctx context.Context, workItemID, draftID string) ([]models.RoleAssignment, error) {
+// ListRoleAssignmentsForObjective answers "who is assigned to this
+// Objective, and with what RACI label" — the lookup a caller (e.g.
+// mwanachama-backend-api-kazi's K6) uses to find who to notify. A caller
+// that only has a WorkItem resolves via WorkItem.ObjectiveID first (RACI
+// moved from WorkItem-scoped to Objective-scoped 2026-09-10, AGD-001).
+func (m *agencyManager) ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string) ([]models.RoleAssignment, error) {
 	var rows []gormstore.RoleAssignmentRow
 	err := scopeQuery(m.db.WithContext(ctx).Table(m.tables.RoleAssignments), draftID).
-		Where("work_item_id = ?", workItemID).Find(&rows).Error
+		Where("objective_id = ?", objectiveID).Find(&rows).Error
 	if err != nil {
-		return nil, fmt.Errorf("ListRoleAssignmentsForWorkItem: %w", err)
+		return nil, fmt.Errorf("ListRoleAssignmentsForObjective: %w", err)
 	}
 	out := make([]models.RoleAssignment, len(rows))
 	for i, row := range rows {
@@ -127,7 +129,7 @@ func (m *agencyManager) UpdateRoleAssignment(ctx context.Context, a models.RoleA
 	row := gormstore.RoleAssignmentToRow(a)
 	row.CreatedAt = existing.CreatedAt
 	cols := map[string]any{
-		"role_id": row.RoleID, "work_item_id": row.WorkItemID, "label": row.Label,
+		"role_id": row.RoleID, "objective_id": row.ObjectiveID, "label": row.Label,
 		"updated_at": row.UpdatedAt, "deleted": row.Deleted,
 	}
 	if err := m.db.WithContext(ctx).Table(m.tables.RoleAssignments).Where("id = ?", a.ID).Updates(cols).Error; err != nil {

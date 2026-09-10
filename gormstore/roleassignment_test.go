@@ -8,11 +8,11 @@ import (
 
 func TestRoleAssignmentRoundTrip(t *testing.T) {
 	a := models.RoleAssignment{
-		ID:         "ra1",
-		RoleID:     "role1",
-		WorkItemID: "wi1",
-		Label:      models.RACILabelAccountable,
-		CreatedAt:  "2026-09-09T00:00:00.000000000Z",
+		ID:          "ra1",
+		RoleID:      "role1",
+		ObjectiveID: "o1",
+		Label:       models.RACILabelAccountable,
+		CreatedAt:   "2026-09-09T00:00:00.000000000Z",
 	}
 
 	row := RoleAssignmentToRow(a)
@@ -32,7 +32,7 @@ func TestRoleAssignmentRoundTrip(t *testing.T) {
 }
 
 func TestRoleAssignmentRoundTrip_DraftScoped(t *testing.T) {
-	a := models.RoleAssignment{ID: "ra2", DraftID: "d1", RoleID: "role1", WorkItemID: "wi1", Label: models.RACILabelResponsible}
+	a := models.RoleAssignment{ID: "ra2", DraftID: "d1", RoleID: "role1", ObjectiveID: "o1", Label: models.RACILabelResponsible}
 
 	row := RoleAssignmentToRow(a)
 	if row.DraftID == nil || *row.DraftID != "d1" {

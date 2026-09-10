@@ -56,7 +56,7 @@ func TestUpdateAgency(t *testing.T) {
 		t.Fatalf("create status = %d, body = %s", createRec.Code, createRec.Body.String())
 	}
 
-	patchReq := httptest.NewRequest(http.MethodPatch, "/agency", strings.NewReader(`{"name":"Renamed","mission":"New mission.","vision":"New vision."}`))
+	patchReq := httptest.NewRequest(http.MethodPatch, "/agency", strings.NewReader(`{"name":"Renamed"}`))
 	patchRec := httptest.NewRecorder()
 	routes.UpdateAgency(mgr)(patchRec, patchReq)
 	if patchRec.Code != http.StatusOK {
@@ -66,7 +66,7 @@ func TestUpdateAgency(t *testing.T) {
 	if err := json.Unmarshal(patchRec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if out.Name != "Renamed" || out.Mission != "New mission." || out.Vision != "New vision." {
+	if out.Name != "Renamed" {
 		t.Fatalf("unexpected updated agency: %+v", out)
 	}
 }

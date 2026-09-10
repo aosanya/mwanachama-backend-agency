@@ -12,10 +12,10 @@ import (
 func TestCreateRoleAssignment_InvalidLabel(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 	role, _ := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
 
-	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, WorkItemID: wi.ID, Label: "bogus"})
+	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, ObjectiveID: o.ID, Label: "bogus"})
 	if !errors.Is(err, mwanachamaagency.ErrInvalidRACILabel) {
 		t.Fatalf("expected ErrInvalidRACILabel, got %v", err)
 	}
@@ -24,69 +24,65 @@ func TestCreateRoleAssignment_InvalidLabel(t *testing.T) {
 func TestCreateRoleAssignment_RoleNotFound(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: "unknown", WorkItemID: wi.ID, Label: models.RACILabelInformed})
+	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: "unknown", ObjectiveID: o.ID, Label: models.RACILabelInformed})
 	if !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
 		t.Fatalf("expected ErrRoleNotFound, got %v", err)
 	}
 }
 
-func TestCreateRoleAssignment_WorkItemNotFound(t *testing.T) {
+func TestCreateRoleAssignment_ObjectiveNotFound(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	seedLiveAgency(t, mgr, ctx)
 	role, _ := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
 
-	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, WorkItemID: "unknown", Label: models.RACILabelInformed})
-	if !errors.Is(err, mwanachamaagency.ErrWorkItemNotFound) {
-		t.Fatalf("expected ErrWorkItemNotFound, got %v", err)
+	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, ObjectiveID: "unknown", Label: models.RACILabelInformed})
+	if !errors.Is(err, mwanachamaagency.ErrObjectiveNotFound) {
+		t.Fatalf("expected ErrObjectiveNotFound, got %v", err)
 	}
 }
 
 func TestCreateRoleAssignment_ScopeMismatch(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	ag, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	// A draft-scoped Role cannot be assigned to a live WorkItem.
+	// A draft-scoped Role cannot be assigned to a live Objective.
 	d, err := mgr.CreateDraft(ctx, "d", ag.ID, "live")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
-	}
-	draftRoles, _ := mgr.ListRoles(ctx, d.ID)
-	if len(draftRoles) != 0 {
-		t.Fatalf("expected no roles forked (none existed), got %d", len(draftRoles))
 	}
 	draftRole, err := mgr.CreateRole(ctx, models.Role{DraftID: d.ID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole(draft-scoped): %v", err)
 	}
 
-	_, err = mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: d.ID, RoleID: draftRole.ID, WorkItemID: wi.ID, Label: models.RACILabelInformed})
-	if !errors.Is(err, mwanachamaagency.ErrWorkItemNotFound) {
-		t.Fatalf("expected ErrWorkItemNotFound assigning a draft-scoped role to a live work item, got %v", err)
+	_, err = mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: d.ID, RoleID: draftRole.ID, ObjectiveID: o.ID, Label: models.RACILabelInformed})
+	if !errors.Is(err, mwanachamaagency.ErrObjectiveNotFound) {
+		t.Fatalf("expected ErrObjectiveNotFound assigning a draft-scoped role to a live objective, got %v", err)
 	}
 }
 
 func TestCreateRoleAssignment_DuplicateAccountable(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 	roleA, _ := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
 	roleB, _ := mgr.CreateRole(ctx, models.Role{Name: "tech-lead"})
 
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleA.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable}); err != nil {
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleA.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable}); err != nil {
 		t.Fatalf("CreateRoleAssignment(A): %v", err)
 	}
-	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleB.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable})
+	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleB.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable})
 	if !errors.Is(err, mwanachamaagency.ErrDuplicateAccountable) {
 		t.Fatalf("expected ErrDuplicateAccountable, got %v", err)
 	}
 
 	// A second Responsible/Consulted/Informed assignment on the same
-	// WorkItem is fine — only Accountable is exclusive.
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleB.ID, WorkItemID: wi.ID, Label: models.RACILabelResponsible}); err != nil {
+	// Objective is fine — only Accountable is exclusive.
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleB.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible}); err != nil {
 		t.Fatalf("expected a second Responsible assignment to succeed, got %v", err)
 	}
 }
@@ -94,9 +90,9 @@ func TestCreateRoleAssignment_DuplicateAccountable(t *testing.T) {
 func TestRoleAssignment_LiveCannotBeEdited(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 	role, _ := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
-	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelResponsible})
+	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
@@ -110,25 +106,25 @@ func TestRoleAssignment_LiveCannotBeEdited(t *testing.T) {
 	}
 }
 
-func TestListRoleAssignmentsForWorkItem(t *testing.T) {
+func TestListRoleAssignmentsForObjective(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 	roleA, _ := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
 	roleB, _ := mgr.CreateRole(ctx, models.Role{Name: "tech-lead"})
 
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleA.ID, WorkItemID: wi.ID, Label: models.RACILabelResponsible}); err != nil {
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleA.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible}); err != nil {
 		t.Fatalf("CreateRoleAssignment(A): %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleB.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable}); err != nil {
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleB.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable}); err != nil {
 		t.Fatalf("CreateRoleAssignment(B): %v", err)
 	}
 
-	assignments, err := mgr.ListRoleAssignmentsForWorkItem(ctx, wi.ID, "")
+	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, o.ID, "")
 	if err != nil {
-		t.Fatalf("ListRoleAssignmentsForWorkItem: %v", err)
+		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
 	}
 	if len(assignments) != 2 {
-		t.Fatalf("expected 2 assignments for the work item, got %d", len(assignments))
+		t.Fatalf("expected 2 assignments for the objective, got %d", len(assignments))
 	}
 }

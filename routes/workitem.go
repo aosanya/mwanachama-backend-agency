@@ -12,6 +12,8 @@ func workItemStatusFor(err error) int {
 	switch {
 	case errors.Is(err, mwanachamaagency.ErrWorkItemNotFound):
 		return http.StatusNotFound
+	case errors.Is(err, mwanachamaagency.ErrInvalidWorkItem):
+		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}
@@ -85,22 +87,10 @@ func UpdateWorkItem(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListRoleAssignmentsForWorkItem handles GET {workItemID}/role-assignments
-// — ?draft_id= selects scope ("" = live).
-func ListRoleAssignmentsForWorkItem(m mwanachamaagency.AgencyManager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListRoleAssignmentsForWorkItem(r.Context(), r.PathValue("workItemID"), r.URL.Query().Get("draft_id"))
-		if err != nil {
-			writeRoleAssignmentErr(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, out)
-	}
-}
-
 // WorkItemRoutes is Create/Get/List/Update for WorkItem, addressed under
-// names.WorkItem, plus the nested role-assignments read under
-// names.RoleAssignment.
+// names.WorkItem. The nested role-assignments read moved to
+// [ObjectiveRoutes] 2026-09-10 (AGD-001) — RACI is Objective-scoped, not
+// WorkItem-scoped.
 func WorkItemRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.WorkItem
@@ -109,6 +99,5 @@ func WorkItemRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Rou
 		{Method: http.MethodGet, Path: base, Handler: ListWorkItems(m)},
 		{Method: http.MethodGet, Path: base + "/{workItemID}", Handler: GetWorkItem(m)},
 		{Method: http.MethodPatch, Path: base + "/{workItemID}", Handler: UpdateWorkItem(m)},
-		{Method: http.MethodGet, Path: base + "/{workItemID}/" + names.RoleAssignment, Handler: ListRoleAssignmentsForWorkItem(m)},
 	}
 }

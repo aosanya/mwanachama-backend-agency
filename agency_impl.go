@@ -31,10 +31,11 @@ func (m *agencyManager) GetAgency(ctx context.Context) (models.Agency, error) {
 	return gormstore.AgencyFromRow(row), nil
 }
 
-// UpdateAgency updates the sole Agency row's name/mission/vision
-// (single-agency deployment, same lookup as GetAgency — a's own ID is
-// ignored). Enabled/DefaultFailurePipelineBudget/InactivityTimeoutSeconds/
+// UpdateAgency updates the sole Agency row's name (single-agency
+// deployment, same lookup as GetAgency — a's own ID is ignored).
+// Enabled/DefaultFailurePipelineBudget/InactivityTimeoutSeconds/
 // EventFlows/Deleted are untouched; nothing has asked to edit those yet.
+// Mission/Vision were removed 2026-09-10 (AGD-001).
 func (m *agencyManager) UpdateAgency(ctx context.Context, a models.Agency) (models.Agency, error) {
 	existing, err := m.findAgencyRow(ctx, m.db)
 	if err != nil {
@@ -45,8 +46,6 @@ func (m *agencyManager) UpdateAgency(ctx context.Context, a models.Agency) (mode
 	row := gormstore.AgencyToRow(a)
 	cols := map[string]any{
 		"name":       row.Name,
-		"mission":    row.Mission,
-		"vision":     row.Vision,
 		"updated_at": row.UpdatedAt,
 	}
 	if err := m.db.WithContext(ctx).Table(m.tables.Agencies).Where("id = ?", existing.ID).Updates(cols).Error; err != nil {

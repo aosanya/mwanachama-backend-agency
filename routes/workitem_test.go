@@ -17,9 +17,11 @@ func TestCreateWorkItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
 
 	handler := routes.CreateWorkItem(mgr)
-	body := `{"workflow_id":"` + w.ID + `","title":"Write charter"}`
+	body := `{"workflow_id":"` + w.ID + `","objective_id":"` + o.ID + `","title":"Write charter"}`
 	req := httptest.NewRequest(http.MethodPost, "/work-items", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	handler(rec, req)
@@ -36,6 +38,21 @@ func TestCreateWorkItem(t *testing.T) {
 	}
 }
 
+func TestCreateWorkItem_RequiresObjective(t *testing.T) {
+	mgr := newTestManager(t)
+	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
+
+	handler := routes.CreateWorkItem(mgr)
+	body := `{"workflow_id":"` + w.ID + `","title":"Write charter"}`
+	req := httptest.NewRequest(http.MethodPost, "/work-items", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	handler(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestGetWorkItem_NotFound(t *testing.T) {
 	mgr := newTestManager(t)
 	req := httptest.NewRequest(http.MethodGet, "/work-items/unknown", nil)
@@ -48,42 +65,21 @@ func TestGetWorkItem_NotFound(t *testing.T) {
 	}
 }
 
-func TestUpdateWorkItemAndListRoleAssignmentsForWorkItem(t *testing.T) {
+func TestUpdateWorkItem(t *testing.T) {
 	mgr := newTestManager(t)
 	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
-	wi, err := mgr.CreateWorkItem(t.Context(), models.WorkItem{WorkflowID: w.ID, Title: "Write charter"})
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
+	wi, err := mgr.CreateWorkItem(t.Context(), models.WorkItem{WorkflowID: w.ID, ObjectiveID: o.ID, Title: "Write charter"})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
 
-	updateReq := httptest.NewRequest(http.MethodPatch, "/work-items/"+wi.ID, strings.NewReader(`{"workflow_id":"`+w.ID+`","title":"Write charter v2"}`))
+	updateReq := httptest.NewRequest(http.MethodPatch, "/work-items/"+wi.ID, strings.NewReader(`{"workflow_id":"`+w.ID+`","objective_id":"`+o.ID+`","title":"Write charter v2"}`))
 	updateReq.SetPathValue("workItemID", wi.ID)
 	updateRec := httptest.NewRecorder()
 	routes.UpdateWorkItem(mgr)(updateRec, updateReq)
 	if updateRec.Code != http.StatusOK {
 		t.Fatalf("update status = %d, body = %s", updateRec.Code, updateRec.Body.String())
-	}
-
-	role, err := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
-	if err != nil {
-		t.Fatalf("CreateRole: %v", err)
-	}
-	if _, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
-
-	listReq := httptest.NewRequest(http.MethodGet, "/work-items/"+wi.ID+"/role-assignments", nil)
-	listReq.SetPathValue("workItemID", wi.ID)
-	listRec := httptest.NewRecorder()
-	routes.ListRoleAssignmentsForWorkItem(mgr)(listRec, listReq)
-	if listRec.Code != http.StatusOK {
-		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
-	}
-	var assignments []models.RoleAssignment
-	if err := json.Unmarshal(listRec.Body.Bytes(), &assignments); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if len(assignments) != 1 || assignments[0].Label != models.RACILabelAccountable {
-		t.Fatalf("unexpected assignments: %+v", assignments)
 	}
 }

@@ -19,7 +19,7 @@ func TestCreateRole_RequiresName(t *testing.T) {
 func TestRole_LiveCannotBeEdited(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	ag, _, _, _, _ := seedLiveAgency(t, mgr, ctx)
 
 	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
 	if err != nil {

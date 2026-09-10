@@ -27,6 +27,7 @@ type NeoLabHQSeed struct {
 	Department      models.Department
 	Roles           map[string]models.Role // keyed by persona name
 	Goals           []models.Goal
+	Objectives      []models.Objective // index-aligned with Goals (1:1)
 	Workflows       []models.Workflow
 	WorkItems       []models.WorkItem
 	RoleAssignments []models.RoleAssignment
@@ -35,15 +36,17 @@ type NeoLabHQSeed struct {
 // SeedNeoLabHQ creates a test Agency ("NeoLabHQ"): all 21
 // [NeoLabHQPersonas] as Roles under one "Software" Department (Role
 // itself stays unscoped — the Department exists for real, but nothing
-// points at it), plus a small illustrative Goal/Workflow/WorkItem set
-// with RoleAssignments exercising every RACI label. Everything is created
-// live; publishing is left to the caller.
+// points at it), plus a small illustrative Goal/Objective/Workflow/
+// WorkItem set with RoleAssignments exercising every RACI label. Three
+// separate Goal/Objective pairs, one per illustrative WorkItem — RACI
+// moved to Objective-scoped 2026-09-10 (AGD-001), so three distinct RACI
+// sets need three distinct Objectives, not three WorkItems sharing one.
+// Everything is created live; publishing is left to the caller.
 func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 	var seed NeoLabHQSeed
 
 	agency, err := m.CreateAgency(ctx, models.Agency{
-		Name:    "NeoLabHQ",
-		Mission: "Prove the Agency/Role/RACI model end-to-end against a real persona catalog.",
+		Name: "NeoLabHQ",
 	})
 	if err != nil {
 		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
@@ -69,12 +72,6 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 		seed.Roles[name] = role
 	}
 
-	goal, err := m.CreateGoal(ctx, models.Goal{Title: "Ship reliable software"})
-	if err != nil {
-		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
-	}
-	seed.Goals = []models.Goal{goal}
-
 	workflow, err := m.CreateWorkflow(ctx, models.Workflow{Name: "Code Review Process"})
 	if err != nil {
 		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
@@ -86,13 +83,13 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 		label   models.RACILabel
 	}
 	items := []struct {
-		title       string
-		goalTagged  bool
+		goalTitle   string
+		workItem    string
 		assignments []assignment
 	}{
 		{
-			title:      "Review pull request",
-			goalTagged: true,
+			goalTitle: "Ship reliable software",
+			workItem:  "Review pull request",
 			assignments: []assignment{
 				{"code-reviewer", models.RACILabelResponsible},
 				{"tech-lead", models.RACILabelAccountable},
@@ -101,14 +98,16 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 			},
 		},
 		{
-			title: "Triage a bug report",
+			goalTitle: "Resolve reported defects",
+			workItem:  "Triage a bug report",
 			assignments: []assignment{
 				{"bug-hunter", models.RACILabelResponsible},
 				{"tech-lead", models.RACILabelAccountable},
 			},
 		},
 		{
-			title: "Approve architecture change",
+			goalTitle: "Keep the architecture coherent",
+			workItem:  "Approve architecture change",
 			assignments: []assignment{
 				{"software-architect", models.RACILabelResponsible},
 				{"tech-lead", models.RACILabelAccountable},
@@ -118,13 +117,23 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 	}
 
 	for _, item := range items {
-		wi := models.WorkItem{WorkflowID: workflow.ID, Title: item.title}
-		if item.goalTagged {
-			wi.GoalID = goal.ID
-		}
-		workItem, err := m.CreateWorkItem(ctx, wi)
+		goal, err := m.CreateGoal(ctx, models.Goal{Title: item.goalTitle})
 		if err != nil {
-			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create work item %q: %w", item.title, err)
+			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create goal %q: %w", item.goalTitle, err)
+		}
+		seed.Goals = append(seed.Goals, goal)
+
+		objective, err := m.CreateObjective(ctx, models.Objective{GoalID: goal.ID, Title: item.goalTitle})
+		if err != nil {
+			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create objective for %q: %w", item.goalTitle, err)
+		}
+		seed.Objectives = append(seed.Objectives, objective)
+
+		workItem, err := m.CreateWorkItem(ctx, models.WorkItem{
+			WorkflowID: workflow.ID, ObjectiveID: objective.ID, Title: item.workItem,
+		})
+		if err != nil {
+			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create work item %q: %w", item.workItem, err)
 		}
 		seed.WorkItems = append(seed.WorkItems, workItem)
 
@@ -134,10 +143,10 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 				return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %q is not a seeded persona", a.persona)
 			}
 			ra, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{
-				RoleID: role.ID, WorkItemID: workItem.ID, Label: a.label,
+				RoleID: role.ID, ObjectiveID: objective.ID, Label: a.label,
 			})
 			if err != nil {
-				return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: assign %q to %q: %w", a.persona, item.title, err)
+				return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: assign %q to %q: %w", a.persona, item.workItem, err)
 			}
 			seed.RoleAssignments = append(seed.RoleAssignments, ra)
 		}

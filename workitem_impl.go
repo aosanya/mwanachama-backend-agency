@@ -12,6 +12,9 @@ import (
 )
 
 func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error) {
+	if wi.ObjectiveID == "" {
+		return models.WorkItem{}, fmt.Errorf("%w: WorkItem.ObjectiveID is required", ErrInvalidWorkItem)
+	}
 	if wi.CreatedAt == "" {
 		wi.CreatedAt = models.NowRFC3339()
 	}
@@ -53,18 +56,21 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 	if err != nil {
 		return models.WorkItem{}, err
 	}
+	if wi.ObjectiveID == "" {
+		return models.WorkItem{}, fmt.Errorf("%w: WorkItem.ObjectiveID is required", ErrInvalidWorkItem)
+	}
 	row := gormstore.WorkItemToRow(wi)
 	row.CreatedAt = existing.CreatedAt
 	cols := map[string]any{
-		"workflow_id": row.WorkflowID,
-		"goal_id":     row.GoalID,
-		"draft_id":    row.DraftID,
-		"title":       row.Title,
-		"description": row.Description,
-		"ordinality":  row.Ordinality,
-		"prompt":      row.Prompt,
-		"updated_at":  row.UpdatedAt,
-		"deleted":     row.Deleted,
+		"workflow_id":  row.WorkflowID,
+		"objective_id": row.ObjectiveID,
+		"draft_id":     row.DraftID,
+		"title":        row.Title,
+		"description":  row.Description,
+		"ordinality":   row.Ordinality,
+		"prompt":       row.Prompt,
+		"updated_at":   row.UpdatedAt,
+		"deleted":      row.Deleted,
 	}
 	if err := m.db.WithContext(ctx).Table(m.tables.WorkItems).Where("id = ?", wi.ID).Updates(cols).Error; err != nil {
 		return models.WorkItem{}, fmt.Errorf("UpdateWorkItem: %w", err)

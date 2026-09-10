@@ -8,6 +8,7 @@ type TableNames struct {
 	Agencies           string
 	Drafts             string
 	Goals              string
+	Objectives         string
 	Workflows          string
 	WorkItems          string
 	EventFlowSteps     string
@@ -19,6 +20,8 @@ type TableNames struct {
 	Levels             string
 	Roles              string
 	RoleAssignments    string
+	Values             string
+	Rules              string
 }
 
 // DefaultTableNames builds the conventional table set for one mounted
@@ -28,6 +31,7 @@ func DefaultTableNames(instance string) TableNames {
 		Agencies:           instance + "_agencies",
 		Drafts:             instance + "_drafts",
 		Goals:              instance + "_goals",
+		Objectives:         instance + "_objectives",
 		Workflows:          instance + "_workflows",
 		WorkItems:          instance + "_work_items",
 		EventFlowSteps:     instance + "_event_flow_steps",
@@ -39,6 +43,8 @@ func DefaultTableNames(instance string) TableNames {
 		Levels:             instance + "_levels",
 		Roles:              instance + "_roles",
 		RoleAssignments:    instance + "_role_assignments",
+		Values:             instance + "_values",
+		Rules:              instance + "_rules",
 	}
 }
 
@@ -51,6 +57,9 @@ func Migrate(db *gorm.DB, t TableNames) error {
 		return err
 	}
 	if err := db.Table(t.Goals).AutoMigrate(&GoalRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.Objectives).AutoMigrate(&ObjectiveRow{}); err != nil {
 		return err
 	}
 	if err := db.Table(t.Workflows).AutoMigrate(&WorkflowRow{}); err != nil {
@@ -84,6 +93,12 @@ func Migrate(db *gorm.DB, t TableNames) error {
 		return err
 	}
 	if err := db.Table(t.RoleAssignments).AutoMigrate(&RoleAssignmentRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.Values).AutoMigrate(&ValueRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.Rules).AutoMigrate(&RuleRow{}); err != nil {
 		return err
 	}
 	return nil

@@ -5,4 +5,23 @@ Everything else (completed rows, board context) is in [todo_done.md](todo_done.m
 
 | ID | Pri | Status | Task | Depends on |
 |---|---|---|---|---|
-| AG11 | P1 | 📋 | **Superseded by [AGD-001](../2.%20design/todo_details/AGD-001.md), 2026-09-10 — do not implement as written.** That session confirmed Mission/Vision are deleted outright, not made editable, so the `UpdateAgency`/`PATCH /agency` work below no longer applies. Original text, kept for context: `AgencyManager` has `CreateAgency`/`GetAgency` but no `UpdateAgency` — Mission/Vision can be set at creation but never edited after. Add `UpdateAgency(ctx, a models.Agency) (models.Agency, error)` (explicit column-map update, matching `UpdateGoal`/`UpdateWorkflow`/`UpdateWorkItem`'s convention, not `Updates(&row)`) plus a `PATCH /agency` route in `routes/agency.go`. Note: this repo's routes are consumed by two callers that both auto-register whatever `agencyroutes.Routes` returns — `mwanachama-wakala-api` (WK5) picks the new route up for free, but `mwanachama-backend-api-gateway`'s AG10 wiring has a hard `TestPostmanCollectionCoversEveryRoute` gate that will start failing until that repo's Postman collection gets a matching request added. | — |
+
+Cross-repo follow-ups from AGD-001/AG12 (not this repo's own board — filed
+here per dev-research.md's "a row for another board is still filed here
+first" convention):
+- `mwanachama-wakala-api`: AG11's `UpdateAgency`/`PATCH /agency` route is
+  gone — `internal/api/http/instance_handlers.go`,
+  `mcp_tools_agency.go`/`mcp_tools_composite.go`, and
+  `cmd/server/selftest/selftest_create_agency_mission_vision.go` all still
+  reference the removed `Mission`/`Vision` fields and need updating.
+- `mwanachama-wakala-studio`: `agency-canvas.tsx`'s `IdentitySection`/
+  `ALL_SECTIONS`, `agency.new.tsx`'s `DRAFT_SECTIONS`,
+  `WorkspaceMenu.tsx`'s section list, and `AgencyIdentityField.tsx`/
+  `api/instances.ts` all assume Name/Mission/Vision.
+- `mwanachama-backend-api-kazi`: K6's RACI lookup ("who to notify for a
+  WorkItem") must resolve via the new `WorkItem.ObjectiveID` →
+  `ListRoleAssignmentsForObjective`, not a direct WorkItem-scoped call.
+- `mwanachama-backend-api-gateway`: AG12 added routes for
+  Objective/Value/Rule and moved the Objective-nested role-assignments
+  read — the gateway's `TestPostmanCollectionCoversEveryRoute` gate (see
+  AG10's own note below) will need matching Postman coverage added.

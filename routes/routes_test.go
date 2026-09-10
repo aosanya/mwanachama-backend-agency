@@ -27,9 +27,12 @@ func TestRoutes_DefaultNouns(t *testing.T) {
 		"POST /work-items":               true,
 		"GET /drafts":                    true,
 		"POST /drafts/{draftID}/promote": true,
-		"GET /work-plans/{workPlanID}/context-sources":  true,
-		"DELETE /roles/{roleID}":                        true,
-		"GET /work-items/{workItemID}/role-assignments": true,
+		"GET /work-plans/{workPlanID}/context-sources":   true,
+		"DELETE /roles/{roleID}":                         true,
+		"GET /objectives/{objectiveID}/role-assignments": true,
+		"POST /objectives":                               true,
+		"DELETE /values/{valueID}":                       true,
+		"DELETE /rules/{ruleID}":                         true,
 	}
 	got := map[string]bool{}
 	for _, rt := range rts {

@@ -83,4 +83,32 @@ var (
 	// UpdateRoleAssignment/DeleteRoleAssignment when the target row is
 	// live (DraftID == "") — edit within a draft, then promote.
 	ErrCannotEditLiveRACI = errors.New("mwanachamaagency: live RACI data cannot be edited directly, edit within a draft")
+	// ErrObjectiveNotFound is returned when an Objective id has no match
+	// in the expected scope.
+	ErrObjectiveNotFound = errors.New("mwanachamaagency: objective not found")
+	// ErrDuplicateObjective is returned by CreateObjective when another
+	// Objective in the same scope already references the given GoalID —
+	// Goal:Objective is 1:1.
+	ErrDuplicateObjective = errors.New("mwanachamaagency: goal already has an objective")
+	// ErrInvalidWorkItem is returned by CreateWorkItem/UpdateWorkItem when
+	// ObjectiveID is empty — every WorkItem belongs to exactly one
+	// Objective (AGD-001).
+	ErrInvalidWorkItem = errors.New("mwanachamaagency: invalid work item")
+	// ErrInvalidValue is returned by CreateValue/UpdateValue when Text is
+	// empty.
+	ErrInvalidValue = errors.New("mwanachamaagency: invalid value")
+	// ErrValueNotFound is returned when a Value id has no match.
+	ErrValueNotFound = errors.New("mwanachamaagency: value not found")
+	// ErrInvalidRule is returned by CreateRule/UpdateRule when Text is
+	// empty.
+	ErrInvalidRule = errors.New("mwanachamaagency: invalid rule")
+	// ErrRuleNotFound is returned when a Rule id has no match.
+	ErrRuleNotFound = errors.New("mwanachamaagency: rule not found")
+	// ErrCannotEditLive is returned by UpdateValue/DeleteValue/
+	// UpdateRule/DeleteRule when the target row is live (DraftID == "")
+	// — same rule as [ErrCannotEditLiveRACI], separate error since Value/
+	// Rule aren't RACI data. An Agency-wide row (ObjectiveID == "") is
+	// always live and never forked into a Draft, so this is permanent
+	// for those, not just "until promoted".
+	ErrCannotEditLive = errors.New("mwanachamaagency: live data cannot be edited directly, edit within a draft")
 )

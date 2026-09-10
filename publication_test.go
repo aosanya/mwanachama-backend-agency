@@ -49,7 +49,7 @@ func TestPublishAgency_NoDraft(t *testing.T) {
 func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
 	p1, err := mgr.PublishAgency(ctx, "")
 	if err != nil {
@@ -61,7 +61,7 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable,
+		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 func TestPublishAgency_RequiresPromotedDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	ag, _, _, _, _ := seedLiveAgency(t, mgr, ctx)
 
 	d, err := mgr.CreateDraft(ctx, "not promoted yet", ag.ID, "live")
 	if err != nil {
