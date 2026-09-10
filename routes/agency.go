@@ -55,12 +55,30 @@ func GetAgency(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// AgencyRoutes is Create/Get for Agency, addressed under names.Agency.
+// UpdateAgency handles PATCH — no {agencyID}, same single-row lookup as GetAgency.
+func UpdateAgency(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var in models.Agency
+		if err := readJSON(r, &in); err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		out, err := m.UpdateAgency(r.Context(), in)
+		if err != nil {
+			writeAgencyErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// AgencyRoutes is Create/Get/Update for Agency, addressed under names.Agency.
 func AgencyRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.Agency
 	return []Route{
 		{Method: http.MethodPost, Path: base, Handler: CreateAgency(m)},
 		{Method: http.MethodGet, Path: base, Handler: GetAgency(m)},
+		{Method: http.MethodPatch, Path: base, Handler: UpdateAgency(m)},
 	}
 }

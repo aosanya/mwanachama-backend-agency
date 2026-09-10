@@ -31,6 +31,35 @@ func (m *agencyManager) GetAgency(ctx context.Context) (models.Agency, error) {
 	return gormstore.AgencyFromRow(row), nil
 }
 
+// UpdateAgency updates the sole Agency row's name/mission/vision
+// (single-agency deployment, same lookup as GetAgency — a's own ID is
+// ignored). Enabled/DefaultFailurePipelineBudget/InactivityTimeoutSeconds/
+// EventFlows/Deleted are untouched; nothing has asked to edit those yet.
+func (m *agencyManager) UpdateAgency(ctx context.Context, a models.Agency) (models.Agency, error) {
+	existing, err := m.findAgencyRow(ctx, m.db)
+	if err != nil {
+		return models.Agency{}, err
+	}
+	a.ID = existing.ID
+	a.CreatedAt = existing.CreatedAt
+	row := gormstore.AgencyToRow(a)
+	cols := map[string]any{
+		"name":       row.Name,
+		"mission":    row.Mission,
+		"vision":     row.Vision,
+		"updated_at": row.UpdatedAt,
+	}
+	if err := m.db.WithContext(ctx).Table(m.tables.Agencies).Where("id = ?", existing.ID).Updates(cols).Error; err != nil {
+		return models.Agency{}, fmt.Errorf("UpdateAgency: %w", err)
+	}
+	row.Enabled = existing.Enabled
+	row.DefaultFailurePipelineBudget = existing.DefaultFailurePipelineBudget
+	row.InactivityTimeoutSeconds = existing.InactivityTimeoutSeconds
+	row.EventFlows = existing.EventFlows
+	row.Deleted = existing.Deleted
+	return gormstore.AgencyFromRow(row), nil
+}
+
 func (m *agencyManager) findAgencyRow(ctx context.Context, tx *gorm.DB) (gormstore.AgencyRow, error) {
 	var row gormstore.AgencyRow
 	err := tx.WithContext(ctx).Table(m.tables.Agencies).Order("created_at").First(&row).Error

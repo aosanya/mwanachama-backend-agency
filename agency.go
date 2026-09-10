@@ -16,6 +16,7 @@ type AgencyManager interface {
 	// Agency
 	CreateAgency(ctx context.Context, a models.Agency) (models.Agency, error)
 	GetAgency(ctx context.Context) (models.Agency, error)
+	UpdateAgency(ctx context.Context, a models.Agency) (models.Agency, error)
 
 	// Goal. List's draftID selects scope: "" lists live Goals, a Draft's
 	// ID lists that draft's copies.
