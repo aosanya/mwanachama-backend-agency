@@ -1,0 +1,216 @@
+package mcp
+
+import (
+	"context"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/aosanya/mwanachama-backend-agency/models"
+)
+
+// registerAgencyTools registers Agency/Draft/Publication tools — the
+// Agency lifecycle: the live document itself, the draft an edit happens
+// against, and the versioned, hashed snapshot a Draft's promotion produces.
+func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_agency", Description: "Create the Agency document (name) for a registered Instance."}, mcpCreateAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_agency", Description: "Get an Instance's Agency document."}, mcpGetAgency(resolve))
+
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Description: "Fork a Draft — a scoped copy of the live Agency's Goals/Workflows/WorkItems/Roles/RoleAssignments/EventFlowSteps to edit without touching what's live."}, mcpCreateDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_draft", Description: "Get a Draft by id."}, mcpGetDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_drafts", Description: "List every Draft for an Instance."}, mcpListDrafts(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_draft_description", Description: "Change a Draft's description."}, mcpUpdateDraftDescription(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_promote_draft", Description: "Promote an open Draft: its scoped copies become live, replacing what was there before."}, mcpPromoteDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_archive_draft", Description: "Archive an open Draft without promoting it — its scoped copies are discarded."}, mcpArchiveDraft(resolve))
+
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Description: "Publish the currently-live Agency (optionally the result of a just-promoted Draft) as a new versioned, content-hashed AgencyPublication."}, mcpPublishAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_publication", Description: "Get one AgencyPublication by its version number."}, mcpGetPublication(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_publications", Description: "List every AgencyPublication for an Instance."}, mcpListPublications(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_publication_status", Description: "Set an AgencyPublication's status (e.g. archiving it)."}, mcpUpdatePublicationStatus(resolve))
+}
+
+// mcpCreateAgencyParams mirrors models.Agency field-for-field, but with
+// every field but Name marked omitempty: the go-sdk's schema inference
+// (google/jsonschema-go) treats any field lacking omitempty/omitzero as
+// required, and models.Agency's own json tags (decision #1: imported
+// unmodified) carry none — embedding it directly would force a caller to
+// invent values for id/created_at/etc. on every call.
+type mcpCreateAgencyParams struct {
+	InstanceID                   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	Name                         string `json:"name" jsonschema:"the Agency's name"`
+	Enabled                      bool   `json:"enabled,omitempty" jsonschema:"whether the Agency is active"`
+	DefaultFailurePipelineBudget int    `json:"default_failure_pipeline_budget,omitempty" jsonschema:"default retry budget for a WorkPlan's on-failure pipeline"`
+	InactivityTimeoutSeconds     int    `json:"inactivity_timeout_seconds,omitempty" jsonschema:"seconds of inactivity before a run is considered stalled"`
+	EventFlows                   string `json:"event_flows,omitempty" jsonschema:"raw JSON event-flow blob; Workflow.EventFlows falls back to this when empty"`
+}
+
+func mcpCreateAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpCreateAgencyParams) (*mcp.CallToolResult, models.Agency, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpCreateAgencyParams) (*mcp.CallToolResult, models.Agency, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.Agency{}, err
+		}
+		out, err := m.CreateAgency(ctx, models.Agency{
+			Name:                         p.Name,
+			Enabled:                      p.Enabled,
+			DefaultFailurePipelineBudget: p.DefaultFailurePipelineBudget,
+			InactivityTimeoutSeconds:     p.InactivityTimeoutSeconds,
+			EventFlows:                   p.EventFlows,
+		})
+		return nil, out, err
+	}
+}
+
+func mcpGetAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceOnlyParams) (*mcp.CallToolResult, models.Agency, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceOnlyParams) (*mcp.CallToolResult, models.Agency, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.Agency{}, err
+		}
+		out, err := m.GetAgency(ctx)
+		return nil, out, err
+	}
+}
+
+type mcpCreateDraftParams struct {
+	InstanceID     string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	Description    string `json:"description" jsonschema:"what this Draft is for"`
+	ForkedFromID   string `json:"forked_from_id" jsonschema:"the live Agency's id, or another Draft's id, to fork from"`
+	ForkedFromType string `json:"forked_from_type" jsonschema:"\"live\" or \"draft\", matching what forked_from_id names"`
+}
+
+func mcpCreateDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpCreateDraftParams) (*mcp.CallToolResult, models.Draft, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpCreateDraftParams) (*mcp.CallToolResult, models.Draft, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.Draft{}, err
+		}
+		out, err := m.CreateDraft(ctx, p.Description, p.ForkedFromID, p.ForkedFromType)
+		return nil, out, err
+	}
+}
+
+type mcpDraftIDParams struct {
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	DraftID    string `json:"draft_id" jsonschema:"the Draft's id"`
+}
+
+func mcpGetDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDraftIDParams) (*mcp.CallToolResult, models.Draft, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpDraftIDParams) (*mcp.CallToolResult, models.Draft, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.Draft{}, err
+		}
+		out, err := m.GetDraft(ctx, p.DraftID)
+		return nil, out, err
+	}
+}
+
+func mcpListDrafts(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.Draft], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.Draft], error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, ListResult[models.Draft]{}, err
+		}
+		out, err := m.ListDrafts(ctx)
+		return nil, ListResult[models.Draft]{Items: out}, err
+	}
+}
+
+type mcpUpdateDraftDescriptionParams struct {
+	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft's id"`
+	Description string `json:"description" jsonschema:"the Draft's new description"`
+}
+
+func mcpUpdateDraftDescription(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpUpdateDraftDescriptionParams) (*mcp.CallToolResult, models.Draft, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpUpdateDraftDescriptionParams) (*mcp.CallToolResult, models.Draft, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.Draft{}, err
+		}
+		out, err := m.UpdateDraftDescription(ctx, p.DraftID, p.Description)
+		return nil, out, err
+	}
+}
+
+func mcpPromoteDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDraftIDParams) (*mcp.CallToolResult, models.Agency, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpDraftIDParams) (*mcp.CallToolResult, models.Agency, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.Agency{}, err
+		}
+		out, err := m.PromoteDraft(ctx, p.DraftID)
+		return nil, out, err
+	}
+}
+
+func mcpArchiveDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDraftIDParams) (*mcp.CallToolResult, models.Draft, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpDraftIDParams) (*mcp.CallToolResult, models.Draft, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.Draft{}, err
+		}
+		out, err := m.ArchiveDraft(ctx, p.DraftID)
+		return nil, out, err
+	}
+}
+
+type mcpPublishAgencyParams struct {
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	DraftID    string `json:"draft_id,omitempty" jsonschema:"a just-promoted Draft's id, if this publication follows one; empty re-tags whatever is already live"`
+}
+
+func mcpPublishAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpPublishAgencyParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpPublishAgencyParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.AgencyPublication{}, err
+		}
+		out, err := m.PublishAgency(ctx, p.DraftID)
+		return nil, out, err
+	}
+}
+
+type mcpPublicationVersionParams struct {
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	Version    int    `json:"version" jsonschema:"the AgencyPublication's version number"`
+}
+
+func mcpGetPublication(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpPublicationVersionParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpPublicationVersionParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.AgencyPublication{}, err
+		}
+		out, err := m.GetPublication(ctx, p.Version)
+		return nil, out, err
+	}
+}
+
+func mcpListPublications(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.AgencyPublication], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.AgencyPublication], error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, ListResult[models.AgencyPublication]{}, err
+		}
+		out, err := m.ListPublications(ctx)
+		return nil, ListResult[models.AgencyPublication]{Items: out}, err
+	}
+}
+
+type mcpUpdatePublicationStatusParams struct {
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	Version    int    `json:"version" jsonschema:"the AgencyPublication's version number"`
+	Status     string `json:"status" jsonschema:"the new status, e.g. \"active\" or \"archived\""`
+}
+
+func mcpUpdatePublicationStatus(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpUpdatePublicationStatusParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpUpdatePublicationStatusParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.AgencyPublication{}, err
+		}
+		out, err := m.UpdatePublicationStatus(ctx, p.Version, p.Status)
+		return nil, out, err
+	}
+}

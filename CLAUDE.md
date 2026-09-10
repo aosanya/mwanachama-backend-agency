@@ -296,17 +296,44 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   - **`Agency.Mission`/`.Vision` are deleted** (model, gormstore,
     `UpdateAgency`, `liveContentHash`) — confirmed explicitly with the
     user ("delete them") over deprioritizing. `UpdateAgency` now only
-    ever touches `Name`. **Cross-repo follow-up, not done here**:
-    `mwanachama-wakala-api`'s AG11 (its own numbering) HTTP handlers and
-    MCP tools (`mcp_tools_agency.go`/`mcp_tools_composite.go` — the
-    AI-agent-facing surface, not just the human-facing one) and
-    `mwanachama-wakala-studio`'s identity UI still reference
-    Mission/Vision.
+    ever touches `Name`. **Cross-repo follow-up, not done here** (closed
+    by AG13, see below): at the time, `mwanachama-wakala-api`'s AG11 (its
+    own numbering) HTTP handlers and MCP tools
+    (`mcp_tools_agency.go`/`mcp_tools_composite.go` — the AI-agent-facing
+    surface, not just the human-facing one) and
+    `mwanachama-wakala-studio`'s identity UI still referenced
+    Mission/Vision, having drifted from this repo's own model.
   - `SeedNeoLabHQ` restructured from one Goal tagging one of three
     WorkItems (RACI per-WorkItem) to **three independent Goal→Objective→
     WorkItem chains** — Objective-scoped RACI means three distinct RACI
     sets need three distinct Objectives, not three WorkItems sharing one
     Goal.
+
+- **AG13 landed 2026-09-10: `mcp/`, exposing this library's own manager
+  methods as MCP tools directly — the AI-agent-facing surface
+  `mwanachama-wakala-api` previously owned entirely
+  (`mcp_tools_agency.go`/`mcp_tools_goal.go`/etc., ~57 tools).** Moved
+  because that split had already caused real drift once (AG12's Mission/
+  Vision removal needed a separate, after-the-fact fix in wakala-api) and
+  would keep recurring on every future model change otherwise. Structured
+  exactly like `routes/` (AG9) — one file per domain group, same tool
+  names/descriptions/param shapes as before — except `mcp.AddTool` wires a
+  handler onto the server once, at registration time, not per-request the
+  way `routes/` rebuilds `Routes(m, names)` fresh per HTTP call, so every
+  tool here closes over a `ManagerResolver` (`func(ctx, id string)
+  (AgencyManager, error)`) instead of a concrete manager — see `mcp/mcp.go`.
+  Also introduces `ListResult[T]{Items []T}`, which every List/Match tool
+  now returns instead of a bare slice: MCP's spec defines
+  `CallToolResult.structuredContent` as a JSON object, and a bare slice —
+  though it satisfies the go-sdk's own lenient test client — fails a
+  spec-strict one ("expected record, received array"), caught live against
+  a real MCP client while building this. `mwanachama-wakala-api`'s
+  `mcp.go` now just supplies `resolveAgencyManager` as the
+  `ManagerResolver`; its own `agency_list_instances` tool (exposing that
+  repo's Registry, decision #15 — a concept this library has no notion of)
+  stays there, unmoved. See `mwanachama-backend-actor/CLAUDE.md`'s new
+  "MCP tools" section for the cross-repo standard this establishes, and
+  when (not) to follow it.
 
 ## Conventions
 
@@ -318,6 +345,8 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   in detail (multi-tenancy dropped, recursive tree walks stay Go loops not
   CTEs, `group_impl.go`/`hierarchy_impl.go` as the pattern for this repo's
   department modeling).
+- `mcp/`, matching actor/CLAUDE.md's "MCP tools" standard exactly (AG13) —
+  this repo is that standard's reference implementation.
 - Documentation follows the workspace-wide four-phase layout
   (`1. requirements/2. design/3. implementation/4. qa`) — see
   [documentation/README.md](documentation/README.md).
