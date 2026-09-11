@@ -101,7 +101,7 @@ func mcpGetDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 			return nil, models.Draft{}, err
 		}
 		out, err := m.GetDraft(ctx, p.DraftID)
-		return nil, out, err
+		return summary("Draft %s: %q (%s)", out.ID, out.Description, out.Status), out, err
 	}
 }
 
@@ -112,7 +112,7 @@ func mcpListDrafts(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, ListResult[models.Draft]{}, err
 		}
 		out, err := m.ListDrafts(ctx)
-		return nil, ListResult[models.Draft]{Items: out}, err
+		return summary("Found %d draft(s)", len(out)), ListResult[models.Draft]{Items: out}, err
 	}
 }
 
