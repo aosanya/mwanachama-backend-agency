@@ -19,6 +19,22 @@ import (
 // JSON as always.
 const dashboardUIResourceURI = "ui://wakala/dashboard"
 
+// dashboardUIType classifies this View for a UI Apps host like
+// wakala-studio, via a custom "wakala/type" _meta key — ui.resourceUri
+// itself (SEP-1865) only signals "this tool opens a View", not where a
+// host should place it. "shortcut" marks a persistent action panel a host
+// should keep pinned (e.g. its sidebar) rather than opening a fresh
+// instance inline per tool call; a future one-off View (e.g. a
+// toast-style alert) would carry "notification" here instead.
+const dashboardUIType = "shortcut"
+
+// dashboardUIMeta is the MCP Apps ui: linking (SEP-1865), plus
+// dashboardUIType, shared by every tool that opens the dashboard View.
+var dashboardUIMeta = mcp.Meta{
+	"ui":          map[string]any{"resourceUri": dashboardUIResourceURI},
+	"wakala/type": dashboardUIType,
+}
+
 // registerDashboardUI adds the dashboard View as an MCP resource.
 func registerDashboardUI(server *mcp.Server) {
 	server.AddResource(&mcp.Resource{

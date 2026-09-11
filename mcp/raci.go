@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -19,7 +21,7 @@ func registerRACITools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_role", Title: "Get Role", Description: "Get a Role by id."}, mcpGetRole(resolve))
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "agency_list_roles", Title: "List Roles", Description: "List Roles — live, or a Draft's scoped copies.",
-		Meta: mcp.Meta{"ui": map[string]any{"resourceUri": dashboardUIResourceURI}},
+		Meta: dashboardUIMeta,
 	}, mcpListRoles(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role", Title: "Update Role", Description: "Update a Role. Refused on a live Role — only a Draft-scoped copy may be edited."}, mcpUpdateRole(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role", Title: "Delete Role", Description: "Delete a Role. Refused on a live Role — only a Draft-scoped copy may be deleted."}, mcpDeleteRole(resolve))
@@ -83,8 +85,23 @@ func mcpListRoles(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 			return nil, ListResult[models.Role]{}, err
 		}
 		out, err := m.ListRoles(ctx, p.DraftID)
-		return summary("Found %d role(s)", len(out)), ListResult[models.Role]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d role(s)", len(out)), rolesContextText(out)), ListResult[models.Role]{Items: out}, err
 	}
+}
+
+// rolesContextText is what an LLM sees for a Roles list opened outside its
+// own tool loop (mwanachama-wakala-studio's sidebar shortcut) — one line per
+// Role, field-by-field rather than a struct dump, so dropping a field from
+// an LLM's context later is just deleting it from this Sprintf.
+func rolesContextText(roles []models.Role) string {
+	if len(roles) == 0 {
+		return "There are no roles yet."
+	}
+	lines := make([]string, 0, len(roles))
+	for _, r := range roles {
+		lines = append(lines, fmt.Sprintf("- %s: %s (role id: %s)", r.Code, r.Name, r.ID))
+	}
+	return "Current roles:\n" + strings.Join(lines, "\n")
 }
 
 func mcpUpdateRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpRoleParams) (*mcp.CallToolResult, models.Role, error) {

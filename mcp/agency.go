@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -15,7 +16,7 @@ func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_agency", Title: "Create Agency", Description: "Create the Agency document (name) for a registered Instance."}, mcpCreateAgency(resolve))
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "agency_get_agency", Title: "Get Agency", Description: "Get an Instance's Agency document.",
-		Meta: mcp.Meta{"ui": map[string]any{"resourceUri": dashboardUIResourceURI}},
+		Meta: dashboardUIMeta,
 	}, mcpGetAgency(resolve))
 
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Title: "Fork Draft", Description: "Fork a Draft — a scoped copy of the live Agency's Goals/Workflows/WorkItems/Roles/RoleAssignments/EventFlowSteps to edit without touching what's live."}, mcpCreateDraft(resolve))
@@ -72,8 +73,23 @@ func mcpGetAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 			return nil, models.Agency{}, err
 		}
 		out, err := m.GetAgency(ctx)
-		return summary("Agency %q (%s)", out.Name, out.ID), out, err
+		return summaryWithContext(fmt.Sprintf("Agency %q (%s)", out.Name, out.ID), agencyContextText(out)), out, err
 	}
+}
+
+// agencyContextText is what an LLM sees for General Information opened
+// outside its own tool loop (mwanachama-wakala-studio's sidebar shortcut) —
+// field-by-field rather than a struct dump, so dropping a field from an
+// LLM's context later is just deleting it from this Sprintf.
+func agencyContextText(a models.Agency) string {
+	description := a.Description
+	if description == "" {
+		description = "—"
+	}
+	return fmt.Sprintf(
+		"Name: %s; Description: %s; Enabled: %t; Created: %s; Last updated: %s.",
+		a.Name, description, a.Enabled, a.CreatedAt, a.LastUpdated,
+	)
 }
 
 type mcpCreateDraftParams struct {

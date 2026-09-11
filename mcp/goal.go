@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -29,7 +31,7 @@ func registerGoalWorkflowTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_goal", Title: "Get Goal", Description: "Get a Goal by id."}, mcpGetGoal(resolve))
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "agency_list_goals", Title: "List Goals", Description: "List Goals — live, or a Draft's scoped copies.",
-		Meta: mcp.Meta{"ui": map[string]any{"resourceUri": dashboardUIResourceURI}},
+		Meta: dashboardUIMeta,
 	}, mcpListGoals(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_goal", Title: "Update Goal", Description: "Update a Goal (full replace — supply every field you want kept, not just the ones changing). id is required."}, mcpUpdateGoal(resolve))
 
@@ -94,8 +96,27 @@ func mcpListGoals(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 			return nil, ListResult[models.Goal]{}, err
 		}
 		out, err := m.ListGoals(ctx, p.DraftID)
-		return summary("Found %d goal(s)", len(out)), ListResult[models.Goal]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d goal(s)", len(out)), goalsContextText(out)), ListResult[models.Goal]{Items: out}, err
 	}
+}
+
+// goalsContextText is what an LLM sees for a Goals list opened outside its
+// own tool loop (mwanachama-wakala-studio's sidebar shortcut) — one line per
+// Goal, field-by-field rather than a struct dump, so dropping a field from
+// an LLM's context later is just deleting it from this Sprintf.
+func goalsContextText(goals []models.Goal) string {
+	if len(goals) == 0 {
+		return "There are no goals yet."
+	}
+	lines := make([]string, 0, len(goals))
+	for _, g := range goals {
+		line := fmt.Sprintf("- %s: %s", g.Code, g.Title)
+		if g.Description != "" {
+			line += " — " + g.Description
+		}
+		lines = append(lines, line+fmt.Sprintf(" (goal id: %s)", g.ID))
+	}
+	return "Current goals:\n" + strings.Join(lines, "\n")
 }
 
 func mcpUpdateGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpGoalParams) (*mcp.CallToolResult, models.Goal, error) {

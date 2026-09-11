@@ -82,3 +82,20 @@ type instanceAndDraftParams struct {
 func summary(format string, args ...any) *mcp.CallToolResult {
 	return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf(format, args...)}}}
 }
+
+// summaryWithContext behaves like summary, but appends a second Content
+// block after the human-readable summary line: plain text meant for an
+// LLM's own conversation context, not a human reading a call log — e.g. a
+// dashboard tool's caller (mwanachama-wakala-studio's native shortcuts
+// panel) folds this straight into the chat transcript so the model can act
+// on data it never itself asked a tool for. Always plain text, never the
+// dashboard's ui:// HTML resource. contextText is built by the caller from
+// explicit, named fields (see e.g. raci.go's rolesContextText) rather than
+// a blind struct/JSON dump, so leaving a field out of an LLM's context
+// later is just editing that call site, not this helper.
+func summaryWithContext(summaryText, contextText string) *mcp.CallToolResult {
+	return &mcp.CallToolResult{Content: []mcp.Content{
+		&mcp.TextContent{Text: summaryText},
+		&mcp.TextContent{Text: contextText},
+	}}
+}
