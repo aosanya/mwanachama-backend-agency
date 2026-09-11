@@ -85,7 +85,7 @@ func mcpCreateDraft(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Draft{}, err
 		}
 		out, err := m.CreateDraft(ctx, p.Description, p.ForkedFromID, p.ForkedFromType)
-		return nil, out, err
+		return summary("Forked Draft %s: %q", out.ID, out.Description), out, err
 	}
 }
 
