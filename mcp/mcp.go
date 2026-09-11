@@ -34,6 +34,7 @@ func RegisterTools(server *mcp.Server, resolve ManagerResolver) {
 	registerWorkPlanTools(server, resolve)
 	registerValueRuleTools(server, resolve)
 	registerCompositeTools(server, resolve)
+	registerDashboardUI(server)
 }
 
 // ListResult wraps a List/Match tool's slice: MCP's spec defines

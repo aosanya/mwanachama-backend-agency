@@ -13,7 +13,10 @@ import (
 // against, and the versioned, hashed snapshot a Draft's promotion produces.
 func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_agency", Title: "Create Agency", Description: "Create the Agency document (name) for a registered Instance."}, mcpCreateAgency(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_agency", Title: "Get Agency", Description: "Get an Instance's Agency document."}, mcpGetAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "agency_get_agency", Title: "Get Agency", Description: "Get an Instance's Agency document.",
+		Meta: mcp.Meta{"ui": map[string]any{"resourceUri": dashboardUIResourceURI}},
+	}, mcpGetAgency(resolve))
 
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Title: "Fork Draft", Description: "Fork a Draft — a scoped copy of the live Agency's Goals/Workflows/WorkItems/Roles/RoleAssignments/EventFlowSteps to edit without touching what's live."}, mcpCreateDraft(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_draft", Title: "Get Draft", Description: "Get a Draft by id."}, mcpGetDraft(resolve))

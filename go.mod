@@ -3,11 +3,14 @@ module github.com/aosanya/mwanachama-backend-agency
 go 1.25.0
 
 require (
+	github.com/aosanya/mwanachama-backend-shared v0.0.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	gorm.io/gorm v1.31.2
 )
+
+replace github.com/aosanya/mwanachama-backend-shared => ../mwanachama-backend-shared
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -23,7 +26,7 @@ require (
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect

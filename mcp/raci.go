@@ -17,7 +17,10 @@ import (
 func registerRACITools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_role", Title: "Create Role", Description: "Create a Role (a persona, e.g. \"bug-hunter\")."}, mcpCreateRole(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_role", Title: "Get Role", Description: "Get a Role by id."}, mcpGetRole(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_roles", Title: "List Roles", Description: "List Roles — live, or a Draft's scoped copies."}, mcpListRoles(resolve))
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "agency_list_roles", Title: "List Roles", Description: "List Roles — live, or a Draft's scoped copies.",
+		Meta: mcp.Meta{"ui": map[string]any{"resourceUri": dashboardUIResourceURI}},
+	}, mcpListRoles(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role", Title: "Update Role", Description: "Update a Role. Refused on a live Role — only a Draft-scoped copy may be edited."}, mcpUpdateRole(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role", Title: "Delete Role", Description: "Delete a Role. Refused on a live Role — only a Draft-scoped copy may be deleted."}, mcpDeleteRole(resolve))
 

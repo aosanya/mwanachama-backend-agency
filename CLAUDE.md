@@ -435,6 +435,45 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     out.Title, out.ID` — Code reads as the natural human-facing handle a
     raw UUID doesn't.
 
+- **AG17 landed 2026-09-11: `mcp/dashboard_ui.html`'s View restyled to match
+  `mwanachama-wakala-studio`'s design system, via a new shared
+  `mcpui` package in `mwanachama-backend-shared`.** Prompted directly by the
+  user ("same feel" as the Studio web app), then explicitly widened to a
+  repo-wide strategy rather than a one-off local restyle, since AG13 already
+  established this repo's `mcp/` as the reference implementation other
+  backend repos' own MCP dashboards will follow.
+  - `mwanachama-backend-shared/mcpui/theme.css` (+ `theme.go`'s
+    `//go:embed` `ThemeCSS string`) now holds the *entire* design system —
+    color tokens (light + `prefers-color-scheme: dark`, each layered over
+    the MCP Apps host's own `--color-*`/`--font-sans` hostContext
+    variables via `var(--color-x, <wakala-fallback>)` so a real host's
+    theme still wins), IBM Plex Sans/Mono + Big Shoulders Display
+    typography, and every base element/utility rule (`button`, `input`,
+    `table`, `dl`/`dt`/`dd`, `.tile`/`.menu`, `.form-row`, `.back`,
+    `.eyebrow`, `.empty`, `.section`/`.section.active`). Turned out to
+    cover 100% of what this dashboard needed — `dashboard_ui.html` itself
+    carries no `<style>` block at all now, only structure/behavior.
+  - `mwanachama-backend-shared` was chosen over a new standalone repo
+    because it already plays this role once — `mwanachama-backend-actor`
+    depends on it via `replace ... => ../mwanachama-backend-shared`, and
+    its own tree already mixes unrelated concerns (`entitygraph`,
+    `orgpolicy`, `orgsettings`, `events`) despite its CLAUDE.md describing
+    it narrowly as "the entity-graph engine" — `mcpui` is one more
+    non-entitygraph package riding the same dependency, not a new pattern.
+  - `dashboard_ui.go` now embeds the raw page as `dashboardUIPage` and
+    computes `dashboardUIHTML` once at package init by splicing
+    `mcpui.ThemeCSS` in as a `<style>` block right after `<meta charset>`
+    (`strings.Replace`, not a template) — any future page-specific CSS a
+    dashboard needs can still follow in its own later `<style>` block and
+    win the cascade normally.
+  - Not done here, flagged for later rather than silently bundled in:
+    the SEP-1865 postMessage/JSON-RPC client boilerplate (`send`,
+    `callTool`, `esc`, the `ui/initialize` handshake, the menu/section
+    router) in `dashboard_ui.html`'s `<script>` is equally duplicated
+    per-repo protocol code, not agency-specific logic — a natural next
+    candidate for the same `mwanachama-backend-shared` treatment once a
+    second repo actually builds its own MCP dashboard.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

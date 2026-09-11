@@ -27,7 +27,10 @@ import (
 func registerGoalWorkflowTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_goal", Title: "Create Goal", Description: "Create a Goal for an Agency."}, mcpCreateGoal(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_goal", Title: "Get Goal", Description: "Get a Goal by id."}, mcpGetGoal(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_goals", Title: "List Goals", Description: "List Goals — live, or a Draft's scoped copies."}, mcpListGoals(resolve))
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "agency_list_goals", Title: "List Goals", Description: "List Goals — live, or a Draft's scoped copies.",
+		Meta: mcp.Meta{"ui": map[string]any{"resourceUri": dashboardUIResourceURI}},
+	}, mcpListGoals(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_goal", Title: "Update Goal", Description: "Update a Goal (full replace — supply every field you want kept, not just the ones changing). id is required."}, mcpUpdateGoal(resolve))
 
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_workflow", Title: "Create Workflow", Description: "Create a Workflow for an Agency."}, mcpCreateWorkflow(resolve))
