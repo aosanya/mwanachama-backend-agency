@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -103,10 +104,31 @@ func (m *agencyManager) findRoleRow(ctx context.Context, tx *gorm.DB, id string)
 	var row gormstore.RoleRow
 	err := tx.WithContext(ctx).Table(m.tables.Roles).Where("id = ?", id).First(&row).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return gormstore.RoleRow{}, ErrRoleNotFound
+		return gormstore.RoleRow{}, m.roleNotFoundError(ctx, tx, id)
 	}
 	if err != nil {
 		return gormstore.RoleRow{}, fmt.Errorf("findRoleRow: %w", err)
 	}
 	return row, nil
+}
+
+// roleNotFoundError enriches ErrRoleNotFound with any roles whose Code or
+// Name contains id (case-insensitive) — an AI agent that mistakes a Role's
+// id for its Code/Name (or guesses one from the other, e.g. slugifying
+// "Test" into "test") gets pointed at the real id right in this error,
+// instead of a bare "not found" that costs it another blind round trip.
+func (m *agencyManager) roleNotFoundError(ctx context.Context, tx *gorm.DB, id string) error {
+	pattern := "%" + strings.ToLower(id) + "%"
+	var matches []gormstore.RoleRow
+	tx.WithContext(ctx).Table(m.tables.Roles).
+		Where("LOWER(code) LIKE ? OR LOWER(name) LIKE ?", pattern, pattern).
+		Find(&matches)
+	if len(matches) == 0 {
+		return ErrRoleNotFound
+	}
+	hints := make([]string, len(matches))
+	for i, r := range matches {
+		hints[i] = fmt.Sprintf("%s %q (id: %s)", r.Code, r.Name, r.ID)
+	}
+	return fmt.Errorf("%w: no role with id %q — did you mean one of: %s", ErrRoleNotFound, id, strings.Join(hints, "; "))
 }

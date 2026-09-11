@@ -3,6 +3,7 @@ package mwanachamaagency_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -57,6 +58,36 @@ func TestGetRole_NotFound(t *testing.T) {
 	mgr := newTestManager(t)
 	if _, err := mgr.GetRole(context.Background(), "unknown"); !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
 		t.Fatalf("expected ErrRoleNotFound, got %v", err)
+	}
+}
+
+// TestGetRole_NotFound_SuggestsByCodeOrName covers an AI agent guessing a
+// Role's id from its Name (e.g. slugifying "Test" into "test") instead of
+// using the real id — the error should still satisfy errors.Is(...,
+// ErrRoleNotFound) for routes/role.go's existing 404 mapping, but now also
+// names the actual match so the agent can retry with the real id instead of
+// dead-ending.
+func TestGetRole_NotFound_SuggestsByCodeOrName(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "Test"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+
+	_, err = mgr.GetRole(ctx, "test")
+	if !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
+		t.Fatalf("expected ErrRoleNotFound, got %v", err)
+	}
+	if !strings.Contains(err.Error(), role.ID) || !strings.Contains(err.Error(), role.Code) {
+		t.Fatalf("expected error to name the matching role's id/code, got %q", err.Error())
+	}
+
+	// A guessed id matching by Code (case-insensitively) resolves the same way.
+	_, err = mgr.GetRole(ctx, strings.ToLower(role.Code))
+	if !errors.Is(err, mwanachamaagency.ErrRoleNotFound) || !strings.Contains(err.Error(), role.ID) {
+		t.Fatalf("expected ErrRoleNotFound naming %s, got %v", role.ID, err)
 	}
 }
 
