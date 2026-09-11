@@ -37,6 +37,7 @@ func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
 type mcpCreateAgencyParams struct {
 	InstanceID                   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	Name                         string `json:"name" jsonschema:"the Agency's name"`
+	Description                  string `json:"description,omitempty" jsonschema:"a short description of what this Agency is/does"`
 	Enabled                      bool   `json:"enabled,omitempty" jsonschema:"whether the Agency is active"`
 	DefaultFailurePipelineBudget int    `json:"default_failure_pipeline_budget,omitempty" jsonschema:"default retry budget for a WorkPlan's on-failure pipeline"`
 	InactivityTimeoutSeconds     int    `json:"inactivity_timeout_seconds,omitempty" jsonschema:"seconds of inactivity before a run is considered stalled"`
@@ -51,6 +52,7 @@ func mcpCreateAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 		}
 		out, err := m.CreateAgency(ctx, models.Agency{
 			Name:                         p.Name,
+			Description:                  p.Description,
 			Enabled:                      p.Enabled,
 			DefaultFailurePipelineBudget: p.DefaultFailurePipelineBudget,
 			InactivityTimeoutSeconds:     p.InactivityTimeoutSeconds,

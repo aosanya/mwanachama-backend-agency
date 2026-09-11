@@ -13,10 +13,11 @@ import (
 // live Agency/Goal/Workflow/WorkItem/EventFlowStep data, the Draft edit
 // lifecycle, and publication.
 type AgencyManager interface {
-	// Agency. UpdateAgency only ever touches Name — Mission/Vision were
-	// removed 2026-09-10 (AGD-001), and nothing else has asked to edit
-	// Enabled/DefaultFailurePipelineBudget/InactivityTimeoutSeconds/
-	// EventFlows yet.
+	// Agency. UpdateAgency only ever touches Name/Description —
+	// Mission/Vision were removed 2026-09-10 (AGD-001); Description was
+	// added back 2026-09-11 at the user's explicit request. Nothing else
+	// has asked to edit Enabled/DefaultFailurePipelineBudget/
+	// InactivityTimeoutSeconds/EventFlows yet.
 	CreateAgency(ctx context.Context, a models.Agency) (models.Agency, error)
 	GetAgency(ctx context.Context) (models.Agency, error)
 	UpdateAgency(ctx context.Context, a models.Agency) (models.Agency, error)

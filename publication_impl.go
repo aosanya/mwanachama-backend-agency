@@ -18,10 +18,11 @@ import (
 
 // liveContentHash SHA-256-hashes every live Goal/Objective/Workflow/
 // WorkItem/EventFlowStep/Role/RoleAssignment/Value/Rule plus the Agency's
-// name: one JSON record per row (fields other than timestamps), sorted
-// lexically so row order never affects the hash, joined with "\n". A
-// change to any of those fields changes the hash; nothing else does.
-// Mission/Vision dropped from the Agency record 2026-09-10 (AGD-001).
+// name/description: one JSON record per row (fields other than
+// timestamps), sorted lexically so row order never affects the hash,
+// joined with "\n". A change to any of those fields changes the hash;
+// nothing else does. Mission/Vision dropped from the Agency record
+// 2026-09-10 (AGD-001); Description was added back 2026-09-11.
 func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (string, error) {
 	var records []string
 
@@ -131,7 +132,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 		return "", err
 	}
 	records = append(records, hashRecord("Agency", map[string]any{
-		"name": agencyRow.Name,
+		"name": agencyRow.Name, "description": agencyRow.Description,
 	}))
 
 	sort.Strings(records)
