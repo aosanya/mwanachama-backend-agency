@@ -45,7 +45,7 @@ func mcpCreateDepartment(resolve ManagerResolver) func(context.Context, *mcp.Cal
 			return nil, models.Department{}, err
 		}
 		out, err := m.CreateDepartment(ctx, models.Department{ParentID: p.ParentID, LevelID: p.LevelID, Name: p.Name})
-		return nil, out, err
+		return summary("Created Department %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -61,7 +61,7 @@ func mcpGetDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, models.Department{}, err
 		}
 		out, err := m.GetDepartment(ctx, p.DepartmentID)
-		return nil, out, err
+		return summary("Department %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -72,7 +72,7 @@ func mcpListDepartments(resolve ManagerResolver) func(context.Context, *mcp.Call
 			return nil, ListResult[models.Department]{}, err
 		}
 		out, err := m.ListDepartments(ctx)
-		return nil, ListResult[models.Department]{Items: out}, err
+		return summary("Found %d department(s)", len(out)), ListResult[models.Department]{Items: out}, err
 	}
 }
 
@@ -88,7 +88,7 @@ func mcpListDepartmentChildren(resolve ManagerResolver) func(context.Context, *m
 			return nil, ListResult[models.Department]{}, err
 		}
 		out, err := m.ListDepartmentChildren(ctx, p.ParentID)
-		return nil, ListResult[models.Department]{Items: out}, err
+		return summary("Found %d child department(s)", len(out)), ListResult[models.Department]{Items: out}, err
 	}
 }
 
@@ -105,7 +105,7 @@ func mcpRenameDepartment(resolve ManagerResolver) func(context.Context, *mcp.Cal
 			return nil, models.Department{}, err
 		}
 		out, err := m.RenameDepartment(ctx, p.DepartmentID, p.Name)
-		return nil, out, err
+		return summary("Renamed Department %s to %q", out.ID, out.Name), out, err
 	}
 }
 
@@ -122,7 +122,7 @@ func mcpMoveDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.Department{}, err
 		}
 		out, err := m.MoveDepartment(ctx, p.DepartmentID, p.NewParentID)
-		return nil, out, err
+		return summary("Moved Department %q (%s) under parent %q", out.Name, out.ID, out.ParentID), out, err
 	}
 }
 
@@ -141,7 +141,7 @@ func mcpCreateLevel(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Level{}, err
 		}
 		out, err := m.CreateLevel(ctx, models.Level{Name: p.Name, Depth: p.Depth})
-		return nil, out, err
+		return summary("Created Level %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -157,7 +157,7 @@ func mcpGetLevel(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 			return nil, models.Level{}, err
 		}
 		out, err := m.GetLevel(ctx, p.LevelID)
-		return nil, out, err
+		return summary("Level %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -168,7 +168,7 @@ func mcpListLevels(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, ListResult[models.Level]{}, err
 		}
 		out, err := m.ListLevels(ctx)
-		return nil, ListResult[models.Level]{Items: out}, err
+		return summary("Found %d level(s)", len(out)), ListResult[models.Level]{Items: out}, err
 	}
 }
 
@@ -185,7 +185,7 @@ func mcpRenameLevel(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Level{}, err
 		}
 		out, err := m.RenameLevel(ctx, p.LevelID, p.Name)
-		return nil, out, err
+		return summary("Renamed Level %s to %q", out.ID, out.Name), out, err
 	}
 }
 
@@ -198,6 +198,6 @@ func mcpDeleteLevel(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 		if err := m.DeleteLevel(ctx, p.LevelID); err != nil {
 			return nil, DeleteResult{}, err
 		}
-		return nil, DeleteResult{Deleted: true}, nil
+		return summary("Deleted Level %s", p.LevelID), DeleteResult{Deleted: true}, nil
 	}
 }

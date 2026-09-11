@@ -54,7 +54,7 @@ func mcpCreateValue(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Value{}, err
 		}
 		out, err := m.CreateValue(ctx, p.toModel())
-		return nil, out, err
+		return summary("Created Value %q (%s)", out.Text, out.ID), out, err
 	}
 }
 
@@ -70,7 +70,7 @@ func mcpGetValue(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 			return nil, models.Value{}, err
 		}
 		out, err := m.GetValue(ctx, p.ValueID)
-		return nil, out, err
+		return summary("Value %q (%s)", out.Text, out.ID), out, err
 	}
 }
 
@@ -81,7 +81,7 @@ func mcpListValues(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, ListResult[models.Value]{}, err
 		}
 		out, err := m.ListValues(ctx, p.DraftID)
-		return nil, ListResult[models.Value]{Items: out}, err
+		return summary("Found %d value(s)", len(out)), ListResult[models.Value]{Items: out}, err
 	}
 }
 
@@ -103,7 +103,7 @@ func mcpCreateRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Rule{}, err
 		}
 		out, err := m.CreateRule(ctx, p.toModel())
-		return nil, out, err
+		return summary("Created Rule %q (%s)", out.Text, out.ID), out, err
 	}
 }
 
@@ -119,7 +119,7 @@ func mcpGetRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 			return nil, models.Rule{}, err
 		}
 		out, err := m.GetRule(ctx, p.RuleID)
-		return nil, out, err
+		return summary("Rule %q (%s)", out.Text, out.ID), out, err
 	}
 }
 
@@ -130,6 +130,6 @@ func mcpListRules(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 			return nil, ListResult[models.Rule]{}, err
 		}
 		out, err := m.ListRules(ctx, p.DraftID)
-		return nil, ListResult[models.Rule]{Items: out}, err
+		return summary("Found %d rule(s)", len(out)), ListResult[models.Rule]{Items: out}, err
 	}
 }

@@ -129,7 +129,7 @@ func mcpUpdateDraftDescription(resolve ManagerResolver) func(context.Context, *m
 			return nil, models.Draft{}, err
 		}
 		out, err := m.UpdateDraftDescription(ctx, p.DraftID, p.Description)
-		return nil, out, err
+		return summary("Updated Draft %s description to %q", out.ID, out.Description), out, err
 	}
 }
 
@@ -140,7 +140,7 @@ func mcpPromoteDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 			return nil, models.Agency{}, err
 		}
 		out, err := m.PromoteDraft(ctx, p.DraftID)
-		return nil, out, err
+		return summary("Promoted Draft %s — Agency %q is now live from it", p.DraftID, out.Name), out, err
 	}
 }
 
@@ -151,7 +151,7 @@ func mcpArchiveDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 			return nil, models.Draft{}, err
 		}
 		out, err := m.ArchiveDraft(ctx, p.DraftID)
-		return nil, out, err
+		return summary("Archived Draft %s: %q", out.ID, out.Description), out, err
 	}
 }
 
@@ -167,7 +167,7 @@ func mcpPublishAgency(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, models.AgencyPublication{}, err
 		}
 		out, err := m.PublishAgency(ctx, p.DraftID)
-		return nil, out, err
+		return summary("Published %s (version %d, %s)", out.Tag, out.Version, out.Status), out, err
 	}
 }
 
@@ -183,7 +183,7 @@ func mcpGetPublication(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.AgencyPublication{}, err
 		}
 		out, err := m.GetPublication(ctx, p.Version)
-		return nil, out, err
+		return summary("%s (version %d, %s)", out.Tag, out.Version, out.Status), out, err
 	}
 }
 
@@ -194,7 +194,7 @@ func mcpListPublications(resolve ManagerResolver) func(context.Context, *mcp.Cal
 			return nil, ListResult[models.AgencyPublication]{}, err
 		}
 		out, err := m.ListPublications(ctx)
-		return nil, ListResult[models.AgencyPublication]{Items: out}, err
+		return summary("Found %d publication(s)", len(out)), ListResult[models.AgencyPublication]{Items: out}, err
 	}
 }
 
@@ -211,6 +211,6 @@ func mcpUpdatePublicationStatus(resolve ManagerResolver) func(context.Context, *
 			return nil, models.AgencyPublication{}, err
 		}
 		out, err := m.UpdatePublicationStatus(ctx, p.Version, p.Status)
-		return nil, out, err
+		return summary("%s status set to %q", out.Tag, out.Status), out, err
 	}
 }

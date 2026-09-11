@@ -40,7 +40,7 @@ func mcpCreateObjective(resolve ManagerResolver) func(context.Context, *mcp.Call
 			return nil, models.Objective{}, err
 		}
 		out, err := m.CreateObjective(ctx, p.toModel())
-		return nil, out, err
+		return summary("Created Objective %q (%s) for Goal %s", out.Title, out.ID, out.GoalID), out, err
 	}
 }
 
@@ -56,7 +56,7 @@ func mcpGetObjective(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 			return nil, models.Objective{}, err
 		}
 		out, err := m.GetObjective(ctx, p.ObjectiveID)
-		return nil, out, err
+		return summary("Objective %q (%s)", out.Title, out.ID), out, err
 	}
 }
 
@@ -67,7 +67,7 @@ func mcpListObjectives(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, ListResult[models.Objective]{}, err
 		}
 		out, err := m.ListObjectives(ctx, p.DraftID)
-		return nil, ListResult[models.Objective]{Items: out}, err
+		return summary("Found %d objective(s)", len(out)), ListResult[models.Objective]{Items: out}, err
 	}
 }
 
@@ -78,6 +78,6 @@ func mcpUpdateObjective(resolve ManagerResolver) func(context.Context, *mcp.Call
 			return nil, models.Objective{}, err
 		}
 		out, err := m.UpdateObjective(ctx, p.toModel())
-		return nil, out, err
+		return summary("Updated Objective %q (%s)", out.Title, out.ID), out, err
 	}
 }

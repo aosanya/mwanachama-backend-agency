@@ -64,7 +64,7 @@ func mcpCreateGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Goal{}, err
 		}
 		out, err := m.CreateGoal(ctx, p.toModel())
-		return nil, out, err
+		return summary("Created Goal %q (%s)", out.Title, out.ID), out, err
 	}
 }
 
@@ -80,7 +80,7 @@ func mcpGetGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 			return nil, models.Goal{}, err
 		}
 		out, err := m.GetGoal(ctx, p.GoalID)
-		return nil, out, err
+		return summary("Goal %q (%s)", out.Title, out.ID), out, err
 	}
 }
 
@@ -91,7 +91,7 @@ func mcpListGoals(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 			return nil, ListResult[models.Goal]{}, err
 		}
 		out, err := m.ListGoals(ctx, p.DraftID)
-		return nil, ListResult[models.Goal]{Items: out}, err
+		return summary("Found %d goal(s)", len(out)), ListResult[models.Goal]{Items: out}, err
 	}
 }
 
@@ -102,7 +102,7 @@ func mcpUpdateGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Goal{}, err
 		}
 		out, err := m.UpdateGoal(ctx, p.toModel())
-		return nil, out, err
+		return summary("Updated Goal %q (%s)", out.Title, out.ID), out, err
 	}
 }
 
@@ -127,7 +127,7 @@ func mcpCreateWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.Workflow{}, err
 		}
 		out, err := m.CreateWorkflow(ctx, p.toModel())
-		return nil, out, err
+		return summary("Created Workflow %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -143,7 +143,7 @@ func mcpGetWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Workflow{}, err
 		}
 		out, err := m.GetWorkflow(ctx, p.WorkflowID)
-		return nil, out, err
+		return summary("Workflow %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -154,7 +154,7 @@ func mcpListWorkflows(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, ListResult[models.Workflow]{}, err
 		}
 		out, err := m.ListWorkflows(ctx, p.DraftID)
-		return nil, ListResult[models.Workflow]{Items: out}, err
+		return summary("Found %d workflow(s)", len(out)), ListResult[models.Workflow]{Items: out}, err
 	}
 }
 
@@ -165,7 +165,7 @@ func mcpUpdateWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.Workflow{}, err
 		}
 		out, err := m.UpdateWorkflow(ctx, p.toModel())
-		return nil, out, err
+		return summary("Updated Workflow %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -195,7 +195,7 @@ func mcpCreateWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.WorkItem{}, err
 		}
 		out, err := m.CreateWorkItem(ctx, p.toModel())
-		return nil, out, err
+		return summary("Created WorkItem %q (%s)", out.Title, out.ID), out, err
 	}
 }
 
@@ -211,7 +211,7 @@ func mcpGetWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.WorkItem{}, err
 		}
 		out, err := m.GetWorkItem(ctx, p.WorkItemID)
-		return nil, out, err
+		return summary("WorkItem %q (%s)", out.Title, out.ID), out, err
 	}
 }
 
@@ -222,7 +222,7 @@ func mcpListWorkItems(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, ListResult[models.WorkItem]{}, err
 		}
 		out, err := m.ListWorkItems(ctx, p.DraftID)
-		return nil, ListResult[models.WorkItem]{Items: out}, err
+		return summary("Found %d work item(s)", len(out)), ListResult[models.WorkItem]{Items: out}, err
 	}
 }
 
@@ -233,7 +233,7 @@ func mcpUpdateWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.WorkItem{}, err
 		}
 		out, err := m.UpdateWorkItem(ctx, p.toModel())
-		return nil, out, err
+		return summary("Updated WorkItem %q (%s)", out.Title, out.ID), out, err
 	}
 }
 
@@ -257,7 +257,7 @@ func mcpLookupFlowStep(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			Consumer:     p.Consumer,
 			Code:         p.Code,
 		})
-		return nil, out, err
+		return summary("EventFlowStep %s: %s → %s", out.Code, out.TriggerTopic, out.HandlerCode), out, err
 	}
 }
 
@@ -273,6 +273,6 @@ func mcpListEventFlowSteps(resolve ManagerResolver) func(context.Context, *mcp.C
 			return nil, ListResult[models.EventFlowStep]{}, err
 		}
 		out, err := m.ListEventFlowSteps(ctx, p.WorkflowCode)
-		return nil, ListResult[models.EventFlowStep]{Items: out}, err
+		return summary("Found %d event flow step(s) for workflow %q", len(out), p.WorkflowCode), ListResult[models.EventFlowStep]{Items: out}, err
 	}
 }

@@ -75,7 +75,7 @@ func mcpCreateWorkPlan(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.WorkPlan{}, err
 		}
 		out, err := m.CreateWorkPlan(ctx, p.toModel())
-		return nil, out, err
+		return summary("Created WorkPlan %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -91,7 +91,7 @@ func mcpGetWorkPlan(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.WorkPlan{}, err
 		}
 		out, err := m.GetWorkPlan(ctx, p.WorkPlanID)
-		return nil, out, err
+		return summary("WorkPlan %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -102,7 +102,7 @@ func mcpListWorkPlans(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, ListResult[models.WorkPlan]{}, err
 		}
 		out, err := m.ListWorkPlans(ctx)
-		return nil, ListResult[models.WorkPlan]{Items: out}, err
+		return summary("Found %d work plan(s)", len(out)), ListResult[models.WorkPlan]{Items: out}, err
 	}
 }
 
@@ -113,7 +113,7 @@ func mcpUpdateWorkPlan(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.WorkPlan{}, err
 		}
 		out, err := m.UpdateWorkPlan(ctx, p.toModel())
-		return nil, out, err
+		return summary("Updated WorkPlan %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -130,7 +130,7 @@ func mcpMatchWorkPlans(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, ListResult[models.WorkPlanMatch]{}, err
 		}
 		out, err := m.MatchWorkPlans(ctx, p.Topic, p.Payload)
-		return nil, ListResult[models.WorkPlanMatch]{Items: out}, err
+		return summary("Found %d work plan(s) matching topic %q", len(out), p.Topic), ListResult[models.WorkPlanMatch]{Items: out}, err
 	}
 }
 
@@ -162,7 +162,7 @@ func mcpAddContextSource(resolve ManagerResolver) func(context.Context, *mcp.Cal
 			Comm:       p.Comm,
 			Work:       p.Work,
 		})
-		return nil, out, err
+		return summary("Added %s ContextSource %s to WorkPlan %s", out.SourceType, out.ID, out.WorkPlanID), out, err
 	}
 }
 

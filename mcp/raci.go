@@ -53,7 +53,7 @@ func mcpCreateRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Role{}, err
 		}
 		out, err := m.CreateRole(ctx, p.toModel())
-		return nil, out, err
+		return summary("Created Role %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -69,7 +69,7 @@ func mcpGetRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 			return nil, models.Role{}, err
 		}
 		out, err := m.GetRole(ctx, p.RoleID)
-		return nil, out, err
+		return summary("Role %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -80,7 +80,7 @@ func mcpListRoles(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 			return nil, ListResult[models.Role]{}, err
 		}
 		out, err := m.ListRoles(ctx, p.DraftID)
-		return nil, ListResult[models.Role]{Items: out}, err
+		return summary("Found %d role(s)", len(out)), ListResult[models.Role]{Items: out}, err
 	}
 }
 
@@ -91,7 +91,7 @@ func mcpUpdateRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Role{}, err
 		}
 		out, err := m.UpdateRole(ctx, p.toModel())
-		return nil, out, err
+		return summary("Updated Role %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -104,7 +104,7 @@ func mcpDeleteRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 		if err := m.DeleteRole(ctx, p.RoleID); err != nil {
 			return nil, DeleteResult{}, err
 		}
-		return nil, DeleteResult{Deleted: true}, nil
+		return summary("Deleted Role %s", p.RoleID), DeleteResult{Deleted: true}, nil
 	}
 }
 
@@ -134,7 +134,7 @@ func mcpCreateRoleAssignment(resolve ManagerResolver) func(context.Context, *mcp
 			return nil, models.RoleAssignment{}, err
 		}
 		out, err := m.CreateRoleAssignment(ctx, p.toModel())
-		return nil, out, err
+		return summary("Assigned role %s as %s on objective %s", out.RoleID, out.Label, out.ObjectiveID), out, err
 	}
 }
 
@@ -150,7 +150,7 @@ func mcpGetRoleAssignment(resolve ManagerResolver) func(context.Context, *mcp.Ca
 			return nil, models.RoleAssignment{}, err
 		}
 		out, err := m.GetRoleAssignment(ctx, p.AssignmentID)
-		return nil, out, err
+		return summary("Role %s is %s on objective %s", out.RoleID, out.Label, out.ObjectiveID), out, err
 	}
 }
 
@@ -161,7 +161,7 @@ func mcpListRoleAssignments(resolve ManagerResolver) func(context.Context, *mcp.
 			return nil, ListResult[models.RoleAssignment]{}, err
 		}
 		out, err := m.ListRoleAssignments(ctx, p.DraftID)
-		return nil, ListResult[models.RoleAssignment]{Items: out}, err
+		return summary("Found %d role assignment(s)", len(out)), ListResult[models.RoleAssignment]{Items: out}, err
 	}
 }
 
@@ -178,7 +178,7 @@ func mcpListRoleAssignmentsForObjective(resolve ManagerResolver) func(context.Co
 			return nil, ListResult[models.RoleAssignment]{}, err
 		}
 		out, err := m.ListRoleAssignmentsForObjective(ctx, p.ObjectiveID, p.DraftID)
-		return nil, ListResult[models.RoleAssignment]{Items: out}, err
+		return summary("Found %d role assignment(s) for objective %s", len(out), p.ObjectiveID), ListResult[models.RoleAssignment]{Items: out}, err
 	}
 }
 
@@ -189,7 +189,7 @@ func mcpUpdateRoleAssignment(resolve ManagerResolver) func(context.Context, *mcp
 			return nil, models.RoleAssignment{}, err
 		}
 		out, err := m.UpdateRoleAssignment(ctx, p.toModel())
-		return nil, out, err
+		return summary("Updated role assignment %s: role %s is now %s on objective %s", out.ID, out.RoleID, out.Label, out.ObjectiveID), out, err
 	}
 }
 
@@ -202,6 +202,6 @@ func mcpDeleteRoleAssignment(resolve ManagerResolver) func(context.Context, *mcp
 		if err := m.DeleteRoleAssignment(ctx, p.AssignmentID); err != nil {
 			return nil, DeleteResult{}, err
 		}
-		return nil, DeleteResult{Deleted: true}, nil
+		return summary("Deleted role assignment %s", p.AssignmentID), DeleteResult{Deleted: true}, nil
 	}
 }
