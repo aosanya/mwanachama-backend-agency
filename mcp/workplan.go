@@ -173,7 +173,7 @@ func mcpListContextSources(resolve ManagerResolver) func(context.Context, *mcp.C
 			return nil, ListResult[models.ContextSource]{}, err
 		}
 		out, err := m.ListContextSources(ctx, p.WorkPlanID)
-		return nil, ListResult[models.ContextSource]{Items: out}, err
+		return summary("Found %d context source(s) on WorkPlan %s", len(out), p.WorkPlanID), ListResult[models.ContextSource]{Items: out}, err
 	}
 }
 
@@ -192,6 +192,6 @@ func mcpRemoveContextSource(resolve ManagerResolver) func(context.Context, *mcp.
 		if err := m.RemoveContextSource(ctx, p.WorkPlanID, p.SourceID); err != nil {
 			return nil, DeleteResult{}, err
 		}
-		return nil, DeleteResult{Deleted: true}, nil
+		return summary("Removed ContextSource %s from WorkPlan %s", p.SourceID, p.WorkPlanID), DeleteResult{Deleted: true}, nil
 	}
 }
