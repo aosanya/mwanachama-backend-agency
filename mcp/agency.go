@@ -56,7 +56,7 @@ func mcpCreateAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 			InactivityTimeoutSeconds:     p.InactivityTimeoutSeconds,
 			EventFlows:                   p.EventFlows,
 		})
-		return nil, out, err
+		return summary("Created Agency %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
@@ -67,7 +67,7 @@ func mcpGetAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 			return nil, models.Agency{}, err
 		}
 		out, err := m.GetAgency(ctx)
-		return nil, out, err
+		return summary("Agency %q (%s)", out.Name, out.ID), out, err
 	}
 }
 
