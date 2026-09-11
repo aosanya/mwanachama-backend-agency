@@ -17,6 +17,7 @@ import (
 // against the wrong table.
 type DepartmentRow struct {
 	ID        string  `gorm:"primaryKey"`
+	Code      string  `gorm:"uniqueIndex"`
 	ParentID  *string `gorm:"index"`
 	LevelID   string  `gorm:"index"`
 	Name      string
@@ -37,6 +38,7 @@ func (r *DepartmentRow) BeforeCreate(_ *gorm.DB) error {
 func DepartmentToRow(d models.Department) DepartmentRow {
 	return DepartmentRow{
 		ID:        d.ID,
+		Code:      d.Code,
 		ParentID:  StringToNullable(d.ParentID),
 		LevelID:   d.LevelID,
 		Name:      d.Name,
@@ -50,6 +52,7 @@ func DepartmentToRow(d models.Department) DepartmentRow {
 func DepartmentFromRow(r DepartmentRow) models.Department {
 	return models.Department{
 		ID:          r.ID,
+		Code:        r.Code,
 		ParentID:    nullableToString(r.ParentID),
 		LevelID:     r.LevelID,
 		Name:        r.Name,

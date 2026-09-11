@@ -13,10 +13,10 @@ import (
 // unit one Role is RACI-assigned to), and the unit WorkItem/RACI attach
 // to. Mirrors goal.go's Goal tools exactly.
 func registerObjectiveTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_objective", Description: "Create an Objective for a Goal. A Goal may have several Objectives, each a granular unit one Role can be RACI-assigned to."}, mcpCreateObjective(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_objective", Description: "Get an Objective by id."}, mcpGetObjective(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_objectives", Description: "List Objectives — live, or a Draft's scoped copies."}, mcpListObjectives(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_objective", Description: "Update an Objective (full replace — supply every field you want kept, not just the ones changing). id is required."}, mcpUpdateObjective(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_objective", Title: "Create Objective", Description: "Create an Objective for a Goal. A Goal may have several Objectives, each a granular unit one Role can be RACI-assigned to."}, mcpCreateObjective(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_objective", Title: "Get Objective", Description: "Get an Objective by id."}, mcpGetObjective(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_objectives", Title: "List Objectives", Description: "List Objectives — live, or a Draft's scoped copies."}, mcpListObjectives(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_objective", Title: "Update Objective", Description: "Update an Objective (full replace — supply every field you want kept, not just the ones changing). id is required."}, mcpUpdateObjective(resolve))
 }
 
 type mcpObjectiveParams struct {
@@ -40,7 +40,7 @@ func mcpCreateObjective(resolve ManagerResolver) func(context.Context, *mcp.Call
 			return nil, models.Objective{}, err
 		}
 		out, err := m.CreateObjective(ctx, p.toModel())
-		return summary("Created Objective %q (%s) for Goal %s", out.Title, out.ID, out.GoalID), out, err
+		return summary("Created Objective %s %q (%s) for Goal %s", out.Code, out.Title, out.ID, out.GoalID), out, err
 	}
 }
 
@@ -56,7 +56,7 @@ func mcpGetObjective(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 			return nil, models.Objective{}, err
 		}
 		out, err := m.GetObjective(ctx, p.ObjectiveID)
-		return summary("Objective %q (%s)", out.Title, out.ID), out, err
+		return summary("Objective %s %q (%s)", out.Code, out.Title, out.ID), out, err
 	}
 }
 
@@ -78,6 +78,6 @@ func mcpUpdateObjective(resolve ManagerResolver) func(context.Context, *mcp.Call
 			return nil, models.Objective{}, err
 		}
 		out, err := m.UpdateObjective(ctx, p.toModel())
-		return summary("Updated Objective %q (%s)", out.Title, out.ID), out, err
+		return summary("Updated Objective %s %q (%s)", out.Code, out.Title, out.ID), out, err
 	}
 }

@@ -6,7 +6,10 @@ package models
 // optional GoalID tag — every WorkItem now has an Objective, there is no
 // more "untagged" WorkItem.
 type WorkItem struct {
-	ID          string `json:"id"`
+	ID string `json:"id"`
+	// Code is a stable, human-readable identifier (e.g. "WI-1") assigned
+	// once at creation and never changed — see [Goal.Code]'s doc comment.
+	Code        string `json:"code"`
 	WorkflowID  string `json:"workflow_id"`
 	ObjectiveID string `json:"objective_id"`
 	// DraftID is "" for a live WorkItem, or the owning Draft's ID for a

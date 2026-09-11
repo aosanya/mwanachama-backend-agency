@@ -18,8 +18,17 @@ func (m *agencyManager) CreateRole(ctx context.Context, r models.Role) (models.R
 	if r.CreatedAt == "" {
 		r.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.RoleToRow(r)
-	if err := m.db.WithContext(ctx).Table(m.tables.Roles).Create(&row).Error; err != nil {
+	var row gormstore.RoleRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "role", "R")
+		if err != nil {
+			return err
+		}
+		r.Code = code
+		row = gormstore.RoleToRow(r)
+		return tx.Table(m.tables.Roles).Create(&row).Error
+	})
+	if err != nil {
 		return models.Role{}, fmt.Errorf("CreateRole: %w", err)
 	}
 	return gormstore.RoleFromRow(row), nil
@@ -63,6 +72,7 @@ func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.R
 	}
 	row := gormstore.RoleToRow(r)
 	row.CreatedAt = existing.CreatedAt
+	row.Code = existing.Code
 	cols := map[string]any{
 		"name": row.Name, "description": row.Description,
 		"updated_at": row.UpdatedAt, "deleted": row.Deleted,

@@ -15,8 +15,17 @@ func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (
 	if w.CreatedAt == "" {
 		w.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.WorkflowToRow(w)
-	if err := m.db.WithContext(ctx).Table(m.tables.Workflows).Create(&row).Error; err != nil {
+	var row gormstore.WorkflowRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "workflow", "W")
+		if err != nil {
+			return err
+		}
+		w.Code = code
+		row = gormstore.WorkflowToRow(w)
+		return tx.Table(m.tables.Workflows).Create(&row).Error
+	})
+	if err != nil {
 		return models.Workflow{}, fmt.Errorf("CreateWorkflow: %w", err)
 	}
 	return gormstore.WorkflowFromRow(row), nil
@@ -55,6 +64,7 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 	}
 	row := gormstore.WorkflowToRow(w)
 	row.CreatedAt = existing.CreatedAt
+	row.Code = existing.Code
 	cols := map[string]any{
 		"draft_id":    row.DraftID,
 		"name":        row.Name,

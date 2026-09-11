@@ -10,6 +10,7 @@ import (
 // ValueRow.
 type RuleRow struct {
 	ID          string  `gorm:"primaryKey"`
+	Code        string  `gorm:"index"`
 	ObjectiveID *string `gorm:"index"`
 	DraftID     *string `gorm:"index"`
 	Text        string
@@ -29,6 +30,7 @@ func (r *RuleRow) BeforeCreate(_ *gorm.DB) error {
 func RuleToRow(v models.Rule) RuleRow {
 	return RuleRow{
 		ID:          v.ID,
+		Code:        v.Code,
 		ObjectiveID: StringToNullable(v.ObjectiveID),
 		DraftID:     StringToNullable(v.DraftID),
 		Text:        v.Text,
@@ -42,6 +44,7 @@ func RuleToRow(v models.Rule) RuleRow {
 func RuleFromRow(r RuleRow) models.Rule {
 	return models.Rule{
 		ID:          r.ID,
+		Code:        r.Code,
 		ObjectiveID: nullableToString(r.ObjectiveID),
 		DraftID:     nullableToString(r.DraftID),
 		Text:        r.Text,

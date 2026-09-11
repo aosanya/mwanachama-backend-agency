@@ -18,8 +18,17 @@ func (m *agencyManager) CreateValue(ctx context.Context, v models.Value) (models
 	if v.CreatedAt == "" {
 		v.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.ValueToRow(v)
-	if err := m.db.WithContext(ctx).Table(m.tables.Values).Create(&row).Error; err != nil {
+	var row gormstore.ValueRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "value", "V")
+		if err != nil {
+			return err
+		}
+		v.Code = code
+		row = gormstore.ValueToRow(v)
+		return tx.Table(m.tables.Values).Create(&row).Error
+	})
+	if err != nil {
 		return models.Value{}, fmt.Errorf("CreateValue: %w", err)
 	}
 	return gormstore.ValueFromRow(row), nil
@@ -65,6 +74,7 @@ func (m *agencyManager) UpdateValue(ctx context.Context, v models.Value) (models
 	}
 	row := gormstore.ValueToRow(v)
 	row.CreatedAt = existing.CreatedAt
+	row.Code = existing.Code
 	cols := map[string]any{
 		"text": row.Text, "updated_at": row.UpdatedAt, "deleted": row.Deleted,
 	}

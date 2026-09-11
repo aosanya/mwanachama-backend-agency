@@ -11,6 +11,7 @@ import (
 // WorkItemRow.WorkflowID/GoalID's precedent.
 type ObjectiveRow struct {
 	ID          string  `gorm:"primaryKey"`
+	Code        string  `gorm:"index"`
 	GoalID      string  `gorm:"index"`
 	DraftID     *string `gorm:"index"`
 	Title       string
@@ -33,6 +34,7 @@ func (r *ObjectiveRow) BeforeCreate(_ *gorm.DB) error {
 func ObjectiveToRow(o models.Objective) ObjectiveRow {
 	return ObjectiveRow{
 		ID:          o.ID,
+		Code:        o.Code,
 		GoalID:      o.GoalID,
 		DraftID:     StringToNullable(o.DraftID),
 		Title:       o.Title,
@@ -48,6 +50,7 @@ func ObjectiveToRow(o models.Objective) ObjectiveRow {
 func ObjectiveFromRow(r ObjectiveRow) models.Objective {
 	return models.Objective{
 		ID:          r.ID,
+		Code:        r.Code,
 		GoalID:      r.GoalID,
 		DraftID:     nullableToString(r.DraftID),
 		Title:       r.Title,

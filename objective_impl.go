@@ -18,8 +18,17 @@ func (m *agencyManager) CreateObjective(ctx context.Context, o models.Objective)
 	if o.CreatedAt == "" {
 		o.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.ObjectiveToRow(o)
-	if err := m.db.WithContext(ctx).Table(m.tables.Objectives).Create(&row).Error; err != nil {
+	var row gormstore.ObjectiveRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "objective", "O")
+		if err != nil {
+			return err
+		}
+		o.Code = code
+		row = gormstore.ObjectiveToRow(o)
+		return tx.Table(m.tables.Objectives).Create(&row).Error
+	})
+	if err != nil {
 		return models.Objective{}, fmt.Errorf("CreateObjective: %w", err)
 	}
 	return gormstore.ObjectiveFromRow(row), nil
@@ -59,6 +68,7 @@ func (m *agencyManager) UpdateObjective(ctx context.Context, o models.Objective)
 	}
 	row := gormstore.ObjectiveToRow(o)
 	row.CreatedAt = existing.CreatedAt
+	row.Code = existing.Code
 	cols := map[string]any{
 		"draft_id":    row.DraftID,
 		"goal_id":     row.GoalID,

@@ -18,8 +18,17 @@ func (m *agencyManager) CreateRule(ctx context.Context, r models.Rule) (models.R
 	if r.CreatedAt == "" {
 		r.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.RuleToRow(r)
-	if err := m.db.WithContext(ctx).Table(m.tables.Rules).Create(&row).Error; err != nil {
+	var row gormstore.RuleRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "rule", "RU")
+		if err != nil {
+			return err
+		}
+		r.Code = code
+		row = gormstore.RuleToRow(r)
+		return tx.Table(m.tables.Rules).Create(&row).Error
+	})
+	if err != nil {
 		return models.Rule{}, fmt.Errorf("CreateRule: %w", err)
 	}
 	return gormstore.RuleFromRow(row), nil
@@ -65,6 +74,7 @@ func (m *agencyManager) UpdateRule(ctx context.Context, r models.Rule) (models.R
 	}
 	row := gormstore.RuleToRow(r)
 	row.CreatedAt = existing.CreatedAt
+	row.Code = existing.Code
 	cols := map[string]any{
 		"text": row.Text, "updated_at": row.UpdatedAt, "deleted": row.Deleted,
 	}

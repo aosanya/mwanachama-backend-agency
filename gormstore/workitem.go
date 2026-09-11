@@ -15,6 +15,7 @@ import (
 // would not follow).
 type WorkItemRow struct {
 	ID          string  `gorm:"primaryKey"`
+	Code        string  `gorm:"index"`
 	WorkflowID  string  `gorm:"index"`
 	ObjectiveID string  `gorm:"index"`
 	DraftID     *string `gorm:"index"`
@@ -38,6 +39,7 @@ func (r *WorkItemRow) BeforeCreate(_ *gorm.DB) error {
 func WorkItemToRow(w models.WorkItem) WorkItemRow {
 	return WorkItemRow{
 		ID:          w.ID,
+		Code:        w.Code,
 		WorkflowID:  w.WorkflowID,
 		ObjectiveID: w.ObjectiveID,
 		DraftID:     StringToNullable(w.DraftID),
@@ -55,6 +57,7 @@ func WorkItemToRow(w models.WorkItem) WorkItemRow {
 func WorkItemFromRow(r WorkItemRow) models.WorkItem {
 	return models.WorkItem{
 		ID:          r.ID,
+		Code:        r.Code,
 		WorkflowID:  r.WorkflowID,
 		ObjectiveID: r.ObjectiveID,
 		DraftID:     nullableToString(r.DraftID),

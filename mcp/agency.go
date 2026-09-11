@@ -12,20 +12,20 @@ import (
 // Agency lifecycle: the live document itself, the draft an edit happens
 // against, and the versioned, hashed snapshot a Draft's promotion produces.
 func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_agency", Description: "Create the Agency document (name) for a registered Instance."}, mcpCreateAgency(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_agency", Description: "Get an Instance's Agency document."}, mcpGetAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_agency", Title: "Create Agency", Description: "Create the Agency document (name) for a registered Instance."}, mcpCreateAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_agency", Title: "Get Agency", Description: "Get an Instance's Agency document."}, mcpGetAgency(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Description: "Fork a Draft — a scoped copy of the live Agency's Goals/Workflows/WorkItems/Roles/RoleAssignments/EventFlowSteps to edit without touching what's live."}, mcpCreateDraft(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_draft", Description: "Get a Draft by id."}, mcpGetDraft(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_drafts", Description: "List every Draft for an Instance."}, mcpListDrafts(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_draft_description", Description: "Change a Draft's description."}, mcpUpdateDraftDescription(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_promote_draft", Description: "Promote an open Draft: its scoped copies become live, replacing what was there before."}, mcpPromoteDraft(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_archive_draft", Description: "Archive an open Draft without promoting it — its scoped copies are discarded."}, mcpArchiveDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Title: "Fork Draft", Description: "Fork a Draft — a scoped copy of the live Agency's Goals/Workflows/WorkItems/Roles/RoleAssignments/EventFlowSteps to edit without touching what's live."}, mcpCreateDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_draft", Title: "Get Draft", Description: "Get a Draft by id."}, mcpGetDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_drafts", Title: "List Drafts", Description: "List every Draft for an Instance."}, mcpListDrafts(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_draft_description", Title: "Update Draft Description", Description: "Change a Draft's description."}, mcpUpdateDraftDescription(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_promote_draft", Title: "Promote Draft", Description: "Promote an open Draft: its scoped copies become live, replacing what was there before."}, mcpPromoteDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_archive_draft", Title: "Archive Draft", Description: "Archive an open Draft without promoting it — its scoped copies are discarded."}, mcpArchiveDraft(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Description: "Publish the currently-live Agency (optionally the result of a just-promoted Draft) as a new versioned, content-hashed AgencyPublication."}, mcpPublishAgency(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_publication", Description: "Get one AgencyPublication by its version number."}, mcpGetPublication(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_publications", Description: "List every AgencyPublication for an Instance."}, mcpListPublications(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_publication_status", Description: "Set an AgencyPublication's status (e.g. archiving it)."}, mcpUpdatePublicationStatus(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Title: "Publish Agency", Description: "Publish the currently-live Agency (optionally the result of a just-promoted Draft) as a new versioned, content-hashed AgencyPublication."}, mcpPublishAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_publication", Title: "Get Publication", Description: "Get one AgencyPublication by its version number."}, mcpGetPublication(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_publications", Title: "List Publications", Description: "List every AgencyPublication for an Instance."}, mcpListPublications(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_publication_status", Title: "Update Publication Status", Description: "Set an AgencyPublication's status (e.g. archiving it)."}, mcpUpdatePublicationStatus(resolve))
 }
 
 // mcpCreateAgencyParams mirrors models.Agency field-for-field, but with

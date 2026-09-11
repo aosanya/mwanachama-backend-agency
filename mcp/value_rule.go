@@ -27,13 +27,13 @@ import (
 // bypass that not-yet-built gate, so neither is built even for the
 // Draft-scoped path until that design question is answered.
 func registerValueRuleTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_value", Description: "Create a Value: a cultural/strategic statement (e.g. \"we prioritize correctness over speed\"), Agency-wide or scoped to one Objective. Informational only — nothing enforces it at runtime. No update/delete tool: Agency-wide Values have no edit path at all; Objective-scoped ones need a write-authorization gate (only the Objective's Accountable may write) that doesn't exist yet."}, mcpCreateValue(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_value", Description: "Get a Value by id."}, mcpGetValue(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_values", Description: "List Values — live, or a Draft's scoped copies."}, mcpListValues(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_value", Title: "Create Value", Description: "Create a Value: a cultural/strategic statement (e.g. \"we prioritize correctness over speed\"), Agency-wide or scoped to one Objective. Informational only — nothing enforces it at runtime. No update/delete tool: Agency-wide Values have no edit path at all; Objective-scoped ones need a write-authorization gate (only the Objective's Accountable may write) that doesn't exist yet."}, mcpCreateValue(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_value", Title: "Get Value", Description: "Get a Value by id."}, mcpGetValue(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_values", Title: "List Values", Description: "List Values — live, or a Draft's scoped copies."}, mcpListValues(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_rule", Description: "Create a Rule: a constraint statement (e.g. \"never touch production data\"), Agency-wide or scoped to one Objective. Informational only — nothing enforces it at runtime. No update/delete tool — same reasoning as agency_create_value."}, mcpCreateRule(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_rule", Description: "Get a Rule by id."}, mcpGetRule(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_rules", Description: "List Rules — live, or a Draft's scoped copies."}, mcpListRules(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_rule", Title: "Create Rule", Description: "Create a Rule: a constraint statement (e.g. \"never touch production data\"), Agency-wide or scoped to one Objective. Informational only — nothing enforces it at runtime. No update/delete tool — same reasoning as agency_create_value."}, mcpCreateRule(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_rule", Title: "Get Rule", Description: "Get a Rule by id."}, mcpGetRule(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_rules", Title: "List Rules", Description: "List Rules — live, or a Draft's scoped copies."}, mcpListRules(resolve))
 }
 
 type mcpValueParams struct {
@@ -54,7 +54,7 @@ func mcpCreateValue(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Value{}, err
 		}
 		out, err := m.CreateValue(ctx, p.toModel())
-		return summary("Created Value %q (%s)", out.Text, out.ID), out, err
+		return summary("Created Value %s %q (%s)", out.Code, out.Text, out.ID), out, err
 	}
 }
 
@@ -70,7 +70,7 @@ func mcpGetValue(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 			return nil, models.Value{}, err
 		}
 		out, err := m.GetValue(ctx, p.ValueID)
-		return summary("Value %q (%s)", out.Text, out.ID), out, err
+		return summary("Value %s %q (%s)", out.Code, out.Text, out.ID), out, err
 	}
 }
 
@@ -103,7 +103,7 @@ func mcpCreateRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Rule{}, err
 		}
 		out, err := m.CreateRule(ctx, p.toModel())
-		return summary("Created Rule %q (%s)", out.Text, out.ID), out, err
+		return summary("Created Rule %s %q (%s)", out.Code, out.Text, out.ID), out, err
 	}
 }
 
@@ -119,7 +119,7 @@ func mcpGetRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 			return nil, models.Rule{}, err
 		}
 		out, err := m.GetRule(ctx, p.RuleID)
-		return summary("Rule %q (%s)", out.Text, out.ID), out, err
+		return summary("Rule %s %q (%s)", out.Code, out.Text, out.ID), out, err
 	}
 }
 

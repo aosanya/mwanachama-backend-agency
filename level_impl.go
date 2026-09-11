@@ -16,8 +16,17 @@ func (m *agencyManager) CreateLevel(ctx context.Context, l models.Level) (models
 	if l.CreatedAt == "" {
 		l.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.LevelToRow(l)
-	if err := m.db.WithContext(ctx).Table(m.tables.Levels).Create(&row).Error; err != nil {
+	var row gormstore.LevelRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "level", "L")
+		if err != nil {
+			return err
+		}
+		l.Code = code
+		row = gormstore.LevelToRow(l)
+		return tx.Table(m.tables.Levels).Create(&row).Error
+	})
+	if err != nil {
 		return models.Level{}, fmt.Errorf("CreateLevel: %w", err)
 	}
 	return gormstore.LevelFromRow(row), nil

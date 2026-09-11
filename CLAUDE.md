@@ -355,6 +355,86 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   [documentation/2. design/todo_details/AGD-001.md](documentation/2.%20design/todo_details/AGD-001.md)'s
   Decision #2 for the updated design record.
 
+- **AG15 landed 2026-09-11: every `mcp/` tool's success path now returns a
+  one-line human-readable `Content` instead of the go-sdk's default JSON
+  dump.** Prompted directly by the user, who saw raw `{"created_at":...}`
+  blobs under a bare "Wakala [agency_set_raci]" header in their IDE's tool
+  call log and asked for something readable. Added `mcp/mcp.go`'s
+  `summary(format string, args ...any) *mcp.CallToolResult` — every
+  handler's success-path return became `summary("Created Role %q (%s)",
+  out.Name, out.ID), out, err` instead of `nil, out, err`.
+  `StructuredContent` is untouched (confirmed at the wire level with a raw
+  MCP call): the go-sdk fills it from the handler's actual typed return
+  value regardless of `Content`, so no programmatic caller sees any
+  difference. Error paths keep returning `nil` unchanged — the go-sdk
+  discards a handler's `*mcp.CallToolResult` outright whenever it also
+  returns a non-nil error. See `mwanachama-backend-actor/CLAUDE.md`'s "MCP
+  tools" section for the standard this adds.
+  - **Same session, second half:** the user then pointed out the call's
+    own displayed *name* — `agency_set_raci` — was still unfriendly (the
+    IDE's tool-call header showed the raw snake_case identifier). Every
+    `&mcp.Tool{...}` literal across all 8 files gained a `Title` (e.g.
+    `agency_set_raci` → `"Assign RACI"`) — the MCP spec's own sanctioned
+    display-name field, confirmed present in a raw `tools/list` response.
+    `Name` itself is never touched — it's the stable identifier every
+    caller invokes by.
+
+- **AG16 landed 2026-09-11: every named business-entity type gained a
+  stable, human-readable `Code`** (`"G-1"`, `"R-1"`, ...) — Goal/Objective/
+  Role/Department/Level/Workflow/WorkItem/Value/Rule, prefixed `G`/`O`/`R`/
+  `D`/`L`/`W`/`WI`/`V`/`RU` respectively. Assigned once at creation, never
+  editable (not in any `Update<Type>`'s explicit column map, matching
+  `ID`'s own immutability), and confirmed to survive the Draft fork→promote
+  cycle unchanged even though promotion mints a brand-new row ID (new
+  `TestGoalCode_SurvivesDraftPromote`/`TestRoleCode_SurvivesDraftPromote` —
+  `CreateDraft`/`PromoteDraft` needed no code changes at all, since their
+  existing copy loops already round-trip every field via
+  `<Type>FromRow`/`<Type>ToRow` except ID/DraftID/CreatedAt). Out of scope,
+  confirmed by the task: `Agency` (singleton), `WorkPlan` (already has its
+  own user-chosen `Code` slug), `RoleAssignment`/`Draft`/`ContextSource`/
+  `AgencyPublication`/`AgencySnapshot` (join/audit rows), `EventFlowStep`
+  (already has its own business-key `Code`).
+  - New `gormstore/codesequence.go`: `CodeSequenceRow` (one row per entity
+    type, `NextNumber`), `NextCode` (mints `"<prefix>-<n>"` inside the
+    caller's transaction, so the counter increment and the row insert
+    commit atomically), `BackfillCodes` (idempotent, assigns a Code to any
+    pre-existing empty-Code row ordered by `created_at` — runs at the end
+    of every `Migrate`, covering rows that predate this change). New
+    `TableNames.CodeSequences` (`<instance>_code_sequences`).
+  - **Deviation from the original spec's literal `gorm:"uniqueIndex"`
+    instruction**: the Row struct's `Code` column uses plain
+    `gorm:"index"` for all seven Draft-scoped types (Goal/Objective/Role/
+    Workflow/WorkItem/Value/Rule), not a unique index. A Draft-scoped copy
+    deliberately carries the *same* Code as its live original while both
+    exist side-by-side in the same physical table (between `CreateDraft`
+    and `PromoteDraft`) — a real DB-level uniqueness constraint would
+    reject that insert outright, breaking every draft fork. This matches
+    this repo's own existing precedent: `EventFlowStepRow.Code` and
+    `WorkPlanRow.Code` (the two Code-shaped columns that already existed
+    before this task) both use plain `index`, not `uniqueIndex`, for the
+    same reason. `DepartmentRow`/`LevelRow` — never Draft-scoped, so no
+    live/draft-copy collision is possible — do keep `gorm:"uniqueIndex"`
+    as originally specified.
+  - Each `Create<Type>` now wraps its row insert in
+    `m.db.WithContext(ctx).Transaction(...)`, minting the Code via
+    `gormstore.NextCode` before the insert. Each full-replace
+    `Update<Type>` additionally sets `row.Code = existing.Code` right
+    alongside its pre-existing `row.CreatedAt = existing.CreatedAt` line —
+    needed because `Update<Type>`'s returned domain value is built from
+    `<Type>ToRow(callerInput)`, and the caller-supplied input never
+    carries a real Code (it isn't exposed on any `mcp` Update params
+    struct), so without this the method would hand back a blanked-out
+    Code even though the column itself was correctly left alone in the
+    `cols` map.
+  - `mcp/goal.go`/`objective.go`/`orgchart.go`/`raci.go`/`value_rule.go`:
+    no structural change needed — each tool's structured output is the
+    `models.X` value straight from the manager, so `Code` appears in
+    `structuredContent` automatically once the model carries it. Reworked
+    every affected `summary(...)` one-liner to lead with `Code` ahead of
+    the Name/Title/Text, e.g. `"Created Goal %s %q (%s)", out.Code,
+    out.Title, out.ID` — Code reads as the natural human-facing handle a
+    raw UUID doesn't.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

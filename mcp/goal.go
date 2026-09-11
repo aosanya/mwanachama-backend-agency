@@ -25,23 +25,23 @@ import (
 // already covers a missing one, and jsonschema-go has no way to say
 // "required for one caller, not another."
 func registerGoalWorkflowTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_goal", Description: "Create a Goal for an Agency."}, mcpCreateGoal(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_goal", Description: "Get a Goal by id."}, mcpGetGoal(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_goals", Description: "List Goals — live, or a Draft's scoped copies."}, mcpListGoals(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_goal", Description: "Update a Goal (full replace — supply every field you want kept, not just the ones changing). id is required."}, mcpUpdateGoal(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_goal", Title: "Create Goal", Description: "Create a Goal for an Agency."}, mcpCreateGoal(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_goal", Title: "Get Goal", Description: "Get a Goal by id."}, mcpGetGoal(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_goals", Title: "List Goals", Description: "List Goals — live, or a Draft's scoped copies."}, mcpListGoals(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_goal", Title: "Update Goal", Description: "Update a Goal (full replace — supply every field you want kept, not just the ones changing). id is required."}, mcpUpdateGoal(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_workflow", Description: "Create a Workflow for an Agency."}, mcpCreateWorkflow(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_workflow", Description: "Get a Workflow by id."}, mcpGetWorkflow(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_workflows", Description: "List Workflows — live, or a Draft's scoped copies."}, mcpListWorkflows(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_workflow", Description: "Update a Workflow (full replace). id is required."}, mcpUpdateWorkflow(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_workflow", Title: "Create Workflow", Description: "Create a Workflow for an Agency."}, mcpCreateWorkflow(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_workflow", Title: "Get Workflow", Description: "Get a Workflow by id."}, mcpGetWorkflow(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_workflows", Title: "List Workflows", Description: "List Workflows — live, or a Draft's scoped copies."}, mcpListWorkflows(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_workflow", Title: "Update Workflow", Description: "Update a Workflow (full replace). id is required."}, mcpUpdateWorkflow(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_work_item", Description: "Create a WorkItem within a Workflow, belonging to an Objective."}, mcpCreateWorkItem(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_work_item", Description: "Get a WorkItem by id."}, mcpGetWorkItem(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_work_items", Description: "List WorkItems — live, or a Draft's scoped copies."}, mcpListWorkItems(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_work_item", Description: "Update a WorkItem (full replace). id is required."}, mcpUpdateWorkItem(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_work_item", Title: "Create Work Item", Description: "Create a WorkItem within a Workflow, belonging to an Objective."}, mcpCreateWorkItem(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_work_item", Title: "Get Work Item", Description: "Get a WorkItem by id."}, mcpGetWorkItem(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_work_items", Title: "List Work Items", Description: "List WorkItems — live, or a Draft's scoped copies."}, mcpListWorkItems(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_work_item", Title: "Update Work Item", Description: "Update a WorkItem (full replace). id is required."}, mcpUpdateWorkItem(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_lookup_event_flow_step", Description: "Look up one EventFlowStep by handler code, or by (trigger topic, consumer), or by its own code — whichever is set, in that precedence order."}, mcpLookupFlowStep(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_event_flow_steps", Description: "List the EventFlowSteps for one Workflow, by its code."}, mcpListEventFlowSteps(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_lookup_event_flow_step", Title: "Look Up Event Flow Step", Description: "Look up one EventFlowStep by handler code, or by (trigger topic, consumer), or by its own code — whichever is set, in that precedence order."}, mcpLookupFlowStep(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_event_flow_steps", Title: "List Event Flow Steps", Description: "List the EventFlowSteps for one Workflow, by its code."}, mcpListEventFlowSteps(resolve))
 }
 
 type mcpGoalParams struct {
@@ -64,7 +64,7 @@ func mcpCreateGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Goal{}, err
 		}
 		out, err := m.CreateGoal(ctx, p.toModel())
-		return summary("Created Goal %q (%s)", out.Title, out.ID), out, err
+		return summary("Created Goal %s %q (%s)", out.Code, out.Title, out.ID), out, err
 	}
 }
 
@@ -80,7 +80,7 @@ func mcpGetGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 			return nil, models.Goal{}, err
 		}
 		out, err := m.GetGoal(ctx, p.GoalID)
-		return summary("Goal %q (%s)", out.Title, out.ID), out, err
+		return summary("Goal %s %q (%s)", out.Code, out.Title, out.ID), out, err
 	}
 }
 
@@ -102,7 +102,7 @@ func mcpUpdateGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Goal{}, err
 		}
 		out, err := m.UpdateGoal(ctx, p.toModel())
-		return summary("Updated Goal %q (%s)", out.Title, out.ID), out, err
+		return summary("Updated Goal %s %q (%s)", out.Code, out.Title, out.ID), out, err
 	}
 }
 
@@ -127,7 +127,7 @@ func mcpCreateWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.Workflow{}, err
 		}
 		out, err := m.CreateWorkflow(ctx, p.toModel())
-		return summary("Created Workflow %q (%s)", out.Name, out.ID), out, err
+		return summary("Created Workflow %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -143,7 +143,7 @@ func mcpGetWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Workflow{}, err
 		}
 		out, err := m.GetWorkflow(ctx, p.WorkflowID)
-		return summary("Workflow %q (%s)", out.Name, out.ID), out, err
+		return summary("Workflow %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -165,7 +165,7 @@ func mcpUpdateWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.Workflow{}, err
 		}
 		out, err := m.UpdateWorkflow(ctx, p.toModel())
-		return summary("Updated Workflow %q (%s)", out.Name, out.ID), out, err
+		return summary("Updated Workflow %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -195,7 +195,7 @@ func mcpCreateWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.WorkItem{}, err
 		}
 		out, err := m.CreateWorkItem(ctx, p.toModel())
-		return summary("Created WorkItem %q (%s)", out.Title, out.ID), out, err
+		return summary("Created WorkItem %s %q (%s)", out.Code, out.Title, out.ID), out, err
 	}
 }
 
@@ -211,7 +211,7 @@ func mcpGetWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.WorkItem{}, err
 		}
 		out, err := m.GetWorkItem(ctx, p.WorkItemID)
-		return summary("WorkItem %q (%s)", out.Title, out.ID), out, err
+		return summary("WorkItem %s %q (%s)", out.Code, out.Title, out.ID), out, err
 	}
 }
 
@@ -233,7 +233,7 @@ func mcpUpdateWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.WorkItem{}, err
 		}
 		out, err := m.UpdateWorkItem(ctx, p.toModel())
-		return summary("Updated WorkItem %q (%s)", out.Title, out.ID), out, err
+		return summary("Updated WorkItem %s %q (%s)", out.Code, out.Title, out.ID), out, err
 	}
 }
 

@@ -12,15 +12,15 @@ import (
 // execution plan binding an inbound event trigger to an AI agent's
 // instructions, plus the context sources it reads before running.
 func registerWorkPlanTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_work_plan", Description: "Create a WorkPlan."}, mcpCreateWorkPlan(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_work_plan", Description: "Get a WorkPlan by id."}, mcpGetWorkPlan(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_work_plans", Description: "List every WorkPlan."}, mcpListWorkPlans(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_work_plan", Description: "Update a WorkPlan."}, mcpUpdateWorkPlan(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_match_work_plans", Description: "Find every enabled WorkPlan whose trigger topic (and payload condition, if set) matches an event, ordered by ordinality."}, mcpMatchWorkPlans(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_work_plan", Title: "Create Work Plan", Description: "Create a WorkPlan."}, mcpCreateWorkPlan(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_work_plan", Title: "Get Work Plan", Description: "Get a WorkPlan by id."}, mcpGetWorkPlan(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_work_plans", Title: "List Work Plans", Description: "List every WorkPlan."}, mcpListWorkPlans(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_work_plan", Title: "Update Work Plan", Description: "Update a WorkPlan."}, mcpUpdateWorkPlan(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_match_work_plans", Title: "Match Work Plans", Description: "Find every enabled WorkPlan whose trigger topic (and payload condition, if set) matches an event, ordered by ordinality."}, mcpMatchWorkPlans(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_add_context_source", Description: "Attach a ContextSource (git/comm/work) to a WorkPlan."}, mcpAddContextSource(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_context_sources", Description: "List the ContextSources attached to a WorkPlan."}, mcpListContextSources(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_remove_context_source", Description: "Detach a ContextSource from a WorkPlan."}, mcpRemoveContextSource(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_add_context_source", Title: "Add Context Source", Description: "Attach a ContextSource (git/comm/work) to a WorkPlan."}, mcpAddContextSource(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_context_sources", Title: "List Context Sources", Description: "List the ContextSources attached to a WorkPlan."}, mcpListContextSources(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_remove_context_source", Title: "Remove Context Source", Description: "Detach a ContextSource from a WorkPlan."}, mcpRemoveContextSource(resolve))
 }
 
 // mcpWorkPlanParams mirrors models.WorkPlan, but with every field but Name

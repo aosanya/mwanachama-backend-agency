@@ -19,8 +19,17 @@ func (m *agencyManager) CreateDepartment(ctx context.Context, d models.Departmen
 	if d.CreatedAt == "" {
 		d.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.DepartmentToRow(d)
-	if err := m.db.WithContext(ctx).Table(m.tables.Departments).Create(&row).Error; err != nil {
+	var row gormstore.DepartmentRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "department", "D")
+		if err != nil {
+			return err
+		}
+		d.Code = code
+		row = gormstore.DepartmentToRow(d)
+		return tx.Table(m.tables.Departments).Create(&row).Error
+	})
+	if err != nil {
 		return models.Department{}, fmt.Errorf("CreateDepartment: %w", err)
 	}
 	return gormstore.DepartmentFromRow(row), nil

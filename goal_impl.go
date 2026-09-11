@@ -11,12 +11,24 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+// CreateGoal mints g a stable "G-<n>" Code (see [gormstore.NextCode]) inside
+// the same transaction as the row insert, so the counter increment and the
+// row's creation commit together.
 func (m *agencyManager) CreateGoal(ctx context.Context, g models.Goal) (models.Goal, error) {
 	if g.CreatedAt == "" {
 		g.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.GoalToRow(g)
-	if err := m.db.WithContext(ctx).Table(m.tables.Goals).Create(&row).Error; err != nil {
+	var row gormstore.GoalRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "goal", "G")
+		if err != nil {
+			return err
+		}
+		g.Code = code
+		row = gormstore.GoalToRow(g)
+		return tx.Table(m.tables.Goals).Create(&row).Error
+	})
+	if err != nil {
 		return models.Goal{}, fmt.Errorf("CreateGoal: %w", err)
 	}
 	return gormstore.GoalFromRow(row), nil
@@ -56,6 +68,7 @@ func (m *agencyManager) UpdateGoal(ctx context.Context, g models.Goal) (models.G
 	}
 	row := gormstore.GoalToRow(g)
 	row.CreatedAt = existing.CreatedAt
+	row.Code = existing.Code
 	cols := map[string]any{
 		"draft_id":    row.DraftID,
 		"title":       row.Title,

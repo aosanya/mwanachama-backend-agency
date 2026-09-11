@@ -7,7 +7,10 @@ package models
 // or the owning Draft's ID for a draft-scoped copy. Changing a Role means
 // forking a Draft, editing the draft-scoped copy, then promoting.
 type Role struct {
-	ID          string `json:"id"`
+	ID string `json:"id"`
+	// Code is a stable, human-readable identifier (e.g. "R-1") assigned
+	// once at creation and never changed — see [Goal.Code]'s doc comment.
+	Code        string `json:"code"`
 	DraftID     string `json:"draft_id,omitempty"`
 	Name        string `json:"name"`
 	Description string `json:"description"`

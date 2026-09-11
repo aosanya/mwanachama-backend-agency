@@ -18,7 +18,10 @@ package models
 // here — flagged in AGD-001 as new machinery needing its own design, not
 // built in this pass.
 type Value struct {
-	ID          string `json:"id"`
+	ID string `json:"id"`
+	// Code is a stable, human-readable identifier (e.g. "V-1") assigned
+	// once at creation and never changed — see [Goal.Code]'s doc comment.
+	Code        string `json:"code"`
 	ObjectiveID string `json:"objective_id,omitempty"`
 	// DraftID is "" for a live Value, or the owning Draft's ID for a
 	// draft-scoped copy.

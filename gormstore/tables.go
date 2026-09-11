@@ -22,6 +22,10 @@ type TableNames struct {
 	RoleAssignments    string
 	Values             string
 	Rules              string
+	// CodeSequences backs [NextCode]'s per-entity-type counters, minting
+	// the stable "<prefix>-<n>" Code every named business-entity type
+	// above carries.
+	CodeSequences string
 }
 
 // DefaultTableNames builds the conventional table set for one mounted
@@ -45,11 +49,17 @@ func DefaultTableNames(instance string) TableNames {
 		RoleAssignments:    instance + "_role_assignments",
 		Values:             instance + "_values",
 		Rules:              instance + "_rules",
+		CodeSequences:      instance + "_code_sequences",
 	}
 }
 
-// Migrate creates or updates the tables named by t.
+// Migrate creates or updates the tables named by t, then backfills a Code
+// onto any pre-existing row of a named business-entity type that predates
+// it (see [BackfillCodes]).
 func Migrate(db *gorm.DB, t TableNames) error {
+	if err := db.Table(t.CodeSequences).AutoMigrate(&CodeSequenceRow{}); err != nil {
+		return err
+	}
 	if err := db.Table(t.Agencies).AutoMigrate(&AgencyRow{}); err != nil {
 		return err
 	}
@@ -100,6 +110,24 @@ func Migrate(db *gorm.DB, t TableNames) error {
 	}
 	if err := db.Table(t.Rules).AutoMigrate(&RuleRow{}); err != nil {
 		return err
+	}
+
+	for _, b := range []struct {
+		table, entityType, prefix string
+	}{
+		{t.Goals, "goal", "G"},
+		{t.Objectives, "objective", "O"},
+		{t.Roles, "role", "R"},
+		{t.Departments, "department", "D"},
+		{t.Levels, "level", "L"},
+		{t.Workflows, "workflow", "W"},
+		{t.WorkItems, "workitem", "WI"},
+		{t.Values, "value", "V"},
+		{t.Rules, "rule", "RU"},
+	} {
+		if err := BackfillCodes(db, b.table, t.CodeSequences, b.entityType, b.prefix); err != nil {
+			return err
+		}
 	}
 	return nil
 }

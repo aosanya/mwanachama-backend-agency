@@ -35,7 +35,8 @@ import (
 
 func registerCompositeTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name: "agency_design_from_spec",
+		Name:  "agency_design_from_spec",
+		Title: "Design Agency From Spec",
 		Description: "Build out an Agency's org chart, goals/objectives/workflows/work items, and RACI assignments from one structured spec, composing the granular agency_* tools internally. " +
 			"Entities reference each other by a caller-chosen \"key\" (not a real id); a reference must name a key defined earlier in that section or in a section this tool applies first. " +
 			"Order applied: agency (only if none exists yet), levels, departments (parent_key must precede its child), roles, goals, objectives (goal_key), workflows, work_items (objective_key), raci (objective_key). " +
@@ -270,6 +271,11 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 			out.RoleAssignments = append(out.RoleAssignments, row.ID)
 		}
 
-		return nil, out, nil
+		s := summary(
+			"Applied spec: %d level(s), %d department(s), %d role(s), %d goal(s), %d objective(s), %d workflow(s), %d work item(s), %d RACI assignment(s), %d error(s)",
+			len(out.Levels), len(out.Departments), len(out.Roles), len(out.Goals), len(out.Objectives),
+			len(out.Workflows), len(out.WorkItems), len(out.RoleAssignments), len(out.Errors),
+		)
+		return s, out, nil
 	}
 }

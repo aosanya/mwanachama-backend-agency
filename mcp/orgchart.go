@@ -11,18 +11,18 @@ import (
 // registerOrgChartTools registers Department/Level tools — the org chart:
 // a parent/child tree of named departments, each pinned to a named Level.
 func registerOrgChartTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_department", Description: "Create a Department — pass parent_id \"\" for a top-level one."}, mcpCreateDepartment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_department", Description: "Get a Department by id."}, mcpGetDepartment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_departments", Description: "List every Department in the org chart."}, mcpListDepartments(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_department_children", Description: "List a Department's direct children."}, mcpListDepartmentChildren(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_rename_department", Description: "Rename a Department."}, mcpRenameDepartment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_move_department", Description: "Re-parent a Department under a different (or no) parent."}, mcpMoveDepartment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_department", Title: "Create Department", Description: "Create a Department — pass parent_id \"\" for a top-level one."}, mcpCreateDepartment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_department", Title: "Get Department", Description: "Get a Department by id."}, mcpGetDepartment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_departments", Title: "List Departments", Description: "List every Department in the org chart."}, mcpListDepartments(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_department_children", Title: "List Department Children", Description: "List a Department's direct children."}, mcpListDepartmentChildren(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_rename_department", Title: "Rename Department", Description: "Rename a Department."}, mcpRenameDepartment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_move_department", Title: "Move Department", Description: "Re-parent a Department under a different (or no) parent."}, mcpMoveDepartment(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_level", Description: "Create a Level — a named rung (e.g. \"Division\", \"Team\") Departments are pinned to."}, mcpCreateLevel(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_level", Description: "Get a Level by id."}, mcpGetLevel(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_levels", Description: "List every Level."}, mcpListLevels(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_rename_level", Description: "Rename a Level."}, mcpRenameLevel(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_level", Description: "Delete a Level. Refused while any Department still wears it."}, mcpDeleteLevel(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_level", Title: "Create Level", Description: "Create a Level — a named rung (e.g. \"Division\", \"Team\") Departments are pinned to."}, mcpCreateLevel(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_level", Title: "Get Level", Description: "Get a Level by id."}, mcpGetLevel(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_levels", Title: "List Levels", Description: "List every Level."}, mcpListLevels(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_rename_level", Title: "Rename Level", Description: "Rename a Level."}, mcpRenameLevel(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_level", Title: "Delete Level", Description: "Delete a Level. Refused while any Department still wears it."}, mcpDeleteLevel(resolve))
 }
 
 // mcpCreateDepartmentParams mirrors models.Department, but with ParentID
@@ -45,7 +45,7 @@ func mcpCreateDepartment(resolve ManagerResolver) func(context.Context, *mcp.Cal
 			return nil, models.Department{}, err
 		}
 		out, err := m.CreateDepartment(ctx, models.Department{ParentID: p.ParentID, LevelID: p.LevelID, Name: p.Name})
-		return summary("Created Department %q (%s)", out.Name, out.ID), out, err
+		return summary("Created Department %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -61,7 +61,7 @@ func mcpGetDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, models.Department{}, err
 		}
 		out, err := m.GetDepartment(ctx, p.DepartmentID)
-		return summary("Department %q (%s)", out.Name, out.ID), out, err
+		return summary("Department %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -105,7 +105,7 @@ func mcpRenameDepartment(resolve ManagerResolver) func(context.Context, *mcp.Cal
 			return nil, models.Department{}, err
 		}
 		out, err := m.RenameDepartment(ctx, p.DepartmentID, p.Name)
-		return summary("Renamed Department %s to %q", out.ID, out.Name), out, err
+		return summary("Renamed Department %s to %q", out.Code, out.Name), out, err
 	}
 }
 
@@ -122,7 +122,7 @@ func mcpMoveDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.Department{}, err
 		}
 		out, err := m.MoveDepartment(ctx, p.DepartmentID, p.NewParentID)
-		return summary("Moved Department %q (%s) under parent %q", out.Name, out.ID, out.ParentID), out, err
+		return summary("Moved Department %s %q under parent %q", out.Code, out.Name, out.ParentID), out, err
 	}
 }
 
@@ -141,7 +141,7 @@ func mcpCreateLevel(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Level{}, err
 		}
 		out, err := m.CreateLevel(ctx, models.Level{Name: p.Name, Depth: p.Depth})
-		return summary("Created Level %q (%s)", out.Name, out.ID), out, err
+		return summary("Created Level %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -157,7 +157,7 @@ func mcpGetLevel(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 			return nil, models.Level{}, err
 		}
 		out, err := m.GetLevel(ctx, p.LevelID)
-		return summary("Level %q (%s)", out.Name, out.ID), out, err
+		return summary("Level %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -185,7 +185,7 @@ func mcpRenameLevel(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, models.Level{}, err
 		}
 		out, err := m.RenameLevel(ctx, p.LevelID, p.Name)
-		return summary("Renamed Level %s to %q", out.ID, out.Name), out, err
+		return summary("Renamed Level %s to %q", out.Code, out.Name), out, err
 	}
 }
 

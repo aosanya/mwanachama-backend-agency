@@ -11,6 +11,7 @@ import (
 // association.
 type GoalRow struct {
 	ID          string  `gorm:"primaryKey"`
+	Code        string  `gorm:"index"`
 	DraftID     *string `gorm:"index"`
 	Title       string
 	Description string
@@ -31,6 +32,7 @@ func (r *GoalRow) BeforeCreate(_ *gorm.DB) error {
 func GoalToRow(g models.Goal) GoalRow {
 	return GoalRow{
 		ID:          g.ID,
+		Code:        g.Code,
 		DraftID:     StringToNullable(g.DraftID),
 		Title:       g.Title,
 		Description: g.Description,
@@ -45,6 +47,7 @@ func GoalToRow(g models.Goal) GoalRow {
 func GoalFromRow(r GoalRow) models.Goal {
 	return models.Goal{
 		ID:          r.ID,
+		Code:        r.Code,
 		DraftID:     nullableToString(r.DraftID),
 		Title:       r.Title,
 		Description: r.Description,

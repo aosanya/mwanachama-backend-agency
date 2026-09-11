@@ -18,8 +18,17 @@ func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) 
 	if wi.CreatedAt == "" {
 		wi.CreatedAt = models.NowRFC3339()
 	}
-	row := gormstore.WorkItemToRow(wi)
-	if err := m.db.WithContext(ctx).Table(m.tables.WorkItems).Create(&row).Error; err != nil {
+	var row gormstore.WorkItemRow
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "workitem", "WI")
+		if err != nil {
+			return err
+		}
+		wi.Code = code
+		row = gormstore.WorkItemToRow(wi)
+		return tx.Table(m.tables.WorkItems).Create(&row).Error
+	})
+	if err != nil {
 		return models.WorkItem{}, fmt.Errorf("CreateWorkItem: %w", err)
 	}
 	return gormstore.WorkItemFromRow(row), nil
@@ -61,6 +70,7 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 	}
 	row := gormstore.WorkItemToRow(wi)
 	row.CreatedAt = existing.CreatedAt
+	row.Code = existing.Code
 	cols := map[string]any{
 		"workflow_id":  row.WorkflowID,
 		"objective_id": row.ObjectiveID,

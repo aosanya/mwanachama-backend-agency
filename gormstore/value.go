@@ -11,6 +11,7 @@ import (
 // association/foreign key — matching WorkItemRow.GoalID's precedent.
 type ValueRow struct {
 	ID          string  `gorm:"primaryKey"`
+	Code        string  `gorm:"index"`
 	ObjectiveID *string `gorm:"index"`
 	DraftID     *string `gorm:"index"`
 	Text        string
@@ -30,6 +31,7 @@ func (r *ValueRow) BeforeCreate(_ *gorm.DB) error {
 func ValueToRow(v models.Value) ValueRow {
 	return ValueRow{
 		ID:          v.ID,
+		Code:        v.Code,
 		ObjectiveID: StringToNullable(v.ObjectiveID),
 		DraftID:     StringToNullable(v.DraftID),
 		Text:        v.Text,
@@ -43,6 +45,7 @@ func ValueToRow(v models.Value) ValueRow {
 func ValueFromRow(r ValueRow) models.Value {
 	return models.Value{
 		ID:          r.ID,
+		Code:        r.Code,
 		ObjectiveID: nullableToString(r.ObjectiveID),
 		DraftID:     nullableToString(r.DraftID),
 		Text:        r.Text,

@@ -15,18 +15,18 @@ import (
 // the draft-scoped copy, promote (agency_create_draft/agency_promote_draft
 // in agency.go).
 func registerRACITools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_role", Description: "Create a Role (a persona, e.g. \"bug-hunter\")."}, mcpCreateRole(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_role", Description: "Get a Role by id."}, mcpGetRole(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_roles", Description: "List Roles — live, or a Draft's scoped copies."}, mcpListRoles(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role", Description: "Update a Role. Refused on a live Role — only a Draft-scoped copy may be edited."}, mcpUpdateRole(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role", Description: "Delete a Role. Refused on a live Role — only a Draft-scoped copy may be deleted."}, mcpDeleteRole(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_role", Title: "Create Role", Description: "Create a Role (a persona, e.g. \"bug-hunter\")."}, mcpCreateRole(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_role", Title: "Get Role", Description: "Get a Role by id."}, mcpGetRole(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_roles", Title: "List Roles", Description: "List Roles — live, or a Draft's scoped copies."}, mcpListRoles(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role", Title: "Update Role", Description: "Update a Role. Refused on a live Role — only a Draft-scoped copy may be edited."}, mcpUpdateRole(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role", Title: "Delete Role", Description: "Delete a Role. Refused on a live Role — only a Draft-scoped copy may be deleted."}, mcpDeleteRole(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_set_raci", Description: "Assign a Role to an Objective with a RACI label (responsible/accountable/consulted/informed). At most one accountable assignment may exist per Objective."}, mcpCreateRoleAssignment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_role_assignment", Description: "Get a RoleAssignment by id."}, mcpGetRoleAssignment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_role_assignments", Description: "List RoleAssignments — live, or a Draft's scoped copies."}, mcpListRoleAssignments(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_role_assignments_for_objective", Description: "List who is assigned to an Objective, and with what RACI label."}, mcpListRoleAssignmentsForObjective(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role_assignment", Description: "Update a RoleAssignment. Refused on a live one — only a Draft-scoped copy may be edited."}, mcpUpdateRoleAssignment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role_assignment", Description: "Delete a RoleAssignment. Refused on a live one — only a Draft-scoped copy may be deleted."}, mcpDeleteRoleAssignment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_set_raci", Title: "Assign RACI", Description: "Assign a Role to an Objective with a RACI label (responsible/accountable/consulted/informed). At most one accountable assignment may exist per Objective."}, mcpCreateRoleAssignment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_role_assignment", Title: "Get RACI Assignment", Description: "Get a RoleAssignment by id."}, mcpGetRoleAssignment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_role_assignments", Title: "List RACI Assignments", Description: "List RoleAssignments — live, or a Draft's scoped copies."}, mcpListRoleAssignments(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_role_assignments_for_objective", Title: "List RACI for Objective", Description: "List who is assigned to an Objective, and with what RACI label."}, mcpListRoleAssignmentsForObjective(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role_assignment", Title: "Update RACI Assignment", Description: "Update a RoleAssignment. Refused on a live one — only a Draft-scoped copy may be edited."}, mcpUpdateRoleAssignment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role_assignment", Title: "Delete RACI Assignment", Description: "Delete a RoleAssignment. Refused on a live one — only a Draft-scoped copy may be deleted."}, mcpDeleteRoleAssignment(resolve))
 }
 
 // mcpRoleParams mirrors models.Role, but with every field but Name marked
@@ -53,7 +53,7 @@ func mcpCreateRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Role{}, err
 		}
 		out, err := m.CreateRole(ctx, p.toModel())
-		return summary("Created Role %q (%s)", out.Name, out.ID), out, err
+		return summary("Created Role %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -69,7 +69,7 @@ func mcpGetRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 			return nil, models.Role{}, err
 		}
 		out, err := m.GetRole(ctx, p.RoleID)
-		return summary("Role %q (%s)", out.Name, out.ID), out, err
+		return summary("Role %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
@@ -91,7 +91,7 @@ func mcpUpdateRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, models.Role{}, err
 		}
 		out, err := m.UpdateRole(ctx, p.toModel())
-		return summary("Updated Role %q (%s)", out.Name, out.ID), out, err
+		return summary("Updated Role %s %q (%s)", out.Code, out.Name, out.ID), out, err
 	}
 }
 
