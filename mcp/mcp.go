@@ -9,6 +9,7 @@ package mcp
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -64,4 +65,19 @@ type instanceOnlyParams struct {
 type instanceAndDraftParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	DraftID    string `json:"draft_id,omitempty" jsonschema:"scope to this Draft's copy; empty means the live (published) copy"`
+}
+
+// summary builds a *mcp.CallToolResult carrying a one-line human-readable
+// sentence as its Content, in place of the go-sdk's default behavior of
+// JSON-dumping the whole return value there. StructuredContent is
+// unaffected either way — the go-sdk always fills it from the handler's
+// actual typed return value, regardless of what Content this produces — so
+// this only changes what a human (or an LLM) reading the call log sees,
+// never what a programmatic caller reads back. Only ever worth calling on
+// a tool's success path: the go-sdk discards whatever *mcp.CallToolResult
+// a handler returned the moment it also returns a non-nil error, replacing
+// it with its own error-shaped result — so an error path can keep
+// returning nil here exactly as before.
+func summary(format string, args ...any) *mcp.CallToolResult {
+	return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf(format, args...)}}}
 }
