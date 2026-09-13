@@ -83,6 +83,44 @@ func (m *agencyManager) UpdateGoal(ctx context.Context, g models.Goal) (models.G
 	return gormstore.GoalFromRow(row), nil
 }
 
+// DeleteGoal deletes g and cascades to every Objective scoped to it (and
+// every RoleAssignment scoped to each of those Objectives) — see
+// [AgencyManager]'s doc comment for why this bypasses
+// RoleAssignment/Objective's own independent-edit rules rather than
+// calling DeleteRoleAssignment/DeleteObjective per row. All in one
+// transaction, so a failure partway through never leaves a Goal deleted
+// with orphaned Objectives/RoleAssignments still behind, or vice versa.
+func (m *agencyManager) DeleteGoal(ctx context.Context, id string) error {
+	if _, err := m.findGoalRow(ctx, m.db, id); err != nil {
+		return err
+	}
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var objectives []gormstore.ObjectiveRow
+		if err := tx.Table(m.tables.Objectives).Where("goal_id = ?", id).Find(&objectives).Error; err != nil {
+			return err
+		}
+		objectiveIDs := make([]string, len(objectives))
+		for i, o := range objectives {
+			objectiveIDs[i] = o.ID
+		}
+		if len(objectiveIDs) > 0 {
+			if err := tx.Table(m.tables.RoleAssignments).Where("objective_id IN ?", objectiveIDs).
+				Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Table(m.tables.Objectives).Where("goal_id = ?", id).
+				Delete(&gormstore.ObjectiveRow{}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Table(m.tables.Goals).Where("id = ?", id).Delete(&gormstore.GoalRow{}).Error
+	})
+	if err != nil {
+		return fmt.Errorf("DeleteGoal: %w", err)
+	}
+	return nil
+}
+
 func (m *agencyManager) findGoalRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.GoalRow, error) {
 	var row gormstore.GoalRow
 	err := tx.WithContext(ctx).Table(m.tables.Goals).Where("id = ?", id).First(&row).Error

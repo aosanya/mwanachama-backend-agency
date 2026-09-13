@@ -28,6 +28,14 @@ type AgencyManager interface {
 	GetGoal(ctx context.Context, id string) (models.Goal, error)
 	ListGoals(ctx context.Context, draftID string) ([]models.Goal, error)
 	UpdateGoal(ctx context.Context, g models.Goal) (models.Goal, error)
+	// DeleteGoal cascades: every Objective scoped to it, and every
+	// RoleAssignment scoped to each of those Objectives, is deleted too —
+	// bypassing RoleAssignment/Objective's own independent-edit rules
+	// (Role's live-immutability check exists to stop a live RACI row
+	// being tampered with piecemeal, not to block a cascade from the
+	// Goal it already hangs off, which itself carries no such
+	// restriction).
+	DeleteGoal(ctx context.Context, id string) error
 
 	// Objective. A Goal may have several — each one a granular unit a
 	// single Role is RACI-assigned to via RoleAssignment. Same

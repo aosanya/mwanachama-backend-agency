@@ -34,6 +34,7 @@ func registerGoalWorkflowTools(server *mcp.Server, resolve ManagerResolver) {
 		Meta: dashboardUIMeta,
 	}, mcpListGoals(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_goal", Title: "Update Goal", Description: "Update a Goal (full replace — supply every field you want kept, not just the ones changing). id is required."}, mcpUpdateGoal(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_goal", Title: "Delete Goal", Description: "Delete a Goal. Cascades: also deletes every Objective under it, and every RACI assignment on those Objectives — warn the operator about that before calling this."}, mcpDeleteGoal(resolve))
 
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_workflow", Title: "Create Workflow", Description: "Create a Workflow for an Agency."}, mcpCreateWorkflow(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_workflow", Title: "Get Workflow", Description: "Get a Workflow by id."}, mcpGetWorkflow(resolve))
@@ -127,6 +128,19 @@ func mcpUpdateGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 		}
 		out, err := m.UpdateGoal(ctx, p.toModel())
 		return summary("Updated Goal %s %q (%s)", out.Code, out.Title, out.ID), out, err
+	}
+}
+
+func mcpDeleteGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpGoalIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpGoalIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, DeleteResult{}, err
+		}
+		if err := m.DeleteGoal(ctx, p.GoalID); err != nil {
+			return nil, DeleteResult{}, err
+		}
+		return summary("Deleted Goal %s", p.GoalID), DeleteResult{Deleted: true}, nil
 	}
 }
 

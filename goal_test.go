@@ -55,6 +55,72 @@ func TestGetGoal_NotFound(t *testing.T) {
 	}
 }
 
+func TestDeleteGoal_NotFound(t *testing.T) {
+	mgr := newTestManager(t)
+	if err := mgr.DeleteGoal(context.Background(), "unknown"); !errors.Is(err, mwanachamaagency.ErrGoalNotFound) {
+		t.Fatalf("expected ErrGoalNotFound, got %v", err)
+	}
+}
+
+// TestDeleteGoal_CascadesObjectivesAndRoleAssignments asserts DeleteGoal
+// takes its Objectives (and those Objectives' RoleAssignments) down with
+// it, even though the RoleAssignment is live — DeleteRoleAssignment on its
+// own would refuse that with ErrCannotEditLiveRACI, but the cascade
+// bypasses that per-row check (see AgencyManager's DeleteGoal doc).
+func TestDeleteGoal_CascadesObjectivesAndRoleAssignments(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, g, o, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+	})
+	if err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+
+	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
+		t.Fatalf("DeleteGoal: %v", err)
+	}
+
+	if _, err := mgr.GetGoal(ctx, g.ID); !errors.Is(err, mwanachamaagency.ErrGoalNotFound) {
+		t.Fatalf("expected the Goal itself to be gone, got %v", err)
+	}
+	if _, err := mgr.GetObjective(ctx, o.ID); !errors.Is(err, mwanachamaagency.ErrObjectiveNotFound) {
+		t.Fatalf("expected the cascaded Objective to be gone, got %v", err)
+	}
+	if _, err := mgr.GetRoleAssignment(ctx, assignment.ID); !errors.Is(err, mwanachamaagency.ErrRoleAssignmentNotFound) {
+		t.Fatalf("expected the cascaded RoleAssignment to be gone, got %v", err)
+	}
+	// The Role itself is a separate entity, only referenced by the
+	// assignment — it must survive the Goal's deletion untouched.
+	if _, err := mgr.GetRole(ctx, role.ID); err != nil {
+		t.Fatalf("expected the Role to survive the Goal's deletion, got %v", err)
+	}
+}
+
+// TestDeleteGoal_NoObjectives asserts deleting a Goal with nothing under
+// it is just a plain delete — the cascade's "any objectives?" branch must
+// not choke on the empty case.
+func TestDeleteGoal_NoObjectives(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	g, err := mgr.CreateGoal(ctx, models.Goal{Title: "Lonely goal"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
+		t.Fatalf("DeleteGoal: %v", err)
+	}
+	if _, err := mgr.GetGoal(ctx, g.ID); !errors.Is(err, mwanachamaagency.ErrGoalNotFound) {
+		t.Fatalf("expected ErrGoalNotFound, got %v", err)
+	}
+}
+
 // TestGoalCode_SequentialAndImmutable asserts Code is minted "G-1", "G-2",
 // ... in creation order, and survives an Update untouched even when the
 // caller's struct carries a stale/empty Code (see UpdateGoal's doc for why
