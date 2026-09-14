@@ -5,6 +5,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -65,13 +66,21 @@ func mcpGetDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 	}
 }
 
-func mcpListDepartments(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
+// mcpListDepartmentsParams extends instanceOnlyParams with
+// DepartmentFilter's fields.
+type mcpListDepartmentsParams struct {
+	instanceOnlyParams
+	Code string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Name string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
+}
+
+func mcpListDepartments(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListDepartmentsParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListDepartmentsParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Department]{}, err
 		}
-		out, err := m.ListDepartments(ctx)
+		out, err := m.ListDepartments(ctx, mwanachamaagency.DepartmentFilter{Code: p.Code, Name: p.Name})
 		return summary("Found %d department(s)", len(out)), ListResult[models.Department]{Items: out}, err
 	}
 }
@@ -79,6 +88,8 @@ func mcpListDepartments(resolve ManagerResolver) func(context.Context, *mcp.Call
 type mcpDepartmentParentParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ParentID   string `json:"parent_id" jsonschema:"the parent Department's id; \"\" lists top-level departments"`
+	Code       string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Name       string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
 }
 
 func mcpListDepartmentChildren(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDepartmentParentParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
@@ -87,7 +98,7 @@ func mcpListDepartmentChildren(resolve ManagerResolver) func(context.Context, *m
 		if err != nil {
 			return nil, ListResult[models.Department]{}, err
 		}
-		out, err := m.ListDepartmentChildren(ctx, p.ParentID)
+		out, err := m.ListDepartmentChildren(ctx, p.ParentID, mwanachamaagency.DepartmentFilter{Code: p.Code, Name: p.Name})
 		return summary("Found %d child department(s)", len(out)), ListResult[models.Department]{Items: out}, err
 	}
 }
@@ -161,13 +172,20 @@ func mcpGetLevel(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 	}
 }
 
-func mcpListLevels(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.Level], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.Level], error) {
+// mcpListLevelsParams extends instanceOnlyParams with LevelFilter's fields.
+type mcpListLevelsParams struct {
+	instanceOnlyParams
+	Code string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Name string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
+}
+
+func mcpListLevels(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListLevelsParams) (*mcp.CallToolResult, ListResult[models.Level], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListLevelsParams) (*mcp.CallToolResult, ListResult[models.Level], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Level]{}, err
 		}
-		out, err := m.ListLevels(ctx)
+		out, err := m.ListLevels(ctx, mwanachamaagency.LevelFilter{Code: p.Code, Name: p.Name})
 		return summary("Found %d level(s)", len(out)), ListResult[models.Level]{Items: out}, err
 	}
 }

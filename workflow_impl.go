@@ -40,10 +40,13 @@ func (m *agencyManager) GetWorkflow(ctx context.Context, id string) (models.Work
 }
 
 // ListWorkflows returns live Workflows when draftID is "", or draftID's
-// draft-scoped copies otherwise.
-func (m *agencyManager) ListWorkflows(ctx context.Context, draftID string) ([]models.Workflow, error) {
+// draft-scoped copies otherwise, narrowed by filter.
+func (m *agencyManager) ListWorkflows(ctx context.Context, draftID string, filter WorkflowFilter) ([]models.Workflow, error) {
 	var rows []gormstore.WorkflowRow
 	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Workflows).Order("ordinality"), draftID)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "name", filter.Name)
+	q = likeFilter(q, "description", filter.Description)
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListWorkflows: %w", err)
 	}

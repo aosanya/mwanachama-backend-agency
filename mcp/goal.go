@@ -7,6 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -90,13 +91,22 @@ func mcpGetGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 	}
 }
 
-func mcpListGoals(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Goal], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Goal], error) {
+// mcpListGoalsParams extends instanceAndDraftParams with GoalFilter's
+// fields.
+type mcpListGoalsParams struct {
+	instanceAndDraftParams
+	Code        string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Title       string `json:"title,omitempty" jsonschema:"filter: case-insensitive substring match on Title"`
+	Description string `json:"description,omitempty" jsonschema:"filter: case-insensitive substring match on Description"`
+}
+
+func mcpListGoals(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListGoalsParams) (*mcp.CallToolResult, ListResult[models.Goal], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListGoalsParams) (*mcp.CallToolResult, ListResult[models.Goal], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Goal]{}, err
 		}
-		out, err := m.ListGoals(ctx, p.DraftID)
+		out, err := m.ListGoals(ctx, p.DraftID, mwanachamaagency.GoalFilter{Code: p.Code, Title: p.Title, Description: p.Description})
 		return summaryWithContext(fmt.Sprintf("Found %d goal(s)", len(out)), goalsContextText(out)), ListResult[models.Goal]{Items: out}, err
 	}
 }
@@ -185,13 +195,22 @@ func mcpGetWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 	}
 }
 
-func mcpListWorkflows(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Workflow], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Workflow], error) {
+// mcpListWorkflowsParams extends instanceAndDraftParams with
+// WorkflowFilter's fields.
+type mcpListWorkflowsParams struct {
+	instanceAndDraftParams
+	Code        string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Name        string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
+	Description string `json:"description,omitempty" jsonschema:"filter: case-insensitive substring match on Description"`
+}
+
+func mcpListWorkflows(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListWorkflowsParams) (*mcp.CallToolResult, ListResult[models.Workflow], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListWorkflowsParams) (*mcp.CallToolResult, ListResult[models.Workflow], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Workflow]{}, err
 		}
-		out, err := m.ListWorkflows(ctx, p.DraftID)
+		out, err := m.ListWorkflows(ctx, p.DraftID, mwanachamaagency.WorkflowFilter{Code: p.Code, Name: p.Name, Description: p.Description})
 		return summary("Found %d workflow(s)", len(out)), ListResult[models.Workflow]{Items: out}, err
 	}
 }
@@ -253,13 +272,22 @@ func mcpGetWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 	}
 }
 
-func mcpListWorkItems(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.WorkItem], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.WorkItem], error) {
+// mcpListWorkItemsParams extends instanceAndDraftParams with
+// WorkItemFilter's fields.
+type mcpListWorkItemsParams struct {
+	instanceAndDraftParams
+	Code        string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Title       string `json:"title,omitempty" jsonschema:"filter: case-insensitive substring match on Title"`
+	Description string `json:"description,omitempty" jsonschema:"filter: case-insensitive substring match on Description"`
+}
+
+func mcpListWorkItems(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListWorkItemsParams) (*mcp.CallToolResult, ListResult[models.WorkItem], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListWorkItemsParams) (*mcp.CallToolResult, ListResult[models.WorkItem], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.WorkItem]{}, err
 		}
-		out, err := m.ListWorkItems(ctx, p.DraftID)
+		out, err := m.ListWorkItems(ctx, p.DraftID, mwanachamaagency.WorkItemFilter{Code: p.Code, Title: p.Title, Description: p.Description})
 		return summary("Found %d work item(s)", len(out)), ListResult[models.WorkItem]{Items: out}, err
 	}
 }
@@ -302,6 +330,9 @@ func mcpLookupFlowStep(resolve ManagerResolver) func(context.Context, *mcp.CallT
 type mcpListEventFlowStepsParams struct {
 	InstanceID   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	WorkflowCode string `json:"workflow_code" jsonschema:"the owning Workflow's code"`
+	Code         string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Name         string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
+	Description  string `json:"description,omitempty" jsonschema:"filter: case-insensitive substring match on Description"`
 }
 
 func mcpListEventFlowSteps(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListEventFlowStepsParams) (*mcp.CallToolResult, ListResult[models.EventFlowStep], error) {
@@ -310,7 +341,7 @@ func mcpListEventFlowSteps(resolve ManagerResolver) func(context.Context, *mcp.C
 		if err != nil {
 			return nil, ListResult[models.EventFlowStep]{}, err
 		}
-		out, err := m.ListEventFlowSteps(ctx, p.WorkflowCode)
+		out, err := m.ListEventFlowSteps(ctx, p.WorkflowCode, mwanachamaagency.EventFlowStepFilter{Code: p.Code, Name: p.Name, Description: p.Description})
 		return summary("Found %d event flow step(s) for workflow %q", len(out), p.WorkflowCode), ListResult[models.EventFlowStep]{Items: out}, err
 	}
 }

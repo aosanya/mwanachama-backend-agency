@@ -50,15 +50,19 @@ func (m *agencyManager) LookupFlowStep(ctx context.Context, lookup models.EventF
 }
 
 // ListEventFlowSteps returns live steps ordered by (WorkflowCode,
-// Ordinality, Step), optionally filtered to one workflowCode. Step sorts
-// lexically, same as source — "1.10" sorts before "1.2".
-func (m *agencyManager) ListEventFlowSteps(ctx context.Context, workflowCode string) ([]models.EventFlowStep, error) {
+// Ordinality, Step), optionally filtered to one workflowCode and/or
+// filter. Step sorts lexically, same as source — "1.10" sorts before
+// "1.2".
+func (m *agencyManager) ListEventFlowSteps(ctx context.Context, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error) {
 	q := m.db.WithContext(ctx).Table(m.tables.EventFlowSteps).
 		Where("draft_id IS NULL").
 		Order("workflow_code, ordinality, step")
 	if workflowCode != "" {
 		q = q.Where("workflow_code = ?", workflowCode)
 	}
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "name", filter.Name)
+	q = likeFilter(q, "description", filter.Description)
 	var rows []gormstore.EventFlowStepRow
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListEventFlowSteps: %w", err)

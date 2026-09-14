@@ -51,7 +51,7 @@ func TestContextSourceCRUD(t *testing.T) {
 		t.Fatalf("expected only Comm populated: %+v", comm)
 	}
 
-	sources, err := mgr.ListContextSources(ctx, w.ID)
+	sources, err := mgr.ListContextSources(ctx, w.ID, mwanachamaagency.ContextSourceFilter{})
 	if err != nil {
 		t.Fatalf("ListContextSources: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestContextSourceCRUD(t *testing.T) {
 	if err := mgr.RemoveContextSource(ctx, w.ID, git.ID); err != nil {
 		t.Fatalf("RemoveContextSource: %v", err)
 	}
-	sources, err = mgr.ListContextSources(ctx, w.ID)
+	sources, err = mgr.ListContextSources(ctx, w.ID, mwanachamaagency.ContextSourceFilter{})
 	if err != nil {
 		t.Fatalf("ListContextSources after remove: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestRemoveContextSource_WrongWorkPlan(t *testing.T) {
 		t.Fatalf("expected ErrContextSourceNotFound removing via wrong work plan, got %v", err)
 	}
 
-	sources, err := mgr.ListContextSources(ctx, w1.ID)
+	sources, err := mgr.ListContextSources(ctx, w1.ID, mwanachamaagency.ContextSourceFilter{})
 	if err != nil {
 		t.Fatalf("ListContextSources: %v", err)
 	}

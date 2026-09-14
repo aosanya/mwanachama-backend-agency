@@ -39,7 +39,7 @@ func TestGoalCRUD(t *testing.T) {
 		t.Fatalf("update did not apply zero-value field: %+v", updated)
 	}
 
-	live, err := mgr.ListGoals(ctx, "")
+	live, err := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestGoalCode_SurvivesDraftPromote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	draftGoals, err := mgr.ListGoals(ctx, d.ID)
+	draftGoals, err := mgr.ListGoals(ctx, d.ID, mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals(draft): %v", err)
 	}
@@ -201,7 +201,7 @@ func TestGoalCode_SurvivesDraftPromote(t *testing.T) {
 		t.Fatalf("PromoteDraft: %v", err)
 	}
 
-	liveGoals, err := mgr.ListGoals(ctx, "")
+	liveGoals, err := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals: %v", err)
 	}

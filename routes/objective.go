@@ -56,10 +56,14 @@ func GetObjective(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListObjectives handles GET — ?draft_id= selects scope ("" = live).
+// ListObjectives handles GET — ?draft_id= selects scope ("" = live);
+// ?code=, ?title=, ?description= each narrow by a case-insensitive
+// substring match.
 func ListObjectives(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListObjectives(r.Context(), r.URL.Query().Get("draft_id"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.ObjectiveFilter{Code: q.Get("code"), Title: q.Get("title"), Description: q.Get("description")}
+		out, err := m.ListObjectives(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeObjectiveErr(w, err)
 			return
@@ -87,11 +91,14 @@ func UpdateObjective(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 }
 
 // ListRoleAssignmentsForObjective handles GET {objectiveID}/role-assignments
-// — ?draft_id= selects scope ("" = live). Moved here from WorkItemRoutes
-// 2026-09-10 (AGD-001) — RACI is Objective-scoped, not WorkItem-scoped.
+// — ?draft_id= selects scope ("" = live); ?label= narrows to an exact RACI
+// label. Moved here from WorkItemRoutes 2026-09-10 (AGD-001) — RACI is
+// Objective-scoped, not WorkItem-scoped.
 func ListRoleAssignmentsForObjective(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListRoleAssignmentsForObjective(r.Context(), r.PathValue("objectiveID"), r.URL.Query().Get("draft_id"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.RoleAssignmentFilter{Label: q.Get("label")}
+		out, err := m.ListRoleAssignmentsForObjective(r.Context(), r.PathValue("objectiveID"), q.Get("draft_id"), filter)
 		if err != nil {
 			writeRoleAssignmentErr(w, err)
 			return

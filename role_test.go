@@ -39,7 +39,7 @@ func TestRole_LiveCannotBeEdited(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	draftRoles, err := mgr.ListRoles(ctx, d.ID)
+	draftRoles, err := mgr.ListRoles(ctx, d.ID, mwanachamaagency.RoleFilter{})
 	if err != nil {
 		t.Fatalf("ListRoles(draft): %v", err)
 	}
@@ -120,7 +120,7 @@ func TestRoleCode_SequentialAndImmutable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	draftRoles, err := mgr.ListRoles(ctx, d.ID)
+	draftRoles, err := mgr.ListRoles(ctx, d.ID, mwanachamaagency.RoleFilter{})
 	if err != nil {
 		t.Fatalf("ListRoles(draft): %v", err)
 	}
@@ -165,7 +165,7 @@ func TestRoleCode_SurvivesDraftPromote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	draftRoles, err := mgr.ListRoles(ctx, d.ID)
+	draftRoles, err := mgr.ListRoles(ctx, d.ID, mwanachamaagency.RoleFilter{})
 	if err != nil {
 		t.Fatalf("ListRoles(draft): %v", err)
 	}
@@ -185,7 +185,7 @@ func TestRoleCode_SurvivesDraftPromote(t *testing.T) {
 		t.Fatalf("PromoteDraft: %v", err)
 	}
 
-	liveRoles, err := mgr.ListRoles(ctx, "")
+	liveRoles, err := mgr.ListRoles(ctx, "", mwanachamaagency.RoleFilter{})
 	if err != nil {
 		t.Fatalf("ListRoles: %v", err)
 	}

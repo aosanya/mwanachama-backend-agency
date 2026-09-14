@@ -64,10 +64,13 @@ func GetRoleAssignment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListRoleAssignments handles GET — ?draft_id= selects scope ("" = live).
+// ListRoleAssignments handles GET — ?draft_id= selects scope ("" = live);
+// ?label= narrows to an exact RACI label.
 func ListRoleAssignments(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListRoleAssignments(r.Context(), r.URL.Query().Get("draft_id"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.RoleAssignmentFilter{Label: q.Get("label")}
+		out, err := m.ListRoleAssignments(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeRoleAssignmentErr(w, err)
 			return

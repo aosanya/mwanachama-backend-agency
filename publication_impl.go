@@ -227,9 +227,12 @@ func (m *agencyManager) GetPublication(ctx context.Context, version int) (models
 	return gormstore.AgencyPublicationFromRow(row), nil
 }
 
-func (m *agencyManager) ListPublications(ctx context.Context) ([]models.AgencyPublication, error) {
+func (m *agencyManager) ListPublications(ctx context.Context, filter PublicationFilter) ([]models.AgencyPublication, error) {
+	q := m.db.WithContext(ctx).Table(m.tables.AgencyPublications).Order("version")
+	q = likeFilter(q, "tag", filter.Tag)
+	q = eqFilter(q, "status", filter.Status)
 	var rows []gormstore.AgencyPublicationRow
-	if err := m.db.WithContext(ctx).Table(m.tables.AgencyPublications).Order("version").Find(&rows).Error; err != nil {
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListPublications: %w", err)
 	}
 	out := make([]models.AgencyPublication, len(rows))

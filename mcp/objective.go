@@ -5,6 +5,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -60,13 +61,22 @@ func mcpGetObjective(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 	}
 }
 
-func mcpListObjectives(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Objective], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Objective], error) {
+// mcpListObjectivesParams extends instanceAndDraftParams with
+// ObjectiveFilter's fields.
+type mcpListObjectivesParams struct {
+	instanceAndDraftParams
+	Code        string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Title       string `json:"title,omitempty" jsonschema:"filter: case-insensitive substring match on Title"`
+	Description string `json:"description,omitempty" jsonschema:"filter: case-insensitive substring match on Description"`
+}
+
+func mcpListObjectives(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListObjectivesParams) (*mcp.CallToolResult, ListResult[models.Objective], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListObjectivesParams) (*mcp.CallToolResult, ListResult[models.Objective], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Objective]{}, err
 		}
-		out, err := m.ListObjectives(ctx, p.DraftID)
+		out, err := m.ListObjectives(ctx, p.DraftID, mwanachamaagency.ObjectiveFilter{Code: p.Code, Title: p.Title, Description: p.Description})
 		return summary("Found %d objective(s)", len(out)), ListResult[models.Objective]{Items: out}, err
 	}
 }

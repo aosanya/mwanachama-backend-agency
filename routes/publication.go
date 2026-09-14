@@ -77,10 +77,13 @@ func GetPublication(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListPublications handles GET — every publication, ordered by version.
+// ListPublications handles GET — every publication, ordered by version;
+// ?tag= narrows by substring match, ?status= by exact match.
 func ListPublications(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListPublications(r.Context())
+		q := r.URL.Query()
+		filter := mwanachamaagency.PublicationFilter{Tag: q.Get("tag"), Status: q.Get("status")}
+		out, err := m.ListPublications(r.Context(), filter)
 		if err != nil {
 			writePublicationErr(w, err)
 			return

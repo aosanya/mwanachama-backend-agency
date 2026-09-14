@@ -59,10 +59,13 @@ func GetValue(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListValues handles GET — ?draft_id= selects scope ("" = live).
+// ListValues handles GET — ?draft_id= selects scope ("" = live); ?code=,
+// ?text= each narrow by a case-insensitive substring match.
 func ListValues(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListValues(r.Context(), r.URL.Query().Get("draft_id"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.ValueFilter{Code: q.Get("code"), Text: q.Get("text")}
+		out, err := m.ListValues(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeValueErr(w, err)
 			return

@@ -57,10 +57,14 @@ func GetWorkItem(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListWorkItems handles GET — ?draft_id= selects scope ("" = live).
+// ListWorkItems handles GET — ?draft_id= selects scope ("" = live);
+// ?code=, ?title=, ?description= each narrow by a case-insensitive
+// substring match.
 func ListWorkItems(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListWorkItems(r.Context(), r.URL.Query().Get("draft_id"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.WorkItemFilter{Code: q.Get("code"), Title: q.Get("title"), Description: q.Get("description")}
+		out, err := m.ListWorkItems(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeWorkItemErr(w, err)
 			return

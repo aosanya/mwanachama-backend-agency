@@ -57,10 +57,13 @@ func GetLevel(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListLevels handles GET — every level, ordered by (Depth, ID).
+// ListLevels handles GET — every level, ordered by (Depth, ID); ?code=,
+// ?name= each narrow by a case-insensitive substring match.
 func ListLevels(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListLevels(r.Context())
+		q := r.URL.Query()
+		filter := mwanachamaagency.LevelFilter{Code: q.Get("code"), Name: q.Get("name")}
+		out, err := m.ListLevels(r.Context(), filter)
 		if err != nil {
 			writeLevelErr(w, err)
 			return

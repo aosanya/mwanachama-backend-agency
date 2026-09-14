@@ -5,6 +5,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -95,13 +96,22 @@ func mcpGetWorkPlan(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 	}
 }
 
-func mcpListWorkPlans(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.WorkPlan], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.WorkPlan], error) {
+// mcpListWorkPlansParams extends instanceOnlyParams with WorkPlanFilter's
+// fields.
+type mcpListWorkPlansParams struct {
+	instanceOnlyParams
+	Code        string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Name        string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
+	Description string `json:"description,omitempty" jsonschema:"filter: case-insensitive substring match on Description"`
+}
+
+func mcpListWorkPlans(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListWorkPlansParams) (*mcp.CallToolResult, ListResult[models.WorkPlan], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListWorkPlansParams) (*mcp.CallToolResult, ListResult[models.WorkPlan], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.WorkPlan]{}, err
 		}
-		out, err := m.ListWorkPlans(ctx)
+		out, err := m.ListWorkPlans(ctx, mwanachamaagency.WorkPlanFilter{Code: p.Code, Name: p.Name, Description: p.Description})
 		return summary("Found %d work plan(s)", len(out)), ListResult[models.WorkPlan]{Items: out}, err
 	}
 }
@@ -166,13 +176,22 @@ func mcpAddContextSource(resolve ManagerResolver) func(context.Context, *mcp.Cal
 	}
 }
 
-func mcpListContextSources(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpWorkPlanIDParams) (*mcp.CallToolResult, ListResult[models.ContextSource], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpWorkPlanIDParams) (*mcp.CallToolResult, ListResult[models.ContextSource], error) {
+// mcpListContextSourcesParams is its own params struct (not
+// mcpWorkPlanIDParams, shared with mcpGetWorkPlan) so SourceType's filter
+// field doesn't leak onto the Get tool.
+type mcpListContextSourcesParams struct {
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	WorkPlanID string `json:"work_plan_id" jsonschema:"the owning WorkPlan's id"`
+	SourceType string `json:"source_type,omitempty" jsonschema:"filter: exact match on SourceType (\"git\", \"comm\", or \"work\")"`
+}
+
+func mcpListContextSources(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListContextSourcesParams) (*mcp.CallToolResult, ListResult[models.ContextSource], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListContextSourcesParams) (*mcp.CallToolResult, ListResult[models.ContextSource], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.ContextSource]{}, err
 		}
-		out, err := m.ListContextSources(ctx, p.WorkPlanID)
+		out, err := m.ListContextSources(ctx, p.WorkPlanID, mwanachamaagency.ContextSourceFilter{SourceType: p.SourceType})
 		return summary("Found %d context source(s) on WorkPlan %s", len(out), p.WorkPlanID), ListResult[models.ContextSource]{Items: out}, err
 	}
 }

@@ -44,10 +44,14 @@ func (m *agencyManager) GetRole(ctx context.Context, id string) (models.Role, er
 }
 
 // ListRoles returns live Roles when draftID is "", or draftID's
-// draft-scoped copies otherwise.
-func (m *agencyManager) ListRoles(ctx context.Context, draftID string) ([]models.Role, error) {
+// draft-scoped copies otherwise, narrowed by filter.
+func (m *agencyManager) ListRoles(ctx context.Context, draftID string, filter RoleFilter) ([]models.Role, error) {
+	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Roles), draftID)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "name", filter.Name)
+	q = likeFilter(q, "description", filter.Description)
 	var rows []gormstore.RoleRow
-	if err := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Roles), draftID).Find(&rows).Error; err != nil {
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListRoles: %w", err)
 	}
 	out := make([]models.Role, len(rows))

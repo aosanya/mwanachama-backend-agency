@@ -58,10 +58,13 @@ func GetWorkPlan(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListWorkPlans handles GET — every work plan, unfiltered.
+// ListWorkPlans handles GET — ?code=, ?name=, ?description= each narrow
+// by a case-insensitive substring match.
 func ListWorkPlans(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListWorkPlans(r.Context())
+		q := r.URL.Query()
+		filter := mwanachamaagency.WorkPlanFilter{Code: q.Get("code"), Name: q.Get("name"), Description: q.Get("description")}
+		out, err := m.ListWorkPlans(r.Context(), filter)
 		if err != nil {
 			writeWorkPlanErr(w, err)
 			return

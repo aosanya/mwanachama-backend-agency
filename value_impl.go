@@ -43,11 +43,15 @@ func (m *agencyManager) GetValue(ctx context.Context, id string) (models.Value, 
 }
 
 // ListValues returns live Values when draftID is "", or draftID's
-// draft-scoped copies otherwise. Agency-wide Values (ObjectiveID == "")
-// only ever show up in the "" (live) list — they are never forked.
-func (m *agencyManager) ListValues(ctx context.Context, draftID string) ([]models.Value, error) {
+// draft-scoped copies otherwise, narrowed by filter. Agency-wide Values
+// (ObjectiveID == "") only ever show up in the "" (live) list — they are
+// never forked.
+func (m *agencyManager) ListValues(ctx context.Context, draftID string, filter ValueFilter) ([]models.Value, error) {
+	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Values), draftID)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "text", filter.Text)
 	var rows []gormstore.ValueRow
-	if err := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Values), draftID).Find(&rows).Error; err != nil {
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListValues: %w", err)
 	}
 	out := make([]models.Value, len(rows))

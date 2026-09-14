@@ -7,6 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -78,13 +79,22 @@ func mcpGetRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 	}
 }
 
-func mcpListRoles(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Role], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Role], error) {
+// mcpListRolesParams extends instanceAndDraftParams with RoleFilter's
+// fields.
+type mcpListRolesParams struct {
+	instanceAndDraftParams
+	Code        string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Name        string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
+	Description string `json:"description,omitempty" jsonschema:"filter: case-insensitive substring match on Description"`
+}
+
+func mcpListRoles(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListRolesParams) (*mcp.CallToolResult, ListResult[models.Role], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListRolesParams) (*mcp.CallToolResult, ListResult[models.Role], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Role]{}, err
 		}
-		out, err := m.ListRoles(ctx, p.DraftID)
+		out, err := m.ListRoles(ctx, p.DraftID, mwanachamaagency.RoleFilter{Code: p.Code, Name: p.Name, Description: p.Description})
 		return summaryWithContext(fmt.Sprintf("Found %d role(s)", len(out)), rolesContextText(out)), ListResult[models.Role]{Items: out}, err
 	}
 }
@@ -174,13 +184,20 @@ func mcpGetRoleAssignment(resolve ManagerResolver) func(context.Context, *mcp.Ca
 	}
 }
 
-func mcpListRoleAssignments(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.RoleAssignment], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.RoleAssignment], error) {
+// mcpListRoleAssignmentsParams extends instanceAndDraftParams with
+// RoleAssignmentFilter's fields.
+type mcpListRoleAssignmentsParams struct {
+	instanceAndDraftParams
+	Label string `json:"label,omitempty" jsonschema:"filter: exact match on the RACI label (responsible, accountable, consulted, or informed)"`
+}
+
+func mcpListRoleAssignments(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListRoleAssignmentsParams) (*mcp.CallToolResult, ListResult[models.RoleAssignment], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListRoleAssignmentsParams) (*mcp.CallToolResult, ListResult[models.RoleAssignment], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.RoleAssignment]{}, err
 		}
-		out, err := m.ListRoleAssignments(ctx, p.DraftID)
+		out, err := m.ListRoleAssignments(ctx, p.DraftID, mwanachamaagency.RoleAssignmentFilter{Label: p.Label})
 		return summary("Found %d role assignment(s)", len(out)), ListResult[models.RoleAssignment]{Items: out}, err
 	}
 }
@@ -189,6 +206,7 @@ type mcpRoleAssignmentsForObjectiveParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ObjectiveID string `json:"objective_id" jsonschema:"the Objective's id"`
 	DraftID     string `json:"draft_id,omitempty" jsonschema:"scope to this Draft's copy; empty means the live (published) copy"`
+	Label       string `json:"label,omitempty" jsonschema:"filter: exact match on the RACI label (responsible, accountable, consulted, or informed)"`
 }
 
 func mcpListRoleAssignmentsForObjective(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpRoleAssignmentsForObjectiveParams) (*mcp.CallToolResult, ListResult[models.RoleAssignment], error) {
@@ -197,7 +215,7 @@ func mcpListRoleAssignmentsForObjective(resolve ManagerResolver) func(context.Co
 		if err != nil {
 			return nil, ListResult[models.RoleAssignment]{}, err
 		}
-		out, err := m.ListRoleAssignmentsForObjective(ctx, p.ObjectiveID, p.DraftID)
+		out, err := m.ListRoleAssignmentsForObjective(ctx, p.ObjectiveID, p.DraftID, mwanachamaagency.RoleAssignmentFilter{Label: p.Label})
 		return summary("Found %d role assignment(s) for objective %s", len(out), p.ObjectiveID), ListResult[models.RoleAssignment]{Items: out}, err
 	}
 }

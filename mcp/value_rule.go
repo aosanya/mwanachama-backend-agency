@@ -5,6 +5,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -74,13 +75,21 @@ func mcpGetValue(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 	}
 }
 
-func mcpListValues(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Value], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Value], error) {
+// mcpListValuesParams extends instanceAndDraftParams with ValueFilter's
+// fields.
+type mcpListValuesParams struct {
+	instanceAndDraftParams
+	Code string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Text string `json:"text,omitempty" jsonschema:"filter: case-insensitive substring match on Text"`
+}
+
+func mcpListValues(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListValuesParams) (*mcp.CallToolResult, ListResult[models.Value], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListValuesParams) (*mcp.CallToolResult, ListResult[models.Value], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Value]{}, err
 		}
-		out, err := m.ListValues(ctx, p.DraftID)
+		out, err := m.ListValues(ctx, p.DraftID, mwanachamaagency.ValueFilter{Code: p.Code, Text: p.Text})
 		return summary("Found %d value(s)", len(out)), ListResult[models.Value]{Items: out}, err
 	}
 }
@@ -123,13 +132,21 @@ func mcpGetRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 	}
 }
 
-func mcpListRules(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Rule], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceAndDraftParams) (*mcp.CallToolResult, ListResult[models.Rule], error) {
+// mcpListRulesParams extends instanceAndDraftParams with RuleFilter's
+// fields.
+type mcpListRulesParams struct {
+	instanceAndDraftParams
+	Code string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Text string `json:"text,omitempty" jsonschema:"filter: case-insensitive substring match on Text"`
+}
+
+func mcpListRules(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListRulesParams) (*mcp.CallToolResult, ListResult[models.Rule], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListRulesParams) (*mcp.CallToolResult, ListResult[models.Rule], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Rule]{}, err
 		}
-		out, err := m.ListRules(ctx, p.DraftID)
+		out, err := m.ListRules(ctx, p.DraftID, mwanachamaagency.RuleFilter{Code: p.Code, Text: p.Text})
 		return summary("Found %d rule(s)", len(out)), ListResult[models.Rule]{Items: out}, err
 	}
 }

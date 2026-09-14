@@ -46,10 +46,12 @@ func AddContextSource(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListContextSources handles GET {workPlanID}/context-sources.
+// ListContextSources handles GET {workPlanID}/context-sources; ?source_type=
+// narrows to an exact match ("git", "comm", or "work").
 func ListContextSources(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListContextSources(r.Context(), r.PathValue("workPlanID"))
+		filter := mwanachamaagency.ContextSourceFilter{SourceType: r.URL.Query().Get("source_type")}
+		out, err := m.ListContextSources(r.Context(), r.PathValue("workPlanID"), filter)
 		if err != nil {
 			writeContextSourceErr(w, err)
 			return

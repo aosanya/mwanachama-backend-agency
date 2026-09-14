@@ -43,10 +43,13 @@ func (m *agencyManager) GetWorkItem(ctx context.Context, id string) (models.Work
 }
 
 // ListWorkItems returns live WorkItems when draftID is "", or draftID's
-// draft-scoped copies otherwise.
-func (m *agencyManager) ListWorkItems(ctx context.Context, draftID string) ([]models.WorkItem, error) {
+// draft-scoped copies otherwise, narrowed by filter.
+func (m *agencyManager) ListWorkItems(ctx context.Context, draftID string, filter WorkItemFilter) ([]models.WorkItem, error) {
 	var rows []gormstore.WorkItemRow
 	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.WorkItems).Order("ordinality"), draftID)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "title", filter.Title)
+	q = likeFilter(q, "description", filter.Description)
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListWorkItems: %w", err)
 	}

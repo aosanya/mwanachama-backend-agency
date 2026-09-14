@@ -29,7 +29,7 @@ func TestDepartmentTreeAndRename(t *testing.T) {
 		t.Fatalf("CreateDepartment(child): %v", err)
 	}
 
-	children, err := mgr.ListDepartmentChildren(ctx, root.ID)
+	children, err := mgr.ListDepartmentChildren(ctx, root.ID, mwanachamaagency.DepartmentFilter{})
 	if err != nil {
 		t.Fatalf("ListDepartmentChildren: %v", err)
 	}

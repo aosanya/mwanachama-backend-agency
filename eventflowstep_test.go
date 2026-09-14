@@ -69,7 +69,7 @@ func TestListEventFlowSteps(t *testing.T) {
 	ctx := context.Background()
 	seedEventFlowSteps(t, mgr, ctx)
 
-	all, err := mgr.ListEventFlowSteps(ctx, "")
+	all, err := mgr.ListEventFlowSteps(ctx, "", mwanachamaagency.EventFlowStepFilter{})
 	if err != nil {
 		t.Fatalf("ListEventFlowSteps: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestListEventFlowSteps(t *testing.T) {
 		t.Fatalf("expected 3 steps, got %d", len(all))
 	}
 
-	planning, err := mgr.ListEventFlowSteps(ctx, "planning")
+	planning, err := mgr.ListEventFlowSteps(ctx, "planning", mwanachamaagency.EventFlowStepFilter{})
 	if err != nil {
 		t.Fatalf("ListEventFlowSteps(planning): %v", err)
 	}

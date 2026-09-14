@@ -50,12 +50,12 @@ func TestCreateDraft_ForkFromLive(t *testing.T) {
 		t.Fatalf("expected new draft to be open, got %q", d.Status)
 	}
 
-	liveGoals, _ := mgr.ListGoals(ctx, "")
+	liveGoals, _ := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{})
 	if len(liveGoals) != 1 || liveGoals[0].ID != g.ID {
 		t.Fatalf("live goals should be unchanged, got %+v", liveGoals)
 	}
 
-	draftGoals, err := mgr.ListGoals(ctx, d.ID)
+	draftGoals, err := mgr.ListGoals(ctx, d.ID, mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals(draft): %v", err)
 	}
@@ -63,7 +63,7 @@ func TestCreateDraft_ForkFromLive(t *testing.T) {
 		t.Fatalf("expected one draft-scoped goal copy with a new id, got %+v", draftGoals)
 	}
 
-	draftObjectives, err := mgr.ListObjectives(ctx, d.ID)
+	draftObjectives, err := mgr.ListObjectives(ctx, d.ID, mwanachamaagency.ObjectiveFilter{})
 	if err != nil {
 		t.Fatalf("ListObjectives(draft): %v", err)
 	}
@@ -75,12 +75,12 @@ func TestCreateDraft_ForkFromLive(t *testing.T) {
 			draftObjectives[0].GoalID, draftGoals[0].ID)
 	}
 
-	draftWorkflows, _ := mgr.ListWorkflows(ctx, d.ID)
+	draftWorkflows, _ := mgr.ListWorkflows(ctx, d.ID, mwanachamaagency.WorkflowFilter{})
 	if len(draftWorkflows) != 1 || draftWorkflows[0].ID == w.ID {
 		t.Fatalf("expected one draft-scoped workflow copy with a new id, got %+v", draftWorkflows)
 	}
 
-	draftWorkItems, err := mgr.ListWorkItems(ctx, d.ID)
+	draftWorkItems, err := mgr.ListWorkItems(ctx, d.ID, mwanachamaagency.WorkItemFilter{})
 	if err != nil {
 		t.Fatalf("ListWorkItems(draft): %v", err)
 	}
@@ -118,7 +118,7 @@ func TestCreateDraft_ForksRoleAssignments(t *testing.T) {
 		t.Fatalf("CreateDraft: %v", err)
 	}
 
-	draftRoles, err := mgr.ListRoles(ctx, d.ID)
+	draftRoles, err := mgr.ListRoles(ctx, d.ID, mwanachamaagency.RoleFilter{})
 	if err != nil {
 		t.Fatalf("ListRoles(draft): %v", err)
 	}
@@ -126,8 +126,8 @@ func TestCreateDraft_ForksRoleAssignments(t *testing.T) {
 		t.Fatalf("expected one draft-scoped role copy with a new id, got %+v", draftRoles)
 	}
 
-	draftObjectives, _ := mgr.ListObjectives(ctx, d.ID)
-	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID)
+	draftObjectives, _ := mgr.ListObjectives(ctx, d.ID, mwanachamaagency.ObjectiveFilter{})
+	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID, mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
 		t.Fatalf("ListRoleAssignments(draft): %v", err)
 	}
@@ -159,7 +159,7 @@ func TestCreateDraft_ForkFromOpenDraft(t *testing.T) {
 		t.Fatalf("CreateDraft d2: %v", err)
 	}
 
-	d2Goals, err := mgr.ListGoals(ctx, d2.ID)
+	d2Goals, err := mgr.ListGoals(ctx, d2.ID, mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals(d2): %v", err)
 	}
@@ -205,14 +205,14 @@ func TestPromoteDraft(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	draftGoals, _ := mgr.ListGoals(ctx, d.ID)
+	draftGoals, _ := mgr.ListGoals(ctx, d.ID, mwanachamaagency.GoalFilter{})
 	edited := draftGoals[0]
 	edited.Title = "Grow adoption worldwide"
 	if _, err := mgr.UpdateGoal(ctx, edited); err != nil {
 		t.Fatalf("UpdateGoal: %v", err)
 	}
 
-	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID)
+	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID, mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
 		t.Fatalf("ListRoleAssignments(draft): %v", err)
 	}
@@ -230,7 +230,7 @@ func TestPromoteDraft(t *testing.T) {
 		t.Fatal("expected Agency.Enabled to be true after promotion")
 	}
 
-	liveGoals, err := mgr.ListGoals(ctx, "")
+	liveGoals, err := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestPromoteDraft(t *testing.T) {
 		t.Fatal("expected the old live goal to have been replaced, not reused")
 	}
 
-	liveObjectives, err := mgr.ListObjectives(ctx, "")
+	liveObjectives, err := mgr.ListObjectives(ctx, "", mwanachamaagency.ObjectiveFilter{})
 	if err != nil {
 		t.Fatalf("ListObjectives: %v", err)
 	}
@@ -255,7 +255,7 @@ func TestPromoteDraft(t *testing.T) {
 		t.Fatal("expected the old live objective to have been replaced, not reused")
 	}
 
-	liveAssignments, err := mgr.ListRoleAssignments(ctx, "")
+	liveAssignments, err := mgr.ListRoleAssignments(ctx, "", mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
 		t.Fatalf("ListRoleAssignments: %v", err)
 	}
@@ -298,7 +298,7 @@ func TestArchiveDraft(t *testing.T) {
 	}
 
 	// Archived draft's copies are left in place, matching source.
-	draftGoals, err := mgr.ListGoals(ctx, d.ID)
+	draftGoals, err := mgr.ListGoals(ctx, d.ID, mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals(archived draft): %v", err)
 	}

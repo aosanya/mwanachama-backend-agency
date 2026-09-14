@@ -41,7 +41,7 @@ func TestSeedNeoLabHQ(t *testing.T) {
 		t.Fatal("expected a \"Review pull request\" work item to have been seeded")
 	}
 
-	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, reviewItem.ObjectiveID, "")
+	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, reviewItem.ObjectiveID, "", mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
 		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
 	}

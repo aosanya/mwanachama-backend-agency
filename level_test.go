@@ -22,7 +22,7 @@ func TestLevelCRUDAndOrdering(t *testing.T) {
 		t.Fatalf("CreateLevel(Division): %v", err)
 	}
 
-	all, err := mgr.ListLevels(ctx)
+	all, err := mgr.ListLevels(ctx, mwanachamaagency.LevelFilter{})
 	if err != nil {
 		t.Fatalf("ListLevels: %v", err)
 	}

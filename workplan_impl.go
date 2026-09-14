@@ -56,11 +56,15 @@ func (m *agencyManager) findWorkPlanRow(ctx context.Context, tx *gorm.DB, id str
 	return row, nil
 }
 
-// ListWorkPlans returns every non-deleted WorkPlan, id order.
-func (m *agencyManager) ListWorkPlans(ctx context.Context) ([]models.WorkPlan, error) {
+// ListWorkPlans returns every non-deleted WorkPlan, id order, narrowed by
+// filter.
+func (m *agencyManager) ListWorkPlans(ctx context.Context, filter WorkPlanFilter) ([]models.WorkPlan, error) {
+	q := m.db.WithContext(ctx).Table(m.tables.WorkPlans).Where("deleted = ?", false).Order("id")
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "name", filter.Name)
+	q = likeFilter(q, "description", filter.Description)
 	var rows []gormstore.WorkPlanRow
-	err := m.db.WithContext(ctx).Table(m.tables.WorkPlans).
-		Where("deleted = ?", false).Order("id").Find(&rows).Error
+	err := q.Find(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("ListWorkPlans: %w", err)
 	}
@@ -122,7 +126,7 @@ func (m *agencyManager) UpdateWorkPlan(ctx context.Context, w models.WorkPlan) (
 // every matching WorkPlan with its ContextSources, ordered by Ordinality
 // ascending.
 func (m *agencyManager) MatchWorkPlans(ctx context.Context, topic, payload string) ([]models.WorkPlanMatch, error) {
-	plans, err := m.ListWorkPlans(ctx)
+	plans, err := m.ListWorkPlans(ctx, WorkPlanFilter{})
 	if err != nil {
 		return nil, fmt.Errorf("MatchWorkPlans: %w", err)
 	}
@@ -149,7 +153,7 @@ func (m *agencyManager) MatchWorkPlans(ctx context.Context, topic, payload strin
 			}
 		}
 
-		sources, err := m.ListContextSources(ctx, plan.ID)
+		sources, err := m.ListContextSources(ctx, plan.ID, ContextSourceFilter{})
 		if err != nil {
 			return nil, fmt.Errorf("MatchWorkPlans: sources for work plan %s: %w", plan.ID, err)
 		}

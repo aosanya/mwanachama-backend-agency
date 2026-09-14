@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -18,6 +19,27 @@ func scopeQuery(q *gorm.DB, draftID string) *gorm.DB {
 		return q.Where("draft_id IS NULL")
 	}
 	return q.Where("draft_id = ?", draftID)
+}
+
+// likeFilter chains a case-insensitive substring match on column onto q,
+// or returns q unchanged if value is "". LOWER(x) LIKE ? rather than
+// Postgres-only ILIKE, matching the existing idiom in roleNotFoundError —
+// portable to the SQLite this repo's tests run against.
+func likeFilter(q *gorm.DB, column, value string) *gorm.DB {
+	if value == "" {
+		return q
+	}
+	return q.Where("LOWER("+column+") LIKE ?", "%"+strings.ToLower(value)+"%")
+}
+
+// eqFilter chains an exact match on column onto q, or returns q unchanged
+// if value is "" — for enum-shaped columns (Status, Label, SourceType)
+// rather than free text.
+func eqFilter(q *gorm.DB, column, value string) *gorm.DB {
+	if value == "" {
+		return q
+	}
+	return q.Where(column+" = ?", value)
 }
 
 func (m *agencyManager) findDraftRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.DraftRow, error) {
@@ -251,9 +273,12 @@ func (m *agencyManager) GetDraft(ctx context.Context, id string) (models.Draft, 
 	return gormstore.DraftFromRow(row), nil
 }
 
-func (m *agencyManager) ListDrafts(ctx context.Context) ([]models.Draft, error) {
+func (m *agencyManager) ListDrafts(ctx context.Context, filter DraftFilter) ([]models.Draft, error) {
+	q := m.db.WithContext(ctx).Table(m.tables.Drafts).Order("created_at")
+	q = likeFilter(q, "description", filter.Description)
+	q = eqFilter(q, "status", filter.Status)
 	var rows []gormstore.DraftRow
-	if err := m.db.WithContext(ctx).Table(m.tables.Drafts).Order("created_at").Find(&rows).Error; err != nil {
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListDrafts: %w", err)
 	}
 	out := make([]models.Draft, len(rows))

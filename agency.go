@@ -26,7 +26,7 @@ type AgencyManager interface {
 	// ID lists that draft's copies.
 	CreateGoal(ctx context.Context, g models.Goal) (models.Goal, error)
 	GetGoal(ctx context.Context, id string) (models.Goal, error)
-	ListGoals(ctx context.Context, draftID string) ([]models.Goal, error)
+	ListGoals(ctx context.Context, draftID string, filter GoalFilter) ([]models.Goal, error)
 	UpdateGoal(ctx context.Context, g models.Goal) (models.Goal, error)
 	// DeleteGoal cascades: every Objective scoped to it, and every
 	// RoleAssignment scoped to each of those Objectives, is deleted too —
@@ -42,20 +42,20 @@ type AgencyManager interface {
 	// Draft-scoping/list convention as Goal.
 	CreateObjective(ctx context.Context, o models.Objective) (models.Objective, error)
 	GetObjective(ctx context.Context, id string) (models.Objective, error)
-	ListObjectives(ctx context.Context, draftID string) ([]models.Objective, error)
+	ListObjectives(ctx context.Context, draftID string, filter ObjectiveFilter) ([]models.Objective, error)
 	UpdateObjective(ctx context.Context, o models.Objective) (models.Objective, error)
 
 	// Workflow
 	CreateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error)
 	GetWorkflow(ctx context.Context, id string) (models.Workflow, error)
-	ListWorkflows(ctx context.Context, draftID string) ([]models.Workflow, error)
+	ListWorkflows(ctx context.Context, draftID string, filter WorkflowFilter) ([]models.Workflow, error)
 	UpdateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error)
 
 	// WorkItem. Belongs to exactly one Objective — CreateWorkItem/
 	// UpdateWorkItem return [ErrInvalidWorkItem] if ObjectiveID is empty.
 	CreateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error)
 	GetWorkItem(ctx context.Context, id string) (models.WorkItem, error)
-	ListWorkItems(ctx context.Context, draftID string) ([]models.WorkItem, error)
+	ListWorkItems(ctx context.Context, draftID string, filter WorkItemFilter) ([]models.WorkItem, error)
 	UpdateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error)
 
 	// Draft lifecycle. CreateDraft forks the sub-graph scoped to
@@ -66,7 +66,7 @@ type AgencyManager interface {
 	// [ErrDraftNotOpen] where noted.
 	CreateDraft(ctx context.Context, description, forkedFromID, forkedFromType string) (models.Draft, error)
 	GetDraft(ctx context.Context, id string) (models.Draft, error)
-	ListDrafts(ctx context.Context) ([]models.Draft, error)
+	ListDrafts(ctx context.Context, filter DraftFilter) ([]models.Draft, error)
 	// UpdateDraftDescription returns [ErrDraftNotOpen] if the draft isn't open.
 	UpdateDraftDescription(ctx context.Context, id, description string) (models.Draft, error)
 	// PromoteDraft returns [ErrDraftNotOpen] if the draft isn't open.
@@ -81,7 +81,7 @@ type AgencyManager interface {
 	// the content hash matches an existing publication.
 	PublishAgency(ctx context.Context, draftID string) (models.AgencyPublication, error)
 	GetPublication(ctx context.Context, version int) (models.AgencyPublication, error)
-	ListPublications(ctx context.Context) ([]models.AgencyPublication, error)
+	ListPublications(ctx context.Context, filter PublicationFilter) ([]models.AgencyPublication, error)
 	// UpdatePublicationStatus only allows the active -> archived
 	// transition; anything else returns [ErrInvalidPublicationStatus].
 	UpdatePublicationStatus(ctx context.Context, version int, status string) (models.AgencyPublication, error)
@@ -94,13 +94,13 @@ type AgencyManager interface {
 	LookupFlowStep(ctx context.Context, lookup models.EventFlowStepLookup) (models.EventFlowStep, error)
 	// ListEventFlowSteps returns live steps ordered by (WorkflowCode,
 	// Ordinality, Step), optionally filtered to one workflowCode.
-	ListEventFlowSteps(ctx context.Context, workflowCode string) ([]models.EventFlowStep, error)
+	ListEventFlowSteps(ctx context.Context, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error)
 
 	// WorkPlan. CreateWorkPlan/UpdateWorkPlan return [ErrInvalidRegex] if
 	// TriggerTopic or PayloadCondition does not compile as a Go regexp.
 	CreateWorkPlan(ctx context.Context, w models.WorkPlan) (models.WorkPlan, error)
 	GetWorkPlan(ctx context.Context, id string) (models.WorkPlan, error)
-	ListWorkPlans(ctx context.Context) ([]models.WorkPlan, error)
+	ListWorkPlans(ctx context.Context, filter WorkPlanFilter) ([]models.WorkPlan, error)
 	UpdateWorkPlan(ctx context.Context, w models.WorkPlan) (models.WorkPlan, error)
 	// MatchWorkPlans evaluates topic/payload against every enabled
 	// WorkPlan's TriggerTopic/PayloadCondition regex, returning matches
@@ -110,7 +110,7 @@ type AgencyManager interface {
 	// ContextSource. AddContextSource/ListContextSources return
 	// [ErrWorkPlanNotFound] if workPlanID names no WorkPlan.
 	AddContextSource(ctx context.Context, workPlanID string, cs models.ContextSource) (models.ContextSource, error)
-	ListContextSources(ctx context.Context, workPlanID string) ([]models.ContextSource, error)
+	ListContextSources(ctx context.Context, workPlanID string, filter ContextSourceFilter) ([]models.ContextSource, error)
 	// RemoveContextSource returns [ErrContextSourceNotFound] if sourceID
 	// names no ContextSource, or names one belonging to a different
 	// WorkPlan than workPlanID.
@@ -121,8 +121,8 @@ type AgencyManager interface {
 	// tables).
 	CreateDepartment(ctx context.Context, d models.Department) (models.Department, error)
 	GetDepartment(ctx context.Context, id string) (models.Department, error)
-	ListDepartments(ctx context.Context) ([]models.Department, error)
-	ListDepartmentChildren(ctx context.Context, parentID string) ([]models.Department, error)
+	ListDepartments(ctx context.Context, filter DepartmentFilter) ([]models.Department, error)
+	ListDepartmentChildren(ctx context.Context, parentID string, filter DepartmentFilter) ([]models.Department, error)
 	RenameDepartment(ctx context.Context, id, name string) (models.Department, error)
 	// MoveDepartment returns [ErrParentIsSelf], [ErrRootCannotMove],
 	// [ErrParentNotFound], or [ErrParentInSubtree] where noted on each.
@@ -131,7 +131,7 @@ type AgencyManager interface {
 	// Level. A named rung in the Department tree.
 	CreateLevel(ctx context.Context, l models.Level) (models.Level, error)
 	GetLevel(ctx context.Context, id string) (models.Level, error)
-	ListLevels(ctx context.Context) ([]models.Level, error)
+	ListLevels(ctx context.Context, filter LevelFilter) ([]models.Level, error)
 	RenameLevel(ctx context.Context, id, name string) (models.Level, error)
 	// DeleteLevel returns [ErrLevelWornByDepartments] if any Department
 	// still references id.
@@ -142,7 +142,7 @@ type AgencyManager interface {
 	// as Goal/Workflow/WorkItem.
 	CreateRole(ctx context.Context, r models.Role) (models.Role, error)
 	GetRole(ctx context.Context, id string) (models.Role, error)
-	ListRoles(ctx context.Context, draftID string) ([]models.Role, error)
+	ListRoles(ctx context.Context, draftID string, filter RoleFilter) ([]models.Role, error)
 	// UpdateRole/DeleteRole return [ErrCannotEditLiveRACI] if the target
 	// row is live.
 	UpdateRole(ctx context.Context, r models.Role) (models.Role, error)
@@ -159,11 +159,11 @@ type AgencyManager interface {
 	// labels the Objective Accountable.
 	CreateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
 	GetRoleAssignment(ctx context.Context, id string) (models.RoleAssignment, error)
-	ListRoleAssignments(ctx context.Context, draftID string) ([]models.RoleAssignment, error)
+	ListRoleAssignments(ctx context.Context, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error)
 	// ListRoleAssignmentsForObjective answers "who is assigned to this
 	// Objective, and with what RACI label" — a caller that needs a
 	// WorkItem's RACI resolves via WorkItem.ObjectiveID first.
-	ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string) ([]models.RoleAssignment, error)
+	ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error)
 	// UpdateRoleAssignment/DeleteRoleAssignment return
 	// [ErrCannotEditLiveRACI] if the target row is live.
 	UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
@@ -181,7 +181,7 @@ type AgencyManager interface {
 	// enforced here — flagged as new machinery needing its own design.
 	CreateValue(ctx context.Context, v models.Value) (models.Value, error)
 	GetValue(ctx context.Context, id string) (models.Value, error)
-	ListValues(ctx context.Context, draftID string) ([]models.Value, error)
+	ListValues(ctx context.Context, draftID string, filter ValueFilter) ([]models.Value, error)
 	// UpdateValue/DeleteValue return [ErrCannotEditLive] if the target row
 	// is live.
 	UpdateValue(ctx context.Context, v models.Value) (models.Value, error)
@@ -189,7 +189,7 @@ type AgencyManager interface {
 
 	CreateRule(ctx context.Context, r models.Rule) (models.Rule, error)
 	GetRule(ctx context.Context, id string) (models.Rule, error)
-	ListRules(ctx context.Context, draftID string) ([]models.Rule, error)
+	ListRules(ctx context.Context, draftID string, filter RuleFilter) ([]models.Rule, error)
 	// UpdateRule/DeleteRule return [ErrCannotEditLive] if the target row
 	// is live.
 	UpdateRule(ctx context.Context, r models.Rule) (models.Rule, error)

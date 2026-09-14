@@ -62,10 +62,13 @@ func GetDraft(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListDrafts handles GET — every draft, unfiltered.
+// ListDrafts handles GET — ?description= and ?status= each narrow the
+// result (?description= a substring match, ?status= exact).
 func ListDrafts(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListDrafts(r.Context())
+		q := r.URL.Query()
+		filter := mwanachamaagency.DraftFilter{Description: q.Get("description"), Status: q.Get("status")}
+		out, err := m.ListDrafts(r.Context(), filter)
 		if err != nil {
 			writeDraftErr(w, err)
 			return

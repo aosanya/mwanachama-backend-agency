@@ -40,10 +40,13 @@ func (m *agencyManager) GetLevel(ctx context.Context, id string) (models.Level, 
 	return gormstore.LevelFromRow(row), nil
 }
 
-// ListLevels returns every Level ordered by (Depth, ID).
-func (m *agencyManager) ListLevels(ctx context.Context) ([]models.Level, error) {
+// ListLevels returns every Level matching filter, ordered by (Depth, ID).
+func (m *agencyManager) ListLevels(ctx context.Context, filter LevelFilter) ([]models.Level, error) {
+	q := m.db.WithContext(ctx).Table(m.tables.Levels)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "name", filter.Name)
 	var rows []gormstore.LevelRow
-	if err := m.db.WithContext(ctx).Table(m.tables.Levels).Find(&rows).Error; err != nil {
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListLevels: %w", err)
 	}
 	out := make([]models.Level, len(rows))

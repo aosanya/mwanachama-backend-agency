@@ -59,10 +59,13 @@ func GetRule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListRules handles GET — ?draft_id= selects scope ("" = live).
+// ListRules handles GET — ?draft_id= selects scope ("" = live); ?code=,
+// ?text= each narrow by a case-insensitive substring match.
 func ListRules(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListRules(r.Context(), r.URL.Query().Get("draft_id"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.RuleFilter{Code: q.Get("code"), Text: q.Get("text")}
+		out, err := m.ListRules(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeRuleErr(w, err)
 			return

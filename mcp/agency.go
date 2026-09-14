@@ -6,6 +6,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -126,13 +127,20 @@ func mcpGetDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 	}
 }
 
-func mcpListDrafts(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.Draft], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.Draft], error) {
+// mcpListDraftsParams extends instanceOnlyParams with DraftFilter's fields.
+type mcpListDraftsParams struct {
+	instanceOnlyParams
+	Description string `json:"description,omitempty" jsonschema:"filter: case-insensitive substring match on Description"`
+	Status      string `json:"status,omitempty" jsonschema:"filter: exact match on Status (\"open\", \"promoted\", or \"archived\")"`
+}
+
+func mcpListDrafts(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListDraftsParams) (*mcp.CallToolResult, ListResult[models.Draft], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListDraftsParams) (*mcp.CallToolResult, ListResult[models.Draft], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.Draft]{}, err
 		}
-		out, err := m.ListDrafts(ctx)
+		out, err := m.ListDrafts(ctx, mwanachamaagency.DraftFilter{Description: p.Description, Status: p.Status})
 		return summary("Found %d draft(s)", len(out)), ListResult[models.Draft]{Items: out}, err
 	}
 }
@@ -208,13 +216,21 @@ func mcpGetPublication(resolve ManagerResolver) func(context.Context, *mcp.CallT
 	}
 }
 
-func mcpListPublications(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.AgencyPublication], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p instanceOnlyParams) (*mcp.CallToolResult, ListResult[models.AgencyPublication], error) {
+// mcpListPublicationsParams extends instanceOnlyParams with
+// PublicationFilter's fields.
+type mcpListPublicationsParams struct {
+	instanceOnlyParams
+	Tag    string `json:"tag,omitempty" jsonschema:"filter: case-insensitive substring match on Tag"`
+	Status string `json:"status,omitempty" jsonschema:"filter: exact match on Status (\"active\" or \"archived\")"`
+}
+
+func mcpListPublications(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListPublicationsParams) (*mcp.CallToolResult, ListResult[models.AgencyPublication], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListPublicationsParams) (*mcp.CallToolResult, ListResult[models.AgencyPublication], error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, ListResult[models.AgencyPublication]{}, err
 		}
-		out, err := m.ListPublications(ctx)
+		out, err := m.ListPublications(ctx, mwanachamaagency.PublicationFilter{Tag: p.Tag, Status: p.Status})
 		return summary("Found %d publication(s)", len(out)), ListResult[models.AgencyPublication]{Items: out}, err
 	}
 }

@@ -28,15 +28,17 @@ func (m *agencyManager) AddContextSource(ctx context.Context, workPlanID string,
 	return gormstore.ContextSourceFromRow(row), nil
 }
 
-// ListContextSources returns every ContextSource attached to workPlanID.
-// Returns [ErrWorkPlanNotFound] if no matching WorkPlan exists.
-func (m *agencyManager) ListContextSources(ctx context.Context, workPlanID string) ([]models.ContextSource, error) {
+// ListContextSources returns every ContextSource attached to workPlanID,
+// narrowed by filter. Returns [ErrWorkPlanNotFound] if no matching
+// WorkPlan exists.
+func (m *agencyManager) ListContextSources(ctx context.Context, workPlanID string, filter ContextSourceFilter) ([]models.ContextSource, error) {
 	if _, err := m.GetWorkPlan(ctx, workPlanID); err != nil {
 		return nil, err
 	}
+	q := m.db.WithContext(ctx).Table(m.tables.ContextSources).Where("work_plan_id = ?", workPlanID).Order("id")
+	q = eqFilter(q, "source_type", filter.SourceType)
 	var rows []gormstore.ContextSourceRow
-	err := m.db.WithContext(ctx).Table(m.tables.ContextSources).
-		Where("work_plan_id = ?", workPlanID).Order("id").Find(&rows).Error
+	err := q.Find(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("ListContextSources: %w", err)
 	}

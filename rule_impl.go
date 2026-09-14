@@ -43,11 +43,15 @@ func (m *agencyManager) GetRule(ctx context.Context, id string) (models.Rule, er
 }
 
 // ListRules returns live Rules when draftID is "", or draftID's
-// draft-scoped copies otherwise. Agency-wide Rules (ObjectiveID == "")
-// only ever show up in the "" (live) list — they are never forked.
-func (m *agencyManager) ListRules(ctx context.Context, draftID string) ([]models.Rule, error) {
+// draft-scoped copies otherwise, narrowed by filter. Agency-wide Rules
+// (ObjectiveID == "") only ever show up in the "" (live) list — they are
+// never forked.
+func (m *agencyManager) ListRules(ctx context.Context, draftID string, filter RuleFilter) ([]models.Rule, error) {
+	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Rules), draftID)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "text", filter.Text)
 	var rows []gormstore.RuleRow
-	if err := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Rules), draftID).Find(&rows).Error; err != nil {
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListRules: %w", err)
 	}
 	out := make([]models.Rule, len(rows))

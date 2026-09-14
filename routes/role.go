@@ -59,10 +59,13 @@ func GetRole(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListRoles handles GET — ?draft_id= selects scope ("" = live).
+// ListRoles handles GET — ?draft_id= selects scope ("" = live); ?code=,
+// ?name=, ?description= each narrow by a case-insensitive substring match.
 func ListRoles(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListRoles(r.Context(), r.URL.Query().Get("draft_id"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.RoleFilter{Code: q.Get("code"), Name: q.Get("name"), Description: q.Get("description")}
+		out, err := m.ListRoles(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeRoleErr(w, err)
 			return

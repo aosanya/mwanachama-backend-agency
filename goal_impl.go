@@ -43,10 +43,13 @@ func (m *agencyManager) GetGoal(ctx context.Context, id string) (models.Goal, er
 }
 
 // ListGoals returns live Goals when draftID is "", or draftID's
-// draft-scoped copies otherwise.
-func (m *agencyManager) ListGoals(ctx context.Context, draftID string) ([]models.Goal, error) {
+// draft-scoped copies otherwise, narrowed by filter.
+func (m *agencyManager) ListGoals(ctx context.Context, draftID string, filter GoalFilter) ([]models.Goal, error) {
 	var rows []gormstore.GoalRow
 	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Goals).Order("ordinality"), draftID)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "title", filter.Title)
+	q = likeFilter(q, "description", filter.Description)
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListGoals: %w", err)
 	}

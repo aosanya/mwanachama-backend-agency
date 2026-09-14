@@ -43,9 +43,12 @@ func (m *agencyManager) GetDepartment(ctx context.Context, id string) (models.De
 	return gormstore.DepartmentFromRow(row), nil
 }
 
-func (m *agencyManager) ListDepartments(ctx context.Context) ([]models.Department, error) {
+func (m *agencyManager) ListDepartments(ctx context.Context, filter DepartmentFilter) ([]models.Department, error) {
+	q := m.db.WithContext(ctx).Table(m.tables.Departments)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "name", filter.Name)
 	var rows []gormstore.DepartmentRow
-	if err := m.db.WithContext(ctx).Table(m.tables.Departments).Find(&rows).Error; err != nil {
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListDepartments: %w", err)
 	}
 	out := make([]models.Department, len(rows))
@@ -55,9 +58,10 @@ func (m *agencyManager) ListDepartments(ctx context.Context) ([]models.Departmen
 	return out, nil
 }
 
-// ListDepartmentChildren returns parentID's direct children, sorted by ID.
-func (m *agencyManager) ListDepartmentChildren(ctx context.Context, parentID string) ([]models.Department, error) {
-	all, err := m.ListDepartments(ctx)
+// ListDepartmentChildren returns parentID's direct children matching
+// filter, sorted by ID.
+func (m *agencyManager) ListDepartmentChildren(ctx context.Context, parentID string, filter DepartmentFilter) ([]models.Department, error) {
+	all, err := m.ListDepartments(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("ListDepartmentChildren: %w", err)
 	}
@@ -115,7 +119,7 @@ func (m *agencyManager) MoveDepartment(ctx context.Context, id, newParentID stri
 		}
 	}
 
-	all, err := m.ListDepartments(ctx)
+	all, err := m.ListDepartments(ctx, DepartmentFilter{})
 	if err != nil {
 		return models.Department{}, fmt.Errorf("MoveDepartment: %w", err)
 	}

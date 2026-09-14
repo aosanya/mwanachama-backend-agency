@@ -62,10 +62,13 @@ func GetDepartment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListDepartments handles GET — every department, unfiltered.
+// ListDepartments handles GET — ?code=, ?name= each narrow by a
+// case-insensitive substring match.
 func ListDepartments(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListDepartments(r.Context())
+		q := r.URL.Query()
+		filter := mwanachamaagency.DepartmentFilter{Code: q.Get("code"), Name: q.Get("name")}
+		out, err := m.ListDepartments(r.Context(), filter)
 		if err != nil {
 			writeDepartmentErr(w, err)
 			return
@@ -74,10 +77,13 @@ func ListDepartments(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListDepartmentChildren handles GET {departmentID}/children.
+// ListDepartmentChildren handles GET {departmentID}/children; ?code=,
+// ?name= each narrow by a case-insensitive substring match.
 func ListDepartmentChildren(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListDepartmentChildren(r.Context(), r.PathValue("departmentID"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.DepartmentFilter{Code: q.Get("code"), Name: q.Get("name")}
+		out, err := m.ListDepartmentChildren(r.Context(), r.PathValue("departmentID"), filter)
 		if err != nil {
 			writeDepartmentErr(w, err)
 			return

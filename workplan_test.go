@@ -48,7 +48,7 @@ func TestWorkPlanCRUD(t *testing.T) {
 		t.Fatalf("update did not apply zero-value field: %+v", updated)
 	}
 
-	live, err := mgr.ListWorkPlans(ctx)
+	live, err := mgr.ListWorkPlans(ctx, mwanachamaagency.WorkPlanFilter{})
 	if err != nil {
 		t.Fatalf("ListWorkPlans: %v", err)
 	}

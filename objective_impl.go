@@ -43,10 +43,13 @@ func (m *agencyManager) GetObjective(ctx context.Context, id string) (models.Obj
 }
 
 // ListObjectives returns live Objectives when draftID is "", or draftID's
-// draft-scoped copies otherwise.
-func (m *agencyManager) ListObjectives(ctx context.Context, draftID string) ([]models.Objective, error) {
+// draft-scoped copies otherwise, narrowed by filter.
+func (m *agencyManager) ListObjectives(ctx context.Context, draftID string, filter ObjectiveFilter) ([]models.Objective, error) {
 	var rows []gormstore.ObjectiveRow
 	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Objectives).Order("ordinality"), draftID)
+	q = likeFilter(q, "code", filter.Code)
+	q = likeFilter(q, "title", filter.Title)
+	q = likeFilter(q, "description", filter.Description)
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListObjectives: %w", err)
 	}

@@ -120,7 +120,7 @@ func TestListRoleAssignmentsForObjective(t *testing.T) {
 		t.Fatalf("CreateRoleAssignment(B): %v", err)
 	}
 
-	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, o.ID, "")
+	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, o.ID, "", mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
 		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
 	}

@@ -50,10 +50,14 @@ func LookupFlowStep(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 }
 
 // ListEventFlowSteps handles GET — ?workflow_code= optionally filters to
-// one workflow's steps, ordered by (WorkflowCode, Ordinality, Step).
+// one workflow's steps, ordered by (WorkflowCode, Ordinality, Step);
+// ?code=, ?name=, ?description= each further narrow by a case-insensitive
+// substring match.
 func ListEventFlowSteps(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListEventFlowSteps(r.Context(), r.URL.Query().Get("workflow_code"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.EventFlowStepFilter{Code: q.Get("code"), Name: q.Get("name"), Description: q.Get("description")}
+		out, err := m.ListEventFlowSteps(r.Context(), q.Get("workflow_code"), filter)
 		if err != nil {
 			writeEventFlowStepErr(w, err)
 			return

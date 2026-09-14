@@ -55,10 +55,13 @@ func GetGoal(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ListGoals handles GET — ?draft_id= selects scope ("" = live).
+// ListGoals handles GET — ?draft_id= selects scope ("" = live); ?code=,
+// ?title=, ?description= each narrow by a case-insensitive substring match.
 func ListGoals(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.ListGoals(r.Context(), r.URL.Query().Get("draft_id"))
+		q := r.URL.Query()
+		filter := mwanachamaagency.GoalFilter{Code: q.Get("code"), Title: q.Get("title"), Description: q.Get("description")}
+		out, err := m.ListGoals(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeGoalErr(w, err)
 			return

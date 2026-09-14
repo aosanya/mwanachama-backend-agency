@@ -80,10 +80,11 @@ func (m *agencyManager) GetRoleAssignment(ctx context.Context, id string) (model
 }
 
 // ListRoleAssignments returns live assignments when draftID is "", or
-// draftID's draft-scoped copies otherwise.
-func (m *agencyManager) ListRoleAssignments(ctx context.Context, draftID string) ([]models.RoleAssignment, error) {
+// draftID's draft-scoped copies otherwise, narrowed by filter.
+func (m *agencyManager) ListRoleAssignments(ctx context.Context, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error) {
+	q := eqFilter(scopeQuery(m.db.WithContext(ctx).Table(m.tables.RoleAssignments), draftID), "label", filter.Label)
 	var rows []gormstore.RoleAssignmentRow
-	if err := scopeQuery(m.db.WithContext(ctx).Table(m.tables.RoleAssignments), draftID).Find(&rows).Error; err != nil {
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListRoleAssignments: %w", err)
 	}
 	out := make([]models.RoleAssignment, len(rows))
@@ -98,10 +99,12 @@ func (m *agencyManager) ListRoleAssignments(ctx context.Context, draftID string)
 // mwanachama-backend-api-kazi's K6) uses to find who to notify. A caller
 // that only has a WorkItem resolves via WorkItem.ObjectiveID first (RACI
 // moved from WorkItem-scoped to Objective-scoped 2026-09-10, AGD-001).
-func (m *agencyManager) ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string) ([]models.RoleAssignment, error) {
+func (m *agencyManager) ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error) {
+	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.RoleAssignments), draftID).
+		Where("objective_id = ?", objectiveID)
+	q = eqFilter(q, "label", filter.Label)
 	var rows []gormstore.RoleAssignmentRow
-	err := scopeQuery(m.db.WithContext(ctx).Table(m.tables.RoleAssignments), draftID).
-		Where("objective_id = ?", objectiveID).Find(&rows).Error
+	err := q.Find(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("ListRoleAssignmentsForObjective: %w", err)
 	}
