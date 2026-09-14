@@ -474,6 +474,69 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     candidate for the same `mwanachama-backend-shared` treatment once a
     second repo actually builds its own MCP dashboard.
 
+- **AG18 landed 2026-09-14: every `List*` method gained real, per-module
+  server-side filtering** — driven by `mwanachama-wakala-studio`'s new chat
+  "Search" shortcut (pick a module, then that module's own filter fields,
+  e.g. Role's Name/Description), which needed something to actually call:
+  until this task, every `List*` (REST and MCP) accepted only `draft_id` (or
+  `workflow_code` for `EventFlowStep`) — no field-level filtering existed
+  anywhere.
+  - New root-package `filters.go`: one `<Module>Filter` struct per
+    searchable module (`GoalFilter`, `RoleFilter`, `RoleAssignmentFilter`,
+    ...) — `Code`/`Name`-or-`Title`-or-`Text`/`Description` as
+    case-insensitive substring fields, `Status`/`Label`/`SourceType` as
+    exact-match fields on the handful of enum-shaped columns (`Draft`,
+    `AgencyPublication`, `RoleAssignment`, `ContextSource`).
+  - Two new query-builder helpers next to `scopeQuery` in `draft_impl.go`:
+    `likeFilter(q, column, value)` (`LOWER(column) LIKE ?`, matching the
+    existing `roleNotFoundError` idiom — portable to the SQLite this repo's
+    tests run against, unlike Postgres-only `ILIKE`) and `eqFilter(q,
+    column, value)` for the exact-match fields; both no-op on `""`.
+  - All 17 `AgencyManager.List*` methods (every module `ResourceNames`
+    lists, minus `Agency` itself — a singleton with no `List` at all —
+    plus `ListDepartmentChildren`/`ListRoleAssignmentsForObjective`, which
+    take the same filter as their sibling `List<Type>`) gained a trailing
+    `filter <Module>Filter` parameter, each `*_impl.go` chaining the new
+    helpers onto its existing query before `.Find`. `routes/*.go` reads the
+    new filter fields as additional query params right alongside the
+    existing `draft_id`/`workflow_code` ones; `mcp/*.go` gives each
+    `ListX` tool its own named optional filter fields (`code`, `name`,
+    `description`, ...) on that tool's own params struct rather than
+    adding them to the shared `instanceAndDraftParams`/`instanceOnlyParams`
+    every other (non-List) tool also embeds, since the fields genuinely
+    differ per module.
+  - Confirmed via a dedicated blast-radius check before touching the
+    interface: no mock/fake implements `AgencyManager` anywhere (only the
+    one real `agencyManager` struct), so this was a single-implementation
+    signature change, not a multi-site one. One real external call site
+    needed a source fix: `mwanachama-backend-api-shared`'s
+    `mcp_tools_approval.go` calls `ListRoleAssignmentsForObjective` directly
+    (K6's approval-gate `resolveAccountable`) and now passes a zero-value
+    `RoleAssignmentFilter{}`. Ten of this repo's own existing tests
+    (`role_test.go`, `goal_test.go`, `level_test.go`, `department_test.go`,
+    `workplan_test.go`, `contextsource_test.go`, `eventflowstep_test.go`,
+    `roleassignment_test.go`, `neolabhq_test.go`, `draft_test.go`) needed
+    the same mechanical zero-value-filter-argument addition at their direct
+    `mgr.ListX(...)` call sites; `routes/*_test.go` needed no changes at
+    all, since those call the HTTP handler wrappers, not the interface
+    method directly.
+  - `ContextSource` is excluded from `mwanachama-wakala-studio`'s Search
+    module list (its `List` is nested under a `WorkPlanID`, not a
+    standalone agency-wide listing) even though it did get a
+    `ContextSourceFilter` here — the backend filter exists for whichever
+    future caller does have a `WorkPlanID` in hand.
+  - Verified: `go build`/`go vet`/`go test ./...` all clean in this repo.
+    Also rebuilt and retested `mwanachama-backend-api-shared`,
+    `mwanachama-wakala-api`, `mwanachama-backend-api-gateway`, and
+    `mwanachama-backend-api-kazi` against the changed interface (all four
+    `replace` onto this repo locally) — all still build and test clean.
+    `mwanachama-backend-api-gateway`'s `TestPostmanCollectionCoversEveryRoute`
+    fails, but that predates this change entirely (confirmed via a clean
+    `git status` in that repo before touching anything there) — unrelated
+    missing Postman coverage for several pre-existing Objective/Role/
+    Value/Rule routes, not something this task's unchanged route *shapes*
+    (only their query params grew) could have caused.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`
