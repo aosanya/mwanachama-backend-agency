@@ -107,4 +107,8 @@ var (
 	// always live and never forked into a Draft, so this is permanent
 	// for those, not just "until promoted".
 	ErrCannotEditLive = errors.New("mwanachamaagency: live data cannot be edited directly, edit within a draft")
+	// ErrDraftIDRequired is returned by ListIssues when draftID is "" — an
+	// Issue only ever exists scoped to a Draft, unlike every other List
+	// method's nullable-DraftID ("" means live) convention.
+	ErrDraftIDRequired = errors.New("mwanachamaagency: draft id is required")
 )

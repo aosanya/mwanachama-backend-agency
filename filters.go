@@ -92,3 +92,12 @@ type RuleFilter struct {
 	Code string
 	Text string
 }
+
+// IssueFilter's Severity/EntityType are exact-match against
+// [models.IssueSeverity]'s three values / the entity noun ("objective",
+// "goal", ...) an Issue points at.
+type IssueFilter struct {
+	Message    string
+	Severity   string
+	EntityType string
+}

@@ -33,6 +33,7 @@ func RegisterTools(server *mcp.Server, resolve ManagerResolver) {
 	registerRACITools(server, resolve)
 	registerWorkPlanTools(server, resolve)
 	registerValueRuleTools(server, resolve)
+	registerIssueTools(server, resolve)
 	registerCompositeTools(server, resolve)
 	registerCatalogTools(server)
 	registerDashboardUI(server)

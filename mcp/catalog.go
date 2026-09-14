@@ -106,6 +106,11 @@ var domainTypeCatalog = []typeInfo{
 		WhatItIs: "An immutable audit record written automatically each time a Draft is promoted to live.",
 		HowToAdd: "Never created directly — it's a side effect of agency_promote_draft.",
 	},
+	{
+		Name:     "Issue",
+		WhatItIs: "A system-detected problem found by scanning a Draft — e.g. an Objective with no Accountable role, or a Goal with no Objectives. info/warning/error severity, always scoped to one Draft, never the live Agency.",
+		HowToAdd: "Never created directly — agency_list_issues re-scans the Draft and regenerates its Issues every time it's called.",
+	},
 }
 
 // registerCatalogTools registers the domain-type glossary tool. Needs no
@@ -115,7 +120,7 @@ var domainTypeCatalog = []typeInfo{
 func registerCatalogTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "agency_list_types", Title: "List Domain Types",
-		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, WorkPlan, ContextSource, EventFlowStep, Draft, Department, Level, AgencyPublication, AgencySnapshot. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
+		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, WorkPlan, ContextSource, EventFlowStep, Draft, Department, Level, AgencyPublication, AgencySnapshot, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
 	}, mcpListTypes())
 }
 

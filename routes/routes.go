@@ -40,6 +40,7 @@ type ResourceNames struct {
 	ContextSource  string
 	Value          string
 	Rule           string
+	Issue          string
 }
 
 func (n ResourceNames) withDefaults() ResourceNames {
@@ -91,6 +92,9 @@ func (n ResourceNames) withDefaults() ResourceNames {
 	if n.Rule == "" {
 		n.Rule = "rules"
 	}
+	if n.Issue == "" {
+		n.Issue = "issues"
+	}
 	return n
 }
 
@@ -118,5 +122,6 @@ func Routes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	out = append(out, ContextSourceRoutes(m, names)...)
 	out = append(out, ValueRoutes(m, names)...)
 	out = append(out, RuleRoutes(m, names)...)
+	out = append(out, IssueRoutes(m, names)...)
 	return out
 }

@@ -198,6 +198,17 @@ type AgencyManager interface {
 	// is live.
 	UpdateRule(ctx context.Context, r models.Rule) (models.Rule, error)
 	DeleteRule(ctx context.Context, id string) error
+
+	// Issue. A Draft-scoped, system-detected diagnostics list (info/
+	// warning/error) — e.g. an Objective with no Accountable, a Goal with
+	// no Objectives. ListIssues re-scans on every call: it deletes
+	// draftID's existing Issue rows, re-runs every check against that
+	// Draft's current data, re-inserts, then returns the (possibly
+	// filtered) result — so there is no Create/Update/Delete surface;
+	// nothing here is ever authored directly. Returns [ErrDraftIDRequired]
+	// if draftID is "" — unlike every other List method above, an Issue
+	// never exists against the live Agency.
+	ListIssues(ctx context.Context, draftID string, filter IssueFilter) ([]models.Issue, error)
 }
 
 type agencyManager struct {
