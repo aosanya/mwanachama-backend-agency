@@ -68,6 +68,7 @@ func TestRegisterTools_ListsExpectedTools(t *testing.T) {
 		"agency_get_agency", "agency_create_goal", "agency_create_objective", "agency_create_department",
 		"agency_set_raci", "agency_create_work_plan", "agency_add_context_source",
 		"agency_create_value", "agency_create_rule", "agency_design_from_spec",
+		"agency_list_types",
 	}
 	for _, w := range want {
 		if !names[w] {

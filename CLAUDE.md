@@ -537,6 +537,35 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     Value/Rule routes, not something this task's unchanged route *shapes*
     (only their query params grew) could have caused.
 
+- **AG19 landed 2026-09-14: new `mcp/catalog.go`, a static domain-type
+  glossary tool.** Prompted directly by the user: `mwanachama-wakala-studio`'s
+  chat had no way to answer an operator's "what is an Objective" or "how do
+  I add a Role" — every `mcp/*.go` tool's `Description` explains how to call
+  that one tool, not what the type conceptually is, and the real
+  conceptual explanations only ever existed as `models/*.go` doc comments,
+  never exposed at runtime. New `agency_list_types` tool, backed by a
+  package-level `domainTypeCatalog []typeInfo` (`Name`/`WhatItIs`/
+  `HowToAdd`, one entry per domain type — Agency, Department, Level, Goal,
+  Objective, Role, RoleAssignment/RACI, Value, Rule, Workflow, WorkItem,
+  WorkPlan, ContextSource, EventFlowStep, Draft, AgencyPublication,
+  AgencySnapshot), condensed from each type's own `models/` doc comment
+  rather than restating it verbatim. Takes no `ManagerResolver` — the
+  catalog is static content about the data model itself, not any one
+  Agency's data — following `dashboard_ui.go`'s `registerDashboardUI(server)`
+  precedent for a tool that genuinely needs no manager. `name` is an
+  optional case-insensitive substring filter, matching every other
+  `agency_list_*` tool's own filter convention, rather than an exact-match
+  lookup that would need a separate "unknown type" error path.
+  `mwanachama-wakala-studio`'s `useChat.ts` system prompt gained one
+  sentence telling the model to call this tool for definitional/how-to
+  questions instead of answering from general knowledge — no other Studio
+  change needed, since its chat already forwards every MCP tool's
+  name/description straight to the LLM. `mwanachama-wakala-api` needed no
+  change either, since its `mcp.go` just calls this package's
+  `RegisterTools` directly. Verified: `go build`/`go vet`/`go test ./...`
+  clean here and in `mwanachama-wakala-api` (both locally `replace`d),
+  `tsc --noEmit` clean in `mwanachama-wakala-studio`.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

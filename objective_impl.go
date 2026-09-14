@@ -87,6 +87,28 @@ func (m *agencyManager) UpdateObjective(ctx context.Context, o models.Objective)
 	return gormstore.ObjectiveFromRow(row), nil
 }
 
+// DeleteObjective deletes o and cascades to every RoleAssignment scoped to
+// it — same reasoning as DeleteGoal's own cascade (see [AgencyManager]'s
+// doc comment). One transaction, so a failure partway through never leaves
+// an Objective deleted with orphaned RoleAssignments still behind, or vice
+// versa.
+func (m *agencyManager) DeleteObjective(ctx context.Context, id string) error {
+	if _, err := m.findObjectiveRow(ctx, m.db, id); err != nil {
+		return err
+	}
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Table(m.tables.RoleAssignments).Where("objective_id = ?", id).
+			Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+			return err
+		}
+		return tx.Table(m.tables.Objectives).Where("id = ?", id).Delete(&gormstore.ObjectiveRow{}).Error
+	})
+	if err != nil {
+		return fmt.Errorf("DeleteObjective: %w", err)
+	}
+	return nil
+}
+
 func (m *agencyManager) findObjectiveRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.ObjectiveRow, error) {
 	var row gormstore.ObjectiveRow
 	err := tx.WithContext(ctx).Table(m.tables.Objectives).Where("id = ?", id).First(&row).Error
