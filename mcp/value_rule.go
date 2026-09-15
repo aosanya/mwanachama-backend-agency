@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -108,8 +110,22 @@ func mcpListValues(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			RoleID: p.RoleID, GoalID: p.GoalID, ObjectiveID: p.ObjectiveID,
 			WorkflowID: p.WorkflowID, WorkItemID: p.WorkItemID,
 		})
-		return summary("Found %d value(s)", len(out)), ListResult[models.Value]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d value(s)", len(out)), valuesContextText(out)), ListResult[models.Value]{Items: out}, err
 	}
+}
+
+// valuesContextText is what an LLM sees for a Values list — one line per
+// Value, field-by-field rather than a struct dump, so dropping a field
+// from an LLM's context later is just deleting it from this Sprintf.
+func valuesContextText(values []models.Value) string {
+	if len(values) == 0 {
+		return "There are no values yet."
+	}
+	lines := make([]string, 0, len(values))
+	for _, v := range values {
+		lines = append(lines, fmt.Sprintf("- %s: %q (value id: %s)", v.Code, v.Text, v.ID))
+	}
+	return "Current values:\n" + strings.Join(lines, "\n")
 }
 
 type mcpAttachValueParams struct {
@@ -137,8 +153,23 @@ func mcpListValueAttachments(resolve ManagerResolver) func(context.Context, *mcp
 			return nil, ListResult[models.ValueAttachment]{}, err
 		}
 		out, err := m.ListValueAttachments(ctx, p.ValueID)
-		return summary("Found %d attachment(s)", len(out)), ListResult[models.ValueAttachment]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d attachment(s)", len(out)), valueAttachmentsContextText(out)), ListResult[models.ValueAttachment]{Items: out}, err
 	}
+}
+
+// valueAttachmentsContextText is what an LLM sees for a Value's attachment
+// list. Referenced by Code, not row id, on both sides (AGD-003) — but the
+// join row's own id is what agency_detach_value actually takes, so it's
+// still surfaced here alongside the Codes.
+func valueAttachmentsContextText(attachments []models.ValueAttachment) string {
+	if len(attachments) == 0 {
+		return "This Value has no attachments — it is Agency-wide."
+	}
+	lines := make([]string, 0, len(attachments))
+	for _, a := range attachments {
+		lines = append(lines, fmt.Sprintf("- %s %s (attachment id: %s)", a.TargetType, a.TargetCode, a.ID))
+	}
+	return "Current attachments:\n" + strings.Join(lines, "\n")
 }
 
 type mcpAttachmentIDParams struct {
@@ -218,8 +249,22 @@ func mcpListRules(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 			RoleID: p.RoleID, GoalID: p.GoalID, ObjectiveID: p.ObjectiveID,
 			WorkflowID: p.WorkflowID, WorkItemID: p.WorkItemID,
 		})
-		return summary("Found %d rule(s)", len(out)), ListResult[models.Rule]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d rule(s)", len(out)), rulesContextText(out)), ListResult[models.Rule]{Items: out}, err
 	}
+}
+
+// rulesContextText is what an LLM sees for a Rules list — one line per
+// Rule, field-by-field rather than a struct dump, so dropping a field
+// from an LLM's context later is just deleting it from this Sprintf.
+func rulesContextText(rules []models.Rule) string {
+	if len(rules) == 0 {
+		return "There are no rules yet."
+	}
+	lines := make([]string, 0, len(rules))
+	for _, r := range rules {
+		lines = append(lines, fmt.Sprintf("- %s: %q (rule id: %s)", r.Code, r.Text, r.ID))
+	}
+	return "Current rules:\n" + strings.Join(lines, "\n")
 }
 
 type mcpAttachRuleParams struct {
@@ -247,8 +292,21 @@ func mcpListRuleAttachments(resolve ManagerResolver) func(context.Context, *mcp.
 			return nil, ListResult[models.RuleAttachment]{}, err
 		}
 		out, err := m.ListRuleAttachments(ctx, p.RuleID)
-		return summary("Found %d attachment(s)", len(out)), ListResult[models.RuleAttachment]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d attachment(s)", len(out)), ruleAttachmentsContextText(out)), ListResult[models.RuleAttachment]{Items: out}, err
 	}
+}
+
+// ruleAttachmentsContextText mirrors valueAttachmentsContextText — see its
+// doc comment.
+func ruleAttachmentsContextText(attachments []models.RuleAttachment) string {
+	if len(attachments) == 0 {
+		return "This Rule has no attachments — it is Agency-wide."
+	}
+	lines := make([]string, 0, len(attachments))
+	for _, a := range attachments {
+		lines = append(lines, fmt.Sprintf("- %s %s (attachment id: %s)", a.TargetType, a.TargetCode, a.ID))
+	}
+	return "Current attachments:\n" + strings.Join(lines, "\n")
 }
 
 func mcpDetachRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpAttachmentIDParams) (*mcp.CallToolResult, DeleteResult, error) {

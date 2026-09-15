@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -112,8 +114,26 @@ func mcpListWorkPlans(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, ListResult[models.WorkPlan]{}, err
 		}
 		out, err := m.ListWorkPlans(ctx, mwanachamaagency.WorkPlanFilter{Code: p.Code, Name: p.Name, Description: p.Description})
-		return summary("Found %d work plan(s)", len(out)), ListResult[models.WorkPlan]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d work plan(s)", len(out)), workPlansContextText(out)), ListResult[models.WorkPlan]{Items: out}, err
 	}
+}
+
+// workPlansContextText is what an LLM sees for a WorkPlans list — one line
+// per WorkPlan, field-by-field rather than a struct dump, so dropping a
+// field from an LLM's context later is just deleting it from this Sprintf.
+func workPlansContextText(plans []models.WorkPlan) string {
+	if len(plans) == 0 {
+		return "There are no work plans yet."
+	}
+	lines := make([]string, 0, len(plans))
+	for _, wp := range plans {
+		label := wp.Name
+		if wp.Code != "" {
+			label = wp.Code + ": " + wp.Name
+		}
+		lines = append(lines, fmt.Sprintf("- %s (work plan id: %s, trigger topic: %s, enabled: %t)", label, wp.ID, wp.TriggerTopic, wp.Enabled))
+	}
+	return "Current work plans:\n" + strings.Join(lines, "\n")
 }
 
 func mcpUpdateWorkPlan(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpWorkPlanParams) (*mcp.CallToolResult, models.WorkPlan, error) {
@@ -140,8 +160,28 @@ func mcpMatchWorkPlans(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, ListResult[models.WorkPlanMatch]{}, err
 		}
 		out, err := m.MatchWorkPlans(ctx, p.Topic, p.Payload)
-		return summary("Found %d work plan(s) matching topic %q", len(out), p.Topic), ListResult[models.WorkPlanMatch]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d work plan(s) matching topic %q", len(out), p.Topic), workPlanMatchesContextText(out)), ListResult[models.WorkPlanMatch]{Items: out}, err
 	}
+}
+
+// workPlanMatchesContextText is what an LLM sees for a MatchWorkPlans
+// result — one line per matched WorkPlan, field-by-field rather than a
+// struct dump, so dropping a field from an LLM's context later is just
+// deleting it from this Sprintf.
+func workPlanMatchesContextText(matches []models.WorkPlanMatch) string {
+	if len(matches) == 0 {
+		return "No work plans matched."
+	}
+	lines := make([]string, 0, len(matches))
+	for _, match := range matches {
+		wp := match.WorkPlan
+		label := wp.Name
+		if wp.Code != "" {
+			label = wp.Code + ": " + wp.Name
+		}
+		lines = append(lines, fmt.Sprintf("- %s (work plan id: %s, %d context source(s))", label, wp.ID, len(match.ContextSources)))
+	}
+	return "Matched work plans:\n" + strings.Join(lines, "\n")
 }
 
 // mcpAddContextSourceParams mirrors models.ContextSource, but with
@@ -192,8 +232,23 @@ func mcpListContextSources(resolve ManagerResolver) func(context.Context, *mcp.C
 			return nil, ListResult[models.ContextSource]{}, err
 		}
 		out, err := m.ListContextSources(ctx, p.WorkPlanID, mwanachamaagency.ContextSourceFilter{SourceType: p.SourceType})
-		return summary("Found %d context source(s) on WorkPlan %s", len(out), p.WorkPlanID), ListResult[models.ContextSource]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d context source(s) on WorkPlan %s", len(out), p.WorkPlanID), contextSourcesContextText(out)), ListResult[models.ContextSource]{Items: out}, err
 	}
+}
+
+// contextSourcesContextText is what an LLM sees for a ContextSources
+// list — one line per source, field-by-field rather than a struct dump, so
+// dropping a field from an LLM's context later is just deleting it from
+// this Sprintf.
+func contextSourcesContextText(sources []models.ContextSource) string {
+	if len(sources) == 0 {
+		return "There are no context sources yet."
+	}
+	lines := make([]string, 0, len(sources))
+	for _, s := range sources {
+		lines = append(lines, fmt.Sprintf("- %s context source (id: %s)", s.SourceType, s.ID))
+	}
+	return "Current context sources:\n" + strings.Join(lines, "\n")
 }
 
 type mcpRemoveContextSourceParams struct {

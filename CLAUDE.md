@@ -766,6 +766,52 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     falls through the generic module fallback the CLAUDE.md's own
     AG13 cross-repo note describes.
 
+- **AG23 landed 2026-09-15: every List/Match MCP tool now returns
+  `summaryWithContext`, not bare `summary`.** Caught live in
+  `mwanachama-wakala-studio`: an operator asked its chat assistant to add
+  WorkItems to Workflow "W-1", the model called `agency_list_workflows`
+  filtered by that code, and got back only `"Found 1 workflow(s)"` — no
+  id anywhere — so it had no way to actually call
+  `agency_create_work_item`. `agency_get_agency`/`agency_list_goals`/
+  `agency_list_objectives`/`agency_list_roles`/`agency_list_issues` (AG13/
+  AG19-era work) already used `summaryWithContext` correctly; every other
+  List/Match tool — 17 of them — still used the plain `summary("Found %d
+  X(s)", len(out))` one-liner that only a human reading a call log needs,
+  leaving every per-item field (id included) unreachable by the model
+  itself, since `mwanachama-wakala-studio`'s `toolText()` joins whatever
+  `Content` text blocks a tool result carries and never falls back to
+  `structuredContent` once `Content` is non-empty (confirmed correct
+  there — see that repo's own note on this incident; the gap was entirely
+  here, not a client-side bug).
+  - Closed everywhere at once rather than just for Workflow: new
+    `workflowsContextText`/`workItemsContextText`/
+    `eventFlowStepsContextText` (`goal.go`), `departmentsContextText`
+    (shared by `agency_list_departments`/`agency_list_department_children`,
+    `orgchart.go`) /`levelsContextText` (`orgchart.go`),
+    `workPlansContextText`/`workPlanMatchesContextText`/
+    `contextSourcesContextText` (`workplan.go`), `roleAssignmentsContextText`
+    (shared by `agency_list_role_assignments`/
+    `agency_list_role_assignments_for_objective`, `raci.go`),
+    `draftsContextText`/`publicationsContextText` (`agency.go`),
+    `valuesContextText`/`valueAttachmentsContextText`/`rulesContextText`/
+    `ruleAttachmentsContextText` (`value_rule.go`) — each follows the
+    existing `rolesContextText`/`goalsContextText` shape exactly: `"There
+    are no X yet."` when empty, else `"- <Code>: <label> (... id: <ID>,
+    ...)"` per line, built from named fields rather than a struct/JSON
+    dump (`mcp.go`'s own doc comment on why). `catalog.go`'s
+    `agency_list_types` is the one List tool deliberately left alone — its
+    `typeInfo` rows carry no id at all, nothing to surface.
+  - `agency_list_publications` leads each line with `Tag`/`Version`, not
+    ID — `agency_get_publication`/`agency_update_publication_status` both
+    take `Version`, not an id, so that's the field a caller actually
+    needs back.
+  - Verified: `go build`/`go vet`/`go test ./...`/`gofmt -l .` all clean
+    here; rebuilt and retested `mwanachama-wakala-api` (locally
+    `replace`d) — clean too. Not yet re-verified live against a running
+    chat — the dev server process that hit this bug was already running
+    before the fix landed and needs a restart to pick it up (`go run`
+    doesn't hot-reload).
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

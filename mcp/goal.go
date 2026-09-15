@@ -212,8 +212,26 @@ func mcpListWorkflows(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, ListResult[models.Workflow]{}, err
 		}
 		out, err := m.ListWorkflows(ctx, p.DraftID, mwanachamaagency.WorkflowFilter{Code: p.Code, Name: p.Name, Description: p.Description})
-		return summary("Found %d workflow(s)", len(out)), ListResult[models.Workflow]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d workflow(s)", len(out)), workflowsContextText(out)), ListResult[models.Workflow]{Items: out}, err
 	}
+}
+
+// workflowsContextText is what an LLM sees for a Workflows list — one line
+// per Workflow, field-by-field rather than a struct dump, so dropping a
+// field from an LLM's context later is just deleting it from this Sprintf.
+func workflowsContextText(workflows []models.Workflow) string {
+	if len(workflows) == 0 {
+		return "There are no workflows yet."
+	}
+	lines := make([]string, 0, len(workflows))
+	for _, w := range workflows {
+		line := fmt.Sprintf("- %s: %s", w.Code, w.Name)
+		if w.Description != "" {
+			line += " — " + w.Description
+		}
+		lines = append(lines, line+fmt.Sprintf(" (workflow id: %s)", w.ID))
+	}
+	return "Current workflows:\n" + strings.Join(lines, "\n")
 }
 
 func mcpUpdateWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpWorkflowParams) (*mcp.CallToolResult, models.Workflow, error) {
@@ -302,8 +320,26 @@ func mcpListWorkItems(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 			return nil, ListResult[models.WorkItem]{}, err
 		}
 		out, err := m.ListWorkItems(ctx, p.DraftID, mwanachamaagency.WorkItemFilter{Code: p.Code, Title: p.Title, Description: p.Description})
-		return summary("Found %d work item(s)", len(out)), ListResult[models.WorkItem]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d work item(s)", len(out)), workItemsContextText(out)), ListResult[models.WorkItem]{Items: out}, err
 	}
+}
+
+// workItemsContextText is what an LLM sees for a WorkItems list — one line
+// per WorkItem, field-by-field rather than a struct dump, so dropping a
+// field from an LLM's context later is just deleting it from this Sprintf.
+func workItemsContextText(items []models.WorkItem) string {
+	if len(items) == 0 {
+		return "There are no work items yet."
+	}
+	lines := make([]string, 0, len(items))
+	for _, wi := range items {
+		line := fmt.Sprintf("- %s: %s", wi.Code, wi.Title)
+		if wi.Description != "" {
+			line += " — " + wi.Description
+		}
+		lines = append(lines, line+fmt.Sprintf(" (work item id: %s, workflow id: %s, objective id: %s)", wi.ID, wi.WorkflowID, wi.ObjectiveID))
+	}
+	return "Current work items:\n" + strings.Join(lines, "\n")
 }
 
 func mcpUpdateWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpWorkItemParams) (*mcp.CallToolResult, models.WorkItem, error) {
@@ -356,6 +392,21 @@ func mcpListEventFlowSteps(resolve ManagerResolver) func(context.Context, *mcp.C
 			return nil, ListResult[models.EventFlowStep]{}, err
 		}
 		out, err := m.ListEventFlowSteps(ctx, p.WorkflowCode, mwanachamaagency.EventFlowStepFilter{Code: p.Code, Name: p.Name, Description: p.Description})
-		return summary("Found %d event flow step(s) for workflow %q", len(out), p.WorkflowCode), ListResult[models.EventFlowStep]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d event flow step(s) for workflow %q", len(out), p.WorkflowCode), eventFlowStepsContextText(out)), ListResult[models.EventFlowStep]{Items: out}, err
 	}
+}
+
+// eventFlowStepsContextText is what an LLM sees for an EventFlowSteps
+// list — one line per step, field-by-field rather than a struct dump, so
+// dropping a field from an LLM's context later is just deleting it from
+// this Sprintf.
+func eventFlowStepsContextText(steps []models.EventFlowStep) string {
+	if len(steps) == 0 {
+		return "There are no event flow steps yet."
+	}
+	lines := make([]string, 0, len(steps))
+	for _, s := range steps {
+		lines = append(lines, fmt.Sprintf("- %s: %s → %s (event flow step id: %s)", s.Code, s.TriggerTopic, s.HandlerCode, s.ID))
+	}
+	return "Current event flow steps:\n" + strings.Join(lines, "\n")
 }

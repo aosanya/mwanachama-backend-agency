@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -141,8 +142,26 @@ func mcpListDrafts(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, ListResult[models.Draft]{}, err
 		}
 		out, err := m.ListDrafts(ctx, mwanachamaagency.DraftFilter{Description: p.Description, Status: p.Status})
-		return summary("Found %d draft(s)", len(out)), ListResult[models.Draft]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d draft(s)", len(out)), draftsContextText(out)), ListResult[models.Draft]{Items: out}, err
 	}
+}
+
+// draftsContextText is what an LLM sees for a Drafts list — one line per
+// Draft with its id and status. Unlike rolesContextText/objectivesContextText,
+// this isn't just a convenience: a Draft's id is exactly what a caller
+// needs next to create or edit a Draft-scoped row (RoleAssignment, Role,
+// Objective, ...), and it has no other reliable way to discover it — a
+// bare "Found N draft(s)" summary line left the id invisible to the model
+// entirely.
+func draftsContextText(drafts []models.Draft) string {
+	if len(drafts) == 0 {
+		return "There are no drafts yet."
+	}
+	lines := make([]string, 0, len(drafts))
+	for _, d := range drafts {
+		lines = append(lines, fmt.Sprintf("- %q (%s): draft id: %s", d.Description, d.Status, d.ID))
+	}
+	return "Current drafts:\n" + strings.Join(lines, "\n")
 }
 
 type mcpUpdateDraftDescriptionParams struct {
@@ -231,8 +250,22 @@ func mcpListPublications(resolve ManagerResolver) func(context.Context, *mcp.Cal
 			return nil, ListResult[models.AgencyPublication]{}, err
 		}
 		out, err := m.ListPublications(ctx, mwanachamaagency.PublicationFilter{Tag: p.Tag, Status: p.Status})
-		return summary("Found %d publication(s)", len(out)), ListResult[models.AgencyPublication]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d publication(s)", len(out)), publicationsContextText(out)), ListResult[models.AgencyPublication]{Items: out}, err
 	}
+}
+
+// publicationsContextText is what an LLM sees for a Publications list —
+// one line per publication. Version, not ID, is what agency_get_publication/
+// agency_update_publication_status actually take, so it leads each line.
+func publicationsContextText(publications []models.AgencyPublication) string {
+	if len(publications) == 0 {
+		return "There are no publications yet."
+	}
+	lines := make([]string, 0, len(publications))
+	for _, pub := range publications {
+		lines = append(lines, fmt.Sprintf("- %s: version %d, %s", pub.Tag, pub.Version, pub.Status))
+	}
+	return "Current publications:\n" + strings.Join(lines, "\n")
 }
 
 type mcpUpdatePublicationStatusParams struct {

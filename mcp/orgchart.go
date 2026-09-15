@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -81,8 +83,24 @@ func mcpListDepartments(resolve ManagerResolver) func(context.Context, *mcp.Call
 			return nil, ListResult[models.Department]{}, err
 		}
 		out, err := m.ListDepartments(ctx, mwanachamaagency.DepartmentFilter{Code: p.Code, Name: p.Name})
-		return summary("Found %d department(s)", len(out)), ListResult[models.Department]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d department(s)", len(out)), departmentsContextText(out)), ListResult[models.Department]{Items: out}, err
 	}
+}
+
+// departmentsContextText is what an LLM sees for a Departments list — one
+// line per Department, field-by-field rather than a struct dump, so
+// dropping a field from an LLM's context later is just deleting it from
+// this Sprintf. Shared by both agency_list_departments and
+// agency_list_department_children — same row shape either way.
+func departmentsContextText(departments []models.Department) string {
+	if len(departments) == 0 {
+		return "There are no departments yet."
+	}
+	lines := make([]string, 0, len(departments))
+	for _, d := range departments {
+		lines = append(lines, fmt.Sprintf("- %s: %s (department id: %s, level id: %s, parent id: %s)", d.Code, d.Name, d.ID, d.LevelID, d.ParentID))
+	}
+	return "Current departments:\n" + strings.Join(lines, "\n")
 }
 
 type mcpDepartmentParentParams struct {
@@ -99,7 +117,7 @@ func mcpListDepartmentChildren(resolve ManagerResolver) func(context.Context, *m
 			return nil, ListResult[models.Department]{}, err
 		}
 		out, err := m.ListDepartmentChildren(ctx, p.ParentID, mwanachamaagency.DepartmentFilter{Code: p.Code, Name: p.Name})
-		return summary("Found %d child department(s)", len(out)), ListResult[models.Department]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d child department(s)", len(out)), departmentsContextText(out)), ListResult[models.Department]{Items: out}, err
 	}
 }
 
@@ -186,8 +204,22 @@ func mcpListLevels(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 			return nil, ListResult[models.Level]{}, err
 		}
 		out, err := m.ListLevels(ctx, mwanachamaagency.LevelFilter{Code: p.Code, Name: p.Name})
-		return summary("Found %d level(s)", len(out)), ListResult[models.Level]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d level(s)", len(out)), levelsContextText(out)), ListResult[models.Level]{Items: out}, err
 	}
+}
+
+// levelsContextText is what an LLM sees for a Levels list — one line per
+// Level, field-by-field rather than a struct dump, so dropping a field
+// from an LLM's context later is just deleting it from this Sprintf.
+func levelsContextText(levels []models.Level) string {
+	if len(levels) == 0 {
+		return "There are no levels yet."
+	}
+	lines := make([]string, 0, len(levels))
+	for _, l := range levels {
+		lines = append(lines, fmt.Sprintf("- %s: %s, depth %d (level id: %s)", l.Code, l.Name, l.Depth, l.ID))
+	}
+	return "Current levels:\n" + strings.Join(lines, "\n")
 }
 
 type mcpRenameLevelParams struct {

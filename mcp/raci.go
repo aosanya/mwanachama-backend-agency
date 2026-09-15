@@ -198,8 +198,24 @@ func mcpListRoleAssignments(resolve ManagerResolver) func(context.Context, *mcp.
 			return nil, ListResult[models.RoleAssignment]{}, err
 		}
 		out, err := m.ListRoleAssignments(ctx, p.DraftID, mwanachamaagency.RoleAssignmentFilter{Label: p.Label})
-		return summary("Found %d role assignment(s)", len(out)), ListResult[models.RoleAssignment]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d role assignment(s)", len(out)), roleAssignmentsContextText(out)), ListResult[models.RoleAssignment]{Items: out}, err
 	}
+}
+
+// roleAssignmentsContextText is what an LLM sees for a RoleAssignments
+// list — one line per assignment, field-by-field rather than a struct
+// dump, so dropping a field from an LLM's context later is just deleting
+// it from this Sprintf. Shared by agency_list_role_assignments and
+// agency_list_role_assignments_for_objective — same row shape either way.
+func roleAssignmentsContextText(assignments []models.RoleAssignment) string {
+	if len(assignments) == 0 {
+		return "There are no role assignments yet."
+	}
+	lines := make([]string, 0, len(assignments))
+	for _, a := range assignments {
+		lines = append(lines, fmt.Sprintf("- role %s is %s on objective %s (assignment id: %s)", a.RoleID, a.Label, a.ObjectiveID, a.ID))
+	}
+	return "Current role assignments:\n" + strings.Join(lines, "\n")
 }
 
 type mcpRoleAssignmentsForObjectiveParams struct {
@@ -216,7 +232,7 @@ func mcpListRoleAssignmentsForObjective(resolve ManagerResolver) func(context.Co
 			return nil, ListResult[models.RoleAssignment]{}, err
 		}
 		out, err := m.ListRoleAssignmentsForObjective(ctx, p.ObjectiveID, p.DraftID, mwanachamaagency.RoleAssignmentFilter{Label: p.Label})
-		return summary("Found %d role assignment(s) for objective %s", len(out), p.ObjectiveID), ListResult[models.RoleAssignment]{Items: out}, err
+		return summaryWithContext(fmt.Sprintf("Found %d role assignment(s) for objective %s", len(out), p.ObjectiveID), roleAssignmentsContextText(out)), ListResult[models.RoleAssignment]{Items: out}, err
 	}
 }
 
