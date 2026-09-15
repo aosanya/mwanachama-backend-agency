@@ -31,16 +31,19 @@ func TestSeedNeoLabHQ(t *testing.T) {
 		t.Fatalf("unexpected department: %+v", seed.Department)
 	}
 
-	if len(seed.Modules) != len(models.KnownModuleCodes) {
-		t.Fatalf("expected %d modules, got %d", len(models.KnownModuleCodes), len(seed.Modules))
+	if len(seed.Modules) != len(models.ModuleCatalog) {
+		t.Fatalf("expected %d modules, got %d", len(models.ModuleCatalog), len(seed.Modules))
 	}
-	for _, code := range models.KnownModuleCodes {
-		mod, ok := seed.Modules[code]
+	for _, entry := range models.ModuleCatalog {
+		mod, ok := seed.Modules[entry.Code]
 		if !ok {
-			t.Fatalf("expected a seeded module for code %q", code)
+			t.Fatalf("expected a seeded module for code %q", entry.Code)
 		}
-		if !mod.Enabled {
-			t.Fatalf("expected seeded module %q to be enabled, got %+v", code, mod)
+		if mod.Enabled != entry.Enabled {
+			t.Fatalf("expected seeded module %q Enabled=%v, got %+v", entry.Code, entry.Enabled, mod)
+		}
+		if mod.Locked != entry.Locked {
+			t.Fatalf("expected seeded module %q Locked=%v, got %+v", entry.Code, entry.Locked, mod)
 		}
 	}
 

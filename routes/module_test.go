@@ -7,50 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
-
-func TestCreateModule(t *testing.T) {
-	mgr := newTestManager(t)
-	req := httptest.NewRequest(http.MethodPost, "/modules", strings.NewReader(`{"code":"widgets","name":"Widgets","enabled":true}`))
-	rec := httptest.NewRecorder()
-	routes.CreateModule(mgr)(rec, req)
-
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-	var out models.Module
-	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if out.ID == "" || out.Code != "widgets" || !out.Enabled {
-		t.Fatalf("unexpected module: %+v", out)
-	}
-}
-
-func TestCreateModule_EmptyCodeIsBadRequest(t *testing.T) {
-	mgr := newTestManager(t)
-	req := httptest.NewRequest(http.MethodPost, "/modules", strings.NewReader(`{"name":"no code"}`))
-	rec := httptest.NewRecorder()
-	routes.CreateModule(mgr)(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestCreateModule_DuplicateCodeIsConflict(t *testing.T) {
-	mgr := newTestManager(t)
-	req := httptest.NewRequest(http.MethodPost, "/modules", strings.NewReader(`{"code":"git","name":"Git again"}`))
-	rec := httptest.NewRecorder()
-	routes.CreateModule(mgr)(rec, req)
-
-	// "git" is already live via gormstore.BackfillModules.
-	if rec.Code != http.StatusConflict {
-		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-}
 
 func TestGetModule_NotFound(t *testing.T) {
 	mgr := newTestManager(t)
@@ -64,14 +24,14 @@ func TestGetModule_NotFound(t *testing.T) {
 	}
 }
 
-func TestListAndUpdateModule(t *testing.T) {
+// TestListAndGetModule lists and gets the backfilled catalog rows —
+// Module has no HTTP Create/Update/Delete any more (AGD-002 reversed to
+// fully read-only), so this exercises the always-present catalog rows
+// (e.g. "auth") rather than a route-created Module.
+func TestListAndGetModule(t *testing.T) {
 	mgr := newTestManager(t)
-	mod, err := mgr.CreateModule(t.Context(), models.Module{Code: "widgets", Name: "Widgets"})
-	if err != nil {
-		t.Fatalf("CreateModule: %v", err)
-	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/modules?code=widgets", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/modules?code=auth", nil)
 	listRec := httptest.NewRecorder()
 	routes.ListModules(mgr)(listRec, listReq)
 	if listRec.Code != http.StatusOK {
@@ -81,54 +41,66 @@ func TestListAndUpdateModule(t *testing.T) {
 	if err := json.Unmarshal(listRec.Body.Bytes(), &list); err != nil {
 		t.Fatalf("unmarshal list: %v", err)
 	}
-	if len(list) != 1 {
-		t.Fatalf("expected 1 module matching the code filter, got %d", len(list))
+	if len(list) != 1 || list[0].Code != "auth" {
+		t.Fatalf("expected exactly the auth module, got %+v", list)
+	}
+	if !list[0].Enabled || !list[0].Locked {
+		t.Fatalf("expected auth to be Enabled and Locked, got %+v", list[0])
 	}
 
-	updateReq := httptest.NewRequest(http.MethodPatch, "/modules/"+mod.ID, strings.NewReader(`{"name":"Widgets Renamed","enabled":true}`))
-	updateReq.SetPathValue("moduleID", mod.ID)
-	updateRec := httptest.NewRecorder()
-	routes.UpdateModule(mgr)(updateRec, updateReq)
-	if updateRec.Code != http.StatusOK {
-		t.Fatalf("update status = %d, body = %s", updateRec.Code, updateRec.Body.String())
+	getReq := httptest.NewRequest(http.MethodGet, "/modules/"+list[0].ID, nil)
+	getReq.SetPathValue("moduleID", list[0].ID)
+	getRec := httptest.NewRecorder()
+	routes.GetModule(mgr)(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("get status = %d, body = %s", getRec.Code, getRec.Body.String())
 	}
-	var updated models.Module
-	if err := json.Unmarshal(updateRec.Body.Bytes(), &updated); err != nil {
-		t.Fatalf("unmarshal updated: %v", err)
+	var got models.Module
+	if err := json.Unmarshal(getRec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal get: %v", err)
 	}
-	if updated.Name != "Widgets Renamed" || !updated.Enabled || updated.Code != "widgets" {
-		t.Fatalf("unexpected updated module: %+v", updated)
+	if got.Code != "auth" {
+		t.Fatalf("unexpected module: %+v", got)
 	}
 }
 
-func TestDeleteModule(t *testing.T) {
+// TestListModules_DefaultCatalogState asserts the HTTP list reflects
+// AGD-002's reversed defaults on a fresh instance: only "auth" enabled,
+// every other known code disabled.
+func TestListModules_DefaultCatalogState(t *testing.T) {
 	mgr := newTestManager(t)
-	mod, err := mgr.CreateModule(t.Context(), models.Module{Code: "widgets", Name: "Widgets"})
-	if err != nil {
-		t.Fatalf("CreateModule: %v", err)
-	}
 
-	req := httptest.NewRequest(http.MethodDelete, "/modules/"+mod.ID, nil)
-	req.SetPathValue("moduleID", mod.ID)
+	req := httptest.NewRequest(http.MethodGet, "/modules", nil)
 	rec := httptest.NewRecorder()
-	routes.DeleteModule(mgr)(rec, req)
-	if rec.Code != http.StatusNoContent {
+	routes.ListModules(mgr)(rec, req)
+	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-
-	getReq := httptest.NewRequest(http.MethodGet, "/modules/"+mod.ID, nil)
-	getReq.SetPathValue("moduleID", mod.ID)
-	getRec := httptest.NewRecorder()
-	routes.GetModule(mgr)(getRec, getReq)
-	if getRec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 after delete, got %d", getRec.Code)
+	var list []models.Module
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(list) != len(models.ModuleCatalog) {
+		t.Fatalf("expected %d modules, got %d", len(models.ModuleCatalog), len(list))
+	}
+	for _, mod := range list {
+		wantEnabled := mod.Code == "auth"
+		if mod.Enabled != wantEnabled {
+			t.Fatalf("expected module %q Enabled=%v, got %+v", mod.Code, wantEnabled, mod)
+		}
+		if mod.Locked != wantEnabled {
+			t.Fatalf("expected module %q Locked=%v, got %+v", mod.Code, wantEnabled, mod)
+		}
 	}
 }
 
 // TestObjectiveModule_HTTPLifecycle drives the nested
 // /objectives/{objectiveID}/modules sub-resource (attach/list/detach)
 // through the HTTP layer end to end, mirroring
-// TestValueAttachment_HTTPLifecycle's shape.
+// TestValueAttachment_HTTPLifecycle's shape. Module linking is unaffected
+// by AGD-002's reversal — only the Module catalog's own mutability changed
+// — so this attaches an already-backfilled catalog row ("auth") rather
+// than a route-created Module.
 func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := t.Context()
@@ -140,10 +112,11 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
-	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets"})
-	if err != nil {
-		t.Fatalf("CreateModule: %v", err)
+	mods, err := mgr.ListModules(ctx, "", mwanachamaagency.ModuleFilter{Code: "auth"})
+	if err != nil || len(mods) != 1 {
+		t.Fatalf("ListModules(code=auth): rows=%+v err=%v", mods, err)
 	}
+	mod := mods[0]
 
 	req := httptest.NewRequest(http.MethodPost, "/objectives/"+objective.ID+"/modules",
 		strings.NewReader(`{"module_id":"`+mod.ID+`"}`))
@@ -211,12 +184,12 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 // objectiveID (as named by the URL path, not the body) is refused cleanly.
 func TestCreateObjectiveModule_ObjectiveNotFoundIs404(t *testing.T) {
 	mgr := newTestManager(t)
-	mod, err := mgr.CreateModule(t.Context(), models.Module{Code: "widgets", Name: "Widgets"})
-	if err != nil {
-		t.Fatalf("CreateModule: %v", err)
+	mods, err := mgr.ListModules(t.Context(), "", mwanachamaagency.ModuleFilter{Code: "auth"})
+	if err != nil || len(mods) != 1 {
+		t.Fatalf("ListModules(code=auth): rows=%+v err=%v", mods, err)
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/objectives/unknown/modules", strings.NewReader(`{"module_id":"`+mod.ID+`"}`))
+	req := httptest.NewRequest(http.MethodPost, "/objectives/unknown/modules", strings.NewReader(`{"module_id":"`+mods[0].ID+`"}`))
 	req.SetPathValue("objectiveID", "unknown")
 	rec := httptest.NewRecorder()
 	routes.CreateObjectiveModule(mgr)(rec, req)

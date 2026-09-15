@@ -168,7 +168,7 @@ func TestCreateDraft_ForksModulesAndObjectiveModules(t *testing.T) {
 	}
 
 	// Module has no "only fork if referenced" rule like Value/Rule — every
-	// live Module (including gormstore.BackfillModules' KnownModuleCodes
+	// live Module (including gormstore.BackfillModules' models.ModuleCatalog
 	// rows) forks, so narrow to the one this test cares about by Code.
 	draftModules, err := mgr.ListModules(ctx, d.ID, mwanachamaagency.ModuleFilter{Code: "widgets"})
 	if err != nil {
@@ -199,16 +199,18 @@ func TestCreateDraft_ForksModulesAndObjectiveModules(t *testing.T) {
 	}
 }
 
-// TestPromoteDraft_ModulesAndObjectiveModules asserts a Module edited
-// within a Draft, and its ObjectiveModule link, both take effect live
-// after PromoteDraft — same shape as TestPromoteDraft's Role/RoleAssignment
-// coverage.
+// TestPromoteDraft_ModulesAndObjectiveModules asserts a forked Module and
+// its ObjectiveModule link both survive PromoteDraft with a new live id —
+// same shape as TestPromoteDraft's Role/RoleAssignment coverage. Module has
+// no Update path any more (AGD-002 reversed to fully read-only), so unlike
+// this test's earlier form there is no draft-side edit step: the fork's
+// values (including Enabled) carry through unchanged, only the id changes.
 func TestPromoteDraft_ModulesAndObjectiveModules(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	ag, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets", Enabled: false})
+	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets", Enabled: true})
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
@@ -216,18 +218,13 @@ func TestPromoteDraft_ModulesAndObjectiveModules(t *testing.T) {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
-	d, err := mgr.CreateDraft(ctx, "enable widgets", ag.ID, "live")
+	d, err := mgr.CreateDraft(ctx, "fork widgets", ag.ID, "live")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
 	draftModules, err := mgr.ListModules(ctx, d.ID, mwanachamaagency.ModuleFilter{Code: "widgets"})
 	if err != nil || len(draftModules) != 1 {
 		t.Fatalf("ListModules(draft, code=widgets): rows=%+v err=%v", draftModules, err)
-	}
-	edited := draftModules[0]
-	edited.Enabled = true
-	if _, err := mgr.UpdateModule(ctx, edited); err != nil {
-		t.Fatalf("UpdateModule: %v", err)
 	}
 
 	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
@@ -242,7 +239,7 @@ func TestPromoteDraft_ModulesAndObjectiveModules(t *testing.T) {
 		t.Fatalf("expected exactly 1 live widgets module after promotion, got %d", len(liveModules))
 	}
 	if !liveModules[0].Enabled {
-		t.Fatal("expected the draft's edit (Enabled: true) to be live after promotion")
+		t.Fatal("expected the forked module's Enabled value to carry through promotion unchanged")
 	}
 	if liveModules[0].ID == mod.ID {
 		t.Fatal("expected the old live module id to have been replaced, not reused")

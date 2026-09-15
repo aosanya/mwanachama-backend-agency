@@ -9,7 +9,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestModuleCRUD(t *testing.T) {
+func TestCreateAndGetModule(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 
@@ -31,39 +31,11 @@ func TestModuleCRUD(t *testing.T) {
 	if got.Code != "custom-module" || got.Name != "Custom" {
 		t.Fatalf("unexpected module: %+v", got)
 	}
-
-	mod.Name = "Custom Renamed"
-	mod.Description = ""
-	mod.Enabled = false
-	updated, err := mgr.UpdateModule(ctx, mod)
-	if err != nil {
-		t.Fatalf("UpdateModule: %v", err)
-	}
-	if updated.Name != "Custom Renamed" || updated.Description != "" || updated.Enabled {
-		t.Fatalf("update did not apply zero-value fields: %+v", updated)
-	}
-	if updated.Code != "custom-module" {
-		t.Fatalf("expected Code to survive update untouched, got %q", updated.Code)
-	}
-
-	if err := mgr.DeleteModule(ctx, mod.ID); err != nil {
-		t.Fatalf("DeleteModule: %v", err)
-	}
-	if _, err := mgr.GetModule(ctx, mod.ID); !errors.Is(err, mwanachamaagency.ErrModuleNotFound) {
-		t.Fatalf("expected ErrModuleNotFound after delete, got %v", err)
-	}
 }
 
 func TestGetModule_NotFound(t *testing.T) {
 	mgr := newTestManager(t)
 	if _, err := mgr.GetModule(context.Background(), "unknown"); !errors.Is(err, mwanachamaagency.ErrModuleNotFound) {
-		t.Fatalf("expected ErrModuleNotFound, got %v", err)
-	}
-}
-
-func TestDeleteModule_NotFound(t *testing.T) {
-	mgr := newTestManager(t)
-	if err := mgr.DeleteModule(context.Background(), "unknown"); !errors.Is(err, mwanachamaagency.ErrModuleNotFound) {
 		t.Fatalf("expected ErrModuleNotFound, got %v", err)
 	}
 }
@@ -76,9 +48,9 @@ func TestCreateModule_EmptyCode(t *testing.T) {
 }
 
 // TestCreateModule_DuplicateCode relies on gormstore.BackfillModules having
-// already seeded every models.KnownModuleCodes entry as a live, enabled
-// Module at Migrate time (see gormstore/module.go) — so re-creating one of
-// those codes must be rejected outright.
+// already seeded every models.ModuleCatalog entry as a live Module at
+// Migrate time (see gormstore/module.go) — so re-creating one of those
+// codes must be rejected outright.
 func TestCreateModule_DuplicateCode(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -95,12 +67,14 @@ func TestCreateModule_DuplicateCode(t *testing.T) {
 	}
 }
 
-// TestBackfillModules_SeedsKnownCodes asserts every Migrate call
-// (newTestManager's included) leaves every models.KnownModuleCodes entry
-// present, live, and enabled — the correctness property AGD-002's backfill
-// exists for: an existing deployment's gateway must never find its
-// Module catalog empty and take every route dark.
-func TestBackfillModules_SeedsKnownCodes(t *testing.T) {
+// TestBackfillModules_SeedsCatalogDefaults asserts every Migrate call
+// (newTestManager's included) leaves every models.ModuleCatalog entry
+// present and live, with "auth" backfilled Enabled+Locked and every other
+// known code backfilled disabled and unlocked — the correctness property
+// AGD-002's reversal exists for: a fresh instance starts with only auth
+// enabled, but an already-migrated instance's existing rows (not exercised
+// by this fresh-table test) are never touched by a later Migrate.
+func TestBackfillModules_SeedsCatalogDefaults(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 
@@ -108,20 +82,41 @@ func TestBackfillModules_SeedsKnownCodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListModules: %v", err)
 	}
-	if len(live) != len(models.KnownModuleCodes) {
-		t.Fatalf("expected %d backfilled modules, got %d: %+v", len(models.KnownModuleCodes), len(live), live)
+	if len(live) != len(models.ModuleCatalog) {
+		t.Fatalf("expected %d backfilled modules, got %d: %+v", len(models.ModuleCatalog), len(live), live)
 	}
 	byCode := make(map[string]models.Module, len(live))
 	for _, m := range live {
 		byCode[m.Code] = m
 	}
-	for _, code := range models.KnownModuleCodes {
-		mod, ok := byCode[code]
+	for _, entry := range models.ModuleCatalog {
+		mod, ok := byCode[entry.Code]
 		if !ok {
-			t.Fatalf("expected a backfilled module for code %q", code)
+			t.Fatalf("expected a backfilled module for code %q", entry.Code)
 		}
-		if !mod.Enabled {
-			t.Fatalf("expected backfilled module %q to default Enabled, got %+v", code, mod)
+		if mod.Enabled != entry.Enabled {
+			t.Fatalf("expected backfilled module %q Enabled=%v, got %+v", entry.Code, entry.Enabled, mod)
+		}
+		if mod.Locked != entry.Locked {
+			t.Fatalf("expected backfilled module %q Locked=%v, got %+v", entry.Code, entry.Locked, mod)
+		}
+	}
+
+	authMod, ok := byCode["auth"]
+	if !ok {
+		t.Fatal("expected a backfilled auth module")
+	}
+	if !authMod.Enabled || !authMod.Locked {
+		t.Fatalf("expected auth to backfill Enabled: true, Locked: true, got %+v", authMod)
+	}
+
+	for _, entry := range models.ModuleCatalog {
+		if entry.Code == "auth" {
+			continue
+		}
+		mod := byCode[entry.Code]
+		if mod.Enabled || mod.Locked {
+			t.Fatalf("expected non-auth module %q to backfill Enabled: false, Locked: false, got %+v", entry.Code, mod)
 		}
 	}
 }
@@ -146,7 +141,8 @@ func TestListModules_Filter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListModules(enabled filter): %v", err)
 	}
-	if len(enabled) != len(models.KnownModuleCodes)+1 {
-		t.Fatalf("expected every backfilled module plus widgets to be enabled, got %d", len(enabled))
+	// Only "auth" backfills enabled; "widgets" was created enabled too.
+	if len(enabled) != 2 {
+		t.Fatalf("expected auth plus widgets to be enabled, got %d: %+v", len(enabled), enabled)
 	}
 }
