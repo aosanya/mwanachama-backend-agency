@@ -11,12 +11,20 @@ import (
 func ruleStatusFor(err error) int {
 	switch {
 	case errors.Is(err, mwanachamaagency.ErrRuleNotFound),
+		errors.Is(err, mwanachamaagency.ErrRuleAttachmentNotFound),
+		errors.Is(err, mwanachamaagency.ErrRoleNotFound),
+		errors.Is(err, mwanachamaagency.ErrGoalNotFound),
+		errors.Is(err, mwanachamaagency.ErrObjectiveNotFound),
+		errors.Is(err, mwanachamaagency.ErrWorkflowNotFound),
+		errors.Is(err, mwanachamaagency.ErrWorkItemNotFound),
 		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, mwanachamaagency.ErrCannotEditLive),
+		errors.Is(err, mwanachamaagency.ErrDuplicateAttachment),
 		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
-	case errors.Is(err, mwanachamaagency.ErrInvalidRule):
+	case errors.Is(err, mwanachamaagency.ErrInvalidRule),
+		errors.Is(err, mwanachamaagency.ErrInvalidTargetType):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
@@ -62,11 +70,17 @@ func GetRule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 }
 
 // ListRules handles GET — ?draft_id= selects scope ("" = live); ?code=,
-// ?text= each narrow by a case-insensitive substring match.
+// ?text= each narrow by a case-insensitive substring match; ?role_id=,
+// ?goal_id=, ?objective_id=, ?workflow_id=, ?work_item_id= each narrow to
+// Rules attached to that target (AGD-003).
 func ListRules(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		filter := mwanachamaagency.RuleFilter{Code: q.Get("code"), Text: q.Get("text")}
+		filter := mwanachamaagency.RuleFilter{
+			Code: q.Get("code"), Text: q.Get("text"),
+			RoleID: q.Get("role_id"), GoalID: q.Get("goal_id"), ObjectiveID: q.Get("objective_id"),
+			WorkflowID: q.Get("workflow_id"), WorkItemID: q.Get("work_item_id"),
+		}
 		out, err := m.ListRules(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeRuleErr(w, err)
@@ -107,8 +121,53 @@ func DeleteRule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// RuleRoutes is Create/Get/List/Update/Delete for Rule, addressed under
-// names.Rule.
+// CreateRuleAttachment handles POST {ruleID}/attachments — attach a Rule
+// to a Role/Goal/Objective/Workflow/WorkItem. Live-editable, no Draft
+// involved (AGD-003).
+func CreateRuleAttachment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			TargetType models.TargetType `json:"target_type"`
+			TargetID   string            `json:"target_id"`
+		}
+		if err := readJSON(r, &body); err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		out, err := m.CreateRuleAttachment(r.Context(), r.PathValue("ruleID"), body.TargetType, body.TargetID)
+		if err != nil {
+			writeRuleErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, out)
+	}
+}
+
+// ListRuleAttachments handles GET {ruleID}/attachments.
+func ListRuleAttachments(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		out, err := m.ListRuleAttachments(r.Context(), r.PathValue("ruleID"))
+		if err != nil {
+			writeRuleErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// DeleteRuleAttachment handles DELETE {ruleID}/attachments/{attachmentID}.
+func DeleteRuleAttachment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := m.DeleteRuleAttachment(r.Context(), r.PathValue("attachmentID")); err != nil {
+			writeRuleErr(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// RuleRoutes is Create/Get/List/Update/Delete for Rule, plus the nested
+// attachments sub-resource, addressed under names.Rule.
 func RuleRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.Rule
@@ -118,5 +177,8 @@ func RuleRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 		{Method: http.MethodGet, Path: base + "/{ruleID}", Handler: GetRule(m)},
 		{Method: http.MethodPatch, Path: base + "/{ruleID}", Handler: UpdateRule(m)},
 		{Method: http.MethodDelete, Path: base + "/{ruleID}", Handler: DeleteRule(m)},
+		{Method: http.MethodPost, Path: base + "/{ruleID}/attachments", Handler: CreateRuleAttachment(m)},
+		{Method: http.MethodGet, Path: base + "/{ruleID}/attachments", Handler: ListRuleAttachments(m)},
+		{Method: http.MethodDelete, Path: base + "/{ruleID}/attachments/{attachmentID}", Handler: DeleteRuleAttachment(m)},
 	}
 }

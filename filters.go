@@ -83,14 +83,30 @@ type RoleAssignmentFilter struct {
 	Label string
 }
 
+// ValueFilter's Role/Goal/Objective/Workflow/WorkItem ID fields each
+// narrow to Values attached to that specific target (AGD-003) — exact
+// match against a resolved id, not a substring search like Code/Text.
+// Set more than one and a Value must be attached to every target named,
+// not just one of them (same AND-all-fields rule as everything else).
 type ValueFilter struct {
-	Code string
-	Text string
+	Code        string
+	Text        string
+	RoleID      string
+	GoalID      string
+	ObjectiveID string
+	WorkflowID  string
+	WorkItemID  string
 }
 
+// RuleFilter's target-id fields work exactly like [ValueFilter]'s.
 type RuleFilter struct {
-	Code string
-	Text string
+	Code        string
+	Text        string
+	RoleID      string
+	GoalID      string
+	ObjectiveID string
+	WorkflowID  string
+	WorkItemID  string
 }
 
 // IssueFilter's Severity/EntityType are exact-match against

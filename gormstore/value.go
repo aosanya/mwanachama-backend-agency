@@ -11,13 +11,13 @@ import (
 // ValueAttachmentRow now (AGD-003) — this row carries no target reference
 // of its own.
 type ValueRow struct {
-	ID          string `gorm:"primaryKey"`
-	Code        string `gorm:"index"`
-	DraftID     *string `gorm:"index"`
-	Text        string
-	CreatedAt   string
-	UpdatedAt   string
-	Deleted     bool
+	ID        string  `gorm:"primaryKey"`
+	Code      string  `gorm:"index"`
+	DraftID   *string `gorm:"index"`
+	Text      string
+	CreatedAt string
+	UpdatedAt string
+	Deleted   bool
 }
 
 func (r *ValueRow) BeforeCreate(_ *gorm.DB) error {

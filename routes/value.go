@@ -11,12 +11,20 @@ import (
 func valueStatusFor(err error) int {
 	switch {
 	case errors.Is(err, mwanachamaagency.ErrValueNotFound),
+		errors.Is(err, mwanachamaagency.ErrValueAttachmentNotFound),
+		errors.Is(err, mwanachamaagency.ErrRoleNotFound),
+		errors.Is(err, mwanachamaagency.ErrGoalNotFound),
+		errors.Is(err, mwanachamaagency.ErrObjectiveNotFound),
+		errors.Is(err, mwanachamaagency.ErrWorkflowNotFound),
+		errors.Is(err, mwanachamaagency.ErrWorkItemNotFound),
 		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, mwanachamaagency.ErrCannotEditLive),
+		errors.Is(err, mwanachamaagency.ErrDuplicateAttachment),
 		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
-	case errors.Is(err, mwanachamaagency.ErrInvalidValue):
+	case errors.Is(err, mwanachamaagency.ErrInvalidValue),
+		errors.Is(err, mwanachamaagency.ErrInvalidTargetType):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
@@ -62,11 +70,17 @@ func GetValue(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 }
 
 // ListValues handles GET — ?draft_id= selects scope ("" = live); ?code=,
-// ?text= each narrow by a case-insensitive substring match.
+// ?text= each narrow by a case-insensitive substring match; ?role_id=,
+// ?goal_id=, ?objective_id=, ?workflow_id=, ?work_item_id= each narrow to
+// Values attached to that target (AGD-003).
 func ListValues(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		filter := mwanachamaagency.ValueFilter{Code: q.Get("code"), Text: q.Get("text")}
+		filter := mwanachamaagency.ValueFilter{
+			Code: q.Get("code"), Text: q.Get("text"),
+			RoleID: q.Get("role_id"), GoalID: q.Get("goal_id"), ObjectiveID: q.Get("objective_id"),
+			WorkflowID: q.Get("workflow_id"), WorkItemID: q.Get("work_item_id"),
+		}
 		out, err := m.ListValues(r.Context(), q.Get("draft_id"), filter)
 		if err != nil {
 			writeValueErr(w, err)
@@ -107,8 +121,53 @@ func DeleteValue(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// ValueRoutes is Create/Get/List/Update/Delete for Value, addressed under
-// names.Value.
+// CreateValueAttachment handles POST {valueID}/attachments — attach a
+// Value to a Role/Goal/Objective/Workflow/WorkItem. Live-editable, no
+// Draft involved (AGD-003).
+func CreateValueAttachment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			TargetType models.TargetType `json:"target_type"`
+			TargetID   string            `json:"target_id"`
+		}
+		if err := readJSON(r, &body); err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		out, err := m.CreateValueAttachment(r.Context(), r.PathValue("valueID"), body.TargetType, body.TargetID)
+		if err != nil {
+			writeValueErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, out)
+	}
+}
+
+// ListValueAttachments handles GET {valueID}/attachments.
+func ListValueAttachments(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		out, err := m.ListValueAttachments(r.Context(), r.PathValue("valueID"))
+		if err != nil {
+			writeValueErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// DeleteValueAttachment handles DELETE {valueID}/attachments/{attachmentID}.
+func DeleteValueAttachment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := m.DeleteValueAttachment(r.Context(), r.PathValue("attachmentID")); err != nil {
+			writeValueErr(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// ValueRoutes is Create/Get/List/Update/Delete for Value, plus the nested
+// attachments sub-resource, addressed under names.Value.
 func ValueRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.Value
@@ -118,5 +177,8 @@ func ValueRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route 
 		{Method: http.MethodGet, Path: base + "/{valueID}", Handler: GetValue(m)},
 		{Method: http.MethodPatch, Path: base + "/{valueID}", Handler: UpdateValue(m)},
 		{Method: http.MethodDelete, Path: base + "/{valueID}", Handler: DeleteValue(m)},
+		{Method: http.MethodPost, Path: base + "/{valueID}/attachments", Handler: CreateValueAttachment(m)},
+		{Method: http.MethodGet, Path: base + "/{valueID}/attachments", Handler: ListValueAttachments(m)},
+		{Method: http.MethodDelete, Path: base + "/{valueID}/attachments/{attachmentID}", Handler: DeleteValueAttachment(m)},
 	}
 }

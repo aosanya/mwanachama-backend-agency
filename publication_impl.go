@@ -113,7 +113,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 	for _, r := range valueRows {
 		records = append(records, hashRecord("Value", map[string]any{
-			"id": r.ID, "objective_id": r.ObjectiveID, "text": r.Text, "deleted": r.Deleted,
+			"id": r.ID, "text": r.Text, "deleted": r.Deleted,
 		}))
 	}
 
@@ -123,7 +123,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 	for _, r := range ruleRows {
 		records = append(records, hashRecord("Rule", map[string]any{
-			"id": r.ID, "objective_id": r.ObjectiveID, "text": r.Text, "deleted": r.Deleted,
+			"id": r.ID, "text": r.Text, "deleted": r.Deleted,
 		}))
 	}
 

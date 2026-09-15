@@ -180,29 +180,52 @@ type AgencyManager interface {
 
 	// Value/Rule. Plain-text statements an AI agent acting as a Role
 	// needs made explicit (see models.Value/models.Rule's doc comments).
-	// ObjectiveID == "" means Agency-wide: those are meant to be set once
-	// (at Agency creation/seed time) and never edited — nothing here
-	// stops a caller from trying, but [CreateDraft] never forks them, so
+	// A Value/Rule with no [ValueAttachment]/[RuleAttachment] is
+	// Agency-wide: meant to be set once (at Agency creation/seed time)
+	// and never edited — nothing here stops a caller from trying, but
+	// [CreateDraft] never forks one with zero attachments, so
 	// UpdateValue/DeleteValue's [ErrCannotEditLive] check makes it
-	// permanent in practice. Objective-scoped ones are Draft-scoped, same
-	// live-immutability rule as Role. The write-authorization rule from
-	// AGD-001 (only the Objective's Accountable may write) is NOT
-	// enforced here — flagged as new machinery needing its own design.
+	// permanent in practice. One with at least one attachment is
+	// Draft-scoped for Text edits, same live-immutability rule as Role —
+	// but attaching/detaching a target (AGD-003, 2026-09-15) is
+	// live-editable and never goes through the Draft cycle at all, even
+	// on a live row. The write-authorization rule from AGD-001 (only a
+	// target's Accountable may write) is NOT enforced here — flagged as
+	// new machinery needing its own design.
 	CreateValue(ctx context.Context, v models.Value) (models.Value, error)
 	GetValue(ctx context.Context, id string) (models.Value, error)
+	// ListValues' filter can narrow to "attached to this
+	// Role/Goal/Objective/Workflow/WorkItem" via ValueFilter's target-id
+	// fields, alongside its existing Code/Text substring match.
 	ListValues(ctx context.Context, draftID string, filter ValueFilter) ([]models.Value, error)
 	// UpdateValue/DeleteValue return [ErrCannotEditLive] if the target row
 	// is live.
 	UpdateValue(ctx context.Context, v models.Value) (models.Value, error)
 	DeleteValue(ctx context.Context, id string) error
+	// CreateValueAttachment attaches valueID to one target. Returns
+	// [ErrInvalidTargetType] for an unrecognized targetType, that target
+	// type's own NotFound sentinel (e.g. [ErrRoleNotFound]) if targetID
+	// names no row, or [ErrDuplicateAttachment] if already attached.
+	CreateValueAttachment(ctx context.Context, valueID string, targetType models.TargetType, targetID string) (models.ValueAttachment, error)
+	// ListValueAttachments lists every target valueID is attached to.
+	ListValueAttachments(ctx context.Context, valueID string) ([]models.ValueAttachment, error)
+	// DeleteValueAttachment returns [ErrValueAttachmentNotFound] if id
+	// names no attachment.
+	DeleteValueAttachment(ctx context.Context, id string) error
 
 	CreateRule(ctx context.Context, r models.Rule) (models.Rule, error)
 	GetRule(ctx context.Context, id string) (models.Rule, error)
+	// ListRules' filter can narrow the same way ListValues' does.
 	ListRules(ctx context.Context, draftID string, filter RuleFilter) ([]models.Rule, error)
 	// UpdateRule/DeleteRule return [ErrCannotEditLive] if the target row
 	// is live.
 	UpdateRule(ctx context.Context, r models.Rule) (models.Rule, error)
 	DeleteRule(ctx context.Context, id string) error
+	// CreateRuleAttachment/ListRuleAttachments/DeleteRuleAttachment work
+	// exactly like their Value counterparts above.
+	CreateRuleAttachment(ctx context.Context, ruleID string, targetType models.TargetType, targetID string) (models.RuleAttachment, error)
+	ListRuleAttachments(ctx context.Context, ruleID string) ([]models.RuleAttachment, error)
+	DeleteRuleAttachment(ctx context.Context, id string) error
 
 	// Issue. A Draft-scoped, system-detected diagnostics list (info/
 	// warning/error) — e.g. an Objective with no Accountable, a Goal with

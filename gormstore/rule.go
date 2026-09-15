@@ -9,8 +9,8 @@ import (
 // RuleRow is the GORM row for a [models.Rule]. Scoping lives entirely in
 // RuleAttachmentRow now (AGD-003) — see [ValueRow]'s doc comment.
 type RuleRow struct {
-	ID        string `gorm:"primaryKey"`
-	Code      string `gorm:"index"`
+	ID        string  `gorm:"primaryKey"`
+	Code      string  `gorm:"index"`
 	DraftID   *string `gorm:"index"`
 	Text      string
 	CreatedAt string

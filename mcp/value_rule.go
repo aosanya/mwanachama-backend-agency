@@ -12,40 +12,49 @@ import (
 // registerValueRuleTools registers Value/Rule tools — plain-text
 // cultural/strategic statements (Value) and constraints (Rule) an AI agent
 // acting as a Role needs made explicit, since a human Role-holder would
-// just treat them as common knowledge. ObjectiveID "" means Agency-wide;
-// otherwise scoped to one Objective.
+// just treat them as common knowledge. A Value/Rule with no attachment at
+// all is Agency-wide; attach it to a Role/Goal/Objective/Workflow/WorkItem
+// to scope it — a single Value/Rule may carry more than one attachment at
+// once (AGD-003, 2026-09-15).
 //
-// Create/Get/List only — no update or delete tool, for either scope.
-// Agency-wide rows have no edit path at all in the library itself
-// (decision #1: "immutable... no edit path afterward, ever" — CreateDraft
-// never forks them). Objective-scoped rows do have a library-level edit
-// path (fork a Draft, edit the draft-scoped copy, promote), but the gate
-// on that path — only the Objective's Accountable may fork/edit/promote
-// its Values/Rules — has no implementation anywhere in
-// mwanachama-backend-agency yet (flagged in AgencyManager's own doc
-// comment as new auth machinery needing its own design). Exposing
-// Update/Delete tools here would let any caller holding valid credentials
-// bypass that not-yet-built gate, so neither is built even for the
-// Draft-scoped path until that design question is answered.
+// Create/Get/List/attach/detach only — no update or delete tool for the
+// Value/Rule row itself, for either scope. Agency-wide rows have no edit
+// path at all in the library itself (decision #1: "immutable... no edit
+// path afterward, ever" — CreateDraft never forks them). Attached rows do
+// have a library-level edit path for their Text (fork a Draft, edit the
+// draft-scoped copy, promote), but the gate on that path — only a
+// target's Accountable may fork/edit/promote its Values/Rules — has no
+// implementation anywhere in mwanachama-backend-agency yet (flagged in
+// AgencyManager's own doc comment as new auth machinery needing its own
+// design). Exposing an Update/Delete tool here would let any caller
+// holding valid credentials bypass that not-yet-built gate, so neither is
+// built even for the attached path until that design question is
+// answered. Attach/detach themselves are live-editable (never Draft-gated
+// — AGD-003 decision #3), so they carry no such restriction.
 func registerValueRuleTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_value", Title: "Create Value", Description: "Create a Value: a cultural/strategic statement (e.g. \"we prioritize correctness over speed\"), Agency-wide or scoped to one Objective. Informational only — nothing enforces it at runtime. No update/delete tool: Agency-wide Values have no edit path at all; Objective-scoped ones need a write-authorization gate (only the Objective's Accountable may write) that doesn't exist yet."}, mcpCreateValue(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_value", Title: "Create Value", Description: "Create a Value: a cultural/strategic statement (e.g. \"we prioritize correctness over speed\"), Agency-wide until attached to a target. Informational only — nothing enforces it at runtime. No update/delete tool: Agency-wide Values have no edit path at all; attached ones need a write-authorization gate (only a target's Accountable may write) that doesn't exist yet."}, mcpCreateValue(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_value", Title: "Get Value", Description: "Get a Value by id."}, mcpGetValue(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_values", Title: "List Values", Description: "List Values — live, or a Draft's scoped copies."}, mcpListValues(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_values", Title: "List Values", Description: "List Values — live, or a Draft's scoped copies. Filter fields narrow to Values attached to a given Role/Goal/Objective/Workflow/WorkItem."}, mcpListValues(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_attach_value", Title: "Attach Value", Description: "Attach a Value to a Role/Goal/Objective/Workflow/WorkItem, scoping what would otherwise be an Agency-wide statement. A Value may carry more than one attachment. Live-editable — takes effect immediately, no Draft involved."}, mcpAttachValue(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_value_attachments", Title: "List Value Attachments", Description: "List every target a Value is attached to."}, mcpListValueAttachments(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_detach_value", Title: "Detach Value", Description: "Remove one Value attachment by its own id. Live-editable, same as attach."}, mcpDetachValue(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_rule", Title: "Create Rule", Description: "Create a Rule: a constraint statement (e.g. \"never touch production data\"), Agency-wide or scoped to one Objective. Informational only — nothing enforces it at runtime. No update/delete tool — same reasoning as agency_create_value."}, mcpCreateRule(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_rule", Title: "Create Rule", Description: "Create a Rule: a constraint statement (e.g. \"never touch production data\"), Agency-wide until attached to a target. Informational only — nothing enforces it at runtime. No update/delete tool — same reasoning as agency_create_value."}, mcpCreateRule(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_rule", Title: "Get Rule", Description: "Get a Rule by id."}, mcpGetRule(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_rules", Title: "List Rules", Description: "List Rules — live, or a Draft's scoped copies."}, mcpListRules(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_rules", Title: "List Rules", Description: "List Rules — live, or a Draft's scoped copies. Filter fields narrow to Rules attached to a given Role/Goal/Objective/Workflow/WorkItem."}, mcpListRules(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_attach_rule", Title: "Attach Rule", Description: "Attach a Rule to a Role/Goal/Objective/Workflow/WorkItem — same behavior as agency_attach_value."}, mcpAttachRule(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_rule_attachments", Title: "List Rule Attachments", Description: "List every target a Rule is attached to."}, mcpListRuleAttachments(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_detach_rule", Title: "Detach Rule", Description: "Remove one Rule attachment by its own id."}, mcpDetachRule(resolve))
 }
 
 type mcpValueParams struct {
-	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	ObjectiveID string `json:"objective_id,omitempty" jsonschema:"\"\" for an Agency-wide Value, or the Objective it's scoped to"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Value, or the owning Draft's id for a draft-scoped copy"`
-	Text        string `json:"text" jsonschema:"the Value's text, e.g. \"we prioritize correctness over speed\""`
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	DraftID    string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Value, or the owning Draft's id for a draft-scoped copy"`
+	Text       string `json:"text" jsonschema:"the Value's text, e.g. \"we prioritize correctness over speed\""`
 }
 
 func (p mcpValueParams) toModel() models.Value {
-	return models.Value{ObjectiveID: p.ObjectiveID, DraftID: p.DraftID, Text: p.Text}
+	return models.Value{DraftID: p.DraftID, Text: p.Text}
 }
 
 func mcpCreateValue(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpValueParams) (*mcp.CallToolResult, models.Value, error) {
@@ -76,11 +85,16 @@ func mcpGetValue(resolve ManagerResolver) func(context.Context, *mcp.CallToolReq
 }
 
 // mcpListValuesParams extends instanceAndDraftParams with ValueFilter's
-// fields.
+// fields, including the five target-id filters (AGD-003).
 type mcpListValuesParams struct {
 	instanceAndDraftParams
-	Code string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
-	Text string `json:"text,omitempty" jsonschema:"filter: case-insensitive substring match on Text"`
+	Code        string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Text        string `json:"text,omitempty" jsonschema:"filter: case-insensitive substring match on Text"`
+	RoleID      string `json:"role_id,omitempty" jsonschema:"filter: only Values attached to this Role"`
+	GoalID      string `json:"goal_id,omitempty" jsonschema:"filter: only Values attached to this Goal"`
+	ObjectiveID string `json:"objective_id,omitempty" jsonschema:"filter: only Values attached to this Objective"`
+	WorkflowID  string `json:"workflow_id,omitempty" jsonschema:"filter: only Values attached to this Workflow"`
+	WorkItemID  string `json:"work_item_id,omitempty" jsonschema:"filter: only Values attached to this WorkItem"`
 }
 
 func mcpListValues(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListValuesParams) (*mcp.CallToolResult, ListResult[models.Value], error) {
@@ -89,20 +103,68 @@ func mcpListValues(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 		if err != nil {
 			return nil, ListResult[models.Value]{}, err
 		}
-		out, err := m.ListValues(ctx, p.DraftID, mwanachamaagency.ValueFilter{Code: p.Code, Text: p.Text})
+		out, err := m.ListValues(ctx, p.DraftID, mwanachamaagency.ValueFilter{
+			Code: p.Code, Text: p.Text,
+			RoleID: p.RoleID, GoalID: p.GoalID, ObjectiveID: p.ObjectiveID,
+			WorkflowID: p.WorkflowID, WorkItemID: p.WorkItemID,
+		})
 		return summary("Found %d value(s)", len(out)), ListResult[models.Value]{Items: out}, err
 	}
 }
 
+type mcpAttachValueParams struct {
+	InstanceID string            `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	ValueID    string            `json:"value_id" jsonschema:"the Value's id"`
+	TargetType models.TargetType `json:"target_type" jsonschema:"one of: role, goal, objective, workflow, work_item"`
+	TargetID   string            `json:"target_id" jsonschema:"the target's id"`
+}
+
+func mcpAttachValue(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpAttachValueParams) (*mcp.CallToolResult, models.ValueAttachment, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpAttachValueParams) (*mcp.CallToolResult, models.ValueAttachment, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.ValueAttachment{}, err
+		}
+		out, err := m.CreateValueAttachment(ctx, p.ValueID, p.TargetType, p.TargetID)
+		return summary("Attached Value %s to %s %s", out.ValueCode, out.TargetType, out.TargetCode), out, err
+	}
+}
+
+func mcpListValueAttachments(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpValueIDParams) (*mcp.CallToolResult, ListResult[models.ValueAttachment], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpValueIDParams) (*mcp.CallToolResult, ListResult[models.ValueAttachment], error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, ListResult[models.ValueAttachment]{}, err
+		}
+		out, err := m.ListValueAttachments(ctx, p.ValueID)
+		return summary("Found %d attachment(s)", len(out)), ListResult[models.ValueAttachment]{Items: out}, err
+	}
+}
+
+type mcpAttachmentIDParams struct {
+	InstanceID   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	AttachmentID string `json:"attachment_id" jsonschema:"the attachment's own id"`
+}
+
+func mcpDetachValue(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpAttachmentIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpAttachmentIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, DeleteResult{}, err
+		}
+		err = m.DeleteValueAttachment(ctx, p.AttachmentID)
+		return summary("Detached value attachment %s", p.AttachmentID), DeleteResult{Deleted: err == nil}, err
+	}
+}
+
 type mcpRuleParams struct {
-	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	ObjectiveID string `json:"objective_id,omitempty" jsonschema:"\"\" for an Agency-wide Rule, or the Objective it's scoped to"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Rule, or the owning Draft's id for a draft-scoped copy"`
-	Text        string `json:"text" jsonschema:"the Rule's text, e.g. \"never touch production data\""`
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	DraftID    string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Rule, or the owning Draft's id for a draft-scoped copy"`
+	Text       string `json:"text" jsonschema:"the Rule's text, e.g. \"never touch production data\""`
 }
 
 func (p mcpRuleParams) toModel() models.Rule {
-	return models.Rule{ObjectiveID: p.ObjectiveID, DraftID: p.DraftID, Text: p.Text}
+	return models.Rule{DraftID: p.DraftID, Text: p.Text}
 }
 
 func mcpCreateRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpRuleParams) (*mcp.CallToolResult, models.Rule, error) {
@@ -133,11 +195,16 @@ func mcpGetRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequ
 }
 
 // mcpListRulesParams extends instanceAndDraftParams with RuleFilter's
-// fields.
+// fields, including the five target-id filters (AGD-003).
 type mcpListRulesParams struct {
 	instanceAndDraftParams
-	Code string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
-	Text string `json:"text,omitempty" jsonschema:"filter: case-insensitive substring match on Text"`
+	Code        string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Text        string `json:"text,omitempty" jsonschema:"filter: case-insensitive substring match on Text"`
+	RoleID      string `json:"role_id,omitempty" jsonschema:"filter: only Rules attached to this Role"`
+	GoalID      string `json:"goal_id,omitempty" jsonschema:"filter: only Rules attached to this Goal"`
+	ObjectiveID string `json:"objective_id,omitempty" jsonschema:"filter: only Rules attached to this Objective"`
+	WorkflowID  string `json:"workflow_id,omitempty" jsonschema:"filter: only Rules attached to this Workflow"`
+	WorkItemID  string `json:"work_item_id,omitempty" jsonschema:"filter: only Rules attached to this WorkItem"`
 }
 
 func mcpListRules(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListRulesParams) (*mcp.CallToolResult, ListResult[models.Rule], error) {
@@ -146,7 +213,51 @@ func mcpListRules(resolve ManagerResolver) func(context.Context, *mcp.CallToolRe
 		if err != nil {
 			return nil, ListResult[models.Rule]{}, err
 		}
-		out, err := m.ListRules(ctx, p.DraftID, mwanachamaagency.RuleFilter{Code: p.Code, Text: p.Text})
+		out, err := m.ListRules(ctx, p.DraftID, mwanachamaagency.RuleFilter{
+			Code: p.Code, Text: p.Text,
+			RoleID: p.RoleID, GoalID: p.GoalID, ObjectiveID: p.ObjectiveID,
+			WorkflowID: p.WorkflowID, WorkItemID: p.WorkItemID,
+		})
 		return summary("Found %d rule(s)", len(out)), ListResult[models.Rule]{Items: out}, err
+	}
+}
+
+type mcpAttachRuleParams struct {
+	InstanceID string            `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	RuleID     string            `json:"rule_id" jsonschema:"the Rule's id"`
+	TargetType models.TargetType `json:"target_type" jsonschema:"one of: role, goal, objective, workflow, work_item"`
+	TargetID   string            `json:"target_id" jsonschema:"the target's id"`
+}
+
+func mcpAttachRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpAttachRuleParams) (*mcp.CallToolResult, models.RuleAttachment, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpAttachRuleParams) (*mcp.CallToolResult, models.RuleAttachment, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.RuleAttachment{}, err
+		}
+		out, err := m.CreateRuleAttachment(ctx, p.RuleID, p.TargetType, p.TargetID)
+		return summary("Attached Rule %s to %s %s", out.RuleCode, out.TargetType, out.TargetCode), out, err
+	}
+}
+
+func mcpListRuleAttachments(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpRuleIDParams) (*mcp.CallToolResult, ListResult[models.RuleAttachment], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpRuleIDParams) (*mcp.CallToolResult, ListResult[models.RuleAttachment], error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, ListResult[models.RuleAttachment]{}, err
+		}
+		out, err := m.ListRuleAttachments(ctx, p.RuleID)
+		return summary("Found %d attachment(s)", len(out)), ListResult[models.RuleAttachment]{Items: out}, err
+	}
+}
+
+func mcpDetachRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpAttachmentIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpAttachmentIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, DeleteResult{}, err
+		}
+		err = m.DeleteRuleAttachment(ctx, p.AttachmentID)
+		return summary("Detached rule attachment %s", p.AttachmentID), DeleteResult{Deleted: err == nil}, err
 	}
 }

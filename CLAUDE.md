@@ -654,6 +654,118 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     updated after. Flagged on that repo's own board note, not touched
     here.
 
+- **AG22 landed 2026-09-15: `Value`/`Rule` attach to Role/Goal/Objective/
+  Workflow/WorkItem, not just Objective — and to more than one target at
+  once.** Implements
+  [AGD-003](../2.%20design/todo_details/AGD-003.md), a design
+  conversation the same day prompted directly by the user ("I want to
+  change Values and Rules to be attachable to Roles, Goals, Objectives,
+  Workflows and WorkItems"). `ValueRow`/`RuleRow` lost `ObjectiveID`
+  entirely — scoping now lives in two new join tables,
+  `ValueAttachmentRow`/`RuleAttachmentRow` (`models/attachment.go`'s
+  `TargetType` enum: role/goal/objective/workflow/work_item), each row
+  carrying zero-to-many attachments. Zero attachments still means
+  Agency-wide, same permanent-immutability rule as before.
+  - **Referenced by Code, not row id, on both sides** — the one detail
+    AGD-003 flagged as a consequence rather than an upfront decision:
+    every attachable type (Value/Rule included) mints a brand-new row id
+    on every Draft promotion (AG6's own note on this), but attaching is
+    live-editable (AGD-003 decision #3) and so sits outside the fork/
+    promote lifecycle entirely — an id-keyed attachment would silently
+    go stale the first time anyone promoted any Draft touching either
+    side. Code survives that churn unchanged (AG16), so
+    `CreateValueAttachment`/`CreateRuleAttachment` resolve both the
+    Value/Rule and the target to their Code at write time
+    (`attachment_impl.go`'s `resolveCodeByID`/`resolveTargetCode`) and
+    store that, not the id. Reads (`ListValueAttachments`, and
+    `ListValues`/`ListRules`'s new target-id filters) always re-resolve
+    against whatever is live right now, so a caller never sees a stale
+    id. One correctness side effect worth knowing: this makes
+    `CreateDraft`/`PromoteDraft`'s Value/Rule handling *simpler* than
+    before, not more complex — fork-eligibility changed from a column
+    test (`objective_id IS NOT NULL`) to an `EXISTS`-style Code lookup
+    against the attachments table, and the old per-row `ObjectiveID`
+    remap in `CreateDraft`'s copy loop is gone outright, since
+    attachments are never forked or remapped at all.
+  - **Ten narrow join tables vs. two polymorphic ones** — AGD-003's one
+    explicitly left-open call — resolved as **two** (`ValueAttachment`,
+    `RuleAttachment`, each with `TargetType`/`TargetCode`), not ten. Ten
+    near-identical tables/files for what's structurally the same
+    relationship shape didn't earn its keep against AGD-002's
+    `ObjectiveModule` precedent once weighed against the actual
+    duplication cost; two tables with a `(target_type, target_code)`
+    index recovers most of the query performance a named column would
+    have given for free.
+  - **Existence validation** reuses each target type's own existing
+    NotFound sentinel (`ErrRoleNotFound`, `ErrGoalNotFound`, ...) via
+    `agencyManager.targetTable` — `CreateValueAttachment`/
+    `CreateRuleAttachment` return the specific one, not a generic "target
+    not found". New `ErrInvalidTargetType` for an unrecognized
+    `TargetType`, `ErrDuplicateAttachment` for re-attaching the same
+    (Value/Rule, target) pair.
+  - **No create-time convenience** — `CreateValue`/`CreateRule` still
+    take only `Text`/`DraftID`; attaching is always a separate
+    `CreateValueAttachment`/`CreateRuleAttachment` call. AGD-003 left
+    this open; not built, to keep Create's shape unchanged.
+  - **`ValueFilter`/`RuleFilter` gained `RoleID`/`GoalID`/`ObjectiveID`/
+    `WorkflowID`/`WorkItemID`** (`attachment_impl.go`'s
+    `applyTargetFilters`) — the List-filtering gap AGD-003 flagged (there
+    was no server-side Value/Rule filtering of any kind before this,
+    not even by the old single `ObjectiveID`) is closed for all five
+    target types at once. An id that resolves to no row at all yields an
+    empty list, not an error — same "narrows to nothing" convention
+    every other filter here follows.
+  - Write-authorization (AGD-001's "only a target's Accountable may
+    write") stays unbuilt, as AGD-003 anticipated — flagged again in
+    `AgencyManager`'s doc comment.
+  - `mcp/value_rule.go` gained `agency_attach_value`/
+    `agency_list_value_attachments`/`agency_detach_value` and the Rule
+    equivalents; `agency_create_value`/`agency_create_rule` lost their
+    `objective_id` parameter. `routes/value.go`/`rule.go` gained the
+    nested `/{id}/attachments` sub-resource
+    (POST/GET, plus `DELETE .../attachments/{attachmentID}`) and
+    `?role_id=`/`?goal_id=`/etc. query params on the List routes.
+  - **Found and fixed along the way**: `gormstore/value_attachment.go`'s
+    first cut named its composite index with a fixed string
+    (`idx_value_attachment_target`) — broke immediately against
+    `mwanachama-wakala-api`'s multi-instance registry, since SQLite index
+    names are database-global, not per-table, and every instance's table
+    set shares one physical SQLite/Postgres database. Fixed by dropping
+    back to plain unnamed `gorm:"index"` per column (GORM auto-names it
+    from the table name, matching every other indexed column in this
+    package) — caught by `mwanachama-wakala-api`'s own
+    `TestAgencyRoutes_ScopedPerInstance` and `TestMCP_
+    MinimalArgumentsAcrossToolGroups`, not by this repo's own suite
+    (a single-instance test harness never exercises the collision).
+  - New `value_test.go`/`rule_test.go` (this repo had zero Value/Rule
+    test coverage before this task, at any layer) and
+    `routes/value_test.go` — attach/list/detach lifecycle, duplicate/
+    invalid-target-type/target-not-found errors, multi-target-on-one-Value,
+    Agency-wide permanent-immutability, and the key regression case: a
+    Value/Rule attached before a fork still resolves after
+    `PromoteDraft` replaces its live row with a new id.
+  - Verified: `go build`/`go vet`/`go test ./...`/`gofmt -l .` all clean
+    here. Rebuilt and retested `mwanachama-backend-api-shared`,
+    `mwanachama-wakala-api`, `mwanachama-backend-api-gateway`, and
+    `mwanachama-backend-api-kazi` (all four locally `replace`d) — all
+    build clean; `mwanachama-wakala-api`'s own `mcp_test.go` needed one
+    fix (`TestMCP_MinimalArgumentsAcrossToolGroups` still called
+    `agency_create_value` with the now-removed `objective_id` argument)
+    and its `cmd/server/selftest/selftest_value_rule.go` needed updating
+    to attach via the new endpoint instead of a create-time argument —
+    both fixed in that repo directly, not filed as a follow-up, since
+    they were mechanical and directly caused by this change. The
+    gateway's `TestPostmanCollectionCoversEveryRoute` gate — already
+    failing before this task (AG18/AG20's own notes) — now reports 23
+    uncovered routes, up from 17: this task's 6 new attachment routes
+    (3 each for Value/Rule) land on the same pre-existing, already-filed
+    gap, not a new one; not fixed here, same reasoning as AG12/AG20's own
+    deferral. `mwanachama-wakala-studio` needed no change — grepped for
+    any hand-written Value/Rule UI referencing `objective_id` and found
+    none; Value/Rule has no dedicated Studio panel yet, so it already
+    falls through the generic module fallback the CLAUDE.md's own
+    AG13 cross-repo note describes.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

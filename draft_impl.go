@@ -86,10 +86,14 @@ func (m *agencyManager) validateOpenDraftID(ctx context.Context, draftID string)
 // business key, not a row id). A live Role can only be edited by forking
 // it into a draft this way, editing the copy, then promoting.
 //
-// Agency-wide Value/Rule rows (ObjectiveID == "") are deliberately never
-// copied here — AGD-001 confirmed they have no edit path at all, ever, and
-// forking them into a Draft would be exactly that. Only Objective-scoped
-// ones fork, same as Goal/WorkItem/Role.
+// Agency-wide Value/Rule rows (no [models.ValueAttachment]/
+// [models.RuleAttachment] at all) are deliberately never copied here —
+// AGD-001 confirmed they have no edit path at all, ever, and forking them
+// into a Draft would be exactly that. Only rows carrying at least one
+// attachment fork, same as Goal/WorkItem/Role. Attachments themselves are
+// never forked or remapped here — AGD-003 (2026-09-15) made them
+// live-editable, addressed by Code rather than row id specifically so
+// they need no remap step at fork or promote time.
 func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFromID, forkedFromType string) (models.Draft, error) {
 	var out models.Draft
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -243,19 +247,20 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			}
 		}
 
-		// Only Objective-scoped Value/Rule rows fork — Agency-wide ones
-		// (ObjectiveID == "") are excluded by this query and so can never
-		// enter a Draft at all. See this function's doc comment.
+		// Only Value/Rule rows carrying at least one attachment fork —
+		// Agency-wide ones (no attachment at all) are excluded by this
+		// query and so can never enter a Draft. See this function's doc
+		// comment. No id remap needed — attachments reference Code, not
+		// row id.
 		var valueRows []gormstore.ValueRow
-		if err := scopeQuery(tx.Table(m.tables.Values), sourceScope).Where("objective_id IS NOT NULL").Find(&valueRows).Error; err != nil {
+		if err := scopeQuery(tx.Table(m.tables.Values), sourceScope).
+			Where("code IN (SELECT value_code FROM " + m.tables.ValueAttachments + ")").
+			Find(&valueRows).Error; err != nil {
 			return fmt.Errorf("CreateDraft: %w", err)
 		}
 		for _, vr := range valueRows {
 			v := gormstore.ValueFromRow(vr)
 			v.ID, v.DraftID, v.CreatedAt = "", newDraftID, now
-			if mapped, ok := objectiveIDMap[v.ObjectiveID]; ok {
-				v.ObjectiveID = mapped
-			}
 			newRow := gormstore.ValueToRow(v)
 			if err := tx.Table(m.tables.Values).Create(&newRow).Error; err != nil {
 				return fmt.Errorf("CreateDraft: %w", err)
@@ -263,15 +268,14 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 		}
 
 		var ruleRows []gormstore.RuleRow
-		if err := scopeQuery(tx.Table(m.tables.Rules), sourceScope).Where("objective_id IS NOT NULL").Find(&ruleRows).Error; err != nil {
+		if err := scopeQuery(tx.Table(m.tables.Rules), sourceScope).
+			Where("code IN (SELECT rule_code FROM " + m.tables.RuleAttachments + ")").
+			Find(&ruleRows).Error; err != nil {
 			return fmt.Errorf("CreateDraft: %w", err)
 		}
 		for _, rr := range ruleRows {
 			r := gormstore.RuleFromRow(rr)
 			r.ID, r.DraftID, r.CreatedAt = "", newDraftID, now
-			if mapped, ok := objectiveIDMap[r.ObjectiveID]; ok {
-				r.ObjectiveID = mapped
-			}
 			newRow := gormstore.RuleToRow(r)
 			if err := tx.Table(m.tables.Rules).Create(&newRow).Error; err != nil {
 				return fmt.Errorf("CreateDraft: %w", err)
@@ -330,12 +334,12 @@ func (m *agencyManager) UpdateDraftDescription(ctx context.Context, id, descript
 
 // PromoteDraft requires the Draft to be open. It deletes the current live
 // Goal/Objective/Workflow/WorkItem/EventFlowStep/Role/RoleAssignment/
-// Value/Rule rows (Value/Rule scoped to `objective_id IS NOT NULL` only —
-// Agency-wide ones are never draft-scoped, so must never be deleted here),
-// flips the Draft's own rows' DraftID to "" (making them live — no
-// copy-and-swap needed since a [models.Draft]-scoped row already exists
-// and just needs reclassifying), writes an AgencySnapshot, marks the
-// Agency enabled, and marks the Draft promoted.
+// Value/Rule rows (Value/Rule scoped to rows carrying at least one
+// attachment only — Agency-wide ones are never draft-scoped, so must never
+// be deleted here), flips the Draft's own rows' DraftID to "" (making them
+// live — no copy-and-swap needed since a [models.Draft]-scoped row already
+// exists and just needs reclassifying), writes an AgencySnapshot, marks
+// the Agency enabled, and marks the Draft promoted.
 func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (models.Agency, error) {
 	var out models.Agency
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -369,10 +373,14 @@ func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (model
 		if err := tx.Table(m.tables.RoleAssignments).Where("draft_id IS NULL").Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
-		if err := tx.Table(m.tables.Values).Where("draft_id IS NULL AND objective_id IS NOT NULL").Delete(&gormstore.ValueRow{}).Error; err != nil {
+		if err := tx.Table(m.tables.Values).
+			Where("draft_id IS NULL AND code IN (SELECT value_code FROM " + m.tables.ValueAttachments + ")").
+			Delete(&gormstore.ValueRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
-		if err := tx.Table(m.tables.Rules).Where("draft_id IS NULL AND objective_id IS NOT NULL").Delete(&gormstore.RuleRow{}).Error; err != nil {
+		if err := tx.Table(m.tables.Rules).
+			Where("draft_id IS NULL AND code IN (SELECT rule_code FROM " + m.tables.RuleAttachments + ")").
+			Delete(&gormstore.RuleRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
 

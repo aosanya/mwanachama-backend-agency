@@ -7,12 +7,13 @@ import (
 )
 
 // RuleAttachmentRow is the GORM row for a [models.RuleAttachment]. See
-// [ValueAttachmentRow]'s doc comment.
+// [ValueAttachmentRow]'s doc comment (same fixed-composite-index-name
+// pitfall applies here).
 type RuleAttachmentRow struct {
 	ID         string `gorm:"primaryKey"`
-	RuleCode   string `gorm:"index:idx_rule_attachment_rule"`
-	TargetType string `gorm:"index:idx_rule_attachment_target"`
-	TargetCode string `gorm:"index:idx_rule_attachment_target"`
+	RuleCode   string `gorm:"index"`
+	TargetType string `gorm:"index"`
+	TargetCode string `gorm:"index"`
 	CreatedAt  string
 }
 

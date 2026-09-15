@@ -9,11 +9,16 @@ import (
 // ValueAttachmentRow is the GORM row for a [models.ValueAttachment]. No
 // Code (a join row, matching RoleAssignmentRow's precedent) and no
 // DraftID — attachments are live-editable, never Draft-scoped (AGD-003).
+//
+// Each column gets its own plain, unnamed `index` tag (GORM auto-names it
+// from the table name) rather than a fixed composite index name — a fixed
+// name collides across mwanachama-wakala-api's multiple per-instance table
+// sets, since SQLite index names are database-global, not per-table.
 type ValueAttachmentRow struct {
 	ID         string `gorm:"primaryKey"`
-	ValueCode  string `gorm:"index:idx_value_attachment_value"`
-	TargetType string `gorm:"index:idx_value_attachment_target"`
-	TargetCode string `gorm:"index:idx_value_attachment_target"`
+	ValueCode  string `gorm:"index"`
+	TargetType string `gorm:"index"`
+	TargetCode string `gorm:"index"`
 	CreatedAt  string
 }
 

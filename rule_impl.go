@@ -45,13 +45,24 @@ func (m *agencyManager) GetRule(ctx context.Context, id string) (models.Rule, er
 }
 
 // ListRules returns live Rules when draftID is "", or draftID's
-// draft-scoped copies otherwise, narrowed by filter. Agency-wide Rules
-// (ObjectiveID == "") only ever show up in the "" (live) list — they are
-// never forked.
+// draft-scoped copies otherwise, narrowed by filter — including,
+// optionally, "only Rules attached to this Role/Goal/Objective/Workflow/
+// WorkItem" (AGD-003). Rules with no attachment at all (Agency-wide) only
+// ever show up in the "" (live) list — they are never forked.
 func (m *agencyManager) ListRules(ctx context.Context, draftID string, filter RuleFilter) ([]models.Rule, error) {
 	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Rules), draftID)
 	q = likeFilter(q, "code", filter.Code)
 	q = likeFilter(q, "text", filter.Text)
+	q, matchable, err := m.applyTargetFilters(ctx, q, m.tables.RuleAttachments, "rule_code", targetFilters{
+		RoleID: filter.RoleID, GoalID: filter.GoalID, ObjectiveID: filter.ObjectiveID,
+		WorkflowID: filter.WorkflowID, WorkItemID: filter.WorkItemID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("ListRules: %w", err)
+	}
+	if !matchable {
+		return nil, nil
+	}
 	var rows []gormstore.RuleRow
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListRules: %w", err)
@@ -65,8 +76,8 @@ func (m *agencyManager) ListRules(ctx context.Context, draftID string, filter Ru
 
 // UpdateRule replaces r's mutable fields via an explicit column map (see
 // UpdateGoal's doc for why). Returns [ErrCannotEditLive] if the existing
-// row is live — permanent for an Agency-wide Rule, since nothing ever
-// forks one into a Draft.
+// row is live — permanent for a Rule with no attachments, since nothing
+// ever forks one into a Draft.
 func (m *agencyManager) UpdateRule(ctx context.Context, r models.Rule) (models.Rule, error) {
 	existing, err := m.findRuleRow(ctx, m.db, r.ID)
 	if err != nil {
@@ -116,4 +127,74 @@ func (m *agencyManager) findRuleRow(ctx context.Context, tx *gorm.DB, id string)
 		return gormstore.RuleRow{}, fmt.Errorf("findRuleRow: %w", err)
 	}
 	return row, nil
+}
+
+// CreateRuleAttachment attaches ruleID to one target (targetID, of
+// targetType) — live-editable, no Draft involved. See
+// [AgencyManager.CreateValueAttachment]'s doc comment; identical behavior.
+func (m *agencyManager) CreateRuleAttachment(ctx context.Context, ruleID string, targetType models.TargetType, targetID string) (models.RuleAttachment, error) {
+	var out models.RuleAttachment
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		ruleCode, err := resolveCodeByID(ctx, tx, m.tables.Rules, ruleID, ErrRuleNotFound)
+		if err != nil {
+			return err
+		}
+		targetCode, err := m.resolveTargetCode(ctx, tx, targetType, targetID)
+		if err != nil {
+			return err
+		}
+		var count int64
+		if err := tx.WithContext(ctx).Table(m.tables.RuleAttachments).
+			Where("rule_code = ? AND target_type = ? AND target_code = ?", ruleCode, string(targetType), targetCode).
+			Count(&count).Error; err != nil {
+			return fmt.Errorf("CreateRuleAttachment: %w", err)
+		}
+		if count > 0 {
+			return ErrDuplicateAttachment
+		}
+		row := gormstore.RuleAttachmentToRow(models.RuleAttachment{
+			RuleCode: ruleCode, TargetType: targetType, TargetCode: targetCode,
+			CreatedAt: models.NowRFC3339(),
+		})
+		if err := tx.Table(m.tables.RuleAttachments).Create(&row).Error; err != nil {
+			return fmt.Errorf("CreateRuleAttachment: %w", err)
+		}
+		out = gormstore.RuleAttachmentFromRow(row)
+		return nil
+	})
+	if err != nil {
+		return models.RuleAttachment{}, err
+	}
+	return out, nil
+}
+
+// ListRuleAttachments lists every target ruleID is attached to.
+func (m *agencyManager) ListRuleAttachments(ctx context.Context, ruleID string) ([]models.RuleAttachment, error) {
+	ruleCode, err := resolveCodeByID(ctx, m.db.WithContext(ctx), m.tables.Rules, ruleID, ErrRuleNotFound)
+	if err != nil {
+		return nil, err
+	}
+	var rows []gormstore.RuleAttachmentRow
+	if err := m.db.WithContext(ctx).Table(m.tables.RuleAttachments).
+		Where("rule_code = ?", ruleCode).Find(&rows).Error; err != nil {
+		return nil, fmt.Errorf("ListRuleAttachments: %w", err)
+	}
+	out := make([]models.RuleAttachment, len(rows))
+	for i, row := range rows {
+		out[i] = gormstore.RuleAttachmentFromRow(row)
+	}
+	return out, nil
+}
+
+// DeleteRuleAttachment removes one attachment by its own id.
+func (m *agencyManager) DeleteRuleAttachment(ctx context.Context, id string) error {
+	res := m.db.WithContext(ctx).Table(m.tables.RuleAttachments).Where("id = ?", id).
+		Delete(&gormstore.RuleAttachmentRow{})
+	if res.Error != nil {
+		return fmt.Errorf("DeleteRuleAttachment: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return ErrRuleAttachmentNotFound
+	}
+	return nil
 }
