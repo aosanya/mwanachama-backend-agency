@@ -41,6 +41,7 @@ func registerGoalWorkflowTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_workflow", Title: "Get Workflow", Description: "Get a Workflow by id."}, mcpGetWorkflow(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_workflows", Title: "List Workflows", Description: "List Workflows — live, or a Draft's scoped copies."}, mcpListWorkflows(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_workflow", Title: "Update Workflow", Description: "Update a Workflow (full replace). id is required."}, mcpUpdateWorkflow(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_workflow", Title: "Delete Workflow", Description: "Delete a Workflow. Cascades: also deletes every WorkItem owned by it — warn the operator about that before calling this."}, mcpDeleteWorkflow(resolve))
 
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_work_item", Title: "Create Work Item", Description: "Create a WorkItem within a Workflow, belonging to an Objective."}, mcpCreateWorkItem(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_work_item", Title: "Get Work Item", Description: "Get a WorkItem by id."}, mcpGetWorkItem(resolve))
@@ -223,6 +224,19 @@ func mcpUpdateWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallT
 		}
 		out, err := m.UpdateWorkflow(ctx, p.toModel())
 		return summary("Updated Workflow %s %q (%s)", out.Code, out.Name, out.ID), out, err
+	}
+}
+
+func mcpDeleteWorkflow(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpWorkflowIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpWorkflowIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, DeleteResult{}, err
+		}
+		if err := m.DeleteWorkflow(ctx, p.WorkflowID); err != nil {
+			return nil, DeleteResult{}, err
+		}
+		return summary("Deleted Workflow %s", p.WorkflowID), DeleteResult{Deleted: true}, nil
 	}
 }
 

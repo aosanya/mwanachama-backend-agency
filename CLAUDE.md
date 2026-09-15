@@ -566,6 +566,30 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   clean here and in `mwanachama-wakala-api` (both locally `replace`d),
   `tsc --noEmit` clean in `mwanachama-wakala-studio`.
 
+- **AG20 landed 2026-09-14: `DeleteWorkflow`, cascading to its WorkItems.**
+  Closes half of WKS30's (`mwanachama-wakala-studio`) known gap — its
+  `WorkflowsPanel` had Edit but no Delete button because this repo had no
+  `agency_delete_workflow` tool to call; Work Item Delete is still missing
+  and stays out of scope here. Exact same shape as AG18's `DeleteGoal`/
+  `DeleteObjective`: one transaction in `workflow_impl.go` deleting
+  `WorkItem` rows `WHERE workflow_id = id` before deleting the `Workflow`
+  row itself, a `mcp/goal.go` `agency_delete_workflow` tool reusing the
+  already-existing `mcpWorkflowIDParams` (previously only used by Get), and
+  root `workflow_test.go` (new file — Workflow had no root-level test file
+  yet) covering not-found, cascade, and no-WorkItems-to-cascade cases. A
+  WorkItem carries no RACI of its own (RoleAssignment is Objective-scoped
+  since AG12), so — unlike `DeleteGoal`'s further cascade into
+  RoleAssignments — there is nothing past WorkItem to cascade into.
+  `mwanachama-wakala-studio`'s own `deleteWorkflow`/cascade-count-warning
+  wiring needed one thing `DeleteGoal`/`DeleteObjective`'s Studio side
+  didn't: Goal/Objective are shown live-only throughout Studio, but
+  Workflow/WorkItem genuinely are edited via the standing Draft, so the
+  cascade count's `agency_list_work_items` call must pass the real
+  `draft_id` (whatever scope the Workflow being deleted is actually in),
+  not a hardcoded live-only `''`. Verified: `go build`/`go vet`/`go test
+  ./...` clean here and in `mwanachama-wakala-api` (locally `replace`d),
+  `tsc --noEmit` and `vitest run` clean in `mwanachama-wakala-studio`.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

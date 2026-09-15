@@ -83,6 +83,27 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 	return gormstore.WorkflowFromRow(row), nil
 }
 
+// DeleteWorkflow deletes w and cascades to every WorkItem owned by it —
+// see [AgencyManager]'s doc comment. One transaction, so a failure partway
+// through never leaves a Workflow deleted with orphaned WorkItems still
+// behind, or vice versa.
+func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
+	if _, err := m.findWorkflowRow(ctx, m.db, id); err != nil {
+		return err
+	}
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Table(m.tables.WorkItems).Where("workflow_id = ?", id).
+			Delete(&gormstore.WorkItemRow{}).Error; err != nil {
+			return err
+		}
+		return tx.Table(m.tables.Workflows).Where("id = ?", id).Delete(&gormstore.WorkflowRow{}).Error
+	})
+	if err != nil {
+		return fmt.Errorf("DeleteWorkflow: %w", err)
+	}
+	return nil
+}
+
 func (m *agencyManager) findWorkflowRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.WorkflowRow, error) {
 	var row gormstore.WorkflowRow
 	err := tx.WithContext(ctx).Table(m.tables.Workflows).Where("id = ?", id).First(&row).Error

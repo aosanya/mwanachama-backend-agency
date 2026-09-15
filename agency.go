@@ -54,6 +54,11 @@ type AgencyManager interface {
 	GetWorkflow(ctx context.Context, id string) (models.Workflow, error)
 	ListWorkflows(ctx context.Context, draftID string, filter WorkflowFilter) ([]models.Workflow, error)
 	UpdateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error)
+	// DeleteWorkflow cascades: every WorkItem owned by it is deleted too —
+	// same reasoning as DeleteGoal's cascade above (see its doc comment).
+	// A WorkItem carries no RACI of its own (RoleAssignment is
+	// Objective-scoped, AG12), so there is nothing further to cascade to.
+	DeleteWorkflow(ctx context.Context, id string) error
 
 	// WorkItem. Belongs to exactly one Objective — CreateWorkItem/
 	// UpdateWorkItem return [ErrInvalidWorkItem] if ObjectiveID is empty.
