@@ -125,4 +125,18 @@ var (
 	// Issue only ever exists scoped to a Draft, unlike every other List
 	// method's nullable-DraftID ("" means live) convention.
 	ErrDraftIDRequired = errors.New("mwanachamaagency: draft id is required")
+	// ErrInvalidModule is returned by CreateModule when Code is empty.
+	ErrInvalidModule = errors.New("mwanachamaagency: invalid module")
+	// ErrDuplicateModule is returned by CreateModule when a Module with
+	// the same Code already exists in the same scope.
+	ErrDuplicateModule = errors.New("mwanachamaagency: module code already exists")
+	// ErrModuleNotFound is returned when a Module id has no match in the
+	// expected scope.
+	ErrModuleNotFound = errors.New("mwanachamaagency: module not found")
+	// ErrDuplicateObjectiveModule is returned by CreateObjectiveModule when
+	// the same (Objective, Module) pair is already linked in that scope.
+	ErrDuplicateObjectiveModule = errors.New("mwanachamaagency: objective already linked to this module")
+	// ErrObjectiveModuleNotFound is returned when an ObjectiveModule id has
+	// no match.
+	ErrObjectiveModuleNotFound = errors.New("mwanachamaagency: objective module not found")
 )

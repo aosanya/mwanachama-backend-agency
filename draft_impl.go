@@ -42,6 +42,16 @@ func eqFilter(q *gorm.DB, column, value string) *gorm.DB {
 	return q.Where(column+" = ?", value)
 }
 
+// eqBoolFilter chains an exact match on column onto q, or returns q
+// unchanged if value is nil. A *bool rather than eqFilter's ""-means-unset
+// convention, since a bare bool has no value that can mean "not set."
+func eqBoolFilter(q *gorm.DB, column string, value *bool) *gorm.DB {
+	if value == nil {
+		return q
+	}
+	return q.Where(column+" = ?", *value)
+}
+
 func (m *agencyManager) findDraftRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.DraftRow, error) {
 	var row gormstore.DraftRow
 	err := tx.WithContext(ctx).Table(m.tables.Drafts).Where("id = ?", id).First(&row).Error
@@ -79,12 +89,15 @@ func (m *agencyManager) validateOpenDraftID(ctx context.Context, draftID string)
 // CreateDraft forks the sub-graph scoped to forkedFromID (an Agency.ID when
 // forkedFromType=="live", or another open Draft's ID when
 // forkedFromType=="draft") into brand-new Goal/Objective/Workflow/
-// WorkItem/EventFlowStep/Role/RoleAssignment/Value/Rule rows scoped to the
-// new Draft. Objective's GoalID, WorkItem's WorkflowID/ObjectiveID, and
-// RoleAssignment's RoleID/ObjectiveID are remapped to the copies' new ids;
-// EventFlowStep needs no remap (it joins Workflow by the WorkflowCode
-// business key, not a row id). A live Role can only be edited by forking
-// it into a draft this way, editing the copy, then promoting.
+// WorkItem/EventFlowStep/Role/RoleAssignment/Module/ObjectiveModule/Value/
+// Rule rows scoped to the new Draft. Objective's GoalID, WorkItem's
+// WorkflowID/ObjectiveID, RoleAssignment's RoleID/ObjectiveID, and
+// ObjectiveModule's ObjectiveID/ModuleID are remapped to the copies' new
+// ids; EventFlowStep needs no remap (it joins Workflow by the
+// WorkflowCode business key, not a row id), and nothing points into
+// Module, so its own copy loop needs no remap either. A live Role can only
+// be edited by forking it into a draft this way, editing the copy, then
+// promoting.
 //
 // Agency-wide Value/Rule rows (no [models.ValueAttachment]/
 // [models.RuleAttachment] at all) are deliberately never copied here —
@@ -228,6 +241,22 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			roleIDMap[oldID] = newRow.ID
 		}
 
+		var moduleRows []gormstore.ModuleRow
+		if err := scopeQuery(tx.Table(m.tables.Modules), sourceScope).Find(&moduleRows).Error; err != nil {
+			return fmt.Errorf("CreateDraft: %w", err)
+		}
+		moduleIDMap := make(map[string]string, len(moduleRows))
+		for _, modr := range moduleRows {
+			mod := gormstore.ModuleFromRow(modr)
+			oldID := mod.ID
+			mod.ID, mod.DraftID, mod.CreatedAt = "", newDraftID, now
+			newRow := gormstore.ModuleToRow(mod)
+			if err := tx.Table(m.tables.Modules).Create(&newRow).Error; err != nil {
+				return fmt.Errorf("CreateDraft: %w", err)
+			}
+			moduleIDMap[oldID] = newRow.ID
+		}
+
 		var assignmentRows []gormstore.RoleAssignmentRow
 		if err := scopeQuery(tx.Table(m.tables.RoleAssignments), sourceScope).Find(&assignmentRows).Error; err != nil {
 			return fmt.Errorf("CreateDraft: %w", err)
@@ -243,6 +272,25 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			}
 			newRow := gormstore.RoleAssignmentToRow(a)
 			if err := tx.Table(m.tables.RoleAssignments).Create(&newRow).Error; err != nil {
+				return fmt.Errorf("CreateDraft: %w", err)
+			}
+		}
+
+		var objectiveModuleRows []gormstore.ObjectiveModuleRow
+		if err := scopeQuery(tx.Table(m.tables.ObjectiveModules), sourceScope).Find(&objectiveModuleRows).Error; err != nil {
+			return fmt.Errorf("CreateDraft: %w", err)
+		}
+		for _, omr := range objectiveModuleRows {
+			om := gormstore.ObjectiveModuleFromRow(omr)
+			om.ID, om.DraftID, om.CreatedAt = "", newDraftID, now
+			if mapped, ok := objectiveIDMap[om.ObjectiveID]; ok {
+				om.ObjectiveID = mapped
+			}
+			if mapped, ok := moduleIDMap[om.ModuleID]; ok {
+				om.ModuleID = mapped
+			}
+			newRow := gormstore.ObjectiveModuleToRow(om)
+			if err := tx.Table(m.tables.ObjectiveModules).Create(&newRow).Error; err != nil {
 				return fmt.Errorf("CreateDraft: %w", err)
 			}
 		}
@@ -334,9 +382,10 @@ func (m *agencyManager) UpdateDraftDescription(ctx context.Context, id, descript
 
 // PromoteDraft requires the Draft to be open. It deletes the current live
 // Goal/Objective/Workflow/WorkItem/EventFlowStep/Role/RoleAssignment/
-// Value/Rule rows (Value/Rule scoped to rows carrying at least one
-// attachment only — Agency-wide ones are never draft-scoped, so must never
-// be deleted here), flips the Draft's own rows' DraftID to "" (making them
+// Module/ObjectiveModule/Value/Rule rows (Value/Rule scoped to rows
+// carrying at least one attachment only — Agency-wide ones are never
+// draft-scoped, so must never be deleted here), flips the Draft's own
+// rows' DraftID to "" (making them
 // live — no copy-and-swap needed since a [models.Draft]-scoped row already
 // exists and just needs reclassifying), writes an AgencySnapshot, marks
 // the Agency enabled, and marks the Draft promoted.
@@ -370,7 +419,13 @@ func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (model
 		if err := tx.Table(m.tables.Roles).Where("draft_id IS NULL").Delete(&gormstore.RoleRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
+		if err := tx.Table(m.tables.Modules).Where("draft_id IS NULL").Delete(&gormstore.ModuleRow{}).Error; err != nil {
+			return fmt.Errorf("PromoteDraft: %w", err)
+		}
 		if err := tx.Table(m.tables.RoleAssignments).Where("draft_id IS NULL").Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+			return fmt.Errorf("PromoteDraft: %w", err)
+		}
+		if err := tx.Table(m.tables.ObjectiveModules).Where("draft_id IS NULL").Delete(&gormstore.ObjectiveModuleRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
 		if err := tx.Table(m.tables.Values).
@@ -404,7 +459,13 @@ func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (model
 		if err := tx.Table(m.tables.Roles).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
+		if err := tx.Table(m.tables.Modules).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
+			return fmt.Errorf("PromoteDraft: %w", err)
+		}
 		if err := tx.Table(m.tables.RoleAssignments).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
+			return fmt.Errorf("PromoteDraft: %w", err)
+		}
+		if err := tx.Table(m.tables.ObjectiveModules).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
 		if err := tx.Table(m.tables.Values).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {

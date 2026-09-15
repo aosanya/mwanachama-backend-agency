@@ -110,9 +110,56 @@ func ListRoleAssignmentsForObjective(m mwanachamaagency.AgencyManager) http.Hand
 	}
 }
 
+// CreateObjectiveModule handles POST {objectiveID}/modules — link a Module
+// to this Objective (AGD-002). Both must already exist in the same scope
+// (live-to-live, or the same Draft).
+func CreateObjectiveModule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var in models.ObjectiveModule
+		if err := readJSON(r, &in); err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		in.ObjectiveID = r.PathValue("objectiveID")
+		out, err := m.CreateObjectiveModule(r.Context(), in)
+		if err != nil {
+			writeObjectiveModuleErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, out)
+	}
+}
+
+// ListObjectiveModulesForObjective handles GET {objectiveID}/modules —
+// ?draft_id= selects scope ("" = live).
+func ListObjectiveModulesForObjective(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		out, err := m.ListObjectiveModulesForObjective(r.Context(), r.PathValue("objectiveID"), q.Get("draft_id"), mwanachamaagency.ObjectiveModuleFilter{})
+		if err != nil {
+			writeObjectiveModuleErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// DeleteObjectiveModule handles DELETE
+// {objectiveID}/modules/{objectiveModuleID}.
+func DeleteObjectiveModule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := m.DeleteObjectiveModule(r.Context(), r.PathValue("objectiveModuleID")); err != nil {
+			writeObjectiveModuleErr(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 // ObjectiveRoutes is Create/Get/List/Update for Objective, addressed under
 // names.Objective, plus the nested role-assignments read under
-// names.RoleAssignment.
+// names.RoleAssignment and the nested Module link CRUD under names.Module
+// (AGD-002).
 func ObjectiveRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.Objective
@@ -122,5 +169,8 @@ func ObjectiveRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Ro
 		{Method: http.MethodGet, Path: base + "/{objectiveID}", Handler: GetObjective(m)},
 		{Method: http.MethodPatch, Path: base + "/{objectiveID}", Handler: UpdateObjective(m)},
 		{Method: http.MethodGet, Path: base + "/{objectiveID}/" + names.RoleAssignment, Handler: ListRoleAssignmentsForObjective(m)},
+		{Method: http.MethodPost, Path: base + "/{objectiveID}/" + names.Module, Handler: CreateObjectiveModule(m)},
+		{Method: http.MethodGet, Path: base + "/{objectiveID}/" + names.Module, Handler: ListObjectiveModulesForObjective(m)},
+		{Method: http.MethodDelete, Path: base + "/{objectiveID}/" + names.Module + "/{objectiveModuleID}", Handler: DeleteObjectiveModule(m)},
 	}
 }

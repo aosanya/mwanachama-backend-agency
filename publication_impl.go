@@ -17,8 +17,8 @@ import (
 )
 
 // liveContentHash SHA-256-hashes every live Goal/Objective/Workflow/
-// WorkItem/EventFlowStep/Role/RoleAssignment/Value/Rule plus the Agency's
-// name/description: one JSON record per row (fields other than
+// WorkItem/EventFlowStep/Role/RoleAssignment/Module/ObjectiveModule/Value/
+// Rule plus the Agency's name/description: one JSON record per row (fields other than
 // timestamps), sorted lexically so row order never affects the hash,
 // joined with "\n". A change to any of those fields changes the hash;
 // nothing else does. Mission/Vision dropped from the Agency record
@@ -96,6 +96,17 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 		}))
 	}
 
+	var moduleRows []gormstore.ModuleRow
+	if err := tx.WithContext(ctx).Table(m.tables.Modules).Where("draft_id IS NULL").Find(&moduleRows).Error; err != nil {
+		return "", fmt.Errorf("liveContentHash: %w", err)
+	}
+	for _, r := range moduleRows {
+		records = append(records, hashRecord("Module", map[string]any{
+			"id": r.ID, "code": r.Code, "name": r.Name, "description": r.Description,
+			"enabled": r.Enabled, "deleted": r.Deleted,
+		}))
+	}
+
 	var assignmentRows []gormstore.RoleAssignmentRow
 	if err := tx.WithContext(ctx).Table(m.tables.RoleAssignments).Where("draft_id IS NULL").Find(&assignmentRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
@@ -104,6 +115,16 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 		records = append(records, hashRecord("RoleAssignment", map[string]any{
 			"id": r.ID, "role_id": r.RoleID, "objective_id": r.ObjectiveID,
 			"label": r.Label, "deleted": r.Deleted,
+		}))
+	}
+
+	var objectiveModuleRows []gormstore.ObjectiveModuleRow
+	if err := tx.WithContext(ctx).Table(m.tables.ObjectiveModules).Where("draft_id IS NULL").Find(&objectiveModuleRows).Error; err != nil {
+		return "", fmt.Errorf("liveContentHash: %w", err)
+	}
+	for _, r := range objectiveModuleRows {
+		records = append(records, hashRecord("ObjectiveModule", map[string]any{
+			"id": r.ID, "objective_id": r.ObjectiveID, "module_id": r.ModuleID,
 		}))
 	}
 

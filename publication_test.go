@@ -75,6 +75,36 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 	}
 }
 
+// TestPublishAgency_ModuleOnlyChangeIsAChange mirrors
+// TestPublishAgency_RACIOnlyChangeIsAChange: a Module/ObjectiveModule-only
+// edit must require republishing too, now that liveContentHash covers them.
+func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	p1, err := mgr.PublishAgency(ctx, "")
+	if err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+
+	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets", Enabled: true})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+
+	p2, err := mgr.PublishAgency(ctx, "")
+	if err != nil {
+		t.Fatalf("expected a Module-only change to require republishing, got %v", err)
+	}
+	if p2.Version != p1.Version+1 {
+		t.Fatalf("expected version %d, got %d", p1.Version+1, p2.Version)
+	}
+}
+
 func TestPublishAgency_RequiresPromotedDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()

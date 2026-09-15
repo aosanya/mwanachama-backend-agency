@@ -178,6 +178,35 @@ type AgencyManager interface {
 	UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
 	DeleteRoleAssignment(ctx context.Context, id string) error
 
+	// Module. A catalog entry for a capability domain (e.g. "git",
+	// "taskmanager") this Agency may enable — a real gate on a mounting
+	// gateway's route registration for that domain, not a passive record
+	// (AGD-002). Follows Goal's lax draft rule, not RoleAssignment's
+	// stricter one: a live Module can be toggled directly. CreateModule
+	// returns [ErrInvalidModule] if Code is empty, [ErrDuplicateModule] if
+	// Code already exists in that scope.
+	CreateModule(ctx context.Context, mod models.Module) (models.Module, error)
+	GetModule(ctx context.Context, id string) (models.Module, error)
+	ListModules(ctx context.Context, draftID string, filter ModuleFilter) ([]models.Module, error)
+	UpdateModule(ctx context.Context, mod models.Module) (models.Module, error)
+	// DeleteModule cascades: every ObjectiveModule referencing it is
+	// deleted too.
+	DeleteModule(ctx context.Context, id string) error
+
+	// ObjectiveModule. Links an Objective to a Module — many-to-many,
+	// Draft-scoped, enforcing the same same-scope rule as RoleAssignment: a
+	// Draft's Objective can only link a Module already forked into that
+	// same Draft. CreateObjectiveModule returns [ErrObjectiveNotFound]/
+	// [ErrModuleNotFound] if the referenced Objective/Module doesn't exist
+	// in that scope, or [ErrDuplicateObjectiveModule] if the pair is
+	// already linked.
+	CreateObjectiveModule(ctx context.Context, om models.ObjectiveModule) (models.ObjectiveModule, error)
+	ListObjectiveModules(ctx context.Context, draftID string, filter ObjectiveModuleFilter) ([]models.ObjectiveModule, error)
+	// ListObjectiveModulesForObjective answers "which Modules does this
+	// Objective link, in this scope."
+	ListObjectiveModulesForObjective(ctx context.Context, objectiveID, draftID string, filter ObjectiveModuleFilter) ([]models.ObjectiveModule, error)
+	DeleteObjectiveModule(ctx context.Context, id string) error
+
 	// Value/Rule. Plain-text statements an AI agent acting as a Role
 	// needs made explicit (see models.Value/models.Rule's doc comments).
 	// A Value/Rule with no [ValueAttachment]/[RuleAttachment] is

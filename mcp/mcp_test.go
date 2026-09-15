@@ -11,6 +11,7 @@ import (
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	agencymcp "github.com/aosanya/mwanachama-backend-agency/mcp"
+	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
 func ctxT(t *testing.T) context.Context {
@@ -149,5 +150,68 @@ func TestDesignFromSpec(t *testing.T) {
 	got, _ := result.StructuredContent.(map[string]any)
 	if got["agency_created"] != true {
 		t.Fatalf("agency_design_from_spec structured content = %+v", result.StructuredContent)
+	}
+}
+
+// TestDesignFromSpec_RaciAgainstExistingObjective covers the raci
+// section's escape hatch from the key-only rule: a new Role, RACI'd
+// against an Objective that already existed before this call (referenced
+// by its real id, not a spec key) — the one-call replacement for the
+// separate agency_create_role + agency_set_raci round trip.
+func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
+	mgr := newTestManager(t)
+	server := newTestServer(mgr)
+	mux := http.NewServeMux()
+	mux.Handle("/mcp", gosdkmcp.NewStreamableHTTPHandler(func(*http.Request) *gosdkmcp.Server { return server }, nil))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	cs := mcpConnect(t, srv.URL)
+
+	_, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
+		Name:      "agency_create_agency",
+		Arguments: map[string]any{"instance_id": "any", "name": "NeoLabHQ"},
+	})
+	if err != nil {
+		t.Fatalf("CallTool agency_create_agency: %v", err)
+	}
+	goal, err := mgr.CreateGoal(ctxT(t), models.Goal{Title: "Ship reliable software"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	objective, err := mgr.CreateObjective(ctxT(t), models.Objective{GoalID: goal.ID, Title: "Ship reliable software"})
+	if err != nil {
+		t.Fatalf("CreateObjective: %v", err)
+	}
+
+	result, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
+		Name: "agency_design_from_spec",
+		Arguments: map[string]any{
+			"instance_id": "any",
+			"roles":       []map[string]any{{"key": "r1", "name": "wire-check-role"}},
+			"raci":        []map[string]any{{"role_key": "r1", "objective_id": objective.ID, "label": "informed"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool agency_design_from_spec: %v", err)
+	}
+	if result.IsError {
+		t.Fatalf("agency_design_from_spec: IsError = true (content: %+v)", result.Content)
+	}
+	got, _ := result.StructuredContent.(map[string]any)
+	if errs, _ := got["errors"].([]any); len(errs) != 0 {
+		t.Fatalf("agency_design_from_spec unexpected errors: %+v", errs)
+	}
+	assignments, _ := got["role_assignments"].([]any)
+	if len(assignments) != 1 {
+		t.Fatalf("agency_design_from_spec role_assignments = %+v", got["role_assignments"])
+	}
+
+	list, err := mgr.ListRoleAssignmentsForObjective(ctxT(t), objective.ID, "", mwanachamaagency.RoleAssignmentFilter{})
+	if err != nil {
+		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
+	}
+	if len(list) != 1 || list[0].Label != models.RACILabelInformed {
+		t.Fatalf("ListRoleAssignmentsForObjective = %+v", list)
 	}
 }

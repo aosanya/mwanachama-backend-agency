@@ -144,6 +144,119 @@ func TestCreateDraft_ForksRoleAssignments(t *testing.T) {
 	}
 }
 
+// TestCreateDraft_ForksModulesAndObjectiveModules asserts Module and
+// ObjectiveModule survive a fork with new ids, and that ObjectiveModule's
+// ObjectiveID/ModuleID get remapped to the draft-scoped copies — the same
+// shape as TestCreateDraft_ForksRoleAssignments.
+func TestCreateDraft_ForksModulesAndObjectiveModules(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets", Enabled: true})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: mod.ID})
+	if err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+
+	d, err := mgr.CreateDraft(ctx, "restaff the modules", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+
+	// Module has no "only fork if referenced" rule like Value/Rule — every
+	// live Module (including gormstore.BackfillModules' KnownModuleCodes
+	// rows) forks, so narrow to the one this test cares about by Code.
+	draftModules, err := mgr.ListModules(ctx, d.ID, mwanachamaagency.ModuleFilter{Code: "widgets"})
+	if err != nil {
+		t.Fatalf("ListModules(draft): %v", err)
+	}
+	if len(draftModules) != 1 || draftModules[0].ID == mod.ID {
+		t.Fatalf("expected one draft-scoped module copy with a new id, got %+v", draftModules)
+	}
+	if draftModules[0].Code != mod.Code {
+		t.Fatalf("expected draft-scoped module copy to carry the live Code %q, got %q", mod.Code, draftModules[0].Code)
+	}
+
+	draftObjectives, _ := mgr.ListObjectives(ctx, d.ID, mwanachamaagency.ObjectiveFilter{})
+	draftLinks, err := mgr.ListObjectiveModules(ctx, d.ID, mwanachamaagency.ObjectiveModuleFilter{})
+	if err != nil {
+		t.Fatalf("ListObjectiveModules(draft): %v", err)
+	}
+	if len(draftLinks) != 1 || draftLinks[0].ID == link.ID {
+		t.Fatalf("expected one draft-scoped link copy with a new id, got %+v", draftLinks)
+	}
+	if draftLinks[0].ModuleID != draftModules[0].ID {
+		t.Fatalf("expected ObjectiveModule.ModuleID remapped to the draft-scoped module copy, got %q want %q",
+			draftLinks[0].ModuleID, draftModules[0].ID)
+	}
+	if draftLinks[0].ObjectiveID != draftObjectives[0].ID {
+		t.Fatalf("expected ObjectiveModule.ObjectiveID remapped to the draft-scoped objective copy, got %q want %q",
+			draftLinks[0].ObjectiveID, draftObjectives[0].ID)
+	}
+}
+
+// TestPromoteDraft_ModulesAndObjectiveModules asserts a Module edited
+// within a Draft, and its ObjectiveModule link, both take effect live
+// after PromoteDraft — same shape as TestPromoteDraft's Role/RoleAssignment
+// coverage.
+func TestPromoteDraft_ModulesAndObjectiveModules(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets", Enabled: false})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+
+	d, err := mgr.CreateDraft(ctx, "enable widgets", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	draftModules, err := mgr.ListModules(ctx, d.ID, mwanachamaagency.ModuleFilter{Code: "widgets"})
+	if err != nil || len(draftModules) != 1 {
+		t.Fatalf("ListModules(draft, code=widgets): rows=%+v err=%v", draftModules, err)
+	}
+	edited := draftModules[0]
+	edited.Enabled = true
+	if _, err := mgr.UpdateModule(ctx, edited); err != nil {
+		t.Fatalf("UpdateModule: %v", err)
+	}
+
+	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
+		t.Fatalf("PromoteDraft: %v", err)
+	}
+
+	liveModules, err := mgr.ListModules(ctx, "", mwanachamaagency.ModuleFilter{Code: "widgets"})
+	if err != nil {
+		t.Fatalf("ListModules: %v", err)
+	}
+	if len(liveModules) != 1 {
+		t.Fatalf("expected exactly 1 live widgets module after promotion, got %d", len(liveModules))
+	}
+	if !liveModules[0].Enabled {
+		t.Fatal("expected the draft's edit (Enabled: true) to be live after promotion")
+	}
+	if liveModules[0].ID == mod.ID {
+		t.Fatal("expected the old live module id to have been replaced, not reused")
+	}
+
+	liveLinks, err := mgr.ListObjectiveModules(ctx, "", mwanachamaagency.ObjectiveModuleFilter{})
+	if err != nil {
+		t.Fatalf("ListObjectiveModules: %v", err)
+	}
+	if len(liveLinks) != 1 || liveLinks[0].ModuleID != liveModules[0].ID {
+		t.Fatalf("expected the promoted link to reference the promoted module, got %+v", liveLinks)
+	}
+}
+
 func TestCreateDraft_ForkFromOpenDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()

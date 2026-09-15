@@ -20,6 +20,8 @@ type TableNames struct {
 	Levels             string
 	Roles              string
 	RoleAssignments    string
+	Modules            string
+	ObjectiveModules   string
 	Values             string
 	ValueAttachments   string
 	Rules              string
@@ -50,6 +52,8 @@ func DefaultTableNames(instance string) TableNames {
 		Levels:             instance + "_levels",
 		Roles:              instance + "_roles",
 		RoleAssignments:    instance + "_role_assignments",
+		Modules:            instance + "_modules",
+		ObjectiveModules:   instance + "_objective_modules",
 		Values:             instance + "_values",
 		ValueAttachments:   instance + "_value_attachments",
 		Rules:              instance + "_rules",
@@ -111,6 +115,12 @@ func Migrate(db *gorm.DB, t TableNames) error {
 	if err := db.Table(t.RoleAssignments).AutoMigrate(&RoleAssignmentRow{}); err != nil {
 		return err
 	}
+	if err := db.Table(t.Modules).AutoMigrate(&ModuleRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.ObjectiveModules).AutoMigrate(&ObjectiveModuleRow{}); err != nil {
+		return err
+	}
 	if err := db.Table(t.Values).AutoMigrate(&ValueRow{}); err != nil {
 		return err
 	}
@@ -143,6 +153,14 @@ func Migrate(db *gorm.DB, t TableNames) error {
 		if err := BackfillCodes(db, b.table, t.CodeSequences, b.entityType, b.prefix); err != nil {
 			return err
 		}
+	}
+
+	// Module.Code is caller-supplied, not minted via BackfillCodes/NextCode
+	// (AGD-002) — BackfillModules is its own idempotent seed-if-missing
+	// step instead, covering every deployment (fresh or pre-existing) so a
+	// gateway gating routes on Module.Enabled never finds an empty catalog.
+	if err := BackfillModules(db, t.Modules); err != nil {
+		return err
 	}
 	return nil
 }

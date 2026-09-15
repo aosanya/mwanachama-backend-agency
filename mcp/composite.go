@@ -15,6 +15,15 @@
 // items, work items before RACI), and does not reorder or validate a
 // spec's internal ordering beyond that.
 //
+// RACI is the one section with an escape hatch from the key-only rule: a
+// caller who already knows a Role's or Objective's real id (because it
+// already existed before this call) can pass role_id/objective_id instead
+// of role_key/objective_key — otherwise a request as small as "add a new
+// Role and RACI it against an Objective that already exists" would be
+// unreachable through this tool at all, forcing a caller back to two
+// granular calls (agency_create_role, then agency_set_raci) even though
+// this tool exists precisely to collapse that kind of round trip.
+//
 // Scoped to live creation only — no Draft support. One entity failing does
 // not abort the rest: everything created so far, plus every failure with
 // which spec entry caused it, comes back in the result — there is no
@@ -40,6 +49,7 @@ func registerCompositeTools(server *mcp.Server, resolve ManagerResolver) {
 		Description: "Build out an Agency's org chart, goals/objectives/workflows/work items, and RACI assignments from one structured spec, composing the granular agency_* tools internally. " +
 			"Entities reference each other by a caller-chosen \"key\" (not a real id); a reference must name a key defined earlier in that section or in a section this tool applies first. " +
 			"Order applied: agency (only if none exists yet), levels, departments (parent_key must precede its child), roles, goals, objectives (goal_key), workflows, work_items (objective_key), raci (objective_key). " +
+			"A raci entry may instead reference an already-existing Role/Objective directly by its real id (role_id/objective_id) if it isn't also being created in this same spec — use this to create one new Role (or Objective) and assign it RACI against something that already exists in a single call, instead of a separate create-then-assign round trip. " +
 			"One entity failing does not stop the rest — check the result's errors field.",
 	}, mcpDesignAgencyFromSpec(resolve))
 }
@@ -96,8 +106,10 @@ type specWorkItem struct {
 }
 
 type specRACI struct {
-	RoleKey      string `json:"role_key" jsonschema:"a key from this spec's roles list"`
-	ObjectiveKey string `json:"objective_key" jsonschema:"a key from this spec's objectives list"`
+	RoleKey      string `json:"role_key,omitempty" jsonschema:"a key from this spec's roles list — set this or role_id, not both"`
+	RoleID       string `json:"role_id,omitempty" jsonschema:"an already-existing Role's real id, when it isn't also being created in this spec's roles list"`
+	ObjectiveKey string `json:"objective_key,omitempty" jsonschema:"a key from this spec's objectives list — set this or objective_id, not both"`
+	ObjectiveID  string `json:"objective_id,omitempty" jsonschema:"an already-existing Objective's real id, when it isn't also being created in this spec's objectives list"`
 	Label        string `json:"label" jsonschema:"responsible, accountable, consulted, or informed"`
 }
 
@@ -253,16 +265,34 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		for i, ra := range p.RACI {
-			roleID, ok := out.Roles[ra.RoleKey]
-			if !ok {
-				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: unknown role_key %q", i, ra.RoleKey))
+			roleID := ra.RoleID
+			if ra.RoleKey != "" {
+				id, ok := out.Roles[ra.RoleKey]
+				if !ok {
+					out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: unknown role_key %q", i, ra.RoleKey))
+					continue
+				}
+				roleID = id
+			}
+			if roleID == "" {
+				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: must set role_key or role_id", i))
 				continue
 			}
-			objectiveID, ok := out.Objectives[ra.ObjectiveKey]
-			if !ok {
-				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: unknown objective_key %q", i, ra.ObjectiveKey))
+
+			objectiveID := ra.ObjectiveID
+			if ra.ObjectiveKey != "" {
+				id, ok := out.Objectives[ra.ObjectiveKey]
+				if !ok {
+					out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: unknown objective_key %q", i, ra.ObjectiveKey))
+					continue
+				}
+				objectiveID = id
+			}
+			if objectiveID == "" {
+				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: must set objective_key or objective_id", i))
 				continue
 			}
+
 			row, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleID, ObjectiveID: objectiveID, Label: models.RACILabel(ra.Label)})
 			if err != nil {
 				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: %v", i, err))

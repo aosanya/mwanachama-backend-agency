@@ -36,6 +36,7 @@ type ResourceNames struct {
 	Level          string
 	Role           string
 	RoleAssignment string
+	Module         string
 	WorkPlan       string
 	ContextSource  string
 	Value          string
@@ -80,6 +81,9 @@ func (n ResourceNames) withDefaults() ResourceNames {
 	if n.RoleAssignment == "" {
 		n.RoleAssignment = "role-assignments"
 	}
+	if n.Module == "" {
+		n.Module = "modules"
+	}
 	if n.WorkPlan == "" {
 		n.WorkPlan = "work-plans"
 	}
@@ -118,6 +122,7 @@ func Routes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	out = append(out, LevelRoutes(m, names)...)
 	out = append(out, RoleRoutes(m, names)...)
 	out = append(out, RoleAssignmentRoutes(m, names)...)
+	out = append(out, ModuleRoutes(m, names)...)
 	out = append(out, WorkPlanRoutes(m, names)...)
 	out = append(out, ContextSourceRoutes(m, names)...)
 	out = append(out, ValueRoutes(m, names)...)

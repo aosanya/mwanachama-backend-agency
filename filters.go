@@ -83,6 +83,23 @@ type RoleAssignmentFilter struct {
 	Label string
 }
 
+// ModuleFilter's Code/Name/Description are case-insensitive substring
+// matches; Enabled, when non-nil, is an exact match — a *bool rather than
+// a bare bool so "not filtering on Enabled" is distinguishable from
+// "filtering on Enabled == false".
+type ModuleFilter struct {
+	Code        string
+	Name        string
+	Description string
+	Enabled     *bool
+}
+
+// ObjectiveModuleFilter's ObjectiveID/ModuleID are exact-match narrows.
+type ObjectiveModuleFilter struct {
+	ObjectiveID string
+	ModuleID    string
+}
+
 // ValueFilter's Role/Goal/Objective/Workflow/WorkItem ID fields each
 // narrow to Values attached to that specific target (AGD-003) — exact
 // match against a resolved id, not a substring search like Code/Text.

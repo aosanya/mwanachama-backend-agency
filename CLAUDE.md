@@ -812,6 +812,33 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     before the fix landed and needs a restart to pick it up (`go run`
     doesn't hot-reload).
 
+- **AG24 landed 2026-09-15: `agency_design_from_spec`'s `raci` section can
+  reference an already-existing Role/Objective by real id, not only a
+  same-spec key.** Found while diagnosing why `mwanachama-wakala-studio`'s
+  chat took ~2 minutes for "add a test role assignment": that request
+  needed a new Role plus a RACI link to an Objective that already
+  existed, and the composite tool's `raci[].role_key`/`objective_key`
+  could only reference entities created within that same spec call —
+  forcing the model back to two sequential granular calls
+  (`agency_create_role` then `agency_set_raci`), each its own full LLM
+  round trip. `specRACI` (`mcp/composite.go`) gained optional
+  `role_id`/`objective_id` fields: set the `_key` field for an entity
+  created in this same spec, or the `_id` field for one that already
+  exists — the RACI loop resolves whichever is set (key takes precedence
+  if both are given), erroring only if neither is. Every other spec
+  section (departments' `parent_key`, work items' `workflow_key`/
+  `objective_key`) has the identical key-only limitation but was left
+  alone — not fixed here, flagged for later rather than silently bundled
+  in. New `TestDesignFromSpec_RaciAgainstExistingObjective`
+  (`mcp/mcp_test.go`) covers the exact reported shape. No client-side
+  (`mwanachama-wakala-studio`) change needed — per AG19's own precedent,
+  the tool's `Description` is forwarded to the model verbatim, so it was
+  extended to name the new fields and when to use them instead of the
+  two-call round trip. `go build`/`go vet`/`go test ./...`/`gofmt -l .`
+  clean here; rebuilt and retested `mwanachama-wakala-api` (locally
+  `replace`d) clean too — the only other repo importing this package's
+  `mcp` subpackage.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

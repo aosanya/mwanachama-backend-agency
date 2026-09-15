@@ -31,6 +31,19 @@ func TestSeedNeoLabHQ(t *testing.T) {
 		t.Fatalf("unexpected department: %+v", seed.Department)
 	}
 
+	if len(seed.Modules) != len(models.KnownModuleCodes) {
+		t.Fatalf("expected %d modules, got %d", len(models.KnownModuleCodes), len(seed.Modules))
+	}
+	for _, code := range models.KnownModuleCodes {
+		mod, ok := seed.Modules[code]
+		if !ok {
+			t.Fatalf("expected a seeded module for code %q", code)
+		}
+		if !mod.Enabled {
+			t.Fatalf("expected seeded module %q to be enabled, got %+v", code, mod)
+		}
+	}
+
 	var reviewItem models.WorkItem
 	for _, wi := range seed.WorkItems {
 		if wi.Title == "Review pull request" {

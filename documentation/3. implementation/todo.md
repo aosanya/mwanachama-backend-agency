@@ -5,6 +5,7 @@ Everything else (completed rows, board context) is in [todo_done.md](todo_done.m
 
 | ID | Pri | Status | Task | Depends on |
 |---|---|---|---|---|
+| AG25 | P1 | 🚀 | Implement AGD-002 in full: `Module` catalog (`Code`/`Name`/`Description`/`DraftID`/`Enabled`, Goal-shaped lax draft rule) + `ObjectiveModule` Draft-scoped cross table (RoleAssignment-shaped same-scope rule) + `routes/module.go`/`mcp/module.go` + Draft fork/promote copy loops + `liveContentHash` coverage + a `KnownModuleCodes`-driven `Migrate()`-time backfill (all known codes default `Enabled: true`, so no currently-live gateway route goes dark) + `SeedNeoLabHQ` seeding. Full decision record: [todo_details/AGD-002.md](../2.%20design/todo_details/AGD-002.md). | — |
 
 Cross-repo follow-up for AG20 (done — see [todo_done.md](todo_done.md)),
 filed here per dev-research.md's "a row for
