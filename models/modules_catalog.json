@@ -1,0 +1,12 @@
+[
+  {"code": "auth", "name": "auth", "description": "", "enabled": true, "locked": true},
+  {"code": "git", "name": "git", "description": "", "enabled": false, "locked": false},
+  {"code": "taskmanager", "name": "taskmanager", "description": "", "enabled": false, "locked": false},
+  {"code": "agency", "name": "agency", "description": "", "enabled": false, "locked": false},
+  {"code": "actor", "name": "actor", "description": "", "enabled": false, "locked": false},
+  {"code": "comm", "name": "comm", "description": "", "enabled": false, "locked": false},
+  {"code": "custody", "name": "custody", "description": "", "enabled": false, "locked": false},
+  {"code": "forms", "name": "forms", "description": "", "enabled": false, "locked": false},
+  {"code": "digitaltwin", "name": "digitaltwin", "description": "", "enabled": false, "locked": false},
+  {"code": "accounting", "name": "accounting", "description": "", "enabled": false, "locked": false}
+]

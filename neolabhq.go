@@ -42,7 +42,7 @@ type NeoLabHQSeed struct {
 // separate Goal/Objective pairs, one per illustrative WorkItem — RACI
 // moved to Objective-scoped 2026-09-10 (AGD-001), so three distinct RACI
 // sets need three distinct Objectives, not three WorkItems sharing one.
-// Also collects every models.KnownModuleCodes entry into seed.Modules
+// Also collects every models.ModuleCatalog entry into seed.Modules
 // (already live from gormstore.BackfillModules, not newly created here).
 // Everything is created live; publishing is left to the caller.
 func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
@@ -75,12 +75,13 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 		seed.Roles[name] = role
 	}
 
-	// Every code in models.KnownModuleCodes already has a live row by the
+	// Every code in models.ModuleCatalog already has a live row by the
 	// time this runs — gormstore.BackfillModules seeds them unconditionally
 	// at the end of every Migrate, before any Agency exists. Read those
 	// back rather than calling CreateModule again, which would collide with
 	// ErrDuplicateModule; CreateModule is still the fallback for a code
-	// Migrate somehow didn't backfill.
+	// Migrate somehow didn't backfill, using that same catalog entry's
+	// Name/Description/Enabled/Locked rather than a blanket Enabled: true.
 	liveModules, err := m.ListModules(ctx, "", ModuleFilter{})
 	if err != nil {
 		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
@@ -89,17 +90,20 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 	for _, mod := range liveModules {
 		byCode[mod.Code] = mod
 	}
-	seed.Modules = make(map[string]models.Module, len(models.KnownModuleCodes))
-	for _, code := range models.KnownModuleCodes {
-		if mod, ok := byCode[code]; ok {
-			seed.Modules[code] = mod
+	seed.Modules = make(map[string]models.Module, len(models.ModuleCatalog))
+	for _, entry := range models.ModuleCatalog {
+		if mod, ok := byCode[entry.Code]; ok {
+			seed.Modules[entry.Code] = mod
 			continue
 		}
-		mod, err := m.CreateModule(ctx, models.Module{Code: code, Name: code, Enabled: true})
+		mod, err := m.CreateModule(ctx, models.Module{
+			Code: entry.Code, Name: entry.Name, Description: entry.Description,
+			Enabled: entry.Enabled, Locked: entry.Locked,
+		})
 		if err != nil {
-			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create module %q: %w", code, err)
+			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create module %q: %w", entry.Code, err)
 		}
-		seed.Modules[code] = mod
+		seed.Modules[entry.Code] = mod
 	}
 
 	workflow, err := m.CreateWorkflow(ctx, models.Workflow{Name: "Code Review Process"})

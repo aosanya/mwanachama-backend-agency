@@ -184,17 +184,17 @@ type AgencyManager interface {
 	// Module. A catalog entry for a capability domain (e.g. "git",
 	// "taskmanager") this Agency may enable — a real gate on a mounting
 	// gateway's route registration for that domain, not a passive record
-	// (AGD-002). Follows Goal's lax draft rule, not RoleAssignment's
-	// stricter one: a live Module can be toggled directly. CreateModule
-	// returns [ErrInvalidModule] if Code is empty, [ErrDuplicateModule] if
-	// Code already exists in that scope.
+	// (AGD-002). Fully read-only from the outside: no Update/Delete, and
+	// no route/MCP tool calls CreateModule either — every Module code,
+	// its Name/Description, and its default Enabled/Locked state come
+	// from [models.ModuleCatalog], applied by [gormstore.BackfillModules]
+	// at Migrate time. CreateModule stays on this interface only as
+	// SeedNeoLabHQ's own fallback for a code Migrate somehow didn't
+	// backfill; it returns [ErrInvalidModule] if Code is empty,
+	// [ErrDuplicateModule] if Code already exists in that scope.
 	CreateModule(ctx context.Context, mod models.Module) (models.Module, error)
 	GetModule(ctx context.Context, id string) (models.Module, error)
 	ListModules(ctx context.Context, draftID string, filter ModuleFilter) ([]models.Module, error)
-	UpdateModule(ctx context.Context, mod models.Module) (models.Module, error)
-	// DeleteModule cascades: every ObjectiveModule referencing it is
-	// deleted too.
-	DeleteModule(ctx context.Context, id string) error
 
 	// ObjectiveModule. Links an Objective to a Module — many-to-many,
 	// Draft-scoped, enforcing the same same-scope rule as RoleAssignment: a

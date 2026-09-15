@@ -20,6 +20,7 @@ type ModuleRow struct {
 	Name        string
 	Description string
 	Enabled     bool
+	Locked      bool
 	CreatedAt   string
 	UpdatedAt   string
 	Deleted     bool
@@ -41,6 +42,7 @@ func ModuleToRow(m models.Module) ModuleRow {
 		Name:        m.Name,
 		Description: m.Description,
 		Enabled:     m.Enabled,
+		Locked:      m.Locked,
 		CreatedAt:   m.CreatedAt,
 		UpdatedAt:   models.NowRFC3339(),
 		Deleted:     m.Deleted,
@@ -56,32 +58,43 @@ func ModuleFromRow(r ModuleRow) models.Module {
 		Name:        r.Name,
 		Description: r.Description,
 		Enabled:     r.Enabled,
+		Locked:      r.Locked,
 		CreatedAt:   r.CreatedAt,
 		LastUpdated: r.UpdatedAt,
 		Deleted:     r.Deleted,
 	}
 }
 
-// BackfillModules ensures every code in [models.KnownModuleCodes] has a
-// live Module row, inserting one (Enabled: true, Name: the code itself as
-// a placeholder) for any that doesn't yet. Idempotent — safe to call on
-// every Migrate, mirroring [BackfillCodes]'s shape. Without this, a
-// pre-existing deployment's Module table starts empty the moment this
-// migration ships, and a gateway gating real routes on Module.Enabled
-// would take every one of those routes dark rather than leaving them as
-// they were.
+// BackfillModules ensures every code in [models.ModuleCatalog] has a live
+// Module row, inserting one from that catalog entry's Name/Description/
+// Enabled/Locked for any code that doesn't yet. Idempotent, and only ever
+// inserts a missing row — an existing live row (of any Enabled/Locked
+// value) is never touched, so an already-migrated deployment keeps
+// whatever it already has. Safe to call on every Migrate, mirroring
+// [BackfillCodes]'s shape. Without this, a pre-existing deployment's
+// Module table starts empty the moment this migration ships, and a
+// gateway gating real routes on Module.Enabled would take every one of
+// those routes dark rather than leaving them as they were.
 func BackfillModules(db *gorm.DB, table string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		for _, code := range models.KnownModuleCodes {
+		for _, entry := range models.ModuleCatalog {
 			var count int64
-			if err := tx.Table(table).Where("code = ? AND draft_id IS NULL", code).Count(&count).Error; err != nil {
+			if err := tx.Table(table).Where("code = ? AND draft_id IS NULL", entry.Code).Count(&count).Error; err != nil {
 				return fmt.Errorf("BackfillModules: %w", err)
 			}
 			if count > 0 {
 				continue
 			}
 			now := models.NowRFC3339()
-			row := ModuleRow{Code: code, Name: code, Enabled: true, CreatedAt: now, UpdatedAt: now}
+			row := ModuleRow{
+				Code:        entry.Code,
+				Name:        entry.Name,
+				Description: entry.Description,
+				Enabled:     entry.Enabled,
+				Locked:      entry.Locked,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			}
 			if err := tx.Table(table).Create(&row).Error; err != nil {
 				return fmt.Errorf("BackfillModules: %w", err)
 			}

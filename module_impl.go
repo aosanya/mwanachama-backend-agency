@@ -70,52 +70,6 @@ func (m *agencyManager) ListModules(ctx context.Context, draftID string, filter 
 	return out, nil
 }
 
-// UpdateModule replaces mod's mutable fields (Name/Description/Enabled) via
-// an explicit column map — Code is immutable after create, matching every
-// other business-entity Code's convention, and no live-immutability check
-// applies: Module follows Goal's lax rule, not RoleAssignment's stricter
-// one (AGD-002 decision #5).
-func (m *agencyManager) UpdateModule(ctx context.Context, mod models.Module) (models.Module, error) {
-	existing, err := m.findModuleRow(ctx, m.db, mod.ID)
-	if err != nil {
-		return models.Module{}, err
-	}
-	row := gormstore.ModuleToRow(mod)
-	row.CreatedAt = existing.CreatedAt
-	row.Code = existing.Code
-	cols := map[string]any{
-		"draft_id":    row.DraftID,
-		"name":        row.Name,
-		"description": row.Description,
-		"enabled":     row.Enabled,
-		"updated_at":  row.UpdatedAt,
-		"deleted":     row.Deleted,
-	}
-	if err := m.db.WithContext(ctx).Table(m.tables.Modules).Where("id = ?", mod.ID).Updates(cols).Error; err != nil {
-		return models.Module{}, fmt.Errorf("UpdateModule: %w", err)
-	}
-	return gormstore.ModuleFromRow(row), nil
-}
-
-// DeleteModule cascades: every ObjectiveModule referencing id is deleted
-// too, in the same transaction as the Module row itself.
-func (m *agencyManager) DeleteModule(ctx context.Context, id string) error {
-	if _, err := m.findModuleRow(ctx, m.db, id); err != nil {
-		return err
-	}
-	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Table(m.tables.ObjectiveModules).Where("module_id = ?", id).
-			Delete(&gormstore.ObjectiveModuleRow{}).Error; err != nil {
-			return err
-		}
-		return tx.Table(m.tables.Modules).Where("id = ?", id).Delete(&gormstore.ModuleRow{}).Error
-	})
-	if err != nil {
-		return fmt.Errorf("DeleteModule: %w", err)
-	}
-	return nil
-}
-
 func (m *agencyManager) findModuleRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.ModuleRow, error) {
 	var row gormstore.ModuleRow
 	err := tx.WithContext(ctx).Table(m.tables.Modules).Where("id = ?", id).First(&row).Error
