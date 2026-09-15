@@ -66,6 +66,9 @@ type AgencyManager interface {
 	GetWorkItem(ctx context.Context, id string) (models.WorkItem, error)
 	ListWorkItems(ctx context.Context, draftID string, filter WorkItemFilter) ([]models.WorkItem, error)
 	UpdateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error)
+	// DeleteWorkItem carries no RACI of its own (RoleAssignment is
+	// Objective-scoped, AG12), so there is nothing to cascade into.
+	DeleteWorkItem(ctx context.Context, id string) error
 
 	// Draft lifecycle. CreateDraft forks the sub-graph scoped to
 	// forkedFromID (an Agency.ID when forkedFromType=="live", or another

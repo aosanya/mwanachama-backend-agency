@@ -93,6 +93,18 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 	return gormstore.WorkItemFromRow(row), nil
 }
 
+// DeleteWorkItem deletes wi — see [AgencyManager]'s doc comment on why
+// there is nothing further to cascade into.
+func (m *agencyManager) DeleteWorkItem(ctx context.Context, id string) error {
+	if _, err := m.findWorkItemRow(ctx, m.db, id); err != nil {
+		return err
+	}
+	if err := m.db.WithContext(ctx).Table(m.tables.WorkItems).Where("id = ?", id).Delete(&gormstore.WorkItemRow{}).Error; err != nil {
+		return fmt.Errorf("DeleteWorkItem: %w", err)
+	}
+	return nil
+}
+
 func (m *agencyManager) findWorkItemRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.WorkItemRow, error) {
 	var row gormstore.WorkItemRow
 	err := tx.WithContext(ctx).Table(m.tables.WorkItems).Where("id = ?", id).First(&row).Error

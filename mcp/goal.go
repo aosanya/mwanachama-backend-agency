@@ -47,6 +47,7 @@ func registerGoalWorkflowTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_work_item", Title: "Get Work Item", Description: "Get a WorkItem by id."}, mcpGetWorkItem(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_work_items", Title: "List Work Items", Description: "List WorkItems — live, or a Draft's scoped copies."}, mcpListWorkItems(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_work_item", Title: "Update Work Item", Description: "Update a WorkItem (full replace). id is required."}, mcpUpdateWorkItem(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_work_item", Title: "Delete Work Item", Description: "Delete a WorkItem."}, mcpDeleteWorkItem(resolve))
 
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_lookup_event_flow_step", Title: "Look Up Event Flow Step", Description: "Look up one EventFlowStep by handler code, or by (trigger topic, consumer), or by its own code — whichever is set, in that precedence order."}, mcpLookupFlowStep(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_event_flow_steps", Title: "List Event Flow Steps", Description: "List the EventFlowSteps for one Workflow, by its code."}, mcpListEventFlowSteps(resolve))
@@ -350,6 +351,19 @@ func mcpUpdateWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallT
 		}
 		out, err := m.UpdateWorkItem(ctx, p.toModel())
 		return summary("Updated WorkItem %s %q (%s)", out.Code, out.Title, out.ID), out, err
+	}
+}
+
+func mcpDeleteWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpWorkItemIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpWorkItemIDParams) (*mcp.CallToolResult, DeleteResult, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, DeleteResult{}, err
+		}
+		if err := m.DeleteWorkItem(ctx, p.WorkItemID); err != nil {
+			return nil, DeleteResult{}, err
+		}
+		return summary("Deleted WorkItem %s", p.WorkItemID), DeleteResult{Deleted: true}, nil
 	}
 }
 
