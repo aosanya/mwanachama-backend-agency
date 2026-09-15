@@ -130,33 +130,3 @@ func TestDeleteObjectiveModule_NotFound(t *testing.T) {
 		t.Fatalf("expected ErrObjectiveModuleNotFound, got %v", err)
 	}
 }
-
-// TestDeleteModule_CascadesObjectiveModules asserts DeleteModule takes its
-// ObjectiveModule links down with it, matching DeleteGoal's cascade shape.
-func TestDeleteModule_CascadesObjectiveModules(t *testing.T) {
-	mgr := newTestManager(t)
-	ctx := context.Background()
-	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
-	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets"})
-	if err != nil {
-		t.Fatalf("CreateModule: %v", err)
-	}
-	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: mod.ID})
-	if err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
-	}
-
-	if err := mgr.DeleteModule(ctx, mod.ID); err != nil {
-		t.Fatalf("DeleteModule: %v", err)
-	}
-
-	links, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, "", mwanachamaagency.ObjectiveModuleFilter{})
-	if err != nil {
-		t.Fatalf("ListObjectiveModulesForObjective: %v", err)
-	}
-	for _, l := range links {
-		if l.ID == link.ID {
-			t.Fatalf("expected the cascaded link to be gone, still found: %+v", l)
-		}
-	}
-}

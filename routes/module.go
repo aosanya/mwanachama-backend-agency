@@ -5,19 +5,12 @@ import (
 	"net/http"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
-	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
 func moduleStatusFor(err error) int {
 	switch {
-	case errors.Is(err, mwanachamaagency.ErrModuleNotFound),
-		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
+	case errors.Is(err, mwanachamaagency.ErrModuleNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, mwanachamaagency.ErrDuplicateModule),
-		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
-		return http.StatusConflict
-	case errors.Is(err, mwanachamaagency.ErrInvalidModule):
-		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}
@@ -59,23 +52,6 @@ func writeObjectiveModuleErr(w http.ResponseWriter, err error) {
 	writeErr(w, code, err.Error())
 }
 
-// CreateModule handles POST — decode, create, encode.
-func CreateModule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var in models.Module
-		if err := readJSON(r, &in); err != nil {
-			writeErr(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		out, err := m.CreateModule(r.Context(), in)
-		if err != nil {
-			writeModuleErr(w, err)
-			return
-		}
-		writeJSON(w, http.StatusCreated, out)
-	}
-}
-
 // GetModule handles GET {moduleID}.
 func GetModule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -108,46 +84,16 @@ func ListModules(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// UpdateModule handles PATCH {moduleID}.
-func UpdateModule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var in models.Module
-		if err := readJSON(r, &in); err != nil {
-			writeErr(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		in.ID = r.PathValue("moduleID")
-		out, err := m.UpdateModule(r.Context(), in)
-		if err != nil {
-			writeModuleErr(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, out)
-	}
-}
-
-// DeleteModule handles DELETE {moduleID}. Cascades: also deletes every
-// ObjectiveModule referencing it.
-func DeleteModule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := m.DeleteModule(r.Context(), r.PathValue("moduleID")); err != nil {
-			writeModuleErr(w, err)
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-// ModuleRoutes is Create/Get/List/Update/Delete for Module, addressed
-// under names.Module.
+// ModuleRoutes is Get/List for Module, addressed under names.Module.
+// Read-only: Module has no Create/Update/Delete HTTP surface — the
+// catalog of which codes exist, their Name/Description, and their default
+// Enabled/Locked state comes from models.ModuleCatalog, applied at
+// Migrate time by gormstore.BackfillModules.
 func ModuleRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.Module
 	return []Route{
-		{Method: http.MethodPost, Path: base, Handler: CreateModule(m)},
 		{Method: http.MethodGet, Path: base, Handler: ListModules(m)},
 		{Method: http.MethodGet, Path: base + "/{moduleID}", Handler: GetModule(m)},
-		{Method: http.MethodPatch, Path: base + "/{moduleID}", Handler: UpdateModule(m)},
-		{Method: http.MethodDelete, Path: base + "/{moduleID}", Handler: DeleteModule(m)},
 	}
 }
