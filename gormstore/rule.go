@@ -6,17 +6,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// RuleRow is the GORM row for a [models.Rule]. Same shape/conventions as
-// ValueRow.
+// RuleRow is the GORM row for a [models.Rule]. Scoping lives entirely in
+// RuleAttachmentRow now (AGD-003) — see [ValueRow]'s doc comment.
 type RuleRow struct {
-	ID          string  `gorm:"primaryKey"`
-	Code        string  `gorm:"index"`
-	ObjectiveID *string `gorm:"index"`
-	DraftID     *string `gorm:"index"`
-	Text        string
-	CreatedAt   string
-	UpdatedAt   string
-	Deleted     bool
+	ID        string `gorm:"primaryKey"`
+	Code      string `gorm:"index"`
+	DraftID   *string `gorm:"index"`
+	Text      string
+	CreatedAt string
+	UpdatedAt string
+	Deleted   bool
 }
 
 func (r *RuleRow) BeforeCreate(_ *gorm.DB) error {
@@ -29,14 +28,13 @@ func (r *RuleRow) BeforeCreate(_ *gorm.DB) error {
 // RuleToRow converts a domain Rule to its row shape, stamping UpdatedAt.
 func RuleToRow(v models.Rule) RuleRow {
 	return RuleRow{
-		ID:          v.ID,
-		Code:        v.Code,
-		ObjectiveID: StringToNullable(v.ObjectiveID),
-		DraftID:     StringToNullable(v.DraftID),
-		Text:        v.Text,
-		CreatedAt:   v.CreatedAt,
-		UpdatedAt:   models.NowRFC3339(),
-		Deleted:     v.Deleted,
+		ID:        v.ID,
+		Code:      v.Code,
+		DraftID:   StringToNullable(v.DraftID),
+		Text:      v.Text,
+		CreatedAt: v.CreatedAt,
+		UpdatedAt: models.NowRFC3339(),
+		Deleted:   v.Deleted,
 	}
 }
 
@@ -45,7 +43,6 @@ func RuleFromRow(r RuleRow) models.Rule {
 	return models.Rule{
 		ID:          r.ID,
 		Code:        r.Code,
-		ObjectiveID: nullableToString(r.ObjectiveID),
 		DraftID:     nullableToString(r.DraftID),
 		Text:        r.Text,
 		CreatedAt:   r.CreatedAt,

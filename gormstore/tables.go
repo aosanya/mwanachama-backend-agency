@@ -21,7 +21,9 @@ type TableNames struct {
 	Roles              string
 	RoleAssignments    string
 	Values             string
+	ValueAttachments   string
 	Rules              string
+	RuleAttachments    string
 	Issues             string
 	// CodeSequences backs [NextCode]'s per-entity-type counters, minting
 	// the stable "<prefix>-<n>" Code every named business-entity type
@@ -49,7 +51,9 @@ func DefaultTableNames(instance string) TableNames {
 		Roles:              instance + "_roles",
 		RoleAssignments:    instance + "_role_assignments",
 		Values:             instance + "_values",
+		ValueAttachments:   instance + "_value_attachments",
 		Rules:              instance + "_rules",
+		RuleAttachments:    instance + "_rule_attachments",
 		Issues:             instance + "_issues",
 		CodeSequences:      instance + "_code_sequences",
 	}
@@ -110,7 +114,13 @@ func Migrate(db *gorm.DB, t TableNames) error {
 	if err := db.Table(t.Values).AutoMigrate(&ValueRow{}); err != nil {
 		return err
 	}
+	if err := db.Table(t.ValueAttachments).AutoMigrate(&ValueAttachmentRow{}); err != nil {
+		return err
+	}
 	if err := db.Table(t.Rules).AutoMigrate(&RuleRow{}); err != nil {
+		return err
+	}
+	if err := db.Table(t.RuleAttachments).AutoMigrate(&RuleAttachmentRow{}); err != nil {
 		return err
 	}
 	if err := db.Table(t.Issues).AutoMigrate(&IssueRow{}); err != nil {

@@ -103,10 +103,24 @@ var (
 	// ErrCannotEditLive is returned by UpdateValue/DeleteValue/
 	// UpdateRule/DeleteRule when the target row is live (DraftID == "")
 	// — same rule as [ErrCannotEditLiveRACI], separate error since Value/
-	// Rule aren't RACI data. An Agency-wide row (ObjectiveID == "") is
-	// always live and never forked into a Draft, so this is permanent
-	// for those, not just "until promoted".
+	// Rule aren't RACI data. An Agency-wide Value/Rule (no attachments) is
+	// always live and never forked into a Draft, so this is permanent for
+	// those, not just "until promoted".
 	ErrCannotEditLive = errors.New("mwanachamaagency: live data cannot be edited directly, edit within a draft")
+	// ErrInvalidTargetType is returned by CreateValueAttachment/
+	// CreateRuleAttachment when TargetType is not one of the five known
+	// values (see [models.TargetType.Valid]).
+	ErrInvalidTargetType = errors.New("mwanachamaagency: invalid target type")
+	// ErrDuplicateAttachment is returned by CreateValueAttachment/
+	// CreateRuleAttachment when the same (Value/Rule, TargetType,
+	// TargetID) attachment already exists.
+	ErrDuplicateAttachment = errors.New("mwanachamaagency: attachment already exists")
+	// ErrValueAttachmentNotFound is returned when a ValueAttachment id has
+	// no match.
+	ErrValueAttachmentNotFound = errors.New("mwanachamaagency: value attachment not found")
+	// ErrRuleAttachmentNotFound is returned when a RuleAttachment id has
+	// no match.
+	ErrRuleAttachmentNotFound = errors.New("mwanachamaagency: rule attachment not found")
 	// ErrDraftIDRequired is returned by ListIssues when draftID is "" — an
 	// Issue only ever exists scoped to a Draft, unlike every other List
 	// method's nullable-DraftID ("" means live) convention.

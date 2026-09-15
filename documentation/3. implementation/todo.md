@@ -5,6 +5,18 @@ Everything else (completed rows, board context) is in [todo_done.md](todo_done.m
 
 | ID | Pri | Status | Task | Depends on |
 |---|---|---|---|---|
+| AG22 | 📋 | Not Started | Value/Rule multi-attach: Role/Goal/Objective/Workflow/WorkItem, live-editable attachments | — |
+
+AG22 implements [AGD-003](../2.%20design/todo_details/AGD-003.md) — widen
+`Value`/`Rule` scope from Objective-only to all five content types, and
+allow attaching to more than one target at once via a new join-table
+layer instead of `ValueRow`/`RuleRow`'s current `ObjectiveID` column.
+Attach/detach is live-editable, not Draft-gated (unlike a `Value`/`Rule`'s
+own `Text`, which keeps today's strict fork→edit→promote rule). See the
+design doc's "Open, not decided here" section for the real unresolved
+calls (ten narrow join tables vs. two polymorphic ones; existence
+validation; write-authorization; create-time convenience; List
+filtering) — pick those up when this row is actually started.
 
 Cross-repo follow-up for AG20 (done — see [todo_done.md](todo_done.md)),
 filed here per dev-research.md's "a row for
