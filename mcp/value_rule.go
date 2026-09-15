@@ -45,7 +45,12 @@ type mcpValueParams struct {
 }
 
 func (p mcpValueParams) toModel() models.Value {
-	return models.Value{ObjectiveID: p.ObjectiveID, DraftID: p.DraftID, Text: p.Text}
+	// ObjectiveID is accepted but currently unused: AGD-003 (2026-09-15)
+	// replaced Value's direct ObjectiveID field with a separate,
+	// live-editable ValueAttachment join row, and no attach-at-create (or
+	// standalone attach/detach) tool exists yet to set one. Scoping a
+	// Value at creation is a no-op until that lands.
+	return models.Value{DraftID: p.DraftID, Text: p.Text}
 }
 
 func mcpCreateValue(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpValueParams) (*mcp.CallToolResult, models.Value, error) {
@@ -102,7 +107,8 @@ type mcpRuleParams struct {
 }
 
 func (p mcpRuleParams) toModel() models.Rule {
-	return models.Rule{ObjectiveID: p.ObjectiveID, DraftID: p.DraftID, Text: p.Text}
+	// ObjectiveID is accepted but currently unused — see mcpValueParams.toModel.
+	return models.Rule{DraftID: p.DraftID, Text: p.Text}
 }
 
 func mcpCreateRule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpRuleParams) (*mcp.CallToolResult, models.Rule, error) {

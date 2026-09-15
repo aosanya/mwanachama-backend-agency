@@ -243,19 +243,23 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			}
 		}
 
-		// Only Objective-scoped Value/Rule rows fork — Agency-wide ones
-		// (ObjectiveID == "") are excluded by this query and so can never
-		// enter a Draft at all. See this function's doc comment.
+		// Only attached Value/Rule rows fork — an Agency-wide row (no
+		// ValueAttachment/RuleAttachment at all) is excluded by this query
+		// and so can never enter a Draft at all. See this function's doc
+		// comment. AGD-003 (2026-09-15) replaced the old ObjectiveID
+		// scoping field with a Code-keyed attachment join table, so
+		// "attached" is now "has a row in <Type>Attachments", and no
+		// id remap is needed on copy: attachments reference the Code, not
+		// the row id, and Code survives a fork unchanged (see AG16).
 		var valueRows []gormstore.ValueRow
-		if err := scopeQuery(tx.Table(m.tables.Values), sourceScope).Where("objective_id IS NOT NULL").Find(&valueRows).Error; err != nil {
+		if err := scopeQuery(tx.Table(m.tables.Values), sourceScope).
+			Where("code IN (?)", tx.Table(m.tables.ValueAttachments).Select("value_code")).
+			Find(&valueRows).Error; err != nil {
 			return fmt.Errorf("CreateDraft: %w", err)
 		}
 		for _, vr := range valueRows {
 			v := gormstore.ValueFromRow(vr)
 			v.ID, v.DraftID, v.CreatedAt = "", newDraftID, now
-			if mapped, ok := objectiveIDMap[v.ObjectiveID]; ok {
-				v.ObjectiveID = mapped
-			}
 			newRow := gormstore.ValueToRow(v)
 			if err := tx.Table(m.tables.Values).Create(&newRow).Error; err != nil {
 				return fmt.Errorf("CreateDraft: %w", err)
@@ -263,15 +267,14 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 		}
 
 		var ruleRows []gormstore.RuleRow
-		if err := scopeQuery(tx.Table(m.tables.Rules), sourceScope).Where("objective_id IS NOT NULL").Find(&ruleRows).Error; err != nil {
+		if err := scopeQuery(tx.Table(m.tables.Rules), sourceScope).
+			Where("code IN (?)", tx.Table(m.tables.RuleAttachments).Select("rule_code")).
+			Find(&ruleRows).Error; err != nil {
 			return fmt.Errorf("CreateDraft: %w", err)
 		}
 		for _, rr := range ruleRows {
 			r := gormstore.RuleFromRow(rr)
 			r.ID, r.DraftID, r.CreatedAt = "", newDraftID, now
-			if mapped, ok := objectiveIDMap[r.ObjectiveID]; ok {
-				r.ObjectiveID = mapped
-			}
 			newRow := gormstore.RuleToRow(r)
 			if err := tx.Table(m.tables.Rules).Create(&newRow).Error; err != nil {
 				return fmt.Errorf("CreateDraft: %w", err)
@@ -330,8 +333,9 @@ func (m *agencyManager) UpdateDraftDescription(ctx context.Context, id, descript
 
 // PromoteDraft requires the Draft to be open. It deletes the current live
 // Goal/Objective/Workflow/WorkItem/EventFlowStep/Role/RoleAssignment/
-// Value/Rule rows (Value/Rule scoped to `objective_id IS NOT NULL` only —
-// Agency-wide ones are never draft-scoped, so must never be deleted here),
+// Value/Rule rows (Value/Rule scoped to those with at least one
+// ValueAttachment/RuleAttachment only — Agency-wide ones are never
+// draft-scoped, so must never be deleted here),
 // flips the Draft's own rows' DraftID to "" (making them live — no
 // copy-and-swap needed since a [models.Draft]-scoped row already exists
 // and just needs reclassifying), writes an AgencySnapshot, marks the
@@ -369,10 +373,14 @@ func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (model
 		if err := tx.Table(m.tables.RoleAssignments).Where("draft_id IS NULL").Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
-		if err := tx.Table(m.tables.Values).Where("draft_id IS NULL AND objective_id IS NOT NULL").Delete(&gormstore.ValueRow{}).Error; err != nil {
+		if err := tx.Table(m.tables.Values).
+			Where("draft_id IS NULL AND code IN (?)", tx.Table(m.tables.ValueAttachments).Select("value_code")).
+			Delete(&gormstore.ValueRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
-		if err := tx.Table(m.tables.Rules).Where("draft_id IS NULL AND objective_id IS NOT NULL").Delete(&gormstore.RuleRow{}).Error; err != nil {
+		if err := tx.Table(m.tables.Rules).
+			Where("draft_id IS NULL AND code IN (?)", tx.Table(m.tables.RuleAttachments).Select("rule_code")).
+			Delete(&gormstore.RuleRow{}).Error; err != nil {
 			return fmt.Errorf("PromoteDraft: %w", err)
 		}
 
