@@ -16,9 +16,11 @@ func (m *agencyManager) CreateRole(ctx context.Context, r models.Role) (models.R
 	if r.Name == "" {
 		return models.Role{}, fmt.Errorf("%w: Role.Name is required", ErrInvalidRole)
 	}
-	if r.CreatedAt == "" {
-		r.CreatedAt = models.NowRFC3339()
+	if err := m.validateOpenDraftID(ctx, r.DraftID); err != nil {
+		return models.Role{}, err
 	}
+	r.ID = ""
+	r.CreatedAt = models.NowRFC3339()
 	var row gormstore.RoleRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "role", "R")

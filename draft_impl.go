@@ -54,6 +54,28 @@ func (m *agencyManager) findDraftRow(ctx context.Context, tx *gorm.DB, id string
 	return row, nil
 }
 
+// validateOpenDraftID refuses a Create<Type> call's caller-supplied
+// draftID unless it names a real, still-open Draft — draftID == "" (a live
+// row) is always allowed and returns nil without a lookup. Closes WK17: an
+// unvalidated draftID let a caller attach a new live write to an arbitrary
+// or already-promoted/archived Draft, which CreateDraft's own fork never
+// produced and PromoteDraft's copy-and-cutover logic does not expect.
+// ErrDraftNotFound for an unknown id, ErrDraftNotOpen for one that is
+// promoted or archived.
+func (m *agencyManager) validateOpenDraftID(ctx context.Context, draftID string) error {
+	if draftID == "" {
+		return nil
+	}
+	row, err := m.findDraftRow(ctx, m.db, draftID)
+	if err != nil {
+		return err
+	}
+	if row.Status != string(models.DraftStatusOpen) {
+		return ErrDraftNotOpen
+	}
+	return nil
+}
+
 // CreateDraft forks the sub-graph scoped to forkedFromID (an Agency.ID when
 // forkedFromType=="live", or another open Draft's ID when
 // forkedFromType=="draft") into brand-new Goal/Objective/Workflow/

@@ -58,12 +58,14 @@ func (m *agencyManager) validateRoleAssignment(ctx context.Context, tx *gorm.DB,
 }
 
 func (m *agencyManager) CreateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error) {
+	if err := m.validateOpenDraftID(ctx, a.DraftID); err != nil {
+		return models.RoleAssignment{}, err
+	}
 	if err := m.validateRoleAssignment(ctx, m.db, a, ""); err != nil {
 		return models.RoleAssignment{}, err
 	}
-	if a.CreatedAt == "" {
-		a.CreatedAt = models.NowRFC3339()
-	}
+	a.ID = ""
+	a.CreatedAt = models.NowRFC3339()
 	row := gormstore.RoleAssignmentToRow(a)
 	if err := m.db.WithContext(ctx).Table(m.tables.RoleAssignments).Create(&row).Error; err != nil {
 		return models.RoleAssignment{}, fmt.Errorf("CreateRoleAssignment: %w", err)

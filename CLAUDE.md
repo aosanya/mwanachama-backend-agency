@@ -590,6 +590,70 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   ./...` clean here and in `mwanachama-wakala-api` (locally `replace`d),
   `tsc --noEmit` and `vitest run` clean in `mwanachama-wakala-studio`.
 
+- **AG21 landed 2026-09-15: closed WK17 (`mwanachama-wakala-api`'s board) —
+  every `Create<Type>` manager method now owns `ID`/`CreatedAt`, and
+  validates a caller-supplied `DraftID`.** WK17 was filed against
+  wakala-api and named this package's `routes/` package as the fix
+  location; investigating turned up a bigger, more accurate picture. All 13
+  `Create<Type>` methods (`CreateAgency`, `CreateDepartment`, `CreateLevel`,
+  `CreateGoal`, `CreateObjective`, `CreateRole`, `CreateRoleAssignment`,
+  `CreateValue`, `CreateRule`, `CreateWorkflow`, `CreateWorkItem`,
+  `CreateEventFlowStep`, `CreateWorkPlan`) shared the identical
+  `if X.CreatedAt == "" { X.CreatedAt = models.NowRFC3339() }`/
+  never-clear-`ID` pattern — a caller-supplied non-empty value for either
+  field was written verbatim, honouring a clock-forgery vector and (since
+  `gormstore`'s `BeforeCreate` hooks only mint an id `if r.ID == ""`) a
+  chosen primary key. Fixing only `routes/` (as filed) would have left
+  `mcp/`'s identical surface exploitable too — `mcp/goal.go`'s own
+  `mcpGoalParams.ID` doc comment already claimed "required for update,
+  ignored for create," which `toModel()` did not actually do until this
+  fix landed. **Fixed at the one real source — inside each `Create<Type>`
+  itself** (`X.ID = ""` before building the row, `X.CreatedAt =
+  models.NowRFC3339()` unconditionally, dropping the `if == ""` guard) —
+  this closes both `routes/` and `mcp/` in one place, and any future
+  caller besides, the same way `Code`'s own unconditional
+  `gormstore.NextCode` mint already worked.
+  - **`DraftID` needed a materially different fix, not the same
+    clear-it-outright treatment.** `issue_test.go`/`roleassignment_test.go`
+    already exercise creating a row directly scoped into an existing open
+    Draft as a real, tested capability (not only via `CreateDraft`'s own
+    fork-copy) — clearing the field unconditionally would have broken it.
+    New `validateOpenDraftID` (`draft_impl.go`, beside `findDraftRow`) is
+    what the 9 Draft-scoped `Create<Type>` methods (every one above except
+    Agency/Department/Level/WorkPlan, which carry no `DraftID` field at
+    all) call instead: `""` always passes; a non-empty value is looked up
+    via the existing `findDraftRow` and refused with the already-existing
+    `ErrDraftNotFound` (unknown) or `ErrDraftNotOpen` (promoted/archived) —
+    closing WK17's actual concern (a live write attached to an arbitrary
+    or already-terminal Draft that `PromoteDraft`'s copy-and-cutover logic
+    was never going to reach) without touching the legitimate case.
+  - All 9 affected `routes/*.go` status-mapping functions
+    (`goalStatusFor`, `objectiveStatusFor`, `roleStatusFor`,
+    `roleAssignmentStatusFor`, `workflowStatusFor`, `workItemStatusFor`,
+    `eventFlowStepStatusFor`, `valueStatusFor`, `ruleStatusFor`) gained
+    `ErrDraftNotFound`→404 / `ErrDraftNotOpen`→409 arms — the same error
+    path this fix introduces, not a separate change; left unmapped, both
+    sentinels would have fallen through to a bare 500 "internal error"
+    instead of a clean refusal.
+  - New root-package `security_wk17_test.go` (caller-supplied id/created_at
+    ignored; unknown/promoted/archived `draft_id` refused; an open
+    `draft_id` still works) plus two HTTP-level cases added to
+    `routes/goal_test.go`. Verified: `go build`/`go vet`/`go test
+    ./...`/`gofmt -l .` all clean. Also rebuilt and retested
+    `mwanachama-wakala-api` (locally `replace`d) — its new
+    `security-03-agency-create-ignores-server-owned-fields` self-test
+    (`cmd/server/selftest/security/`) replays the original WK17 curl
+    reproduction over the real router and passes 7/7; that repo's
+    pre-existing `security-01` doc comment, which had explicitly named this
+    exact gap as real and unguarded, is updated to point at security-03
+    now that it holds.
+  - **Found, not fixed, along the way**: wakala-api's `make self-test` has
+    one pre-existing, unrelated failure — `objective-raci`'s "a second
+    Objective on the same Goal is refused" check, which predates AG14
+    (2026-09-10) reversing the 1:1 Goal:Objective rule and was never
+    updated after. Flagged on that repo's own board note, not touched
+    here.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

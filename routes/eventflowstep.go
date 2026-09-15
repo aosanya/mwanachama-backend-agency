@@ -10,8 +10,11 @@ import (
 
 func eventFlowStepStatusFor(err error) int {
 	switch {
-	case errors.Is(err, mwanachamaagency.ErrEventFlowStepNotFound):
+	case errors.Is(err, mwanachamaagency.ErrEventFlowStepNotFound),
+		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
+	case errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
+		return http.StatusConflict
 	case errors.Is(err, mwanachamaagency.ErrInvalidLookup):
 		return http.StatusBadRequest
 	default:

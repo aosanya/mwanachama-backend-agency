@@ -12,9 +12,11 @@ import (
 )
 
 func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error) {
-	if w.CreatedAt == "" {
-		w.CreatedAt = models.NowRFC3339()
+	if err := m.validateOpenDraftID(ctx, w.DraftID); err != nil {
+		return models.Workflow{}, err
 	}
+	w.ID = ""
+	w.CreatedAt = models.NowRFC3339()
 	var row gormstore.WorkflowRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "workflow", "W")

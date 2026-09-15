@@ -10,8 +10,11 @@ import (
 
 func objectiveStatusFor(err error) int {
 	switch {
-	case errors.Is(err, mwanachamaagency.ErrObjectiveNotFound):
+	case errors.Is(err, mwanachamaagency.ErrObjectiveNotFound),
+		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
+	case errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}

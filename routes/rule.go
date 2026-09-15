@@ -10,9 +10,11 @@ import (
 
 func ruleStatusFor(err error) int {
 	switch {
-	case errors.Is(err, mwanachamaagency.ErrRuleNotFound):
+	case errors.Is(err, mwanachamaagency.ErrRuleNotFound),
+		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, mwanachamaagency.ErrCannotEditLive):
+	case errors.Is(err, mwanachamaagency.ErrCannotEditLive),
+		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
 	case errors.Is(err, mwanachamaagency.ErrInvalidRule):
 		return http.StatusBadRequest

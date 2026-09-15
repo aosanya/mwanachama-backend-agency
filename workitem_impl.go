@@ -15,9 +15,11 @@ func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) 
 	if wi.ObjectiveID == "" {
 		return models.WorkItem{}, fmt.Errorf("%w: WorkItem.ObjectiveID is required", ErrInvalidWorkItem)
 	}
-	if wi.CreatedAt == "" {
-		wi.CreatedAt = models.NowRFC3339()
+	if err := m.validateOpenDraftID(ctx, wi.DraftID); err != nil {
+		return models.WorkItem{}, err
 	}
+	wi.ID = ""
+	wi.CreatedAt = models.NowRFC3339()
 	var row gormstore.WorkItemRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "workitem", "WI")

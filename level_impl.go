@@ -13,9 +13,8 @@ import (
 )
 
 func (m *agencyManager) CreateLevel(ctx context.Context, l models.Level) (models.Level, error) {
-	if l.CreatedAt == "" {
-		l.CreatedAt = models.NowRFC3339()
-	}
+	l.ID = ""
+	l.CreatedAt = models.NowRFC3339()
 	var row gormstore.LevelRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "level", "L")

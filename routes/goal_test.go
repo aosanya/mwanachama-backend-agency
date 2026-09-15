@@ -31,6 +31,59 @@ func TestCreateGoal(t *testing.T) {
 	}
 }
 
+// TestCreateGoal_IgnoresForgedFieldsOverHTTP is WK17's HTTP-level
+// regression: a caller-supplied id/created_at/draft_id used to be written
+// verbatim by this exact handler.
+func TestCreateGoal_IgnoresForgedFieldsOverHTTP(t *testing.T) {
+	mgr := newTestManager(t)
+	handler := routes.CreateGoal(mgr)
+
+	body := `{"id":"forged-goal-id","title":"Probe","created_at":"1999-01-01T00:00:00Z","draft_id":"unknown-draft"}`
+	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	handler(rec, req)
+
+	// An unknown draft_id is refused outright — see TestCreateGoal_UnknownDraftIDIs404.
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	body = `{"id":"forged-goal-id","title":"Probe","created_at":"1999-01-01T00:00:00Z"}`
+	req = httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(body))
+	rec = httptest.NewRecorder()
+	handler(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var out models.Goal
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if out.ID == "forged-goal-id" {
+		t.Fatal("the response honoured a caller-supplied id")
+	}
+	if out.CreatedAt == "1999-01-01T00:00:00Z" {
+		t.Fatal("the response honoured a caller-supplied created_at")
+	}
+}
+
+// TestCreateGoal_UnknownDraftIDIs404 confirms a forged/nonexistent
+// draft_id is refused with a clean 404, not the 500 "internal error" it
+// would have fallen through to before goalStatusFor learned about
+// ErrDraftNotFound.
+func TestCreateGoal_UnknownDraftIDIs404(t *testing.T) {
+	mgr := newTestManager(t)
+	handler := routes.CreateGoal(mgr)
+
+	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(`{"title":"Probe","draft_id":"unknown-draft"}`))
+	rec := httptest.NewRecorder()
+	handler(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestGetGoal_NotFound(t *testing.T) {
 	mgr := newTestManager(t)
 	handler := routes.GetGoal(mgr)

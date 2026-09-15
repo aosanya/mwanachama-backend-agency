@@ -15,9 +15,11 @@ import (
 // the same transaction as the row insert, so the counter increment and the
 // row's creation commit together.
 func (m *agencyManager) CreateGoal(ctx context.Context, g models.Goal) (models.Goal, error) {
-	if g.CreatedAt == "" {
-		g.CreatedAt = models.NowRFC3339()
+	if err := m.validateOpenDraftID(ctx, g.DraftID); err != nil {
+		return models.Goal{}, err
 	}
+	g.ID = ""
+	g.CreatedAt = models.NowRFC3339()
 	var row gormstore.GoalRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "goal", "G")

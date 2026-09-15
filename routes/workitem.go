@@ -10,8 +10,11 @@ import (
 
 func workItemStatusFor(err error) int {
 	switch {
-	case errors.Is(err, mwanachamaagency.ErrWorkItemNotFound):
+	case errors.Is(err, mwanachamaagency.ErrWorkItemNotFound),
+		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
+	case errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
+		return http.StatusConflict
 	case errors.Is(err, mwanachamaagency.ErrInvalidWorkItem):
 		return http.StatusBadRequest
 	default:

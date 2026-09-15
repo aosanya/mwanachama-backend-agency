@@ -12,10 +12,12 @@ func roleAssignmentStatusFor(err error) int {
 	switch {
 	case errors.Is(err, mwanachamaagency.ErrRoleAssignmentNotFound),
 		errors.Is(err, mwanachamaagency.ErrRoleNotFound),
-		errors.Is(err, mwanachamaagency.ErrObjectiveNotFound):
+		errors.Is(err, mwanachamaagency.ErrObjectiveNotFound),
+		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, mwanachamaagency.ErrCannotEditLiveRACI),
-		errors.Is(err, mwanachamaagency.ErrDuplicateAccountable):
+		errors.Is(err, mwanachamaagency.ErrDuplicateAccountable),
+		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
 	case errors.Is(err, mwanachamaagency.ErrInvalidRACILabel):
 		return http.StatusBadRequest

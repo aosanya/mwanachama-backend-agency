@@ -15,9 +15,11 @@ func (m *agencyManager) CreateRule(ctx context.Context, r models.Rule) (models.R
 	if r.Text == "" {
 		return models.Rule{}, fmt.Errorf("%w: Rule.Text is required", ErrInvalidRule)
 	}
-	if r.CreatedAt == "" {
-		r.CreatedAt = models.NowRFC3339()
+	if err := m.validateOpenDraftID(ctx, r.DraftID); err != nil {
+		return models.Rule{}, err
 	}
+	r.ID = ""
+	r.CreatedAt = models.NowRFC3339()
 	var row gormstore.RuleRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "rule", "RU")

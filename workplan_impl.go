@@ -24,9 +24,8 @@ func (m *agencyManager) CreateWorkPlan(ctx context.Context, w models.WorkPlan) (
 	if err := validateWorkPlanRegex(w.TriggerTopic, w.PayloadCondition); err != nil {
 		return models.WorkPlan{}, err
 	}
-	if w.CreatedAt == "" {
-		w.CreatedAt = models.NowRFC3339()
-	}
+	w.ID = ""
+	w.CreatedAt = models.NowRFC3339()
 	row := gormstore.WorkPlanToRow(w)
 	if err := m.db.WithContext(ctx).Table(m.tables.WorkPlans).Create(&row).Error; err != nil {
 		return models.WorkPlan{}, fmt.Errorf("CreateWorkPlan: %w", err)

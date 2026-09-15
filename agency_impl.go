@@ -12,9 +12,8 @@ import (
 )
 
 func (m *agencyManager) CreateAgency(ctx context.Context, a models.Agency) (models.Agency, error) {
-	if a.CreatedAt == "" {
-		a.CreatedAt = models.NowRFC3339()
-	}
+	a.ID = ""
+	a.CreatedAt = models.NowRFC3339()
 	row := gormstore.AgencyToRow(a)
 	if err := m.db.WithContext(ctx).Table(m.tables.Agencies).Create(&row).Error; err != nil {
 		return models.Agency{}, fmt.Errorf("CreateAgency: %w", err)

@@ -15,9 +15,11 @@ func (m *agencyManager) CreateValue(ctx context.Context, v models.Value) (models
 	if v.Text == "" {
 		return models.Value{}, fmt.Errorf("%w: Value.Text is required", ErrInvalidValue)
 	}
-	if v.CreatedAt == "" {
-		v.CreatedAt = models.NowRFC3339()
+	if err := m.validateOpenDraftID(ctx, v.DraftID); err != nil {
+		return models.Value{}, err
 	}
+	v.ID = ""
+	v.CreatedAt = models.NowRFC3339()
 	var row gormstore.ValueRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "value", "V")

@@ -10,9 +10,11 @@ import (
 
 func valueStatusFor(err error) int {
 	switch {
-	case errors.Is(err, mwanachamaagency.ErrValueNotFound):
+	case errors.Is(err, mwanachamaagency.ErrValueNotFound),
+		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, mwanachamaagency.ErrCannotEditLive):
+	case errors.Is(err, mwanachamaagency.ErrCannotEditLive),
+		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
 	case errors.Is(err, mwanachamaagency.ErrInvalidValue):
 		return http.StatusBadRequest

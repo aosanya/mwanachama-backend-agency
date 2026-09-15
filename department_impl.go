@@ -16,9 +16,8 @@ func (m *agencyManager) CreateDepartment(ctx context.Context, d models.Departmen
 	if d.Name == "" {
 		return models.Department{}, fmt.Errorf("%w: Department.Name is required", ErrInvalidDepartment)
 	}
-	if d.CreatedAt == "" {
-		d.CreatedAt = models.NowRFC3339()
-	}
+	d.ID = ""
+	d.CreatedAt = models.NowRFC3339()
 	var row gormstore.DepartmentRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "department", "D")

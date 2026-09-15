@@ -12,9 +12,11 @@ import (
 )
 
 func (m *agencyManager) CreateEventFlowStep(ctx context.Context, s models.EventFlowStep) (models.EventFlowStep, error) {
-	if s.CreatedAt == "" {
-		s.CreatedAt = models.NowRFC3339()
+	if err := m.validateOpenDraftID(ctx, s.DraftID); err != nil {
+		return models.EventFlowStep{}, err
 	}
+	s.ID = ""
+	s.CreatedAt = models.NowRFC3339()
 	row := gormstore.EventFlowStepToRow(s)
 	if err := m.db.WithContext(ctx).Table(m.tables.EventFlowSteps).Create(&row).Error; err != nil {
 		return models.EventFlowStep{}, fmt.Errorf("CreateEventFlowStep: %w", err)

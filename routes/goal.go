@@ -10,8 +10,11 @@ import (
 
 func goalStatusFor(err error) int {
 	switch {
-	case errors.Is(err, mwanachamaagency.ErrGoalNotFound):
+	case errors.Is(err, mwanachamaagency.ErrGoalNotFound),
+		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
+	case errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}

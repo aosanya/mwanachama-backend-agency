@@ -15,9 +15,11 @@ import (
 // than one Objective — each one a granular unit a single Role can be
 // RACI-assigned to (see [AgencyManager]'s doc comment).
 func (m *agencyManager) CreateObjective(ctx context.Context, o models.Objective) (models.Objective, error) {
-	if o.CreatedAt == "" {
-		o.CreatedAt = models.NowRFC3339()
+	if err := m.validateOpenDraftID(ctx, o.DraftID); err != nil {
+		return models.Objective{}, err
 	}
+	o.ID = ""
+	o.CreatedAt = models.NowRFC3339()
 	var row gormstore.ObjectiveRow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "objective", "O")
