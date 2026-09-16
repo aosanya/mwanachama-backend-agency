@@ -2,17 +2,63 @@ package mwanachamaagency_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestListIssues_EmptyDraftID(t *testing.T) {
+// TestListIssues_LiveScope asserts an empty draftID scans the live Agency
+// rather than being refused — what PublishAgency's own gate depends on.
+func TestListIssues_LiveScope(t *testing.T) {
 	mgr := newTestManager(t)
-	if _, err := mgr.ListIssues(context.Background(), "", mwanachamaagency.IssueFilter{}); !errors.Is(err, mwanachamaagency.ErrDraftIDRequired) {
-		t.Fatalf("expected ErrDraftIDRequired, got %v", err)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	issues, err := mgr.ListIssues(ctx, "", mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues(live): %v", err)
+	}
+	if len(issues) != 1 {
+		t.Fatalf("expected exactly the unassigned-Objective issue, got %d: %+v", len(issues), issues)
+	}
+	if issues[0].EntityID != o.ID || issues[0].DraftID != "" {
+		t.Fatalf("expected a live-scoped issue for objective %s, got %+v", o.ID, issues[0])
+	}
+}
+
+// TestListIssues_ScopesAreIndependent asserts a live scan does not delete
+// or return a Draft's findings, and vice versa — both live in one table,
+// separated only by the nullable draft_id scopeQuery filters on.
+func TestListIssues_ScopesAreIndependent(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	d, _, _ := seedDraftForIssues(t, mgr, ctx)
+
+	if _, err := mgr.ListIssues(ctx, d.ID, mwanachamaagency.IssueFilter{}); err != nil {
+		t.Fatalf("ListIssues(draft): %v", err)
+	}
+	live, err := mgr.ListIssues(ctx, "", mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues(live): %v", err)
+	}
+	for _, i := range live {
+		if i.DraftID != "" {
+			t.Fatalf("live scan returned a draft-scoped issue: %+v", i)
+		}
+	}
+
+	draft, err := mgr.ListIssues(ctx, d.ID, mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues(draft, again): %v", err)
+	}
+	if len(draft) == 0 {
+		t.Fatal("the live scan wiped the draft's issues")
+	}
+	for _, i := range draft {
+		if i.DraftID != d.ID {
+			t.Fatalf("draft scan returned an out-of-scope issue: %+v", i)
+		}
 	}
 }
 
@@ -39,7 +85,7 @@ func seedDraftForIssues(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx co
 }
 
 // TestListIssues_ObjectiveWithNoAccountable asserts the forked Objective
-// (nothing assigned to it yet) surfaces as a warning pointing at it.
+// (nothing assigned to it yet) surfaces as an error pointing at it.
 func TestListIssues_ObjectiveWithNoAccountable(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -53,8 +99,8 @@ func TestListIssues_ObjectiveWithNoAccountable(t *testing.T) {
 	for _, i := range issues {
 		if i.EntityType == "objective" && i.EntityID == o.ID {
 			found = true
-			if i.Severity != models.IssueSeverityWarning {
-				t.Errorf("expected warning severity, got %q", i.Severity)
+			if i.Severity != models.IssueSeverityError {
+				t.Errorf("expected error severity, got %q", i.Severity)
 			}
 		}
 	}
@@ -93,7 +139,7 @@ func TestListIssues_ObjectiveWithAccountable_NoIssue(t *testing.T) {
 }
 
 // TestListIssues_GoalWithNoObjectives asserts a Goal with no Objectives
-// surfaces as an info-level issue.
+// surfaces as an error-level issue.
 func TestListIssues_GoalWithNoObjectives(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -112,8 +158,8 @@ func TestListIssues_GoalWithNoObjectives(t *testing.T) {
 	for _, i := range issues {
 		if i.EntityType == "goal" && i.EntityID == lonely.ID {
 			found = true
-			if i.Severity != models.IssueSeverityInfo {
-				t.Errorf("expected info severity, got %q", i.Severity)
+			if i.Severity != models.IssueSeverityError {
+				t.Errorf("expected error severity, got %q", i.Severity)
 			}
 		}
 	}
@@ -164,16 +210,24 @@ func TestListIssues_FilterBySeverity(t *testing.T) {
 		t.Fatalf("CreateGoal: %v", err)
 	}
 
+	errs, err := mgr.ListIssues(ctx, d.ID, mwanachamaagency.IssueFilter{Severity: "error"})
+	if err != nil {
+		t.Fatalf("ListIssues(error): %v", err)
+	}
+	for _, i := range errs {
+		if i.Severity != models.IssueSeverityError {
+			t.Errorf("filter leaked a %q severity issue", i.Severity)
+		}
+	}
+	if len(errs) == 0 {
+		t.Fatal("expected at least one error (the unassigned Objective)")
+	}
+
 	warnings, err := mgr.ListIssues(ctx, d.ID, mwanachamaagency.IssueFilter{Severity: "warning"})
 	if err != nil {
 		t.Fatalf("ListIssues(warning): %v", err)
 	}
-	for _, i := range warnings {
-		if i.Severity != models.IssueSeverityWarning {
-			t.Errorf("filter leaked a %q severity issue", i.Severity)
-		}
-	}
-	if len(warnings) == 0 {
-		t.Fatal("expected at least one warning (the unassigned Objective)")
+	if len(warnings) != 0 {
+		t.Fatalf("no check emits a warning yet, got %+v", warnings)
 	}
 }

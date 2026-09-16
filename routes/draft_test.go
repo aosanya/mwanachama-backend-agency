@@ -13,7 +13,7 @@ import (
 
 func TestCreateDraftAndLifecycle(t *testing.T) {
 	mgr := newTestManager(t)
-	ag, err := mgr.CreateAgency(t.Context(), models.Agency{Name: "NeoLabHQ"})
+	ag, err := mgr.CreateAgency(t.Context(), models.Agency{Name: "SWELab"})
 	if err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestCreateDraftAndLifecycle(t *testing.T) {
 
 func TestArchiveDraft(t *testing.T) {
 	mgr := newTestManager(t)
-	ag, _ := mgr.CreateAgency(t.Context(), models.Agency{Name: "NeoLabHQ"})
+	ag, _ := mgr.CreateAgency(t.Context(), models.Agency{Name: "SWELab"})
 	draft, err := mgr.CreateDraft(t.Context(), "abandoned", ag.ID, "live")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)

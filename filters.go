@@ -49,18 +49,6 @@ type EventFlowStepFilter struct {
 	Description string
 }
 
-type WorkPlanFilter struct {
-	Code        string
-	Name        string
-	Description string
-}
-
-// ContextSourceFilter's SourceType is exact-match against
-// [models.ContextSourceType]'s values ("git", "comm", "work").
-type ContextSourceFilter struct {
-	SourceType string
-}
-
 type DepartmentFilter struct {
 	Code string
 	Name string

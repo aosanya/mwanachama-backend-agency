@@ -27,12 +27,11 @@ func TestRoutes_DefaultNouns(t *testing.T) {
 		"POST /work-items":               true,
 		"GET /drafts":                    true,
 		"POST /drafts/{draftID}/promote": true,
-		"GET /work-plans/{workPlanID}/context-sources":   true,
-		"DELETE /roles/{roleID}":                         true,
+		"DELETE /roles/{roleID}":         true,
 		"GET /objectives/{objectiveID}/role-assignments": true,
-		"POST /objectives":                               true,
-		"DELETE /values/{valueID}":                       true,
-		"DELETE /rules/{ruleID}":                         true,
+		"POST /objectives":         true,
+		"DELETE /values/{valueID}": true,
+		"DELETE /rules/{ruleID}":   true,
 	}
 	got := map[string]bool{}
 	for _, rt := range rts {
@@ -45,20 +44,23 @@ func TestRoutes_DefaultNouns(t *testing.T) {
 	}
 }
 
+// A noun override has to reach the nested paths built from it, not just
+// that noun's own top-level collection — Issue's Draft-scoped route is
+// addressed entirely by names.Draft.
 func TestRoutes_NounOverride(t *testing.T) {
 	mgr := newTestManager(t)
-	rts := routes.Routes(mgr, routes.ResourceNames{WorkPlan: "dispatch-plans"})
+	rts := routes.Routes(mgr, routes.ResourceNames{Draft: "revisions"})
 
 	found := false
 	for _, rt := range rts {
-		if rt.Pattern("") == "GET /dispatch-plans/{workPlanID}/context-sources" {
+		if rt.Pattern("") == "GET /revisions/{draftID}/issues" {
 			found = true
 		}
-		if rt.Pattern("") == "GET /work-plans/{workPlanID}/context-sources" {
-			t.Fatal("expected the overridden WorkPlan noun to also apply to the nested ContextSource path")
+		if rt.Pattern("") == "GET /drafts/{draftID}/issues" {
+			t.Fatal("expected the overridden Draft noun to also apply to the nested Issue path")
 		}
 	}
 	if !found {
-		t.Fatal("expected the overridden WorkPlan noun in the nested ContextSource route")
+		t.Fatal("expected the overridden Draft noun in the nested Issue route")
 	}
 }

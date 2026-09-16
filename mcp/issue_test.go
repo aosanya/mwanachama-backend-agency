@@ -13,7 +13,7 @@ import (
 func TestListIssues_ViaMCP(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
-	ag, err := mgr.CreateAgency(ctx, models.Agency{Name: "NeoLabHQ"})
+	ag, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"})
 	if err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
@@ -56,7 +56,10 @@ func TestListIssues_ViaMCP(t *testing.T) {
 	}
 }
 
-func TestListIssues_ViaMCP_EmptyDraftIDErrors(t *testing.T) {
+// TestListIssues_ViaMCP_OmittedDraftIDScansLive asserts the tool's
+// draft_id is genuinely optional now — omitting it scans the live Agency
+// (AGD-004), which is the scope agency_publish_agency validates against.
+func TestListIssues_ViaMCP_OmittedDraftIDScansLive(t *testing.T) {
 	mgr := newTestManager(t)
 	server := newTestServer(mgr)
 	mux := http.NewServeMux()
@@ -67,12 +70,12 @@ func TestListIssues_ViaMCP_EmptyDraftIDErrors(t *testing.T) {
 	cs := mcpConnect(t, srv.URL)
 	result, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name:      "agency_list_issues",
-		Arguments: map[string]any{"instance_id": "test", "draft_id": ""},
+		Arguments: map[string]any{"instance_id": "test"},
 	})
 	if err != nil {
 		t.Fatalf("CallTool agency_list_issues: %v", err)
 	}
-	if !result.IsError {
-		t.Fatalf("expected IsError for an empty draft_id, got content: %+v", result.Content)
+	if result.IsError {
+		t.Fatalf("expected a live scan to succeed, got content: %+v", result.Content)
 	}
 }

@@ -89,11 +89,12 @@ func (m *agencyManager) UpdateObjective(ctx context.Context, o models.Objective)
 	return gormstore.ObjectiveFromRow(row), nil
 }
 
-// DeleteObjective deletes o and cascades to every RoleAssignment scoped to
-// it — same reasoning as DeleteGoal's own cascade (see [AgencyManager]'s
-// doc comment). One transaction, so a failure partway through never leaves
-// an Objective deleted with orphaned RoleAssignments still behind, or vice
-// versa.
+// DeleteObjective deletes o and cascades to every RoleAssignment and
+// WorkItem scoped to it — same reasoning as DeleteGoal's own cascade (see
+// [AgencyManager]'s doc comment). WorkItem.ObjectiveID is required
+// (AGD-001), so a surviving WorkItem would be unreachable, not merely
+// untagged. One transaction, so a failure partway through never leaves an
+// Objective deleted with orphaned rows still behind, or vice versa.
 func (m *agencyManager) DeleteObjective(ctx context.Context, id string) error {
 	if _, err := m.findObjectiveRow(ctx, m.db, id); err != nil {
 		return err
@@ -101,6 +102,10 @@ func (m *agencyManager) DeleteObjective(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Table(m.tables.RoleAssignments).Where("objective_id = ?", id).
 			Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Table(m.tables.WorkItems).Where("objective_id = ?", id).
+			Delete(&gormstore.WorkItemRow{}).Error; err != nil {
 			return err
 		}
 		return tx.Table(m.tables.Objectives).Where("id = ?", id).Delete(&gormstore.ObjectiveRow{}).Error

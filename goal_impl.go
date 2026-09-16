@@ -88,9 +88,9 @@ func (m *agencyManager) UpdateGoal(ctx context.Context, g models.Goal) (models.G
 	return gormstore.GoalFromRow(row), nil
 }
 
-// DeleteGoal deletes g and cascades to every Objective scoped to it (and
-// every RoleAssignment scoped to each of those Objectives) — see
-// [AgencyManager]'s doc comment for why this bypasses
+// DeleteGoal deletes g and cascades to every Objective scoped to it, and
+// to every RoleAssignment and WorkItem scoped to each of those
+// Objectives — see [AgencyManager]'s doc comment for why this bypasses
 // RoleAssignment/Objective's own independent-edit rules rather than
 // calling DeleteRoleAssignment/DeleteObjective per row. All in one
 // transaction, so a failure partway through never leaves a Goal deleted
@@ -111,6 +111,10 @@ func (m *agencyManager) DeleteGoal(ctx context.Context, id string) error {
 		if len(objectiveIDs) > 0 {
 			if err := tx.Table(m.tables.RoleAssignments).Where("objective_id IN ?", objectiveIDs).
 				Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Table(m.tables.WorkItems).Where("objective_id IN ?", objectiveIDs).
+				Delete(&gormstore.WorkItemRow{}).Error; err != nil {
 				return err
 			}
 			if err := tx.Table(m.tables.Objectives).Where("goal_id = ?", id).

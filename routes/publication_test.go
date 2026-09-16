@@ -7,15 +7,93 @@ import (
 	"strings"
 	"testing"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
-func TestPublishAgencyAndGetPublication(t *testing.T) {
-	mgr := newTestManager(t)
-	if _, err := mgr.CreateAgency(t.Context(), models.Agency{Name: "NeoLabHQ"}); err != nil {
+// seedPublishableAgency builds the smallest Agency that passes
+// publish-time validation: one Goal, one Objective under it, and an
+// Accountable Role on that Objective.
+func seedPublishableAgency(t *testing.T, mgr mwanachamaagency.AgencyManager) {
+	t.Helper()
+	ctx := t.Context()
+	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"}); err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
+	g, err := mgr.CreateGoal(ctx, models.Goal{Title: "Grow adoption"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	o, err := mgr.CreateObjective(ctx, models.Objective{GoalID: g.ID, Title: "Grow adoption"})
+	if err != nil {
+		t.Fatalf("CreateObjective: %v", err)
+	}
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+	}); err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+}
+
+// TestPublishAgency_ValidationFailureIsConflict asserts an Agency with an
+// error-severity Issue (here: no Goals at all) is refused with a 409
+// naming what is wrong, rather than a bare 500.
+func TestPublishAgency_ValidationFailureIsConflict(t *testing.T) {
+	mgr := newTestManager(t)
+	if _, err := mgr.CreateAgency(t.Context(), models.Agency{Name: "SWELab"}); err != nil {
+		t.Fatalf("CreateAgency: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":""}`))
+	rec := httptest.NewRecorder()
+	routes.PublishAgency(mgr)(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "no Goals") {
+		t.Errorf("expected the body to name the finding, got %s", rec.Body.String())
+	}
+}
+
+// TestPublishAgency_Tag covers the request body's new tag field, and the
+// 409 a duplicate earns.
+func TestPublishAgency_Tag(t *testing.T) {
+	mgr := newTestManager(t)
+	seedPublishableAgency(t, mgr)
+
+	req := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"tag":"launch"}`))
+	rec := httptest.NewRecorder()
+	routes.PublishAgency(mgr)(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("publish status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var pub models.AgencyPublication
+	if err := json.Unmarshal(rec.Body.Bytes(), &pub); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if pub.Tag != "launch" {
+		t.Fatalf("expected tag %q, got %q", "launch", pub.Tag)
+	}
+
+	if _, err := mgr.CreateValue(t.Context(), models.Value{Text: "correctness over speed"}); err != nil {
+		t.Fatalf("CreateValue: %v", err)
+	}
+	dup := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"tag":"launch"}`))
+	dupRec := httptest.NewRecorder()
+	routes.PublishAgency(mgr)(dupRec, dup)
+	if dupRec.Code != http.StatusConflict {
+		t.Fatalf("duplicate-tag status = %d, body = %s", dupRec.Code, dupRec.Body.String())
+	}
+}
+
+func TestPublishAgencyAndGetPublication(t *testing.T) {
+	mgr := newTestManager(t)
+	seedPublishableAgency(t, mgr)
 
 	req := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":""}`))
 	rec := httptest.NewRecorder()

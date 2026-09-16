@@ -166,10 +166,32 @@ func hashRecord(typeName string, fields map[string]any) string {
 	return string(b)
 }
 
+// validationErrors re-scans the live Agency and returns
+// [ErrPublishValidationFailed], wrapped with what it found, if any finding
+// is error-severity. Warnings and info are recorded by the scan but never
+// block (AGD-004).
+func validationErrors(ctx context.Context, tx *gorm.DB, tables TableNames) error {
+	found, err := rescanIssues(ctx, tx, tables, "")
+	if err != nil {
+		return err
+	}
+	var blocking []string
+	for _, issue := range found {
+		if issue.Severity == models.IssueSeverityError {
+			blocking = append(blocking, issue.Message)
+		}
+	}
+	if len(blocking) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%w: %s", ErrPublishValidationFailed, strings.Join(blocking, "; "))
+}
+
 // PublishAgency versions and content-hashes whatever is currently live. If
 // draftID is non-"", that Draft must already be promoted
-// (PublishAgency does not redo PromoteDraft's copy-and-swap).
-func (m *agencyManager) PublishAgency(ctx context.Context, draftID string) (models.AgencyPublication, error) {
+// (PublishAgency does not redo PromoteDraft's copy-and-swap). tag names
+// the publication; "" falls back to "v<version>".
+func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag string) (models.AgencyPublication, error) {
 	var out models.AgencyPublication
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if draftID != "" {
@@ -182,6 +204,10 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID string) (mode
 			}
 		}
 
+		if err := validationErrors(ctx, tx, m.tables); err != nil {
+			return err
+		}
+
 		hash, err := m.liveContentHash(ctx, tx)
 		if err != nil {
 			return err
@@ -192,13 +218,25 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID string) (mode
 			return fmt.Errorf("PublishAgency: %w", err)
 		}
 		maxVersion := 0
+		takenTags := make(map[string]bool, len(existing))
 		for _, p := range existing {
 			if p.ContentHash == hash {
 				return ErrNoChangesDetected
 			}
+			takenTags[p.Tag] = true
 			if p.Version > maxVersion {
 				maxVersion = p.Version
 			}
+		}
+
+		// The "v<version>" fallback is checked for collisions too: an
+		// operator is free to name an earlier publication "v7" by hand.
+		version := maxVersion + 1
+		if tag == "" {
+			tag = fmt.Sprintf("v%d", version)
+		}
+		if takenTags[tag] {
+			return ErrDuplicateTag
 		}
 
 		now := models.NowRFC3339()
@@ -207,12 +245,11 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID string) (mode
 			return fmt.Errorf("PublishAgency: %w", err)
 		}
 
-		version := maxVersion + 1
 		row := gormstore.AgencyPublicationToRow(models.AgencyPublication{
 			DraftID:     draftID,
 			ContentHash: hash,
 			Version:     version,
-			Tag:         fmt.Sprintf("v%d", version),
+			Tag:         tag,
 			Status:      "active",
 			PublishedAt: now,
 		})

@@ -14,7 +14,7 @@ import (
 // and owned by that Workflow.
 func seedLiveAgency(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) (models.Agency, models.Goal, models.Objective, models.Workflow, models.WorkItem) {
 	t.Helper()
-	ag, err := mgr.CreateAgency(ctx, models.Agency{Name: "NeoLabHQ"})
+	ag, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"})
 	if err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}

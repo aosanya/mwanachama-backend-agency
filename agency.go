@@ -29,12 +29,12 @@ type AgencyManager interface {
 	ListGoals(ctx context.Context, draftID string, filter GoalFilter) ([]models.Goal, error)
 	UpdateGoal(ctx context.Context, g models.Goal) (models.Goal, error)
 	// DeleteGoal cascades: every Objective scoped to it, and every
-	// RoleAssignment scoped to each of those Objectives, is deleted too —
-	// bypassing RoleAssignment/Objective's own independent-edit rules
-	// (Role's live-immutability check exists to stop a live RACI row
-	// being tampered with piecemeal, not to block a cascade from the
-	// Goal it already hangs off, which itself carries no such
-	// restriction).
+	// RoleAssignment and WorkItem scoped to each of those Objectives, is
+	// deleted too — bypassing RoleAssignment/Objective's own
+	// independent-edit rules (Role's live-immutability check exists to
+	// stop a live RACI row being tampered with piecemeal, not to block a
+	// cascade from the Goal it already hangs off, which itself carries no
+	// such restriction).
 	DeleteGoal(ctx context.Context, id string) error
 
 	// Objective. A Goal may have several — each one a granular unit a
@@ -44,9 +44,11 @@ type AgencyManager interface {
 	GetObjective(ctx context.Context, id string) (models.Objective, error)
 	ListObjectives(ctx context.Context, draftID string, filter ObjectiveFilter) ([]models.Objective, error)
 	UpdateObjective(ctx context.Context, o models.Objective) (models.Objective, error)
-	// DeleteObjective cascades: every RoleAssignment scoped to it is
-	// deleted too — same bypass of RoleAssignment's own independent-edit
-	// rule as DeleteGoal's cascade (see its doc comment above).
+	// DeleteObjective cascades: every RoleAssignment and WorkItem scoped
+	// to it is deleted too — same bypass of RoleAssignment's own
+	// independent-edit rule as DeleteGoal's cascade (see its doc comment
+	// above). WorkItem.ObjectiveID is required, so a surviving WorkItem
+	// would be unreachable rather than merely untagged.
 	DeleteObjective(ctx context.Context, id string) error
 
 	// Workflow
@@ -89,9 +91,13 @@ type AgencyManager interface {
 	// Publication. PublishAgency versions and content-hashes whatever is
 	// currently live; draftID, if non-"", is recorded as the Draft that
 	// prompted the publish and must already be promoted
-	// ([ErrDraftNotPromoted] otherwise). Returns [ErrNoChangesDetected] if
-	// the content hash matches an existing publication.
-	PublishAgency(ctx context.Context, draftID string) (models.AgencyPublication, error)
+	// ([ErrDraftNotPromoted] otherwise). tag names the publication and
+	// must be unused ([ErrDuplicateTag]); "" falls back to "v<version>".
+	// The live scan runs first: any error-severity Issue refuses the
+	// publish with [ErrPublishValidationFailed]. Returns
+	// [ErrNoChangesDetected] if the content hash matches an existing
+	// publication.
+	PublishAgency(ctx context.Context, draftID, tag string) (models.AgencyPublication, error)
 	GetPublication(ctx context.Context, version int) (models.AgencyPublication, error)
 	ListPublications(ctx context.Context, filter PublicationFilter) ([]models.AgencyPublication, error)
 	// UpdatePublicationStatus only allows the active -> archived
@@ -107,26 +113,6 @@ type AgencyManager interface {
 	// ListEventFlowSteps returns live steps ordered by (WorkflowCode,
 	// Ordinality, Step), optionally filtered to one workflowCode.
 	ListEventFlowSteps(ctx context.Context, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error)
-
-	// WorkPlan. CreateWorkPlan/UpdateWorkPlan return [ErrInvalidRegex] if
-	// TriggerTopic or PayloadCondition does not compile as a Go regexp.
-	CreateWorkPlan(ctx context.Context, w models.WorkPlan) (models.WorkPlan, error)
-	GetWorkPlan(ctx context.Context, id string) (models.WorkPlan, error)
-	ListWorkPlans(ctx context.Context, filter WorkPlanFilter) ([]models.WorkPlan, error)
-	UpdateWorkPlan(ctx context.Context, w models.WorkPlan) (models.WorkPlan, error)
-	// MatchWorkPlans evaluates topic/payload against every enabled
-	// WorkPlan's TriggerTopic/PayloadCondition regex, returning matches
-	// (with their ContextSources) ordered by Ordinality ascending.
-	MatchWorkPlans(ctx context.Context, topic, payload string) ([]models.WorkPlanMatch, error)
-
-	// ContextSource. AddContextSource/ListContextSources return
-	// [ErrWorkPlanNotFound] if workPlanID names no WorkPlan.
-	AddContextSource(ctx context.Context, workPlanID string, cs models.ContextSource) (models.ContextSource, error)
-	ListContextSources(ctx context.Context, workPlanID string, filter ContextSourceFilter) ([]models.ContextSource, error)
-	// RemoveContextSource returns [ErrContextSourceNotFound] if sourceID
-	// names no ContextSource, or names one belonging to a different
-	// WorkPlan than workPlanID.
-	RemoveContextSource(ctx context.Context, workPlanID, sourceID string) error
 
 	// Department. The org chart is a local, self-contained parent/child
 	// tree (no dependency on mwanachama-backend-actor's own Group/Hierarchy
@@ -156,7 +142,9 @@ type AgencyManager interface {
 	GetRole(ctx context.Context, id string) (models.Role, error)
 	ListRoles(ctx context.Context, draftID string, filter RoleFilter) ([]models.Role, error)
 	// UpdateRole/DeleteRole return [ErrCannotEditLiveRACI] if the target
-	// row is live.
+	// row is live. DeleteRole cascades into every RoleAssignment naming
+	// the Role, the mirror of DeleteObjective's cascade from the other
+	// side of the same join table.
 	UpdateRole(ctx context.Context, r models.Role) (models.Role, error)
 	DeleteRole(ctx context.Context, id string) error
 
@@ -189,7 +177,7 @@ type AgencyManager interface {
 	// its Name/Description, and its default Enabled/Locked state come
 	// from [models.ModuleCatalog], applied by [gormstore.BackfillModules]
 	// at Migrate time. CreateModule stays on this interface only as
-	// SeedNeoLabHQ's own fallback for a code Migrate somehow didn't
+	// SeedSWELab's own fallback for a code Migrate somehow didn't
 	// backfill; it returns [ErrInvalidModule] if Code is empty,
 	// [ErrDuplicateModule] if Code already exists in that scope.
 	CreateModule(ctx context.Context, mod models.Module) (models.Module, error)
@@ -259,15 +247,15 @@ type AgencyManager interface {
 	ListRuleAttachments(ctx context.Context, ruleID string) ([]models.RuleAttachment, error)
 	DeleteRuleAttachment(ctx context.Context, id string) error
 
-	// Issue. A Draft-scoped, system-detected diagnostics list (info/
-	// warning/error) — e.g. an Objective with no Accountable, a Goal with
-	// no Objectives. ListIssues re-scans on every call: it deletes
-	// draftID's existing Issue rows, re-runs every check against that
-	// Draft's current data, re-inserts, then returns the (possibly
-	// filtered) result — so there is no Create/Update/Delete surface;
-	// nothing here is ever authored directly. Returns [ErrDraftIDRequired]
-	// if draftID is "" — unlike every other List method above, an Issue
-	// never exists against the live Agency.
+	// Issue. A system-detected diagnostics list (info/warning/error) — a
+	// dangling reference, an Objective with no Accountable, a Goal with
+	// no Objectives. draftID selects scope like every other scoped read:
+	// "" scans the live Agency, a Draft's id scans that Draft.
+	// ListIssues re-scans on every call: it deletes that scope's existing
+	// Issue rows, re-runs every check against its current data,
+	// re-inserts, then returns the (possibly filtered) result — so there
+	// is no Create/Update/Delete surface; nothing here is ever authored
+	// directly. An error-severity Issue is what PublishAgency refuses on.
 	ListIssues(ctx context.Context, draftID string, filter IssueFilter) ([]models.Issue, error)
 }
 

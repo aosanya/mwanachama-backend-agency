@@ -9,7 +9,7 @@ import (
 func TestAgencyRoundTrip(t *testing.T) {
 	a := models.Agency{
 		ID:                           "a1",
-		Name:                         "NeoLabHQ",
+		Name:                         "SWELab",
 		Enabled:                      true,
 		DefaultFailurePipelineBudget: 3,
 		InactivityTimeoutSeconds:     600,

@@ -77,18 +77,8 @@ var domainTypeCatalog = []typeInfo{
 		HowToAdd: "agency_create_work_item (workflow_id, objective_id, title).",
 	},
 	{
-		Name:     "WorkPlan",
-		WhatItIs: "An execution plan binding an inbound event trigger (a topic, optionally a payload condition) to an AI agent's instructions — what actually runs when a matching event arrives.",
-		HowToAdd: "agency_create_work_plan (name, trigger_topic, instructions, ...).",
-	},
-	{
-		Name:     "ContextSource",
-		WhatItIs: "A source of context (git activity, comms, or other work) a WorkPlan reads before running.",
-		HowToAdd: "agency_add_context_source (work_plan_id, source_type, and the matching git/comm/work config) — always attached to an existing WorkPlan.",
-	},
-	{
 		Name:     "EventFlowStep",
-		WhatItIs: "The queryable, structured projection of one step in a Workflow's event-flow diagram: which topic/consumer triggers it, which WorkPlan handles it, what it emits on success or error.",
+		WhatItIs: "The queryable, structured projection of one step in a Workflow's event-flow diagram: which topic/consumer triggers it, which handler runs it, what it emits on success or error.",
 		HowToAdd: "Not directly creatable through chat — populated from a Workflow's EventFlows data. Look one up with agency_lookup_event_flow_step or agency_list_event_flow_steps.",
 	},
 	{
@@ -108,8 +98,8 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "Issue",
-		WhatItIs: "A system-detected problem found by scanning a Draft — e.g. an Objective with no Accountable role, or a Goal with no Objectives. info/warning/error severity, always scoped to one Draft, never the live Agency.",
-		HowToAdd: "Never created directly — agency_list_issues re-scans the Draft and regenerates its Issues every time it's called.",
+		WhatItIs: "A system-detected problem found by scanning the Agency — e.g. a Work Item whose Objective no longer exists, an Objective with no Accountable role, or a Goal with no Objectives. info/warning/error severity, scoped either to the live Agency or to one Draft. An error-severity Issue blocks publishing.",
+		HowToAdd: "Never created directly — agency_list_issues re-scans and regenerates the Issues every time it's called.",
 	},
 }
 
@@ -120,7 +110,7 @@ var domainTypeCatalog = []typeInfo{
 func registerCatalogTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "agency_list_types", Title: "List Domain Types",
-		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, WorkPlan, ContextSource, EventFlowStep, Draft, Department, Level, AgencyPublication, AgencySnapshot, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
+		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, EventFlowStep, Draft, Department, Level, AgencyPublication, AgencySnapshot, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
 	}, mcpListTypes())
 }
 

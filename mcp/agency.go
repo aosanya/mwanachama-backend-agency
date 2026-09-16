@@ -28,7 +28,7 @@ func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_promote_draft", Title: "Promote Draft", Description: "Promote an open Draft: its scoped copies become live, replacing what was there before."}, mcpPromoteDraft(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_archive_draft", Title: "Archive Draft", Description: "Archive an open Draft without promoting it — its scoped copies are discarded."}, mcpArchiveDraft(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Title: "Publish Agency", Description: "Publish the currently-live Agency (optionally the result of a just-promoted Draft) as a new versioned, content-hashed AgencyPublication."}, mcpPublishAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Title: "Publish Agency", Description: "Publish the currently-live Agency (optionally the result of a just-promoted Draft) as a new versioned, content-hashed AgencyPublication. Pass a tag to name the publication. The Agency is validated first: if it has any error-severity issues the publish is refused and the errors are returned — call agency_list_issues with no draft_id to see them in full."}, mcpPublishAgency(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_publication", Title: "Get Publication", Description: "Get one AgencyPublication by its version number."}, mcpGetPublication(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_publications", Title: "List Publications", Description: "List every AgencyPublication for an Instance."}, mcpListPublications(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_publication_status", Title: "Update Publication Status", Description: "Set an AgencyPublication's status (e.g. archiving it)."}, mcpUpdatePublicationStatus(resolve))
@@ -45,7 +45,7 @@ type mcpCreateAgencyParams struct {
 	Name                         string `json:"name" jsonschema:"the Agency's name"`
 	Description                  string `json:"description,omitempty" jsonschema:"a short description of what this Agency is/does"`
 	Enabled                      bool   `json:"enabled,omitempty" jsonschema:"whether the Agency is active"`
-	DefaultFailurePipelineBudget int    `json:"default_failure_pipeline_budget,omitempty" jsonschema:"default retry budget for a WorkPlan's on-failure pipeline"`
+	DefaultFailurePipelineBudget int    `json:"default_failure_pipeline_budget,omitempty" jsonschema:"default retry budget for an on-failure pipeline"`
 	InactivityTimeoutSeconds     int    `json:"inactivity_timeout_seconds,omitempty" jsonschema:"seconds of inactivity before a run is considered stalled"`
 	EventFlows                   string `json:"event_flows,omitempty" jsonschema:"raw JSON event-flow blob; Workflow.EventFlows falls back to this when empty"`
 }
@@ -206,6 +206,7 @@ func mcpArchiveDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 type mcpPublishAgencyParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	DraftID    string `json:"draft_id,omitempty" jsonschema:"a just-promoted Draft's id, if this publication follows one; empty re-tags whatever is already live"`
+	Tag        string `json:"tag,omitempty" jsonschema:"a name for this publication, unique across publications; empty falls back to v<version>"`
 }
 
 func mcpPublishAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpPublishAgencyParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
@@ -214,7 +215,7 @@ func mcpPublishAgency(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 		if err != nil {
 			return nil, models.AgencyPublication{}, err
 		}
-		out, err := m.PublishAgency(ctx, p.DraftID)
+		out, err := m.PublishAgency(ctx, p.DraftID, p.Tag)
 		return summary("Published %s (version %d, %s)", out.Tag, out.Version, out.Status), out, err
 	}
 }

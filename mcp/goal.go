@@ -369,7 +369,7 @@ func mcpDeleteWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallT
 
 type mcpLookupFlowStepParams struct {
 	InstanceID   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	HandlerCode  string `json:"handler_code,omitempty" jsonschema:"highest-precedence lookup key: the WorkPlan code that executes the step"`
+	HandlerCode  string `json:"handler_code,omitempty" jsonschema:"highest-precedence lookup key: the code of the handler that executes the step"`
 	TriggerTopic string `json:"trigger_topic,omitempty" jsonschema:"used with consumer as the second-precedence lookup key"`
 	Consumer     string `json:"consumer,omitempty" jsonschema:"used with trigger_topic as the second-precedence lookup key"`
 	Code         string `json:"code,omitempty" jsonschema:"lowest-precedence lookup key: the step's own \"<workflow_code>:<step>\" code"`

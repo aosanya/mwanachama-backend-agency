@@ -67,7 +67,7 @@ func TestRegisterTools_ListsExpectedTools(t *testing.T) {
 	}
 	want := []string{
 		"agency_get_agency", "agency_create_goal", "agency_create_objective", "agency_create_department",
-		"agency_set_raci", "agency_create_work_plan", "agency_add_context_source",
+		"agency_set_raci",
 		"agency_create_value", "agency_create_rule", "agency_design_from_spec",
 		"agency_list_types",
 	}
@@ -89,7 +89,7 @@ func TestAgencyAndGoalLifecycle(t *testing.T) {
 
 	result, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name:      "agency_create_agency",
-		Arguments: map[string]any{"instance_id": "any", "name": "NeoLabHQ"},
+		Arguments: map[string]any{"instance_id": "any", "name": "SWELab"},
 	})
 	if err != nil {
 		t.Fatalf("CallTool agency_create_agency: %v", err)
@@ -136,7 +136,7 @@ func TestDesignFromSpec(t *testing.T) {
 		Name: "agency_design_from_spec",
 		Arguments: map[string]any{
 			"instance_id": "any",
-			"agency":      map[string]any{"name": "NeoLabHQ"},
+			"agency":      map[string]any{"name": "SWELab"},
 			"goals":       []map[string]any{{"key": "g1", "title": "Grow membership"}},
 			"objectives":  []map[string]any{{"key": "o1", "goal_key": "g1", "title": "Grow membership by 10%"}},
 		},
@@ -170,7 +170,7 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 
 	_, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name:      "agency_create_agency",
-		Arguments: map[string]any{"instance_id": "any", "name": "NeoLabHQ"},
+		Arguments: map[string]any{"instance_id": "any", "name": "SWELab"},
 	})
 	if err != nil {
 		t.Fatalf("CallTool agency_create_agency: %v", err)

@@ -90,7 +90,10 @@ func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.R
 	return gormstore.RoleFromRow(row), nil
 }
 
-// DeleteRole returns [ErrCannotEditLiveRACI] if the target row is live.
+// DeleteRole deletes the Role and cascades to every RoleAssignment naming
+// it, the mirror of DeleteObjective's cascade from the other side of the
+// same join table. Returns [ErrCannotEditLiveRACI] if the target row is
+// live.
 func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
 	existing, err := m.findRoleRow(ctx, m.db, id)
 	if err != nil {
@@ -99,8 +102,14 @@ func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
 	if existing.DraftID == nil {
 		return ErrCannotEditLiveRACI
 	}
-	if err := m.db.WithContext(ctx).Table(m.tables.Roles).Where("id = ?", id).
-		Delete(&gormstore.RoleRow{}).Error; err != nil {
+	err = m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Table(m.tables.RoleAssignments).Where("role_id = ?", id).
+			Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+			return err
+		}
+		return tx.Table(m.tables.Roles).Where("id = ?", id).Delete(&gormstore.RoleRow{}).Error
+	})
+	if err != nil {
 		return fmt.Errorf("DeleteRole: %w", err)
 	}
 	return nil

@@ -53,7 +53,7 @@ var modulesCatalogJSON []byte
 
 // ModuleCatalog is every known Module code, parsed once from
 // modules_catalog.json at package init. Reused by [gormstore.BackfillModules]
-// and [SeedNeoLabHQ] so both stay in sync with this one file.
+// and [SeedSWELab] so both stay in sync with this one file.
 var ModuleCatalog = mustParseModuleCatalog(modulesCatalogJSON)
 
 func mustParseModuleCatalog(raw []byte) []ModuleCatalogEntry {

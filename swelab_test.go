@@ -9,19 +9,19 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestSeedNeoLabHQ(t *testing.T) {
+func TestSeedSWELab(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 
-	seed, err := mwanachamaagency.SeedNeoLabHQ(ctx, mgr)
+	seed, err := mwanachamaagency.SeedSWELab(ctx, mgr)
 	if err != nil {
-		t.Fatalf("SeedNeoLabHQ: %v", err)
+		t.Fatalf("SeedSWELab: %v", err)
 	}
 
-	if len(seed.Roles) != len(mwanachamaagency.NeoLabHQPersonas) {
-		t.Fatalf("expected %d roles, got %d", len(mwanachamaagency.NeoLabHQPersonas), len(seed.Roles))
+	if len(seed.Roles) != len(mwanachamaagency.SWELabPersonas) {
+		t.Fatalf("expected %d roles, got %d", len(mwanachamaagency.SWELabPersonas), len(seed.Roles))
 	}
-	for _, name := range mwanachamaagency.NeoLabHQPersonas {
+	for _, name := range mwanachamaagency.SWELabPersonas {
 		if _, ok := seed.Roles[name]; !ok {
 			t.Fatalf("expected a seeded role for persona %q", name)
 		}
@@ -86,7 +86,7 @@ func TestSeedNeoLabHQ(t *testing.T) {
 		t.Fatalf("expected ErrDuplicateAccountable adding a second accountable, got %v", err)
 	}
 
-	pub, err := mgr.PublishAgency(ctx, "")
+	pub, err := mgr.PublishAgency(ctx, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}

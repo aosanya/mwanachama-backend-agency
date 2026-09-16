@@ -208,7 +208,7 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   that scope. `ListRoleAssignmentsForWorkItem` is the lookup K6 actually
   needs ("who is assigned to this WorkItem, with what RACI label").
 
-- **AG7 landed 2026-09-09: `SeedNeoLabHQ`, an exported seed function** (not
+- **AG7 landed 2026-09-09: `SeedSWELab`, an exported seed function** (not
   a script — this repo has no CLI/deployment yet). Reaffirms, rather than
   reopens, AG6's unscoped-`Role` decision: creates a real "Software"
   `Department` for context, but `Role` still doesn't reference it, even
@@ -249,7 +249,7 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   in full for this repo — a design session (run via an adapted
   `dev-research.md` protocol) starting from "how do goals, values and
   rules interact?", motivated by AI agents acting as `Role`s (the
-  NeoLabHQ personas) having no access to the tacit organizational
+  SWELab personas) having no access to the tacit organizational
   knowledge a human Role-holder would just know. Superseded **AG11**
   (`UpdateAgency` for Mission/Vision editing), which a concurrent session
   landed the same day via the same shared working tree, purely by
@@ -304,7 +304,7 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     surface, not just the human-facing one) and
     `mwanachama-wakala-studio`'s identity UI still referenced
     Mission/Vision, having drifted from this repo's own model.
-  - `SeedNeoLabHQ` restructured from one Goal tagging one of three
+  - `SeedSWELab` restructured from one Goal tagging one of three
     WorkItems (RACI per-WorkItem) to **three independent Goal→Objective→
     WorkItem chains** — Objective-scoped RACI means three distinct RACI
     sets need three distinct Objectives, not three WorkItems sharing one
@@ -515,7 +515,7 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     `RoleAssignmentFilter{}`. Ten of this repo's own existing tests
     (`role_test.go`, `goal_test.go`, `level_test.go`, `department_test.go`,
     `workplan_test.go`, `contextsource_test.go`, `eventflowstep_test.go`,
-    `roleassignment_test.go`, `neolabhq_test.go`, `draft_test.go`) needed
+    `roleassignment_test.go`, `swelab_test.go`, `draft_test.go`) needed
     the same mechanical zero-value-filter-argument addition at their direct
     `mgr.ListX(...)` call sites; `routes/*_test.go` needed no changes at
     all, since those call the HTTP handler wrappers, not the interface
@@ -838,6 +838,115 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   clean here; rebuilt and retested `mwanachama-wakala-api` (locally
   `replace`d) clean too — the only other repo importing this package's
   `mcp` subpackage.
+
+- **AG26 landed 2026-09-16: publishing is gated by the Issue scan, and
+  `PublishAgency` takes an operator tag.** Implements
+  [AGD-004](documentation/2.%20design/todo_details/AGD-004.md), a design
+  session the same day starting from "I want the agencies validated when
+  the publish button is posted. It should tag the agency." Until this
+  task `PublishAgency` validated no content at all — only that a named
+  Draft was promoted and that the content hash had changed — while the
+  one validation mechanism in the repo (AG20's Issue scan) was
+  Draft-only and produced nothing above `warning`.
+  - **The scan is now scope-agnostic and `ErrDraftIDRequired` is
+    deleted.** `scanDraftIssues` → `scanIssues`, `IssueRow.DraftID` is a
+    nullable `*string` like every other Draft-scoped row, and both
+    `ListIssues`' delete and its read go through the existing
+    `scopeQuery` rather than a bespoke `draft_id = ?`. This was the whole
+    architectural knot: publish hashes *live*, the scan only knew
+    *drafts*, and nothing could have run one against the other. Turned
+    out to be a small change — `scanIssues` already threaded its
+    `draftID` through `scopeQuery`, which has always treated `""` as
+    live; the `ErrDraftIDRequired` guard was the only thing stopping it.
+  - **The scan gained a small internal structure rather than growing one
+    long function**: an `issueScan` struct (scope + accumulated findings)
+    with one method per rule (`checkStructure`, `checkRACI`,
+    `checkWorkItems`, `checkEventFlowSteps`, `checkAttachments`), which
+    is what made adding five families at once readable. `rescanIssues`
+    (delete-scan-reinsert, returning the findings) is shared by
+    `ListIssues` and the publish gate, so both read the same rules from
+    the same place rather than the gate reimplementing them.
+  - **Four check families became `error` — the first producers of
+    `models.IssueSeverityError`, which had been declared since AG20 and
+    emitted by nothing.** Dangling references (WorkItem→missing
+    Objective; RoleAssignment→missing Role/Objective; Value/Rule
+    attachment whose `TargetCode` no longer resolves; EventFlowStep whose
+    `workflow_code` matches no Workflow); Objective with no Accountable
+    (promoted from `warning`); Agency with no Goals (new) and Goal with
+    no Objectives (promoted from `info`); Workflow with no WorkItems
+    (new). Nothing emits `warning` or `info` any more — the two severities
+    are kept, and the gate keys on severity rather than issue count, so a
+    future advisory check needs no new machinery.
+  - **Attachment targets resolve in the scan's own scope, not always
+    live.** Attachments are never Draft-scoped (AGD-003) but their
+    targets are, and a Code survives promotion unchanged (AG16) — so
+    scanning a Draft surfaces "this Draft deletes a Role a Rule is
+    attached to" *before* promoting makes it true of live, which
+    resolving against live could not.
+  - **`PublishAgency(ctx, draftID, tag)`**: a non-empty tag must be
+    unused (`ErrDuplicateTag`), `""` falls back to `v<version>` — and the
+    fallback is collision-checked too, since an operator is free to name
+    an earlier publication "v7" by hand. `Version` stays the machine key
+    `GetPublication`/`UpdatePublicationStatus` take. The gate runs inside
+    the same transaction, before hashing, and refuses with
+    `ErrPublishValidationFailed` wrapping the blocking messages;
+    `routes/publication.go` maps both new sentinels to 409.
+  - `routes/issue.go` gained the live-scope route (`GET /issues` beside
+    the existing `GET /drafts/{draftID}/issues`) — one handler serves
+    both, since `r.PathValue("draftID")` reads back `""` when the pattern
+    carries no such wildcard. `issueStatusFor` now has no sentinel arms
+    at all and is kept only as a pair with `writeIssueErr`, matching
+    every other domain file.
+  - **Every publish test needed a new seed.** `seedLiveAgency` leaves its
+    Objective with no Accountable, which is now blocking, so
+    `publication_test.go` gained `seedPublishableAgency` (the same seed
+    plus an Accountable Role) and the routes package gained its own
+    equivalent. Two existing tests needed their premise changed rather
+    than their assertions: `TestPublishAgency_NoDraft` changed its
+    "make a change between publishes" step from `CreateGoal` (which now
+    produces a blocking no-Objectives error) to an Agency-wide
+    `CreateValue`, and `TestPublishAgency_RACIOnlyChangeIsAChange` now
+    adds a *Consulted* assignment, since its Accountable one is part of
+    the seed.
+  - Worth knowing: `SeedSWELab` publishes clean on the first try, which
+    is the best evidence the check set is calibrated — a realistic
+    agency passes, `seedLiveAgency`'s deliberately-partial one does not.
+  - Verified: `go build`/`go vet`/`go test ./...`/`gofmt -l .` all clean
+    here. Rebuilt and retested `mwanachama-backend-api-shared`,
+    `mwanachama-wakala-api`, `mwanachama-backend-api-gateway` and
+    `mwanachama-backend-api-kazi` (all four locally `replace`d) — all
+    build and test clean; **no external call site passes `PublishAgency`
+    or `ListIssues` directly**, so despite being an interface change this
+    needed no source fixes outside this repo, unlike AG18's. The
+    gateway's `TestPostmanCollectionCoversEveryRoute` gate reports 29
+    uncovered routes; exactly one of those (`GET /v1/agency/issues`) is
+    this task's, landing on the same pre-existing already-filed gap
+    AG18/AG20/AG22 each landed on. Same deferral.
+
+- **AG27 landed 2026-09-16: three delete paths that were stranding rows.**
+  Found while designing AG26's dangling-reference checks — the checks
+  exist because these paths produced exactly the orphans they detect,
+  through the ordinary UI:
+  - `DeleteGoal`/`DeleteObjective` cascaded into `RoleAssignment` but
+    never into `WorkItem`, even though `WorkItem.ObjectiveID` has been
+    *required* since AG12 — so a surviving WorkItem was unreachable, not
+    merely untagged. (`DeleteWorkflow`/AG20 already cascaded its
+    WorkItems correctly; these two predate required-`ObjectiveID`
+    semantics.)
+  - `DeleteRole` deleted only the Role row, leaving `RoleAssignment` rows
+    pointing at a dead `role_id` — while `DeleteObjective` cleans that
+    same join table from the other side. Now a transaction, matching
+    `DeleteObjective`'s shape.
+  - The scan is the regression net, not the fix: AG26's checks still have
+    to catch rows already stranded in any database that ran the old
+    code, which is why `TestScan_DanglingRoleAssignment` plants its row
+    by deleting the Role row directly (new `newTestManagerDB` test helper
+    exposes the store for exactly that case) rather than through a
+    manager call that no longer produces one.
+  - `CreateWorkItem` still accepts a *nonexistent* `ObjectiveID` (it only
+    rejects an empty one) — found, not fixed, since AG26's scan now
+    reports it and tightening Create is its own decision. That open path
+    is what `TestScan_DanglingWorkItem` uses.
 
 ## Conventions
 

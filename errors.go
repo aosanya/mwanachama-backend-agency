@@ -35,14 +35,6 @@ var (
 	// ErrInvalidLookup is returned by LookupFlowStep when no lookup key is
 	// set (or TriggerTopic is set without Consumer).
 	ErrInvalidLookup = errors.New("mwanachamaagency: invalid event flow step lookup")
-	// ErrWorkPlanNotFound is returned when a WorkPlan id has no match.
-	ErrWorkPlanNotFound = errors.New("mwanachamaagency: work plan not found")
-	// ErrInvalidRegex is returned by CreateWorkPlan/UpdateWorkPlan when
-	// TriggerTopic or PayloadCondition does not compile as a Go regexp.
-	ErrInvalidRegex = errors.New("mwanachamaagency: invalid regex")
-	// ErrContextSourceNotFound is returned when a ContextSource id has no
-	// match, or matches a different WorkPlan than the one given.
-	ErrContextSourceNotFound = errors.New("mwanachamaagency: context source not found")
 	// ErrInvalidDepartment is returned by CreateDepartment/RenameDepartment
 	// when Name is empty.
 	ErrInvalidDepartment = errors.New("mwanachamaagency: invalid department")
@@ -121,10 +113,14 @@ var (
 	// ErrRuleAttachmentNotFound is returned when a RuleAttachment id has
 	// no match.
 	ErrRuleAttachmentNotFound = errors.New("mwanachamaagency: rule attachment not found")
-	// ErrDraftIDRequired is returned by ListIssues when draftID is "" — an
-	// Issue only ever exists scoped to a Draft, unlike every other List
-	// method's nullable-DraftID ("" means live) convention.
-	ErrDraftIDRequired = errors.New("mwanachamaagency: draft id is required")
+	// ErrPublishValidationFailed is returned by PublishAgency when the
+	// live scan found at least one error-severity Issue. Its message
+	// names them; ListIssues(ctx, "", IssueFilter{Severity: "error"})
+	// reads the same findings back as structured rows.
+	ErrPublishValidationFailed = errors.New("mwanachamaagency: agency has validation errors and cannot be published")
+	// ErrDuplicateTag is returned by PublishAgency when another
+	// publication already carries the requested tag.
+	ErrDuplicateTag = errors.New("mwanachamaagency: publication tag already exists")
 	// ErrInvalidModule is returned by CreateModule when Code is empty.
 	ErrInvalidModule = errors.New("mwanachamaagency: invalid module")
 	// ErrDuplicateModule is returned by CreateModule when a Module with

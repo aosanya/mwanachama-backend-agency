@@ -13,7 +13,7 @@ import (
 
 func TestCreateAndGetAgency(t *testing.T) {
 	mgr := newTestManager(t)
-	req := httptest.NewRequest(http.MethodPost, "/agency", strings.NewReader(`{"name":"NeoLabHQ"}`))
+	req := httptest.NewRequest(http.MethodPost, "/agency", strings.NewReader(`{"name":"SWELab"}`))
 	rec := httptest.NewRecorder()
 	routes.CreateAgency(mgr)(rec, req)
 
@@ -24,7 +24,7 @@ func TestCreateAndGetAgency(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if out.ID == "" || out.Name != "NeoLabHQ" {
+	if out.ID == "" || out.Name != "SWELab" {
 		t.Fatalf("unexpected agency: %+v", out)
 	}
 
@@ -49,7 +49,7 @@ func TestGetAgency_NotFound(t *testing.T) {
 
 func TestUpdateAgency(t *testing.T) {
 	mgr := newTestManager(t)
-	createReq := httptest.NewRequest(http.MethodPost, "/agency", strings.NewReader(`{"name":"NeoLabHQ"}`))
+	createReq := httptest.NewRequest(http.MethodPost, "/agency", strings.NewReader(`{"name":"SWELab"}`))
 	createRec := httptest.NewRecorder()
 	routes.CreateAgency(mgr)(createRec, createReq)
 	if createRec.Code != http.StatusCreated {

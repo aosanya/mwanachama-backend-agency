@@ -13,7 +13,7 @@ func TestCreateAndGetAgency(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 
-	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "NeoLabHQ"}); err != nil {
+	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"}); err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
 
@@ -21,7 +21,7 @@ func TestCreateAndGetAgency(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAgency: %v", err)
 	}
-	if got.Name != "NeoLabHQ" || got.ID == "" || got.CreatedAt == "" {
+	if got.Name != "SWELab" || got.ID == "" || got.CreatedAt == "" {
 		t.Fatalf("unexpected agency: %+v", got)
 	}
 }
@@ -37,16 +37,16 @@ func TestUpdateAgency(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 
-	created, err := mgr.CreateAgency(ctx, models.Agency{Name: "NeoLabHQ"})
+	created, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"})
 	if err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
 
-	updated, err := mgr.UpdateAgency(ctx, models.Agency{Name: "NeoLabHQ Renamed"})
+	updated, err := mgr.UpdateAgency(ctx, models.Agency{Name: "SWELab Renamed"})
 	if err != nil {
 		t.Fatalf("UpdateAgency: %v", err)
 	}
-	if updated.Name != "NeoLabHQ Renamed" {
+	if updated.Name != "SWELab Renamed" {
 		t.Fatalf("unexpected updated agency: %+v", updated)
 	}
 	if updated.ID != created.ID || updated.CreatedAt != created.CreatedAt {
@@ -57,7 +57,7 @@ func TestUpdateAgency(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAgency: %v", err)
 	}
-	if got.Name != "NeoLabHQ Renamed" {
+	if got.Name != "SWELab Renamed" {
 		t.Fatalf("update did not persist: %+v", got)
 	}
 }

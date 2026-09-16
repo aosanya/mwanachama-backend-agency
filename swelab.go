@@ -7,10 +7,10 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// NeoLabHQPersonas is the full persona catalog from
+// SWELabPersonas is the full persona catalog from
 // NeoLabHQ/context-engineering-kit's agents/ directory — the seed source
-// for NeoLabHQ's Roles. Every persona here is software-development-specific.
-var NeoLabHQPersonas = []string{
+// for SWELab's Roles. Every persona here is software-development-specific.
+var SWELabPersonas = []string{
 	"bug-hunter", "business-analyst", "change-expectation-agent",
 	"change-failure-agent", "change-impact-agent", "change-story-agent",
 	"code-explorer", "code-quality-reviewer", "code-reviewer",
@@ -20,9 +20,9 @@ var NeoLabHQPersonas = []string{
 	"test-coverage-reviewer",
 }
 
-// NeoLabHQSeed is everything [SeedNeoLabHQ] creates, so a caller doesn't
+// SWELabSeed is everything [SeedSWELab] creates, so a caller doesn't
 // need to re-query it.
-type NeoLabHQSeed struct {
+type SWELabSeed struct {
 	Agency          models.Agency
 	Department      models.Department
 	Roles           map[string]models.Role   // keyed by persona name
@@ -34,8 +34,8 @@ type NeoLabHQSeed struct {
 	RoleAssignments []models.RoleAssignment
 }
 
-// SeedNeoLabHQ creates a test Agency ("NeoLabHQ"): all 21
-// [NeoLabHQPersonas] as Roles under one "Software" Department (Role
+// SeedSWELab creates a test Agency ("SWELab"): all 21
+// [SWELabPersonas] as Roles under one "Software" Department (Role
 // itself stays unscoped — the Department exists for real, but nothing
 // points at it), plus a small illustrative Goal/Objective/Workflow/
 // WorkItem set with RoleAssignments exercising every RACI label. Three
@@ -45,32 +45,32 @@ type NeoLabHQSeed struct {
 // Also collects every models.ModuleCatalog entry into seed.Modules
 // (already live from gormstore.BackfillModules, not newly created here).
 // Everything is created live; publishing is left to the caller.
-func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
-	var seed NeoLabHQSeed
+func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
+	var seed SWELabSeed
 
 	agency, err := m.CreateAgency(ctx, models.Agency{
-		Name: "NeoLabHQ",
+		Name: "SWELab",
 	})
 	if err != nil {
-		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
+		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
 	}
 	seed.Agency = agency
 
 	level, err := m.CreateLevel(ctx, models.Level{Name: "Department", Depth: 0})
 	if err != nil {
-		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
+		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
 	}
 	department, err := m.CreateDepartment(ctx, models.Department{Name: "Software", LevelID: level.ID})
 	if err != nil {
-		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
+		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
 	}
 	seed.Department = department
 
-	seed.Roles = make(map[string]models.Role, len(NeoLabHQPersonas))
-	for _, name := range NeoLabHQPersonas {
+	seed.Roles = make(map[string]models.Role, len(SWELabPersonas))
+	for _, name := range SWELabPersonas {
 		role, err := m.CreateRole(ctx, models.Role{Name: name})
 		if err != nil {
-			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create role %q: %w", name, err)
+			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create role %q: %w", name, err)
 		}
 		seed.Roles[name] = role
 	}
@@ -84,7 +84,7 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 	// Name/Description/Enabled/Locked rather than a blanket Enabled: true.
 	liveModules, err := m.ListModules(ctx, "", ModuleFilter{})
 	if err != nil {
-		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
+		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
 	}
 	byCode := make(map[string]models.Module, len(liveModules))
 	for _, mod := range liveModules {
@@ -101,14 +101,14 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 			Enabled: entry.Enabled, Locked: entry.Locked,
 		})
 		if err != nil {
-			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create module %q: %w", entry.Code, err)
+			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create module %q: %w", entry.Code, err)
 		}
 		seed.Modules[entry.Code] = mod
 	}
 
 	workflow, err := m.CreateWorkflow(ctx, models.Workflow{Name: "Code Review Process"})
 	if err != nil {
-		return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %w", err)
+		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
 	}
 	seed.Workflows = []models.Workflow{workflow}
 
@@ -153,13 +153,13 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 	for _, item := range items {
 		goal, err := m.CreateGoal(ctx, models.Goal{Title: item.goalTitle})
 		if err != nil {
-			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create goal %q: %w", item.goalTitle, err)
+			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create goal %q: %w", item.goalTitle, err)
 		}
 		seed.Goals = append(seed.Goals, goal)
 
 		objective, err := m.CreateObjective(ctx, models.Objective{GoalID: goal.ID, Title: item.goalTitle})
 		if err != nil {
-			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create objective for %q: %w", item.goalTitle, err)
+			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create objective for %q: %w", item.goalTitle, err)
 		}
 		seed.Objectives = append(seed.Objectives, objective)
 
@@ -167,20 +167,20 @@ func SeedNeoLabHQ(ctx context.Context, m AgencyManager) (NeoLabHQSeed, error) {
 			WorkflowID: workflow.ID, ObjectiveID: objective.ID, Title: item.workItem,
 		})
 		if err != nil {
-			return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: create work item %q: %w", item.workItem, err)
+			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create work item %q: %w", item.workItem, err)
 		}
 		seed.WorkItems = append(seed.WorkItems, workItem)
 
 		for _, a := range item.assignments {
 			role, ok := seed.Roles[a.persona]
 			if !ok {
-				return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: %q is not a seeded persona", a.persona)
+				return SWELabSeed{}, fmt.Errorf("SeedSWELab: %q is not a seeded persona", a.persona)
 			}
 			ra, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{
 				RoleID: role.ID, ObjectiveID: objective.ID, Label: a.label,
 			})
 			if err != nil {
-				return NeoLabHQSeed{}, fmt.Errorf("SeedNeoLabHQ: assign %q to %q: %w", a.persona, item.workItem, err)
+				return SWELabSeed{}, fmt.Errorf("SeedSWELab: assign %q to %q: %w", a.persona, item.workItem, err)
 			}
 			seed.RoleAssignments = append(seed.RoleAssignments, ra)
 		}

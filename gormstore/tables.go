@@ -1,6 +1,10 @@
 package gormstore
 
-import "gorm.io/gorm"
+import (
+	"strings"
+
+	"gorm.io/gorm"
+)
 
 // TableNames names the physical tables one mounted copy of this package
 // reads and writes.
@@ -14,8 +18,6 @@ type TableNames struct {
 	EventFlowSteps     string
 	AgencySnapshots    string
 	AgencyPublications string
-	WorkPlans          string
-	ContextSources     string
 	Departments        string
 	Levels             string
 	Roles              string
@@ -46,8 +48,6 @@ func DefaultTableNames(instance string) TableNames {
 		EventFlowSteps:     instance + "_event_flow_steps",
 		AgencySnapshots:    instance + "_agency_snapshots",
 		AgencyPublications: instance + "_agency_publications",
-		WorkPlans:          instance + "_work_plans",
-		ContextSources:     instance + "_context_sources",
 		Departments:        instance + "_departments",
 		Levels:             instance + "_levels",
 		Roles:              instance + "_roles",
@@ -95,12 +95,6 @@ func Migrate(db *gorm.DB, t TableNames) error {
 		return err
 	}
 	if err := db.Table(t.AgencyPublications).AutoMigrate(&AgencyPublicationRow{}); err != nil {
-		return err
-	}
-	if err := db.Table(t.WorkPlans).AutoMigrate(&WorkPlanRow{}); err != nil {
-		return err
-	}
-	if err := db.Table(t.ContextSources).AutoMigrate(&ContextSourceRow{}); err != nil {
 		return err
 	}
 	if err := db.Table(t.Levels).AutoMigrate(&LevelRow{}); err != nil {
@@ -161,6 +155,32 @@ func Migrate(db *gorm.DB, t TableNames) error {
 	// gateway gating routes on Module.Enabled never finds an empty catalog.
 	if err := BackfillModules(db, t.Modules); err != nil {
 		return err
+	}
+	return DropRetiredTables(db, t)
+}
+
+// retiredTableSuffixes names table suffixes this package used to create
+// and no longer does. Dropping is driven from a list rather than done
+// inline so a future retirement is one entry, not another block here.
+var retiredTableSuffixes = []string{
+	// WorkPlan/ContextSource, retired 2026-09-16 (AGD-005 decision #6) —
+	// event-topic dispatch config nothing consumed: no external caller of
+	// MatchWorkPlans, and mwanachama-wakala-studio had already hidden the
+	// module from its own shortcuts.
+	"_work_plans",
+	"_context_sources",
+}
+
+// DropRetiredTables removes the tables of retired types for one instance,
+// derived from the instance prefix TableNames itself is built from. Runs
+// at the end of every [Migrate], so a pre-existing deployment sheds them
+// on its next boot; a no-op everywhere else.
+func DropRetiredTables(db *gorm.DB, t TableNames) error {
+	instance := strings.TrimSuffix(t.Agencies, "_agencies")
+	for _, suffix := range retiredTableSuffixes {
+		if err := db.Migrator().DropTable(instance + suffix); err != nil {
+			return err
+		}
 	}
 	return nil
 }

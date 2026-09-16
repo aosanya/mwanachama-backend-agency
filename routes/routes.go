@@ -37,8 +37,6 @@ type ResourceNames struct {
 	Role           string
 	RoleAssignment string
 	Module         string
-	WorkPlan       string
-	ContextSource  string
 	Value          string
 	Rule           string
 	Issue          string
@@ -84,12 +82,6 @@ func (n ResourceNames) withDefaults() ResourceNames {
 	if n.Module == "" {
 		n.Module = "modules"
 	}
-	if n.WorkPlan == "" {
-		n.WorkPlan = "work-plans"
-	}
-	if n.ContextSource == "" {
-		n.ContextSource = "context-sources"
-	}
 	if n.Value == "" {
 		n.Value = "values"
 	}
@@ -103,11 +95,9 @@ func (n ResourceNames) withDefaults() ResourceNames {
 }
 
 // Routes is every address this package answers today, sharing one
-// ResourceNames so all of it stays consistent (e.g. WorkPlan's noun
-// override is honoured in ContextSourceRoutes' nested path too). A
-// mounting process that wants to wrap one domain's routes differently
-// from another's calls the per-domain *Routes functions separately
-// instead.
+// ResourceNames so all of it stays consistent. A mounting process that
+// wants to wrap one domain's routes differently from another's calls the
+// per-domain *Routes functions separately instead.
 func Routes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	var out []Route
 	out = append(out, AgencyRoutes(m, names)...)
@@ -123,8 +113,6 @@ func Routes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	out = append(out, RoleRoutes(m, names)...)
 	out = append(out, RoleAssignmentRoutes(m, names)...)
 	out = append(out, ModuleRoutes(m, names)...)
-	out = append(out, WorkPlanRoutes(m, names)...)
-	out = append(out, ContextSourceRoutes(m, names)...)
 	out = append(out, ValueRoutes(m, names)...)
 	out = append(out, RuleRoutes(m, names)...)
 	out = append(out, IssueRoutes(m, names)...)

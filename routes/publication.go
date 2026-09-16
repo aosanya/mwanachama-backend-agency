@@ -14,6 +14,8 @@ func publicationStatusFor(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, mwanachamaagency.ErrDraftNotPromoted),
 		errors.Is(err, mwanachamaagency.ErrNoChangesDetected),
+		errors.Is(err, mwanachamaagency.ErrPublishValidationFailed),
+		errors.Is(err, mwanachamaagency.ErrDuplicateTag),
 		errors.Is(err, mwanachamaagency.ErrInvalidPublicationStatus):
 		return http.StatusConflict
 	default:
@@ -41,18 +43,20 @@ func pathVersion(w http.ResponseWriter, r *http.Request) (int, bool) {
 	return v, true
 }
 
-// PublishAgency handles POST — body {"draft_id": "..."} ("" allowed, same
-// as [mwanachamaagency.AgencyManager.PublishAgency]).
+// PublishAgency handles POST — body {"draft_id": "...", "tag": "..."},
+// both "" allowed, same as
+// [mwanachamaagency.AgencyManager.PublishAgency].
 func PublishAgency(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			DraftID string `json:"draft_id"`
+			Tag     string `json:"tag"`
 		}
 		if err := readJSON(r, &body); err != nil {
 			writeErr(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		out, err := m.PublishAgency(r.Context(), body.DraftID)
+		out, err := m.PublishAgency(r.Context(), body.DraftID, body.Tag)
 		if err != nil {
 			writePublicationErr(w, err)
 			return
