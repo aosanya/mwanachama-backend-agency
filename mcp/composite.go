@@ -7,7 +7,7 @@
 // a department's level_key, a work item's workflow_key) rather than a real
 // id, since real ids don't exist until this tool creates the rows — the
 // same problem a UI form composing several backend calls in one submit has
-// to solve. Departments/RoleAssignments/etc. that reference a key must
+// to solve. GroupTypes/RoleAssignments/etc. that reference a key must
 // have it defined earlier in the same spec (a department's parent_key, for
 // instance, must name a department listed before it) — this tool applies
 // each section in array order, in the dependency order the domain itself
@@ -64,11 +64,12 @@ type specLevel struct {
 	Depth int    `json:"depth,omitempty"`
 }
 
-type specDepartment struct {
-	Key       string `json:"key" jsonschema:"a caller-chosen name other spec entries reference this Department by"`
-	Name      string `json:"name"`
-	LevelKey  string `json:"level_key" jsonschema:"a key from this spec's levels list"`
-	ParentKey string `json:"parent_key,omitempty" jsonschema:"a key from earlier in this spec's departments list; empty makes it top-level"`
+type specGroupType struct {
+	Key      string `json:"key" jsonschema:"a caller-chosen name other spec entries reference this GroupType by"`
+	Name     string `json:"name" jsonschema:"e.g. \"Department\", \"Committee\", \"Ward\""`
+	Singular string `json:"singular,omitempty" jsonschema:"what one of these is called; defaults to name"`
+	Plural   string `json:"plural,omitempty" jsonschema:"what several are called; defaults to name + \"s\""`
+	LevelKey string `json:"level_key,omitempty" jsonschema:"a key from this spec's levels list; empty means the type may sit at any rung"`
 }
 
 type specRole struct {
@@ -114,16 +115,16 @@ type specRACI struct {
 }
 
 type mcpDesignFromSpecParams struct {
-	InstanceID  string           `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	Agency      *specAgency      `json:"agency,omitempty" jsonschema:"created only if this Instance has no Agency yet; omit or leave unset otherwise"`
-	Levels      []specLevel      `json:"levels,omitempty"`
-	Departments []specDepartment `json:"departments,omitempty"`
-	Roles       []specRole       `json:"roles,omitempty"`
-	Goals       []specGoal       `json:"goals,omitempty"`
-	Objectives  []specObjective  `json:"objectives,omitempty"`
-	Workflows   []specWorkflow   `json:"workflows,omitempty"`
-	WorkItems   []specWorkItem   `json:"work_items,omitempty"`
-	RACI        []specRACI       `json:"raci,omitempty"`
+	InstanceID string          `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	Agency     *specAgency     `json:"agency,omitempty" jsonschema:"created only if this Instance has no Agency yet; omit or leave unset otherwise"`
+	Levels     []specLevel     `json:"levels,omitempty"`
+	GroupTypes []specGroupType `json:"group_types,omitempty"`
+	Roles      []specRole      `json:"roles,omitempty"`
+	Goals      []specGoal      `json:"goals,omitempty"`
+	Objectives []specObjective `json:"objectives,omitempty"`
+	Workflows  []specWorkflow  `json:"workflows,omitempty"`
+	WorkItems  []specWorkItem  `json:"work_items,omitempty"`
+	RACI       []specRACI      `json:"raci,omitempty"`
 }
 
 // mcpDesignFromSpecResult reports every key this call actually resolved to
@@ -133,7 +134,7 @@ type mcpDesignFromSpecParams struct {
 type mcpDesignFromSpecResult struct {
 	AgencyCreated   bool              `json:"agency_created"`
 	Levels          map[string]string `json:"levels,omitempty"`
-	Departments     map[string]string `json:"departments,omitempty"`
+	GroupTypes      map[string]string `json:"group_types,omitempty"`
 	Roles           map[string]string `json:"roles,omitempty"`
 	Goals           map[string]string `json:"goals,omitempty"`
 	Objectives      map[string]string `json:"objectives,omitempty"`
@@ -151,12 +152,12 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		out := mcpDesignFromSpecResult{
-			Levels:      map[string]string{},
-			Departments: map[string]string{},
-			Roles:       map[string]string{},
-			Goals:       map[string]string{},
-			Objectives:  map[string]string{},
-			Workflows:   map[string]string{},
+			Levels:     map[string]string{},
+			GroupTypes: map[string]string{},
+			Roles:      map[string]string{},
+			Goals:      map[string]string{},
+			Objectives: map[string]string{},
+			Workflows:  map[string]string{},
 		}
 
 		if p.Agency != nil {
@@ -178,26 +179,24 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 			out.Levels[lvl.Key] = row.ID
 		}
 
-		for _, dep := range p.Departments {
-			levelID, ok := out.Levels[dep.LevelKey]
-			if !ok {
-				out.Errors = append(out.Errors, fmt.Sprintf("department %q: unknown level_key %q", dep.Key, dep.LevelKey))
-				continue
-			}
-			parentID := ""
-			if dep.ParentKey != "" {
-				parentID, ok = out.Departments[dep.ParentKey]
+		for _, gt := range p.GroupTypes {
+			levelID := ""
+			if gt.LevelKey != "" {
+				var ok bool
+				levelID, ok = out.Levels[gt.LevelKey]
 				if !ok {
-					out.Errors = append(out.Errors, fmt.Sprintf("department %q: unknown parent_key %q (must appear earlier in departments)", dep.Key, dep.ParentKey))
+					out.Errors = append(out.Errors, fmt.Sprintf("group type %q: unknown level_key %q", gt.Key, gt.LevelKey))
 					continue
 				}
 			}
-			row, err := m.CreateDepartment(ctx, models.Department{ParentID: parentID, LevelID: levelID, Name: dep.Name})
+			row, err := m.CreateGroupType(ctx, models.GroupType{
+				Name: gt.Name, Singular: gt.Singular, Plural: gt.Plural, LevelID: levelID,
+			})
 			if err != nil {
-				out.Errors = append(out.Errors, fmt.Sprintf("department %q: %v", dep.Key, err))
+				out.Errors = append(out.Errors, fmt.Sprintf("group type %q: %v", gt.Key, err))
 				continue
 			}
-			out.Departments[dep.Key] = row.ID
+			out.GroupTypes[gt.Key] = row.ID
 		}
 
 		for _, r := range p.Roles {
@@ -302,8 +301,8 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		s := summary(
-			"Applied spec: %d level(s), %d department(s), %d role(s), %d goal(s), %d objective(s), %d workflow(s), %d work item(s), %d RACI assignment(s), %d error(s)",
-			len(out.Levels), len(out.Departments), len(out.Roles), len(out.Goals), len(out.Objectives),
+			"Applied spec: %d level(s), %d group type(s), %d role(s), %d goal(s), %d objective(s), %d workflow(s), %d work item(s), %d RACI assignment(s), %d error(s)",
+			len(out.Levels), len(out.GroupTypes), len(out.Roles), len(out.Goals), len(out.Objectives),
 			len(out.Workflows), len(out.WorkItems), len(out.RoleAssignments), len(out.Errors),
 		)
 		return s, out, nil

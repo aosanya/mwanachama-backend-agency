@@ -18,7 +18,6 @@ type TableNames struct {
 	EventFlowSteps     string
 	AgencySnapshots    string
 	AgencyPublications string
-	Departments        string
 	Levels             string
 	Roles              string
 	RoleAssignments    string
@@ -48,7 +47,6 @@ func DefaultTableNames(instance string) TableNames {
 		EventFlowSteps:     instance + "_event_flow_steps",
 		AgencySnapshots:    instance + "_agency_snapshots",
 		AgencyPublications: instance + "_agency_publications",
-		Departments:        instance + "_departments",
 		Levels:             instance + "_levels",
 		Roles:              instance + "_roles",
 		RoleAssignments:    instance + "_role_assignments",
@@ -100,9 +98,6 @@ func Migrate(db *gorm.DB, t TableNames) error {
 	if err := db.Table(t.Levels).AutoMigrate(&LevelRow{}); err != nil {
 		return err
 	}
-	if err := db.Table(t.Departments).AutoMigrate(&DepartmentRow{}); err != nil {
-		return err
-	}
 	if err := db.Table(t.Roles).AutoMigrate(&RoleRow{}); err != nil {
 		return err
 	}
@@ -137,7 +132,6 @@ func Migrate(db *gorm.DB, t TableNames) error {
 		{t.Goals, "goal", "G"},
 		{t.Objectives, "objective", "O"},
 		{t.Roles, "role", "R"},
-		{t.Departments, "department", "D"},
 		{t.Levels, "level", "L"},
 		{t.Workflows, "workflow", "W"},
 		{t.WorkItems, "workitem", "WI"},

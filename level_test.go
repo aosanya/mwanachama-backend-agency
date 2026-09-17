@@ -2,7 +2,6 @@ package mwanachamaagency_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -39,6 +38,10 @@ func TestLevelCRUDAndOrdering(t *testing.T) {
 	}
 }
 
+// TestDeleteLevel covers the manager-level delete. Its old companion —
+// "refused while a Department wears it" — went away with the Department
+// type itself (AGD-017): nothing inside this package references a Level
+// any more, so the only guard left is that the Level exists.
 func TestDeleteLevel(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -47,26 +50,13 @@ func TestDeleteLevel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateLevel: %v", err)
 	}
-	if _, err := mgr.CreateDepartment(ctx, models.Department{Name: "Software", LevelID: lvl.ID}); err != nil {
-		t.Fatalf("CreateDepartment: %v", err)
+	if err := mgr.DeleteLevel(ctx, lvl.ID); err != nil {
+		t.Fatalf("DeleteLevel: %v", err)
 	}
-
-	if err := mgr.DeleteLevel(ctx, lvl.ID); !errors.Is(err, mwanachamaagency.ErrLevelWornByDepartments) {
-		t.Fatalf("expected ErrLevelWornByDepartments, got %v", err)
+	if _, err := mgr.GetLevel(ctx, lvl.ID); err == nil {
+		t.Fatal("expected the deleted Level to be gone")
 	}
-
-	empty, err := mgr.CreateLevel(ctx, models.Level{Name: "Unused"})
-	if err != nil {
-		t.Fatalf("CreateLevel(empty): %v", err)
-	}
-	if err := mgr.DeleteLevel(ctx, empty.ID); err != nil {
-		t.Fatalf("DeleteLevel(empty): %v", err)
-	}
-	if _, err := mgr.GetLevel(ctx, empty.ID); !errors.Is(err, mwanachamaagency.ErrLevelNotFound) {
-		t.Fatalf("expected level gone after delete, got %v", err)
-	}
-
-	if err := mgr.DeleteLevel(ctx, "unknown"); !errors.Is(err, mwanachamaagency.ErrLevelNotFound) {
-		t.Fatalf("expected ErrLevelNotFound deleting an unknown level, got %v", err)
+	if err := mgr.DeleteLevel(ctx, lvl.ID); err == nil {
+		t.Fatal("expected deleting an unknown Level to fail")
 	}
 }

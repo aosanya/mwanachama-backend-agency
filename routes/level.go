@@ -12,8 +12,6 @@ func levelStatusFor(err error) int {
 	switch {
 	case errors.Is(err, mwanachamaagency.ErrLevelNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, mwanachamaagency.ErrLevelWornByDepartments):
-		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}
@@ -91,8 +89,7 @@ func RenameLevel(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// DeleteLevel handles DELETE {levelID}. Returns 409 if a Department still
-// references it — see [mwanachamaagency.ErrLevelWornByDepartments].
+// DeleteLevel handles DELETE {levelID}.
 func DeleteLevel(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := m.DeleteLevel(r.Context(), r.PathValue("levelID")); err != nil {

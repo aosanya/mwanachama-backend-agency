@@ -27,13 +27,13 @@ var domainTypeCatalog = []typeInfo{
 		HowToAdd: "agency_create_agency, once, when an Instance is first registered — there is no adding a second one.",
 	},
 	{
-		Name:     "Department",
-		WhatItIs: "One node in the org chart: a parent/child tree of named departments (e.g. \"Software\", \"Mechanical\"), each pinned to a Level.",
-		HowToAdd: "agency_create_department (name, level_id, and parent_id — empty parent_id makes it top-level).",
+		Name:     "GroupType",
+		WhatItIs: "A KIND of node the org is built from — \"Department\", \"Committee\", \"Ward\", \"Faculty\" — optionally pinned to one Level. It declares that the org HAS departments and wards; it is not itself a department or a ward. The actual nodes are operational and live in the actor domain, never in the Agency document.",
+		HowToAdd: "agency_create_group_type (name, optional singular/plural labels, optional level_id).",
 	},
 	{
 		Name:     "Level",
-		WhatItIs: "A named rung departments sit at in the org chart (e.g. \"Division\", \"Team\"). Depth is just a sort key — levels can share one or leave gaps.",
+		WhatItIs: "A named rung the org's nodes sit at (e.g. \"National\", \"County\", \"Division\", \"Team\"). Depth is just a sort key — levels can share one or leave gaps.",
 		HowToAdd: "agency_create_level (name, optional depth).",
 	},
 	{
@@ -110,7 +110,7 @@ var domainTypeCatalog = []typeInfo{
 func registerCatalogTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "agency_list_types", Title: "List Domain Types",
-		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, EventFlowStep, Draft, Department, Level, AgencyPublication, AgencySnapshot, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
+		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, EventFlowStep, Draft, GroupType, Level, AgencyPublication, AgencySnapshot, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
 	}, mcpListTypes())
 }
 

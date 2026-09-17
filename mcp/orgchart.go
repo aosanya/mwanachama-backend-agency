@@ -11,152 +11,27 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// registerOrgChartTools registers Department/Level tools — the org chart:
-// a parent/child tree of named departments, each pinned to a named Level.
+// registerOrgChartTools registers GroupType/Level tools — the org's
+// vocabulary: the named rungs it uses, and the kinds of node that sit at
+// them. The nodes themselves are operational and live in
+// mwanachama-backend-actor's Group tables, not here (AGD-017).
 func registerOrgChartTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_department", Title: "Create Department", Description: "Create a Department — pass parent_id \"\" for a top-level one."}, mcpCreateDepartment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_department", Title: "Get Department", Description: "Get a Department by id."}, mcpGetDepartment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_departments", Title: "List Departments", Description: "List every Department in the org chart."}, mcpListDepartments(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_department_children", Title: "List Department Children", Description: "List a Department's direct children."}, mcpListDepartmentChildren(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_rename_department", Title: "Rename Department", Description: "Rename a Department."}, mcpRenameDepartment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_move_department", Title: "Move Department", Description: "Re-parent a Department under a different (or no) parent."}, mcpMoveDepartment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_group_type", Title: "Create Group Type", Description: "Create a GroupType — a kind of node the org is built from, e.g. \"Department\", \"Committee\", \"Ward\". This declares that the org HAS wards; it does not create a ward. Pass level_id to pin the type to one rung, or \"\" if it may sit at any."}, mcpCreateGroupType(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_group_type", Title: "Get Group Type", Description: "Get a GroupType by id."}, mcpGetGroupType(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_group_types", Title: "List Group Types", Description: "List every GroupType the org uses."}, mcpListGroupTypes(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_group_type", Title: "Update Group Type", Description: "Update a GroupType's name, singular/plural labels, or the Level it is pinned to."}, mcpUpdateGroupType(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_group_type", Title: "Delete Group Type", Description: "Delete a GroupType."}, mcpDeleteGroupType(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_level", Title: "Create Level", Description: "Create a Level — a named rung (e.g. \"Division\", \"Team\") Departments are pinned to."}, mcpCreateLevel(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_level", Title: "Create Level", Description: "Create a Level — a named rung (e.g. \"Division\", \"Team\", \"Ward\") GroupTypes are pinned to."}, mcpCreateLevel(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_level", Title: "Get Level", Description: "Get a Level by id."}, mcpGetLevel(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_levels", Title: "List Levels", Description: "List every Level."}, mcpListLevels(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_rename_level", Title: "Rename Level", Description: "Rename a Level."}, mcpRenameLevel(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_level", Title: "Delete Level", Description: "Delete a Level. Refused while any Department still wears it."}, mcpDeleteLevel(resolve))
-}
-
-// mcpCreateDepartmentParams mirrors models.Department, but with ParentID
-// marked omitempty — the go-sdk's schema inference (google/jsonschema-go)
-// treats any field lacking omitempty/omitzero as required, and
-// models.Department's own json tags (decision #1: imported unmodified)
-// don't mark it so, which would force a caller to always name a parent
-// even for a top-level Department.
-type mcpCreateDepartmentParams struct {
-	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	ParentID   string `json:"parent_id,omitempty" jsonschema:"the parent Department's id; \"\" makes it top-level"`
-	LevelID    string `json:"level_id" jsonschema:"the Level this Department is pinned to"`
-	Name       string `json:"name" jsonschema:"the Department's name"`
-}
-
-func mcpCreateDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpCreateDepartmentParams) (*mcp.CallToolResult, models.Department, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpCreateDepartmentParams) (*mcp.CallToolResult, models.Department, error) {
-		m, err := resolve(ctx, p.InstanceID)
-		if err != nil {
-			return nil, models.Department{}, err
-		}
-		out, err := m.CreateDepartment(ctx, models.Department{ParentID: p.ParentID, LevelID: p.LevelID, Name: p.Name})
-		return summary("Created Department %s %q (%s)", out.Code, out.Name, out.ID), out, err
-	}
-}
-
-type mcpDepartmentIDParams struct {
-	InstanceID   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	DepartmentID string `json:"department_id" jsonschema:"the Department's id"`
-}
-
-func mcpGetDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDepartmentIDParams) (*mcp.CallToolResult, models.Department, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpDepartmentIDParams) (*mcp.CallToolResult, models.Department, error) {
-		m, err := resolve(ctx, p.InstanceID)
-		if err != nil {
-			return nil, models.Department{}, err
-		}
-		out, err := m.GetDepartment(ctx, p.DepartmentID)
-		return summary("Department %s %q (%s)", out.Code, out.Name, out.ID), out, err
-	}
-}
-
-// mcpListDepartmentsParams extends instanceOnlyParams with
-// DepartmentFilter's fields.
-type mcpListDepartmentsParams struct {
-	instanceOnlyParams
-	Code string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
-	Name string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
-}
-
-func mcpListDepartments(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListDepartmentsParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListDepartmentsParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
-		m, err := resolve(ctx, p.InstanceID)
-		if err != nil {
-			return nil, ListResult[models.Department]{}, err
-		}
-		out, err := m.ListDepartments(ctx, mwanachamaagency.DepartmentFilter{Code: p.Code, Name: p.Name})
-		return summaryWithContext(fmt.Sprintf("Found %d department(s)", len(out)), departmentsContextText(out)), ListResult[models.Department]{Items: out}, err
-	}
-}
-
-// departmentsContextText is what an LLM sees for a Departments list — one
-// line per Department, field-by-field rather than a struct dump, so
-// dropping a field from an LLM's context later is just deleting it from
-// this Sprintf. Shared by both agency_list_departments and
-// agency_list_department_children — same row shape either way.
-func departmentsContextText(departments []models.Department) string {
-	if len(departments) == 0 {
-		return "There are no departments yet."
-	}
-	lines := make([]string, 0, len(departments))
-	for _, d := range departments {
-		lines = append(lines, fmt.Sprintf("- %s: %s (department id: %s, level id: %s, parent id: %s)", d.Code, d.Name, d.ID, d.LevelID, d.ParentID))
-	}
-	return "Current departments:\n" + strings.Join(lines, "\n")
-}
-
-type mcpDepartmentParentParams struct {
-	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	ParentID   string `json:"parent_id" jsonschema:"the parent Department's id; \"\" lists top-level departments"`
-	Code       string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
-	Name       string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
-}
-
-func mcpListDepartmentChildren(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDepartmentParentParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpDepartmentParentParams) (*mcp.CallToolResult, ListResult[models.Department], error) {
-		m, err := resolve(ctx, p.InstanceID)
-		if err != nil {
-			return nil, ListResult[models.Department]{}, err
-		}
-		out, err := m.ListDepartmentChildren(ctx, p.ParentID, mwanachamaagency.DepartmentFilter{Code: p.Code, Name: p.Name})
-		return summaryWithContext(fmt.Sprintf("Found %d child department(s)", len(out)), departmentsContextText(out)), ListResult[models.Department]{Items: out}, err
-	}
-}
-
-type mcpRenameDepartmentParams struct {
-	InstanceID   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	DepartmentID string `json:"department_id" jsonschema:"the Department's id"`
-	Name         string `json:"name" jsonschema:"the Department's new name; must not be empty"`
-}
-
-func mcpRenameDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpRenameDepartmentParams) (*mcp.CallToolResult, models.Department, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpRenameDepartmentParams) (*mcp.CallToolResult, models.Department, error) {
-		m, err := resolve(ctx, p.InstanceID)
-		if err != nil {
-			return nil, models.Department{}, err
-		}
-		out, err := m.RenameDepartment(ctx, p.DepartmentID, p.Name)
-		return summary("Renamed Department %s to %q", out.Code, out.Name), out, err
-	}
-}
-
-type mcpMoveDepartmentParams struct {
-	InstanceID   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	DepartmentID string `json:"department_id" jsonschema:"the Department's id"`
-	NewParentID  string `json:"new_parent_id" jsonschema:"the new parent Department's id; \"\" makes it top-level"`
-}
-
-func mcpMoveDepartment(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpMoveDepartmentParams) (*mcp.CallToolResult, models.Department, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpMoveDepartmentParams) (*mcp.CallToolResult, models.Department, error) {
-		m, err := resolve(ctx, p.InstanceID)
-		if err != nil {
-			return nil, models.Department{}, err
-		}
-		out, err := m.MoveDepartment(ctx, p.DepartmentID, p.NewParentID)
-		return summary("Moved Department %s %q under parent %q", out.Code, out.Name, out.ParentID), out, err
-	}
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_level", Title: "Delete Level", Description: "Delete a Level."}, mcpDeleteLevel(resolve))
 }
 
 // mcpCreateLevelParams mirrors models.Level, but with Depth marked
-// omitempty (see mcpCreateDepartmentParams's doc comment for why).
+// omitempty — a zero Depth is the common case (the first rung), and a
+// required field the caller must spell out as 0 reads as a mistake.
 type mcpCreateLevelParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	Name       string `json:"name" jsonschema:"the Level's name, e.g. \"Division\", \"Team\""`
@@ -249,5 +124,117 @@ func mcpDeleteLevel(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 			return nil, DeleteResult{}, err
 		}
 		return summary("Deleted Level %s", p.LevelID), DeleteResult{Deleted: true}, nil
+	}
+}
+
+// mcpCreateGroupTypeParams mirrors models.GroupType. Singular/Plural are
+// omitempty — CreateGroupType falls back to Name for both, so a caller with
+// only one word for the type need not spell them out.
+type mcpCreateGroupTypeParams struct {
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	Name       string `json:"name" jsonschema:"the GroupType's name, e.g. \"Department\", \"Committee\", \"Ward\""`
+	Singular   string `json:"singular,omitempty" jsonschema:"what one of these is called; defaults to name"`
+	Plural     string `json:"plural,omitempty" jsonschema:"what several are called; defaults to name + \"s\""`
+	LevelID    string `json:"level_id,omitempty" jsonschema:"the Level this type sits at; \"\" means any rung"`
+}
+
+func mcpCreateGroupType(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpCreateGroupTypeParams) (*mcp.CallToolResult, models.GroupType, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpCreateGroupTypeParams) (*mcp.CallToolResult, models.GroupType, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.GroupType{}, err
+		}
+		out, err := m.CreateGroupType(ctx, models.GroupType{
+			Name: p.Name, Singular: p.Singular, Plural: p.Plural, LevelID: p.LevelID,
+		})
+		return summary("Created Group Type %s %q (%s)", out.Code, out.Name, out.ID), out, err
+	}
+}
+
+type mcpGroupTypeIDParams struct {
+	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	GroupTypeID string `json:"group_type_id" jsonschema:"the GroupType's id"`
+}
+
+func mcpGetGroupType(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpGroupTypeIDParams) (*mcp.CallToolResult, models.GroupType, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpGroupTypeIDParams) (*mcp.CallToolResult, models.GroupType, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.GroupType{}, err
+		}
+		out, err := m.GetGroupType(ctx, p.GroupTypeID)
+		return summary("Group Type %s %q (%s)", out.Code, out.Name, out.ID), out, err
+	}
+}
+
+// mcpListGroupTypesParams extends instanceOnlyParams with GroupTypeFilter's
+// fields.
+type mcpListGroupTypesParams struct {
+	instanceOnlyParams
+	Code    string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
+	Name    string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
+	LevelID string `json:"level_id,omitempty" jsonschema:"filter: exact match on the Level the type sits at"`
+}
+
+func mcpListGroupTypes(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListGroupTypesParams) (*mcp.CallToolResult, ListResult[models.GroupType], error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpListGroupTypesParams) (*mcp.CallToolResult, ListResult[models.GroupType], error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, ListResult[models.GroupType]{}, err
+		}
+		out, err := m.ListGroupTypes(ctx, mwanachamaagency.GroupTypeFilter{Code: p.Code, Name: p.Name, LevelID: p.LevelID})
+		return summaryWithContext(fmt.Sprintf("Found %d group type(s)", len(out)), groupTypesContextText(out)), ListResult[models.GroupType]{Items: out}, err
+	}
+}
+
+// groupTypesContextText is what an LLM sees for a GroupTypes list — same
+// one-line-per-row, field-by-field shape as levelsContextText.
+func groupTypesContextText(types []models.GroupType) string {
+	if len(types) == 0 {
+		return "There are no group types yet."
+	}
+	lines := make([]string, 0, len(types))
+	for _, t := range types {
+		level := t.LevelID
+		if level == "" {
+			level = "any rung"
+		}
+		lines = append(lines, fmt.Sprintf("- %s: %s (one: %s, many: %s, level: %s, group type id: %s)", t.Code, t.Name, t.Singular, t.Plural, level, t.ID))
+	}
+	return "Current group types:\n" + strings.Join(lines, "\n")
+}
+
+type mcpUpdateGroupTypeParams struct {
+	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	GroupTypeID string `json:"group_type_id" jsonschema:"the GroupType's id"`
+	Name        string `json:"name" jsonschema:"the GroupType's name; must not be empty"`
+	Singular    string `json:"singular,omitempty" jsonschema:"what one of these is called; defaults to name"`
+	Plural      string `json:"plural,omitempty" jsonschema:"what several are called; defaults to name + \"s\""`
+	LevelID     string `json:"level_id,omitempty" jsonschema:"the Level this type sits at; \"\" means any rung"`
+}
+
+func mcpUpdateGroupType(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpUpdateGroupTypeParams) (*mcp.CallToolResult, models.GroupType, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpUpdateGroupTypeParams) (*mcp.CallToolResult, models.GroupType, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, models.GroupType{}, err
+		}
+		out, err := m.UpdateGroupType(ctx, models.GroupType{
+			ID: p.GroupTypeID, Name: p.Name, Singular: p.Singular, Plural: p.Plural, LevelID: p.LevelID,
+		})
+		return summary("Updated Group Type %s %q (%s)", out.Code, out.Name, out.ID), out, err
+	}
+}
+
+func mcpDeleteGroupType(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpGroupTypeIDParams) (*mcp.CallToolResult, struct{}, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpGroupTypeIDParams) (*mcp.CallToolResult, struct{}, error) {
+		m, err := resolve(ctx, p.InstanceID)
+		if err != nil {
+			return nil, struct{}{}, err
+		}
+		if err := m.DeleteGroupType(ctx, p.GroupTypeID); err != nil {
+			return nil, struct{}{}, err
+		}
+		return summary("Deleted Group Type %s", p.GroupTypeID), struct{}{}, nil
 	}
 }

@@ -49,17 +49,6 @@ func buildDocument(ctx context.Context, tx *gorm.DB, tables TableNames, draftID 
 		doc.Levels = append(doc.Levels, models.DocumentLevel{ID: l.ID, Code: l.Code, Name: l.Name, Depth: l.Depth})
 	}
 
-	var departmentRows []gormstore.DepartmentRow
-	if err := tx.WithContext(ctx).Table(tables.Departments).Order("created_at").Find(&departmentRows).Error; err != nil {
-		return fail(err)
-	}
-	for _, r := range departmentRows {
-		d := gormstore.DepartmentFromRow(r)
-		doc.Departments = append(doc.Departments, models.DocumentDepartment{
-			ID: d.ID, Code: d.Code, ParentID: d.ParentID, LevelID: d.LevelID, Name: d.Name,
-		})
-	}
-
 	var roleRows []gormstore.RoleRow
 	if err := scoped(tables.Roles).Order("created_at").Find(&roleRows).Error; err != nil {
 		return fail(err)

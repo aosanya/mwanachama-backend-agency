@@ -24,7 +24,7 @@ var SWELabPersonas = []string{
 // need to re-query it.
 type SWELabSeed struct {
 	Agency          models.Agency
-	Department      models.Department
+	GroupType       models.GroupType
 	Roles           map[string]models.Role   // keyed by persona name
 	Modules         map[string]models.Module // keyed by module code
 	Goals           []models.Goal
@@ -35,9 +35,9 @@ type SWELabSeed struct {
 }
 
 // SeedSWELab creates a test Agency ("SWELab"): all 21
-// [SWELabPersonas] as Roles under one "Software" Department (Role
-// itself stays unscoped — the Department exists for real, but nothing
-// points at it), plus a small illustrative Goal/Objective/Workflow/
+// [SWELabPersonas] as Roles, one "Division" Level and one "Department"
+// GroupType (Role itself stays unscoped — the GroupType exists for real,
+// but nothing points at it), plus a small illustrative Goal/Objective/Workflow/
 // WorkItem set with RoleAssignments exercising every RACI label. Three
 // separate Goal/Objective pairs, one per illustrative WorkItem — RACI
 // moved to Objective-scoped 2026-09-10 (AGD-001), so three distinct RACI
@@ -56,15 +56,15 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 	}
 	seed.Agency = agency
 
-	level, err := m.CreateLevel(ctx, models.Level{Name: "Department", Depth: 0})
+	level, err := m.CreateLevel(ctx, models.Level{Name: "Division", Depth: 0})
 	if err != nil {
 		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
 	}
-	department, err := m.CreateDepartment(ctx, models.Department{Name: "Software", LevelID: level.ID})
+	groupType, err := m.CreateGroupType(ctx, models.GroupType{Name: "Department", LevelID: level.ID})
 	if err != nil {
 		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
 	}
-	seed.Department = department
+	seed.GroupType = groupType
 
 	seed.Roles = make(map[string]models.Role, len(SWELabPersonas))
 	for _, name := range SWELabPersonas {

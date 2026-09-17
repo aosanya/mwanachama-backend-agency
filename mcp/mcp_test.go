@@ -66,7 +66,7 @@ func TestRegisterTools_ListsExpectedTools(t *testing.T) {
 		names[tl.Name] = true
 	}
 	want := []string{
-		"agency_get_agency", "agency_create_goal", "agency_create_objective", "agency_create_department",
+		"agency_get_agency", "agency_create_goal", "agency_create_objective", "agency_create_group_type",
 		"agency_set_raci",
 		"agency_create_value", "agency_create_rule", "agency_design_from_spec",
 		"agency_list_types",

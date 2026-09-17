@@ -131,25 +131,16 @@ type AgencyManager interface {
 	// Ordinality, Step), optionally filtered to one workflowCode.
 	ListEventFlowSteps(ctx context.Context, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error)
 
-	// Department. The org chart is a local, self-contained parent/child
-	// tree (no dependency on mwanachama-backend-actor's own Group/Hierarchy
-	// tables).
-	CreateDepartment(ctx context.Context, d models.Department) (models.Department, error)
-	GetDepartment(ctx context.Context, id string) (models.Department, error)
-	ListDepartments(ctx context.Context, filter DepartmentFilter) ([]models.Department, error)
-	ListDepartmentChildren(ctx context.Context, parentID string, filter DepartmentFilter) ([]models.Department, error)
-	RenameDepartment(ctx context.Context, id, name string) (models.Department, error)
-	// MoveDepartment returns [ErrParentIsSelf], [ErrRootCannotMove],
-	// [ErrParentNotFound], or [ErrParentInSubtree] where noted on each.
-	MoveDepartment(ctx context.Context, id, newParentID string) (models.Department, error)
-
-	// Level. A named rung in the Department tree.
+	// Level. A named rung an org's nodes sit at ("National", "County",
+	// "Faculty") — the ladder's vocabulary, which the Agency designs. The
+	// nodes themselves are operational and live in
+	// mwanachama-backend-actor's Group tables, not here: an Agency records
+	// that it has a "Ward" rung, never which wards exist (AGD-017, which
+	// removed the Department type this package used to carry).
 	CreateLevel(ctx context.Context, l models.Level) (models.Level, error)
 	GetLevel(ctx context.Context, id string) (models.Level, error)
 	ListLevels(ctx context.Context, filter LevelFilter) ([]models.Level, error)
 	RenameLevel(ctx context.Context, id, name string) (models.Level, error)
-	// DeleteLevel returns [ErrLevelWornByDepartments] if any Department
-	// still references id.
 	DeleteLevel(ctx context.Context, id string) error
 
 	// Role. A live Role cannot be edited directly — fork a Draft, edit the

@@ -77,20 +77,15 @@ func (m *agencyManager) RenameLevel(ctx context.Context, id, name string) (model
 	return current, nil
 }
 
-// DeleteLevel refuses while any Department still references id
-// (ErrLevelWornByDepartments). Unlike actor's DeleteLevel, there is no
-// second RoleKind-style guard yet — no Role model exists in this repo.
+// DeleteLevel removes a rung outright. Nothing in this package references a
+// Level any more — the Department tree that used to wear one was removed in
+// AGD-017, and the operational nodes that replace it live in
+// mwanachama-backend-actor, which this package has no dependency on. An
+// Agency deleting a rung its actor Groups still sit at is therefore a
+// provisioning-time refusal, not one this method can make.
 func (m *agencyManager) DeleteLevel(ctx context.Context, id string) error {
 	if _, err := m.findLevelRow(ctx, m.db, id); err != nil {
 		return err
-	}
-	var wornCount int64
-	if err := m.db.WithContext(ctx).Table(m.tables.Departments).Where("level_id = ?", id).
-		Count(&wornCount).Error; err != nil {
-		return fmt.Errorf("DeleteLevel: %w", err)
-	}
-	if wornCount > 0 {
-		return ErrLevelWornByDepartments
 	}
 	if err := m.db.WithContext(ctx).Table(m.tables.Levels).Where("id = ?", id).
 		Delete(&gormstore.LevelRow{}).Error; err != nil {

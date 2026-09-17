@@ -41,23 +41,6 @@ func TestCreateListAndRenameLevel(t *testing.T) {
 	}
 }
 
-func TestDeleteLevel_WornRefused(t *testing.T) {
-	mgr := newTestManager(t)
-	level, _ := mgr.CreateLevel(t.Context(), models.Level{Name: "Division"})
-	if _, err := mgr.CreateDepartment(t.Context(), models.Department{Name: "Software", LevelID: level.ID}); err != nil {
-		t.Fatalf("CreateDepartment: %v", err)
-	}
-
-	req := httptest.NewRequest(http.MethodDelete, "/levels/"+level.ID, nil)
-	req.SetPathValue("levelID", level.ID)
-	rec := httptest.NewRecorder()
-	routes.DeleteLevel(mgr)(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-}
-
 func TestDeleteLevel_Succeeds(t *testing.T) {
 	mgr := newTestManager(t)
 	level, _ := mgr.CreateLevel(t.Context(), models.Level{Name: "Unused"})

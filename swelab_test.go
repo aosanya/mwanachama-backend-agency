@@ -27,8 +27,8 @@ func TestSeedSWELab(t *testing.T) {
 		}
 	}
 
-	if seed.Department.Name != "Software" || seed.Department.LevelID == "" {
-		t.Fatalf("unexpected department: %+v", seed.Department)
+	if seed.GroupType.Name != "Department" || seed.GroupType.LevelID == "" {
+		t.Fatalf("unexpected group type: %+v", seed.GroupType)
 	}
 
 	if len(seed.Modules) != len(models.ModuleCatalog) {
