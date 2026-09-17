@@ -20,8 +20,10 @@ func TestCreateAndGetModule(t *testing.T) {
 	if mod.ID == "" {
 		t.Fatal("expected minted ID")
 	}
-	if !mod.Enabled {
-		t.Fatal("expected Enabled to round-trip true")
+	// Enabled is derived from the Objectives linking this Module, so a
+	// caller-supplied true on a module nothing links yet is ignored.
+	if mod.Enabled {
+		t.Fatalf("expected a freshly created, unlinked module to be disabled, got %+v", mod)
 	}
 
 	got, err := mgr.GetModule(ctx, mod.ID)
@@ -124,8 +126,13 @@ func TestBackfillModules_SeedsCatalogDefaults(t *testing.T) {
 func TestListModules_Filter(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	if _, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets", Enabled: true}); err != nil {
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	widgets, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets"})
+	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
+	}
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: widgets.ID}); err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
 	byCode, err := mgr.ListModules(ctx, "", mwanachamaagency.ModuleFilter{Code: "widg"})
@@ -141,8 +148,108 @@ func TestListModules_Filter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListModules(enabled filter): %v", err)
 	}
-	// Only "auth" backfills enabled; "widgets" was created enabled too.
+	// "auth" is enabled because it is locked; "widgets" because the seeded
+	// Objective links it. Nothing else in the catalog is linked at all.
 	if len(enabled) != 2 {
 		t.Fatalf("expected auth plus widgets to be enabled, got %d: %+v", len(enabled), enabled)
 	}
+}
+
+// TestModuleEnabled_DerivedFromObjectiveLinks is AGD-002's selection rule
+// as the operator meets it: a Module is selected by linking it to an
+// Objective that needs it, and unselected by removing the last such link.
+func TestModuleEnabled_DerivedFromObjectiveLinks(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	git := moduleByCode(t, mgr, ctx, "", "git")
+	if git.Enabled {
+		t.Fatalf("expected git to start disabled, got %+v", git)
+	}
+
+	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: git.ID})
+	if err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+	if got := moduleByCode(t, mgr, ctx, "", "git"); !got.Enabled {
+		t.Fatalf("expected git to be enabled once an objective links it, got %+v", got)
+	}
+	if got, err := mgr.GetModule(ctx, git.ID); err != nil || !got.Enabled {
+		t.Fatalf("expected GetModule to agree git is enabled, got %+v (%v)", got, err)
+	}
+
+	if err := mgr.DeleteObjectiveModule(ctx, link.ID); err != nil {
+		t.Fatalf("DeleteObjectiveModule: %v", err)
+	}
+	if got := moduleByCode(t, mgr, ctx, "", "git"); got.Enabled {
+		t.Fatalf("expected git to be disabled once its last link is gone, got %+v", got)
+	}
+}
+
+// TestModuleEnabled_LockedStaysEnabled asserts the one exception: a locked
+// code is mounted whether or not any Objective names it.
+func TestModuleEnabled_LockedStaysEnabled(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+
+	auth := moduleByCode(t, mgr, ctx, "", "auth")
+	if !auth.Locked || !auth.Enabled {
+		t.Fatalf("expected auth to be locked and enabled with no links at all, got %+v", auth)
+	}
+}
+
+// TestModuleEnabled_ScopedToItsOwnDraft asserts a link made inside a Draft
+// enables that Draft's own Module copy and leaves the working set's alone —
+// selecting a module is a draft edit like any other, taking effect live
+// only on promotion.
+func TestModuleEnabled_ScopedToItsOwnDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	ag, _, _, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	d, err := mgr.CreateDraft(ctx, "d", ag.ID, "live")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	draftObjectives, err := mgr.ListObjectives(ctx, d.ID, mwanachamaagency.ObjectiveFilter{})
+	if err != nil || len(draftObjectives) == 0 {
+		t.Fatalf("ListObjectives(draft): %+v (%v)", draftObjectives, err)
+	}
+	draftGit := moduleByCode(t, mgr, ctx, d.ID, "git")
+
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{
+		DraftID: d.ID, ObjectiveID: draftObjectives[0].ID, ModuleID: draftGit.ID,
+	}); err != nil {
+		t.Fatalf("CreateObjectiveModule(draft): %v", err)
+	}
+
+	if got := moduleByCode(t, mgr, ctx, d.ID, "git"); !got.Enabled {
+		t.Fatalf("expected the draft's git copy to be enabled, got %+v", got)
+	}
+	if got := moduleByCode(t, mgr, ctx, "", "git"); got.Enabled {
+		t.Fatalf("expected the working set's git to stay disabled until promotion, got %+v", got)
+	}
+
+	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
+		t.Fatalf("PromoteDraft: %v", err)
+	}
+	if got := moduleByCode(t, mgr, ctx, "", "git"); !got.Enabled {
+		t.Fatalf("expected git to be enabled live after promotion, got %+v", got)
+	}
+}
+
+func moduleByCode(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID, code string) models.Module {
+	t.Helper()
+	mods, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{Code: code})
+	if err != nil {
+		t.Fatalf("ListModules(%q): %v", code, err)
+	}
+	for _, m := range mods {
+		if m.Code == code {
+			return m
+		}
+	}
+	t.Fatalf("no module %q in scope %q: %+v", code, draftID, mods)
+	return models.Module{}
 }

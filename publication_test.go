@@ -362,3 +362,158 @@ func TestGetPublication_NotFound(t *testing.T) {
 		t.Fatalf("expected ErrPublicationNotFound, got %v", err)
 	}
 }
+
+// TestPublishAgency_CarriesDocument is AGD-005's whole point: the
+// publication holds the Agency, so what production reads is fixed at
+// publish time and does not move when the working set does.
+func TestPublishAgency_CarriesDocument(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, g, o, w, wi := seedLiveAgency(t, mgr, ctx)
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+	}); err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+
+	pub, err := mgr.PublishAgency(ctx, "", "release-1", "")
+	if err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+
+	doc := pub.Document
+	if doc.Agency.Name == "" {
+		t.Error("expected the Agency's own identity in the document")
+	}
+	if len(doc.Goals) != 1 || doc.Goals[0].ID != g.ID || doc.Goals[0].Code != g.Code {
+		t.Errorf("expected the Goal carried by id and Code, got %+v", doc.Goals)
+	}
+	if len(doc.Objectives) != 1 || doc.Objectives[0].GoalID != g.ID {
+		t.Errorf("expected the Objective still pointing at its Goal, got %+v", doc.Objectives)
+	}
+	if len(doc.Workflows) != 1 || doc.Workflows[0].ID != w.ID {
+		t.Errorf("expected the Workflow, got %+v", doc.Workflows)
+	}
+	if len(doc.WorkItems) != 1 || doc.WorkItems[0].ID != wi.ID || doc.WorkItems[0].ObjectiveID != o.ID {
+		t.Errorf("expected the WorkItem with its Objective link, got %+v", doc.WorkItems)
+	}
+	if len(doc.RoleAssignments) != 1 || doc.RoleAssignments[0].Label != string(models.RACILabelAccountable) {
+		t.Errorf("expected the RACI assignment, got %+v", doc.RoleAssignments)
+	}
+	if len(doc.Roles) != 1 || doc.Roles[0].ID != role.ID {
+		t.Errorf("expected the Role, got %+v", doc.Roles)
+	}
+
+	// The published document is frozen: deleting the Goal out of the
+	// working set cascades through the rows but must not touch what was
+	// already published.
+	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
+		t.Fatalf("DeleteGoal: %v", err)
+	}
+	reread, err := mgr.GetPublicationForChannel(ctx, "")
+	if err != nil {
+		t.Fatalf("GetPublicationForChannel: %v", err)
+	}
+	if len(reread.Document.Goals) != 1 || reread.Document.Goals[0].ID != g.ID {
+		t.Fatalf("the published document moved with the working set: %+v", reread.Document.Goals)
+	}
+	if len(reread.Document.WorkItems) != 1 {
+		t.Fatalf("expected the published WorkItem to survive the working-set delete, got %+v", reread.Document.WorkItems)
+	}
+}
+
+// TestCreateDraft_ForkFromPublication is AGD-005 #5: a Draft can start
+// from what a tag actually contains, which is what makes "go back to
+// release-1 and change one thing" possible after the working set has
+// moved on.
+func TestCreateDraft_ForkFromPublication(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, g, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+	}); err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+	if _, err := mgr.PublishAgency(ctx, "", "release-1", ""); err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+
+	// The working set moves on: the Goal published as release-1 is gone.
+	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
+		t.Fatalf("DeleteGoal: %v", err)
+	}
+	liveGoals, err := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{})
+	if err != nil || len(liveGoals) != 0 {
+		t.Fatalf("expected the working set to have no Goals, got %v / %+v", err, liveGoals)
+	}
+
+	d, err := mgr.CreateDraft(ctx, "revisit release-1", "release-1", "publication")
+	if err != nil {
+		t.Fatalf("CreateDraft(publication): %v", err)
+	}
+
+	draftGoals, err := mgr.ListGoals(ctx, d.ID, mwanachamaagency.GoalFilter{})
+	if err != nil {
+		t.Fatalf("ListGoals(draft): %v", err)
+	}
+	if len(draftGoals) != 1 {
+		t.Fatalf("expected the published Goal materialized into the draft, got %+v", draftGoals)
+	}
+	// A fresh row id, but the Code the publication carried.
+	if draftGoals[0].ID == g.ID {
+		t.Error("expected the draft copy to be a new row, not the published id")
+	}
+	if draftGoals[0].Code != g.Code {
+		t.Errorf("expected Code %q carried across, got %q", g.Code, draftGoals[0].Code)
+	}
+
+	// References must be remapped onto the rows this fork just minted.
+	draftObjectives, err := mgr.ListObjectives(ctx, d.ID, mwanachamaagency.ObjectiveFilter{})
+	if err != nil || len(draftObjectives) != 1 {
+		t.Fatalf("ListObjectives(draft): %v, %+v", err, draftObjectives)
+	}
+	if draftObjectives[0].GoalID != draftGoals[0].ID {
+		t.Errorf("expected the Objective remapped onto the draft Goal %q, got %q",
+			draftGoals[0].ID, draftObjectives[0].GoalID)
+	}
+
+	draftItems, err := mgr.ListWorkItems(ctx, d.ID, mwanachamaagency.WorkItemFilter{})
+	if err != nil || len(draftItems) != 1 {
+		t.Fatalf("ListWorkItems(draft): %v, %+v", err, draftItems)
+	}
+	if draftItems[0].ObjectiveID != draftObjectives[0].ID {
+		t.Errorf("expected the WorkItem remapped onto the draft Objective, got %q", draftItems[0].ObjectiveID)
+	}
+
+	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID, mwanachamaagency.RoleAssignmentFilter{})
+	if err != nil || len(draftAssignments) != 1 {
+		t.Fatalf("ListRoleAssignments(draft): %v, %+v", err, draftAssignments)
+	}
+	draftRoles, err := mgr.ListRoles(ctx, d.ID, mwanachamaagency.RoleFilter{})
+	if err != nil || len(draftRoles) != 1 {
+		t.Fatalf("ListRoles(draft): %v, %+v", err, draftRoles)
+	}
+	if draftAssignments[0].RoleID != draftRoles[0].ID || draftAssignments[0].ObjectiveID != draftObjectives[0].ID {
+		t.Errorf("expected the RACI assignment remapped onto both draft rows, got %+v", draftAssignments[0])
+	}
+}
+
+func TestCreateDraft_ForkFromUnknownPublication(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	seedPublishableAgency(t, mgr, ctx)
+
+	_, err := mgr.CreateDraft(ctx, "revisit", "no-such-tag", "publication")
+	if !errors.Is(err, mwanachamaagency.ErrPublicationNotFound) {
+		t.Fatalf("expected ErrPublicationNotFound, got %v", err)
+	}
+}

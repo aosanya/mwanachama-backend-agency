@@ -14,7 +14,9 @@ import (
 // CreateModule requires a non-empty, same-scope-unique Code — unlike Goal's
 // Code, Module's is caller-supplied rather than minted via
 // [gormstore.NextCode] (AGD-002), so nothing else in the schema enforces
-// this uniqueness.
+// this uniqueness. A caller-supplied Enabled is not honoured: a fresh
+// Module links no Objective yet, so it comes back disabled unless Locked
+// (see [models.Module]).
 func (m *agencyManager) CreateModule(ctx context.Context, mod models.Module) (models.Module, error) {
 	if err := m.validateOpenDraftID(ctx, mod.DraftID); err != nil {
 		return models.Module{}, err
@@ -40,7 +42,7 @@ func (m *agencyManager) CreateModule(ctx context.Context, mod models.Module) (mo
 	if err != nil {
 		return models.Module{}, fmt.Errorf("CreateModule: %w", err)
 	}
-	return gormstore.ModuleFromRow(row), nil
+	return withDerivedEnabled(gormstore.ModuleFromRow(row), false), nil
 }
 
 func (m *agencyManager) GetModule(ctx context.Context, id string) (models.Module, error) {
@@ -48,7 +50,12 @@ func (m *agencyManager) GetModule(ctx context.Context, id string) (models.Module
 	if err != nil {
 		return models.Module{}, err
 	}
-	return gormstore.ModuleFromRow(row), nil
+	mod := gormstore.ModuleFromRow(row)
+	linked, err := m.linkedModuleIDs(ctx, mod.DraftID)
+	if err != nil {
+		return models.Module{}, fmt.Errorf("GetModule: %w", err)
+	}
+	return withDerivedEnabled(mod, linked[mod.ID]), nil
 }
 
 // ListModules returns live Modules when draftID is "", or draftID's
@@ -59,15 +66,52 @@ func (m *agencyManager) ListModules(ctx context.Context, draftID string, filter 
 	q = likeFilter(q, "code", filter.Code)
 	q = likeFilter(q, "name", filter.Name)
 	q = likeFilter(q, "description", filter.Description)
-	q = eqBoolFilter(q, "enabled", filter.Enabled)
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListModules: %w", err)
 	}
-	out := make([]models.Module, len(rows))
-	for i, r := range rows {
-		out[i] = gormstore.ModuleFromRow(r)
+	linked, err := m.linkedModuleIDs(ctx, draftID)
+	if err != nil {
+		return nil, fmt.Errorf("ListModules: %w", err)
+	}
+	// Enabled is derived, not a column, so filter.Enabled is applied here
+	// rather than pushed into the query alongside the others.
+	out := make([]models.Module, 0, len(rows))
+	for _, r := range rows {
+		mod := withDerivedEnabled(gormstore.ModuleFromRow(r), linked[r.ID])
+		if filter.Enabled != nil && mod.Enabled != *filter.Enabled {
+			continue
+		}
+		out = append(out, mod)
 	}
 	return out, nil
+}
+
+// linkedModuleIDs is the set of Module ids some Objective in draftID's own
+// scope links through an ObjectiveModule row — the one input a non-Locked
+// Module's Enabled state has (see [models.Module]).
+func (m *agencyManager) linkedModuleIDs(ctx context.Context, draftID string) (map[string]bool, error) {
+	var ids []string
+	if err := scopeQuery(m.db.WithContext(ctx).Table(m.tables.ObjectiveModules), draftID).
+		Pluck("module_id", &ids).Error; err != nil {
+		return nil, err
+	}
+	linked := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		linked[id] = true
+	}
+	return linked, nil
+}
+
+// withDerivedEnabled overwrites mod.Enabled with its derived state: a
+// Locked Module keeps the catalog state it was seeded with — it can never
+// be disabled — and every other Module is enabled exactly when an
+// Objective in its own scope links it.
+func withDerivedEnabled(mod models.Module, linked bool) models.Module {
+	if mod.Locked {
+		return mod
+	}
+	mod.Enabled = linked
+	return mod
 }
 
 func (m *agencyManager) findModuleRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.ModuleRow, error) {

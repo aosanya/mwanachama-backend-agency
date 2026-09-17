@@ -132,10 +132,10 @@ func TestPublishAgencyAndGetPublication(t *testing.T) {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}
 
-	statusReq := httptest.NewRequest(http.MethodPatch, "/publications/1", strings.NewReader(`{"status":"archived"}`))
+	statusReq := httptest.NewRequest(http.MethodPatch, "/publications/1", strings.NewReader(`{"channel":""}`))
 	statusReq.SetPathValue("version", "1")
 	statusRec := httptest.NewRecorder()
-	routes.UpdatePublicationStatus(mgr)(statusRec, statusReq)
+	routes.SetPublicationChannel(mgr)(statusRec, statusReq)
 	if statusRec.Code != http.StatusOK {
 		t.Fatalf("update status = %d, body = %s", statusRec.Code, statusRec.Body.String())
 	}

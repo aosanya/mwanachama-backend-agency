@@ -169,24 +169,28 @@ func buildDocument(ctx context.Context, tx *gorm.DB, tables TableNames, draftID 
 		})
 	}
 
+	// Links are read before Modules: a Module's Enabled is derived from
+	// them (see models.Module), not taken from its own row.
+	var objectiveModuleRows []gormstore.ObjectiveModuleRow
+	if err := scoped(tables.ObjectiveModules).Order("created_at").Find(&objectiveModuleRows).Error; err != nil {
+		return fail(err)
+	}
+	linkedModules := make(map[string]bool, len(objectiveModuleRows))
+	for _, r := range objectiveModuleRows {
+		om := gormstore.ObjectiveModuleFromRow(r)
+		linkedModules[om.ModuleID] = true
+		doc.ObjectiveModules = append(doc.ObjectiveModules, models.DocumentObjectiveModule{
+			ObjectiveID: om.ObjectiveID, ModuleID: om.ModuleID,
+		})
+	}
+
 	var moduleRows []gormstore.ModuleRow
 	if err := scoped(tables.Modules).Order("code").Find(&moduleRows).Error; err != nil {
 		return fail(err)
 	}
 	for _, r := range moduleRows {
-		m := gormstore.ModuleFromRow(r)
+		m := withDerivedEnabled(gormstore.ModuleFromRow(r), linkedModules[r.ID])
 		doc.Modules = append(doc.Modules, models.DocumentModule{ID: m.ID, Code: m.Code, Enabled: m.Enabled})
-	}
-
-	var objectiveModuleRows []gormstore.ObjectiveModuleRow
-	if err := scoped(tables.ObjectiveModules).Order("created_at").Find(&objectiveModuleRows).Error; err != nil {
-		return fail(err)
-	}
-	for _, r := range objectiveModuleRows {
-		om := gormstore.ObjectiveModuleFromRow(r)
-		doc.ObjectiveModules = append(doc.ObjectiveModules, models.DocumentObjectiveModule{
-			ObjectiveID: om.ObjectiveID, ModuleID: om.ModuleID,
-		})
 	}
 
 	var stepRows []gormstore.EventFlowStepRow
@@ -198,4 +202,144 @@ func buildDocument(ctx context.Context, tx *gorm.DB, tables TableNames, draftID 
 	}
 
 	return doc, nil
+}
+
+// applyDocumentToDraft materializes a published document into fresh rows
+// scoped to draftID — the inverse of [buildDocument], and what lets a
+// Draft fork from a tag rather than from the working set (AGD-005 #5).
+//
+// Every row is minted with a new id and the document's ids are remapped
+// onto them, the same way mwanachama-wakala-api's import endpoint does.
+// Code is carried across verbatim, not re-minted: a Draft copy shares its
+// original's Code (AG16), which is also what makes EventFlowStep's
+// WorkflowCode join and the attachment tables keep resolving.
+//
+// Attachments are deliberately not applied — they are never Draft-scoped
+// (AGD-003), so the live attachment rows already cover this Draft's
+// copies by Code.
+func applyDocumentToDraft(ctx context.Context, tx *gorm.DB, tables TableNames, draftID string, doc models.AgencyDocument, now string) error {
+	fail := func(err error) error { return fmt.Errorf("applyDocumentToDraft: %w", err) }
+
+	goalIDs := make(map[string]string, len(doc.Goals))
+	for _, g := range doc.Goals {
+		row := gormstore.GoalToRow(models.Goal{
+			Code: g.Code, DraftID: draftID, Title: g.Title,
+			Description: g.Description, Ordinality: g.Ordinality, CreatedAt: now,
+		})
+		if err := tx.WithContext(ctx).Table(tables.Goals).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+		goalIDs[g.ID] = row.ID
+	}
+
+	objectiveIDs := make(map[string]string, len(doc.Objectives))
+	for _, o := range doc.Objectives {
+		row := gormstore.ObjectiveToRow(models.Objective{
+			Code: o.Code, DraftID: draftID, GoalID: goalIDs[o.GoalID], Title: o.Title,
+			Description: o.Description, Ordinality: o.Ordinality, CreatedAt: now,
+		})
+		if err := tx.WithContext(ctx).Table(tables.Objectives).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+		objectiveIDs[o.ID] = row.ID
+	}
+
+	workflowIDs := make(map[string]string, len(doc.Workflows))
+	for _, w := range doc.Workflows {
+		row := gormstore.WorkflowToRow(models.Workflow{
+			Code: w.Code, DraftID: draftID, Name: w.Name, Description: w.Description,
+			Ordinality: w.Ordinality, EventFlows: w.EventFlows, CreatedAt: now,
+		})
+		if err := tx.WithContext(ctx).Table(tables.Workflows).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+		workflowIDs[w.ID] = row.ID
+	}
+
+	for _, wi := range doc.WorkItems {
+		row := gormstore.WorkItemToRow(models.WorkItem{
+			Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
+			ObjectiveID: objectiveIDs[wi.ObjectiveID], Title: wi.Title,
+			Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt, CreatedAt: now,
+		})
+		if err := tx.WithContext(ctx).Table(tables.WorkItems).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+	}
+
+	roleIDs := make(map[string]string, len(doc.Roles))
+	for _, r := range doc.Roles {
+		row := gormstore.RoleToRow(models.Role{
+			Code: r.Code, DraftID: draftID, Name: r.Name, Description: r.Description, CreatedAt: now,
+		})
+		if err := tx.WithContext(ctx).Table(tables.Roles).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+		roleIDs[r.ID] = row.ID
+	}
+
+	for _, ra := range doc.RoleAssignments {
+		row := gormstore.RoleAssignmentToRow(models.RoleAssignment{
+			DraftID: draftID, RoleID: roleIDs[ra.RoleID], ObjectiveID: objectiveIDs[ra.ObjectiveID],
+			Label: models.RACILabel(ra.Label), CreatedAt: now,
+		})
+		if err := tx.WithContext(ctx).Table(tables.RoleAssignments).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+	}
+
+	for _, v := range doc.Values {
+		row := gormstore.ValueToRow(models.Value{Code: v.Code, DraftID: draftID, Text: v.Text, CreatedAt: now})
+		if err := tx.WithContext(ctx).Table(tables.Values).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+	}
+	for _, r := range doc.Rules {
+		row := gormstore.RuleToRow(models.Rule{Code: r.Code, DraftID: draftID, Text: r.Text, CreatedAt: now})
+		if err := tx.WithContext(ctx).Table(tables.Rules).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+	}
+
+	// Module is a fixed catalog, and the document carries only each one's
+	// id/code/Enabled — Name/Description/Locked come back from
+	// [models.ModuleCatalog], so a restored locked code is still locked and
+	// still mounted (Enabled is derived from Locked plus this scope's own
+	// ObjectiveModule rows, both of which the loop below re-creates).
+	catalog := make(map[string]models.ModuleCatalogEntry, len(models.ModuleCatalog))
+	for _, entry := range models.ModuleCatalog {
+		catalog[entry.Code] = entry
+	}
+	moduleIDs := make(map[string]string, len(doc.Modules))
+	for _, mod := range doc.Modules {
+		entry := catalog[mod.Code]
+		row := gormstore.ModuleToRow(models.Module{
+			Code: mod.Code, DraftID: draftID, Name: entry.Name, Description: entry.Description,
+			Enabled: mod.Enabled, Locked: entry.Locked, CreatedAt: now,
+		})
+		if err := tx.WithContext(ctx).Table(tables.Modules).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+		moduleIDs[mod.ID] = row.ID
+	}
+
+	for _, om := range doc.ObjectiveModules {
+		row := gormstore.ObjectiveModuleToRow(models.ObjectiveModule{
+			DraftID: draftID, ObjectiveID: objectiveIDs[om.ObjectiveID],
+			ModuleID: moduleIDs[om.ModuleID], CreatedAt: now,
+		})
+		if err := tx.WithContext(ctx).Table(tables.ObjectiveModules).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+	}
+
+	for _, step := range doc.EventFlowSteps {
+		step.ID, step.DraftID, step.CreatedAt = "", draftID, now
+		row := gormstore.EventFlowStepToRow(step)
+		if err := tx.WithContext(ctx).Table(tables.EventFlowSteps).Create(&row).Error; err != nil {
+			return fail(err)
+		}
+	}
+
+	return nil
 }

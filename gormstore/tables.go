@@ -171,14 +171,25 @@ var retiredTableSuffixes = []string{
 	"_context_sources",
 }
 
-// DropRetiredTables removes the tables of retired types for one instance,
-// derived from the instance prefix TableNames itself is built from. Runs
-// at the end of every [Migrate], so a pre-existing deployment sheds them
-// on its next boot; a no-op everywhere else.
+// DropRetiredTables removes the tables and columns of retired types for
+// one instance, derived from the instance prefix TableNames itself is
+// built from. Runs at the end of every [Migrate], so a pre-existing
+// deployment sheds them on its next boot; a no-op everywhere else.
 func DropRetiredTables(db *gorm.DB, t TableNames) error {
 	instance := strings.TrimSuffix(t.Agencies, "_agencies")
 	for _, suffix := range retiredTableSuffixes {
 		if err := db.Migrator().DropTable(instance + suffix); err != nil {
+			return err
+		}
+	}
+	// AgencyPublication.Status became Channel (AGD-005 #3). AutoMigrate
+	// adds the new column but never drops the old one, which would
+	// otherwise sit there holding a stale "active" nothing reads. Every
+	// pre-AGD-005 publication lands on ChannelArchived, which is what
+	// AGD-005 says they become: history, with no document to serve.
+	publications := db.Table(t.AgencyPublications)
+	if publications.Migrator().HasColumn(&AgencyPublicationRow{}, "status") {
+		if err := publications.Migrator().DropColumn(&AgencyPublicationRow{}, "status"); err != nil {
 			return err
 		}
 	}

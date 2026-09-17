@@ -13,11 +13,16 @@ import (
 // capability-denied (AGD-002 decision #1).
 //
 // Module is fully read-only from the outside — which codes exist, their
-// Name/Description, and each one's default Enabled/Locked state come from
-// [ModuleCatalog], not a create/update/delete API (AGD-002 reversed to
-// this after the mutation surface shipped and was seen live). Locked marks
-// a code that can never be disabled — informational only, since there is
-// no mutation path left to enforce it against.
+// Name/Description, and each one's Locked state come from [ModuleCatalog],
+// not a create/update/delete API (AGD-002 reversed to this after the
+// mutation surface shipped and was seen live).
+//
+// Enabled is therefore derived, not stored state anyone can set: a Module
+// is enabled exactly when some Objective in its own scope links it through
+// an ObjectiveModule row. Selecting a Module *is* linking it to the
+// Objective that needs it. Locked is the one exception — a locked code
+// keeps the catalog's Enabled and can never be disabled, however few
+// Objectives reference it.
 //
 // Code is the module's stable slug, matching a sibling backend repo's own
 // name. Same lax draft-scoping as Goal, not RoleAssignment's stricter

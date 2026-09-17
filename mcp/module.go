@@ -15,15 +15,16 @@ import (
 // of capability domains (e.g. "git", "taskmanager") an Agency may enable,
 // and the Objective↔Module links that gate whether a mounting gateway
 // mounts a domain's routes at all (AGD-002). Module itself is read-only
-// here: which codes exist, their Name/Description, and their default
-// Enabled/Locked state come from models.ModuleCatalog, not this tool
-// surface — there is no create/update/delete tool for Module.
+// here: which codes exist, their Name/Description and their Locked state
+// come from models.ModuleCatalog, not this tool surface — there is no
+// create/update/delete tool for Module. Enabling one is
+// agency_attach_module: Enabled is derived from the links, never set.
 func registerModuleTools(server *mcp.Server, resolve ManagerResolver) {
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_modules", Title: "List Modules", Description: "List Modules — live, or a Draft's scoped copies. Read-only: the catalog of which modules exist comes from a fixed list, not this tool."}, mcpListModules(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_modules", Title: "List Modules", Description: "List Modules — live, or a Draft's scoped copies. Read-only: the catalog of which modules exist comes from a fixed list, not this tool, and Enabled is derived from the Objectives that link each Module."}, mcpListModules(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_attach_module", Title: "Attach Module", Description: "Link a Module to an Objective. Both must already exist in the same scope: live-to-live, or the same Draft."}, mcpAttachModule(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_attach_module", Title: "Attach Module", Description: "Link a Module to an Objective — this is how a Module is selected: a Module is enabled exactly while some Objective links it. Both must already exist in the same scope: live-to-live, or the same Draft."}, mcpAttachModule(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_objective_modules", Title: "List Objective Modules", Description: "List the Modules linked to an Objective."}, mcpListObjectiveModules(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_detach_module", Title: "Detach Module", Description: "Remove one Objective↔Module link by its own id."}, mcpDetachModule(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_detach_module", Title: "Detach Module", Description: "Remove one Objective↔Module link by its own id. Removing the last link to a Module disables it, unless it is locked."}, mcpDetachModule(resolve))
 }
 
 // mcpListModulesParams extends instanceAndDraftParams with ModuleFilter's

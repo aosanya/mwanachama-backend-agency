@@ -72,12 +72,17 @@ type AgencyManager interface {
 	// Objective-scoped, AG12), so there is nothing to cascade into.
 	DeleteWorkItem(ctx context.Context, id string) error
 
-	// Draft lifecycle. CreateDraft forks the sub-graph scoped to
-	// forkedFromID (an Agency.ID when forkedFromType=="live", or another
-	// open Draft's ID when forkedFromType=="draft") into new rows scoped
-	// to the new Draft. PromoteDraft replaces live data with the Draft's
-	// copies; ArchiveDraft discards a Draft without promoting it. Returns
-	// [ErrDraftNotOpen] where noted.
+	// Draft lifecycle. CreateDraft forks into new rows scoped to the new
+	// Draft. forkedFromType selects the source: "live" forks the working
+	// set (forkedFromID is the Agency's ID), "draft" forks another open
+	// Draft (its ID), and "publication" forks a published tag —
+	// forkedFromID is then the Tag, and the publication's document is
+	// materialized into the Draft rather than rows being copied
+	// ([ErrPublicationNotFound] if no publication carries that tag). That
+	// last one is what "go back to what release-1 was and change one
+	// thing" needs. PromoteDraft replaces the working set with the
+	// Draft's copies; ArchiveDraft discards a Draft without promoting it.
+	// Returns [ErrDraftNotOpen] where noted.
 	CreateDraft(ctx context.Context, description, forkedFromID, forkedFromType string) (models.Draft, error)
 	GetDraft(ctx context.Context, id string) (models.Draft, error)
 	ListDrafts(ctx context.Context, filter DraftFilter) ([]models.Draft, error)

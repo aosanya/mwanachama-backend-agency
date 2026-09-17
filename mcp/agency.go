@@ -21,7 +21,7 @@ func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
 		Meta: dashboardUIMeta,
 	}, mcpGetAgency(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Title: "Fork Draft", Description: "Fork a Draft — a scoped copy of the live Agency's Goals/Workflows/WorkItems/Roles/RoleAssignments/EventFlowSteps to edit without touching what's live."}, mcpCreateDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Title: "Fork Draft", Description: "Fork a Draft — a scoped copy of the Agency's Goals/Workflows/WorkItems/Roles/RoleAssignments/EventFlowSteps to edit without touching the current design. Fork from the working design, from another open Draft, or from a published tag to revisit what an earlier release contained."}, mcpCreateDraft(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_draft", Title: "Get Draft", Description: "Get a Draft by id."}, mcpGetDraft(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_drafts", Title: "List Drafts", Description: "List every Draft for an Instance."}, mcpListDrafts(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_draft_description", Title: "Update Draft Description", Description: "Change a Draft's description."}, mcpUpdateDraftDescription(resolve))
@@ -97,8 +97,8 @@ func agencyContextText(a models.Agency) string {
 type mcpCreateDraftParams struct {
 	InstanceID     string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	Description    string `json:"description" jsonschema:"what this Draft is for"`
-	ForkedFromID   string `json:"forked_from_id" jsonschema:"the live Agency's id, or another Draft's id, to fork from"`
-	ForkedFromType string `json:"forked_from_type" jsonschema:"\"live\" or \"draft\", matching what forked_from_id names"`
+	ForkedFromID   string `json:"forked_from_id" jsonschema:"the Agency's id, another Draft's id, or a publication's tag — matching forked_from_type"`
+	ForkedFromType string `json:"forked_from_type" jsonschema:"\"live\" to fork the current working design, \"draft\" to fork another open Draft, or \"publication\" to start from what a published tag actually contains (the way to revisit an earlier release)"`
 }
 
 func mcpCreateDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpCreateDraftParams) (*mcp.CallToolResult, models.Draft, error) {

@@ -14,9 +14,8 @@ decision the user makes), or 🦸 super human (owner review).
 
 | ID | Pri | Status | Responsible | Phase | Task | Raised by | Depends On |
 |---|---|---|---|---|---|---|---|
-| AGD-005 | P1 | 📋 | 🤖 agent | implementation | A publication carries the whole Agency as JSON and production runs off tags, not rows — decided 2026-09-16, full record in [todo_details/AGD-005.md](todo_details/AGD-005.md). Today a publication stores only a content hash, so nothing can answer "what was in v1" (no rollback, no diff) and production reads mutable working rows that change mid-flight, making publishing operationally meaningless. Decisions: the tag carries the import/export JSON document (decision #19's shape, so publish↔import round-trips); production reads that JSON **directly**, not a materialized row cache; `Status` becomes `Channel` — several tags live at once on uniquely-named channels ("production"/"staging"/`""`=archived), one tag per channel; rollback is re-living an archived tag; a Draft may fork from the working set **or** a named tag; `WorkPlan`/`ContextSource` are decommissioned outright (code removed, tables dropped); `EventFlowStep` explicitly kept. The `draft_id IS NULL` row set stops being called "live" — it is the working set. Implementation: AG28/AG29/AG30. | 👤 human (2026-09-16 session) | AGD-004 (done) |
 
-AGD-001, AGD-002 and AGD-004 are done for this repo — moved to
+AGD-001, AGD-002, AGD-004 and AGD-005 are done for this repo — moved to
 [todo_done.md](todo_done.md). Their cross-repo follow-ups
 (`mwanachama-wakala-api`, `mwanachama-wakala-studio`,
 `mwanachama-backend-api-kazi`, `mwanachama-backend-api-gateway`'s Postman

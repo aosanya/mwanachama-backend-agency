@@ -42,16 +42,6 @@ func eqFilter(q *gorm.DB, column, value string) *gorm.DB {
 	return q.Where(column+" = ?", value)
 }
 
-// eqBoolFilter chains an exact match on column onto q, or returns q
-// unchanged if value is nil. A *bool rather than eqFilter's ""-means-unset
-// convention, since a bare bool has no value that can mean "not set."
-func eqBoolFilter(q *gorm.DB, column string, value *bool) *gorm.DB {
-	if value == nil {
-		return q
-	}
-	return q.Where(column+" = ?", *value)
-}
-
 func (m *agencyManager) findDraftRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.DraftRow, error) {
 	var row gormstore.DraftRow
 	err := tx.WithContext(ctx).Table(m.tables.Drafts).Where("id = ?", id).First(&row).Error
@@ -114,8 +104,10 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			return err
 		}
 
-		sourceScope := "" // "" forks from live
-		if forkedFromType == "draft" {
+		sourceScope := "" // "" forks from the working set
+		var publication gormstore.AgencyPublicationRow
+		switch forkedFromType {
+		case "draft":
 			srcRow, err := m.findDraftRow(ctx, tx, forkedFromID)
 			if err != nil {
 				return err
@@ -124,6 +116,17 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 				return ErrDraftNotOpen
 			}
 			sourceScope = forkedFromID
+		case "publication":
+			// forkedFromID is the tag, not a row id — the handle an
+			// operator actually names ("start from release-1").
+			err := tx.WithContext(ctx).Table(m.tables.AgencyPublications).
+				Where("tag = ?", forkedFromID).First(&publication).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrPublicationNotFound
+			}
+			if err != nil {
+				return fmt.Errorf("CreateDraft: %w", err)
+			}
 		}
 
 		now := models.NowRFC3339()
@@ -138,6 +141,18 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			return fmt.Errorf("CreateDraft: %w", err)
 		}
 		newDraftID := draftRow.ID
+
+		// A publication is a document, not a row scope, so it is
+		// materialized whole rather than walked by the row-copy loops
+		// below (AGD-005 #5).
+		if forkedFromType == "publication" {
+			doc := gormstore.AgencyPublicationFromRow(publication).Document
+			if err := applyDocumentToDraft(ctx, tx, m.tables, newDraftID, doc, now); err != nil {
+				return err
+			}
+			out = gormstore.DraftFromRow(draftRow)
+			return nil
+		}
 
 		var goalRows []gormstore.GoalRow
 		if err := scopeQuery(tx.Table(m.tables.Goals), sourceScope).Find(&goalRows).Error; err != nil {

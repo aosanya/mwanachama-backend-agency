@@ -948,6 +948,88 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     reports it and tightening Create is its own decision. That open path
     is what `TestScan_DanglingWorkItem` uses.
 
+- **AG28/AG29/AG30 landed 2026-09-17: a publication carries the whole
+  Agency, production runs off tags, and WorkPlan/ContextSource are gone.**
+  Implements [AGD-005](documentation/2.%20design/todo_details/AGD-005.md),
+  a design session prompted by the user challenging a cosmetic
+  `scope: 'live' | 'draft'` field in the Studio's Issues panel: *"we can
+  have a tag record with a json field that has all the agency info from
+  which the live/production agency can operate"*, then *"production only
+  operates from the tag table/model"*. Before this, a publication stored
+  **only a content hash** — nothing could answer "what was in v1", there
+  was no rollback and no diff, and production read the mutable working
+  rows, so publishing had no operational meaning at all. `AgencySnapshot`,
+  which sounds like it solved this, is an empty stub too (`{DraftID,
+  SnapshotAt}`) — two receipt-shaped records and zero snapshots.
+  - **AG28 — the document and the channel model.** New
+    `models/agencydocument.go` + root `document.go`'s `buildDocument`:
+    `AgencyPublication.Document` is the whole Agency, serialized in
+    `mwanachama-wakala-api`'s **existing import/export shape** (its
+    decision #19) so publish↔import round-trips and the 52 mined templates
+    are already written in it — no new format invented. Stored as JSON
+    text on the row, not a driver-specific JSON column: written once, read
+    whole, never queried into. Two sections the import endpoint doesn't
+    itself apply are carried anyway (EventFlowSteps, the Agency's non-
+    identity settings); import decodes leniently, so that's harmless.
+  - **`Status` became `Channel`** — the user's own reframing, better than
+    any option offered: "live" stops being a tier of rows and becomes a
+    state on the tag. A channel is a name (`"production"`, `"staging"`, …)
+    or `""` for archived, unique across publications — **several tags may
+    be live at once on different channels**, one tag per channel.
+    Publishing displaces only its own channel. New
+    `GetPublicationForChannel` is the production read. The old
+    `UpdatePublicationStatus`'s one-way `active → archived` rule is gone,
+    replaced by `SetPublicationChannel`, which allows both directions
+    because **re-channelling an archived publication is the rollback** —
+    seconds, not a rebuild.
+  - **The mutable `draft_id IS NULL` row set is no longer "live"** — it is
+    the *working set*, the design surface. "Live" now only ever means a
+    channel on a tag.
+  - **AG29 — `CreateDraft` can fork from a tag.** `forkedFromType` gained
+    `"publication"`, where `forkedFromID` is the **Tag**, not a row id —
+    the handle an operator actually names. A publication is a document,
+    not a row scope, so it is materialized whole by `document.go`'s
+    `applyDocumentToDraft` rather than walked by the existing copy loops:
+    fresh row ids, the document's ids remapped onto them, and **Code
+    carried across verbatim** (AG16), which is what keeps EventFlowStep's
+    `WorkflowCode` join and the attachment tables resolving. Attachments
+    are deliberately not applied — never Draft-scoped (AGD-003), so the
+    live rows already cover the copies by Code.
+  - **AG30 — `WorkPlan`/`ContextSource` decommissioned outright**, code
+    removed and tables dropped, on the user's call ("they are currently
+    useless"). Evidence gathered first: `mwanachama-wakala-studio` already
+    hid `work_plan` (`ShortcutsMenu.tsx` excluded it), `MatchWorkPlans`
+    had no external caller at all, and the only non-agency Go reference is
+    `mwanachama-backend-taskmanager/events.go`'s `WorkPlanID`/
+    `WorkPlanCode` **event-payload fields** — a reference to the concept,
+    never a call into this library; filed as W11 on that repo's board
+    rather than edited from here. **`EventFlowStep` is explicitly kept**
+    ("eventflow is important") — unlike WorkPlan it is Draft-scoped, in
+    the content hash, and rides into the document naturally.
+  - New `gormstore.DropRetiredTables`, run at the end of every `Migrate`,
+    sheds the two retired tables and the retired `status` column on a
+    pre-existing deployment's next boot. Driven from a
+    `retiredTableSuffixes` list so the next retirement is one entry.
+    Covered by tests that **seed a database with the old shape first** —
+    the only case that exercises a drop at all, since a fresh database
+    never creates either.
+  - Every pre-AGD-005 publication lands on `ChannelArchived` with an empty
+    document. They cannot be back-filled (the rows they described have
+    moved on) and are readable as history only, exactly as AGD-005 says.
+  - **Not done, and not filed as a row**: the consumer cutover to reading
+    the tag. It needs its own pass per consumer, and almost nothing reads
+    agency structure in production today — the gateway's boot-time module
+    gating and K6's RACI lookup are the whole list.
+  - Verified: `go build`/`go vet`/`go test ./...`/`gofmt -l .` clean here.
+    All four `replace`-ing repos rebuilt and retested clean;
+    `mwanachama-wakala-api`'s `make self-test` **136/136 across 12
+    collections**, its `publish-validation` collection extended to 25
+    checks covering the document, a second live channel, and a rollback
+    end to end through the real router. The gateway's two Postman gates
+    remain at exactly their prior state (29 uncovered of 373, 1 orphan) —
+    AG30 removed 8 routes and their 8 Postman requests together, so
+    neither number moved.
+
 ## Conventions
 
 - Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`

@@ -86,9 +86,10 @@ func ListModules(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 
 // ModuleRoutes is Get/List for Module, addressed under names.Module.
 // Read-only: Module has no Create/Update/Delete HTTP surface — the
-// catalog of which codes exist, their Name/Description, and their default
-// Enabled/Locked state comes from models.ModuleCatalog, applied at
-// Migrate time by gormstore.BackfillModules.
+// catalog of which codes exist, their Name/Description and their Locked
+// state comes from models.ModuleCatalog, applied at Migrate time by
+// gormstore.BackfillModules, and Enabled is derived from the Objective
+// links the nested /{objectiveID}/modules routes write.
 func ModuleRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.Module
