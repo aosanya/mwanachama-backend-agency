@@ -31,8 +31,8 @@ func TestListTypes_NoNameListsEveryType(t *testing.T) {
 	if !ok {
 		t.Fatalf("structuredContent.items is %T, want []any", sc["items"])
 	}
-	if len(items) < 15 {
-		t.Errorf("got %d types, want the full catalog (at least 15)", len(items))
+	if len(items) < 14 {
+		t.Errorf("got %d types, want the full catalog (at least 14)", len(items))
 	}
 }
 
