@@ -1,18 +1,16 @@
 // composite.go is this package's higher-level MCP surface: one tool
 // composing the granular ones above, for an agent handed a rough brief
-// rather than one that wants to place each department/goal/RACI assignment
-// with its own call.
+// rather than one that wants to place each goal/RACI assignment with its
+// own call.
 //
 // The spec's entities reference each other by a caller-chosen "key" (e.g.
-// a department's level_key, a work item's workflow_key) rather than a real
-// id, since real ids don't exist until this tool creates the rows — the
-// same problem a UI form composing several backend calls in one submit has
-// to solve. RoleAssignments/etc. that reference a key must
-// have it defined earlier in the same spec (a department's parent_key, for
-// instance, must name a department listed before it) — this tool applies
-// each section in array order, in the dependency order the domain itself
-// imposes (levels before departments, roles/goals/workflows before work
-// items, work items before RACI), and does not reorder or validate a
+// a work item's workflow_key) rather than a real id, since real ids don't
+// exist until this tool creates the rows — the same problem a UI form
+// composing several backend calls in one submit has to solve.
+// RoleAssignments/etc. that reference a key must have it defined earlier in
+// the same spec — this tool applies each section in array order, in the
+// dependency order the domain itself imposes (roles/goals/workflows before
+// work items, work items before RACI), and does not reorder or validate a
 // spec's internal ordering beyond that.
 //
 // RACI is the one section with an escape hatch from the key-only rule: a
@@ -46,9 +44,9 @@ func registerCompositeTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:  "agency_design_from_spec",
 		Title: "Design Agency From Spec",
-		Description: "Build out an Agency's org chart, goals/objectives/workflows/work items, and RACI assignments from one structured spec, composing the granular agency_* tools internally. " +
+		Description: "Build out an Agency's roles, goals/objectives/workflows/work items, and RACI assignments from one structured spec, composing the granular agency_* tools internally. " +
 			"Entities reference each other by a caller-chosen \"key\" (not a real id); a reference must name a key defined earlier in that section or in a section this tool applies first. " +
-			"Order applied: agency (only if none exists yet), levels, departments (parent_key must precede its child), roles, goals, objectives (goal_key), workflows, work_items (objective_key), raci (objective_key). " +
+			"Order applied: agency (only if none exists yet), roles, goals, objectives (goal_key), workflows, work_items (objective_key), raci (objective_key). " +
 			"A raci entry may instead reference an already-existing Role/Objective directly by its real id (role_id/objective_id) if it isn't also being created in this same spec — use this to create one new Role (or Objective) and assign it RACI against something that already exists in a single call, instead of a separate create-then-assign round trip. " +
 			"One entity failing does not stop the rest — check the result's errors field.",
 	}, mcpDesignAgencyFromSpec(resolve))
@@ -56,12 +54,6 @@ func registerCompositeTools(server *mcp.Server, resolve ManagerResolver) {
 
 type specAgency struct {
 	Name string `json:"name,omitempty" jsonschema:"the Agency's name"`
-}
-
-type specLevel struct {
-	Key   string `json:"key" jsonschema:"a caller-chosen name other spec entries reference this Level by"`
-	Name  string `json:"name" jsonschema:"e.g. \"Division\", \"Team\""`
-	Depth int    `json:"depth,omitempty"`
 }
 
 type specRole struct {
@@ -109,7 +101,6 @@ type specRACI struct {
 type mcpDesignFromSpecParams struct {
 	InstanceID string          `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	Agency     *specAgency     `json:"agency,omitempty" jsonschema:"created only if this Instance has no Agency yet; omit or leave unset otherwise"`
-	Levels     []specLevel     `json:"levels,omitempty"`
 	Roles      []specRole      `json:"roles,omitempty"`
 	Goals      []specGoal      `json:"goals,omitempty"`
 	Objectives []specObjective `json:"objectives,omitempty"`
@@ -124,7 +115,6 @@ type mcpDesignFromSpecParams struct {
 // something later in the spec did not (see the package doc comment).
 type mcpDesignFromSpecResult struct {
 	AgencyCreated   bool              `json:"agency_created"`
-	Levels          map[string]string `json:"levels,omitempty"`
 	Roles           map[string]string `json:"roles,omitempty"`
 	Goals           map[string]string `json:"goals,omitempty"`
 	Objectives      map[string]string `json:"objectives,omitempty"`
@@ -142,7 +132,6 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		out := mcpDesignFromSpecResult{
-			Levels:     map[string]string{},
 			Roles:      map[string]string{},
 			Goals:      map[string]string{},
 			Objectives: map[string]string{},
@@ -157,15 +146,6 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 					out.AgencyCreated = true
 				}
 			}
-		}
-
-		for _, lvl := range p.Levels {
-			row, err := m.CreateLevel(ctx, models.Level{Name: lvl.Name, Depth: lvl.Depth})
-			if err != nil {
-				out.Errors = append(out.Errors, fmt.Sprintf("level %q: %v", lvl.Key, err))
-				continue
-			}
-			out.Levels[lvl.Key] = row.ID
 		}
 
 		for _, r := range p.Roles {
@@ -270,8 +250,8 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		s := summary(
-			"Applied spec: %d level(s), %d role(s), %d goal(s), %d objective(s), %d workflow(s), %d work item(s), %d RACI assignment(s), %d error(s)",
-			len(out.Levels), len(out.Roles), len(out.Goals), len(out.Objectives),
+			"Applied spec: %d role(s), %d goal(s), %d objective(s), %d workflow(s), %d work item(s), %d RACI assignment(s), %d error(s)",
+			len(out.Roles), len(out.Goals), len(out.Objectives),
 			len(out.Workflows), len(out.WorkItems), len(out.RoleAssignments), len(out.Errors),
 		)
 		return s, out, nil
