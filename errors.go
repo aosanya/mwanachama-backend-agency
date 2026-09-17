@@ -32,8 +32,6 @@ var (
 	// ErrInvalidLookup is returned by LookupFlowStep when no lookup key is
 	// set (or TriggerTopic is set without Consumer).
 	ErrInvalidLookup = errors.New("mwanachamaagency: invalid event flow step lookup")
-	// ErrLevelNotFound is returned when a Level id has no match.
-	ErrLevelNotFound = errors.New("mwanachamaagency: level not found")
 	// ErrInvalidRole is returned by CreateRole/UpdateRole when Name is empty.
 	ErrInvalidRole = errors.New("mwanachamaagency: invalid role")
 	// ErrRoleNotFound is returned when a Role id has no match in the

@@ -32,7 +32,6 @@ type ResourceNames struct {
 	Draft          string
 	Publication    string
 	EventFlowStep  string
-	Level          string
 	Role           string
 	RoleAssignment string
 	Module         string
@@ -65,9 +64,6 @@ func (n ResourceNames) withDefaults() ResourceNames {
 	}
 	if n.EventFlowStep == "" {
 		n.EventFlowStep = "event-flow-steps"
-	}
-	if n.Level == "" {
-		n.Level = "levels"
 	}
 	if n.Role == "" {
 		n.Role = "roles"
@@ -104,7 +100,6 @@ func Routes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	out = append(out, DraftRoutes(m, names)...)
 	out = append(out, PublicationRoutes(m, names)...)
 	out = append(out, EventFlowStepRoutes(m, names)...)
-	out = append(out, LevelRoutes(m, names)...)
 	out = append(out, RoleRoutes(m, names)...)
 	out = append(out, RoleAssignmentRoutes(m, names)...)
 	out = append(out, ModuleRoutes(m, names)...)

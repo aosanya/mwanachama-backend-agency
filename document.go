@@ -40,15 +40,6 @@ func buildDocument(ctx context.Context, tx *gorm.DB, tables TableNames, draftID 
 		EventFlows:                   a.EventFlows,
 	}
 
-	var levelRows []gormstore.LevelRow
-	if err := tx.WithContext(ctx).Table(tables.Levels).Order("depth").Find(&levelRows).Error; err != nil {
-		return fail(err)
-	}
-	for _, r := range levelRows {
-		l := gormstore.LevelFromRow(r)
-		doc.Levels = append(doc.Levels, models.DocumentLevel{ID: l.ID, Code: l.Code, Name: l.Name, Depth: l.Depth})
-	}
-
 	var roleRows []gormstore.RoleRow
 	if err := scoped(tables.Roles).Order("created_at").Find(&roleRows).Error; err != nil {
 		return fail(err)

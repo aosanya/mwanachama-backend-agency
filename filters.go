@@ -51,11 +51,6 @@ type EventFlowStepFilter struct {
 	Description string
 }
 
-type LevelFilter struct {
-	Code string
-	Name string
-}
-
 type RoleFilter struct {
 	Code        string
 	Name        string

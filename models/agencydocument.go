@@ -18,7 +18,6 @@ package models
 // Code is the one that survives a promotion unchanged (AG16).
 type AgencyDocument struct {
 	Agency           DocumentAgency            `json:"agency"`
-	Levels           []DocumentLevel           `json:"levels"`
 	Roles            []DocumentRole            `json:"roles"`
 	Goals            []DocumentGoal            `json:"goals"`
 	Objectives       []DocumentObjective       `json:"objectives"`
@@ -41,13 +40,6 @@ type DocumentAgency struct {
 	DefaultFailurePipelineBudget int    `json:"default_failure_pipeline_budget"`
 	InactivityTimeoutSeconds     int    `json:"inactivity_timeout_seconds"`
 	EventFlows                   string `json:"event_flows"`
-}
-
-type DocumentLevel struct {
-	ID    string `json:"id"`
-	Code  string `json:"code"`
-	Name  string `json:"name"`
-	Depth int    `json:"depth"`
 }
 
 type DocumentRole struct {

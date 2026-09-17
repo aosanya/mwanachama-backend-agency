@@ -131,18 +131,6 @@ type AgencyManager interface {
 	// Ordinality, Step), optionally filtered to one workflowCode.
 	ListEventFlowSteps(ctx context.Context, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error)
 
-	// Level. A named rung an org's nodes sit at ("National", "County",
-	// "Faculty") — the ladder's vocabulary, which the Agency designs. The
-	// nodes themselves are operational and live in
-	// mwanachama-backend-actor's Group tables, not here: an Agency records
-	// that it has a "Ward" rung, never which wards exist (AGD-017, which
-	// removed the Department type this package used to carry).
-	CreateLevel(ctx context.Context, l models.Level) (models.Level, error)
-	GetLevel(ctx context.Context, id string) (models.Level, error)
-	ListLevels(ctx context.Context, filter LevelFilter) ([]models.Level, error)
-	RenameLevel(ctx context.Context, id, name string) (models.Level, error)
-	DeleteLevel(ctx context.Context, id string) error
-
 	// Role. A live Role cannot be edited directly — fork a Draft, edit the
 	// draft-scoped copy, then promote. List's draftID selects scope, same
 	// as Goal/Workflow/WorkItem.
