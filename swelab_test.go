@@ -86,7 +86,7 @@ func TestSeedSWELab(t *testing.T) {
 		t.Fatalf("expected ErrDuplicateAccountable adding a second accountable, got %v", err)
 	}
 
-	pub, err := mgr.PublishAgency(ctx, "", "")
+	pub, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}

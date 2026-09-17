@@ -23,9 +23,6 @@ var (
 	// ErrPublicationNotFound is returned when a publication version has no
 	// match.
 	ErrPublicationNotFound = errors.New("mwanachamaagency: publication not found")
-	// ErrInvalidPublicationStatus is returned by UpdatePublicationStatus
-	// for any transition other than active -> archived.
-	ErrInvalidPublicationStatus = errors.New("mwanachamaagency: invalid publication status transition")
 	// ErrNoChangesDetected is returned by PublishAgency when the current
 	// live content hash matches an existing publication's.
 	ErrNoChangesDetected = errors.New("mwanachamaagency: no changes detected since last publication")

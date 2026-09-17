@@ -15,8 +15,7 @@ func publicationStatusFor(err error) int {
 	case errors.Is(err, mwanachamaagency.ErrDraftNotPromoted),
 		errors.Is(err, mwanachamaagency.ErrNoChangesDetected),
 		errors.Is(err, mwanachamaagency.ErrPublishValidationFailed),
-		errors.Is(err, mwanachamaagency.ErrDuplicateTag),
-		errors.Is(err, mwanachamaagency.ErrInvalidPublicationStatus):
+		errors.Is(err, mwanachamaagency.ErrDuplicateTag):
 		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
@@ -43,20 +42,21 @@ func pathVersion(w http.ResponseWriter, r *http.Request) (int, bool) {
 	return v, true
 }
 
-// PublishAgency handles POST — body {"draft_id": "...", "tag": "..."},
-// both "" allowed, same as
+// PublishAgency handles POST — body {"draft_id": "...", "tag": "...",
+// "channel": "..."}, all "" allowed, same as
 // [mwanachamaagency.AgencyManager.PublishAgency].
 func PublishAgency(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			DraftID string `json:"draft_id"`
 			Tag     string `json:"tag"`
+			Channel string `json:"channel"`
 		}
 		if err := readJSON(r, &body); err != nil {
 			writeErr(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		out, err := m.PublishAgency(r.Context(), body.DraftID, body.Tag)
+		out, err := m.PublishAgency(r.Context(), body.DraftID, body.Tag, body.Channel)
 		if err != nil {
 			writePublicationErr(w, err)
 			return
@@ -82,11 +82,11 @@ func GetPublication(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 }
 
 // ListPublications handles GET — every publication, ordered by version;
-// ?tag= narrows by substring match, ?status= by exact match.
+// ?tag= narrows by substring match, ?channel= by exact match.
 func ListPublications(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		filter := mwanachamaagency.PublicationFilter{Tag: q.Get("tag"), Status: q.Get("status")}
+		filter := mwanachamaagency.PublicationFilter{Tag: q.Get("tag"), Channel: q.Get("channel")}
 		out, err := m.ListPublications(r.Context(), filter)
 		if err != nil {
 			writePublicationErr(w, err)
@@ -96,22 +96,23 @@ func ListPublications(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// UpdatePublicationStatus handles PATCH {version} — body
-// {"status": "..."}. Only active -> archived is allowed.
-func UpdatePublicationStatus(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+// SetPublicationChannel handles PATCH {version} — body
+// {"channel": "..."}. An empty channel archives the publication; any other
+// value moves that channel onto it, off whichever publication held it.
+func SetPublicationChannel(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		version, ok := pathVersion(w, r)
 		if !ok {
 			return
 		}
 		var body struct {
-			Status string `json:"status"`
+			Channel string `json:"channel"`
 		}
 		if err := readJSON(r, &body); err != nil {
 			writeErr(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		out, err := m.UpdatePublicationStatus(r.Context(), version, body.Status)
+		out, err := m.SetPublicationChannel(r.Context(), version, body.Channel)
 		if err != nil {
 			writePublicationErr(w, err)
 			return
@@ -120,7 +121,7 @@ func UpdatePublicationStatus(m mwanachamaagency.AgencyManager) http.HandlerFunc 
 	}
 }
 
-// PublicationRoutes is Publish/Get/List/UpdateStatus for
+// PublicationRoutes is Publish/Get/List/SetChannel for
 // AgencyPublication, addressed under names.Publication.
 func PublicationRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
@@ -129,6 +130,6 @@ func PublicationRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []
 		{Method: http.MethodPost, Path: base, Handler: PublishAgency(m)},
 		{Method: http.MethodGet, Path: base, Handler: ListPublications(m)},
 		{Method: http.MethodGet, Path: base + "/{version}", Handler: GetPublication(m)},
-		{Method: http.MethodPatch, Path: base + "/{version}", Handler: UpdatePublicationStatus(m)},
+		{Method: http.MethodPatch, Path: base + "/{version}", Handler: SetPublicationChannel(m)},
 	}
 }

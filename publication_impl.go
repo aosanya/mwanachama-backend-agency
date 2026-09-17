@@ -187,11 +187,18 @@ func validationErrors(ctx context.Context, tx *gorm.DB, tables TableNames) error
 	return fmt.Errorf("%w: %s", ErrPublishValidationFailed, strings.Join(blocking, "; "))
 }
 
-// PublishAgency versions and content-hashes whatever is currently live. If
-// draftID is non-"", that Draft must already be promoted
-// (PublishAgency does not redo PromoteDraft's copy-and-swap). tag names
-// the publication; "" falls back to "v<version>".
-func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag string) (models.AgencyPublication, error) {
+// PublishAgency freezes the working set into a new tagged publication:
+// it serializes the whole Agency into the publication's Document, which is
+// what production then operates from (AGD-005). If draftID is non-"", that
+// Draft must already be promoted (PublishAgency does not redo
+// PromoteDraft's copy-and-swap). tag names the publication; "" falls back
+// to "v<version>". channel is the live channel it serves; "" publishes to
+// [models.DefaultChannel], and whichever publication held that channel is
+// archived.
+func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag, channel string) (models.AgencyPublication, error) {
+	if channel == "" {
+		channel = models.DefaultChannel
+	}
 	var out models.AgencyPublication
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if draftID != "" {
@@ -205,6 +212,11 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag string) 
 		}
 
 		if err := validationErrors(ctx, tx, m.tables); err != nil {
+			return err
+		}
+
+		document, err := buildDocument(ctx, tx, m.tables, "")
+		if err != nil {
 			return err
 		}
 
@@ -239,9 +251,11 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag string) 
 			return ErrDuplicateTag
 		}
 
+		// Only the target channel is displaced — a publication live on a
+		// different channel keeps serving it.
 		now := models.NowRFC3339()
-		if err := tx.Table(m.tables.AgencyPublications).Where("status = ?", "active").
-			Updates(map[string]any{"status": "archived", "updated_at": now}).Error; err != nil {
+		if err := tx.Table(m.tables.AgencyPublications).Where("channel = ?", channel).
+			Updates(map[string]any{"channel": models.ChannelArchived, "updated_at": now}).Error; err != nil {
 			return fmt.Errorf("PublishAgency: %w", err)
 		}
 
@@ -250,7 +264,8 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag string) 
 			ContentHash: hash,
 			Version:     version,
 			Tag:         tag,
-			Status:      "active",
+			Channel:     channel,
+			Document:    document,
 			PublishedAt: now,
 		})
 		if err := tx.Table(m.tables.AgencyPublications).Create(&row).Error; err != nil {
@@ -288,7 +303,7 @@ func (m *agencyManager) GetPublication(ctx context.Context, version int) (models
 func (m *agencyManager) ListPublications(ctx context.Context, filter PublicationFilter) ([]models.AgencyPublication, error) {
 	q := m.db.WithContext(ctx).Table(m.tables.AgencyPublications).Order("version")
 	q = likeFilter(q, "tag", filter.Tag)
-	q = eqFilter(q, "status", filter.Status)
+	q = eqFilter(q, "channel", filter.Channel)
 	var rows []gormstore.AgencyPublicationRow
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, fmt.Errorf("ListPublications: %w", err)
@@ -300,20 +315,55 @@ func (m *agencyManager) ListPublications(ctx context.Context, filter Publication
 	return out, nil
 }
 
-// UpdatePublicationStatus only allows the active -> archived transition.
-func (m *agencyManager) UpdatePublicationStatus(ctx context.Context, version int, status string) (models.AgencyPublication, error) {
-	row, err := m.findPublicationRow(ctx, m.db, version)
+// SetPublicationChannel moves a channel onto version, taking it off
+// whichever publication held it. channel "" ([models.ChannelArchived])
+// archives version instead. Both directions are allowed: re-channelling an
+// archived publication is how a rollback works (AGD-005 #4), unlike the
+// one-way active→archived rule this replaced.
+func (m *agencyManager) SetPublicationChannel(ctx context.Context, version int, channel string) (models.AgencyPublication, error) {
+	var out models.AgencyPublication
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		row, err := m.findPublicationRow(ctx, tx, version)
+		if err != nil {
+			return err
+		}
+		now := models.NowRFC3339()
+		if channel != models.ChannelArchived {
+			if err := tx.Table(m.tables.AgencyPublications).
+				Where("channel = ? AND version <> ?", channel, version).
+				Updates(map[string]any{"channel": models.ChannelArchived, "updated_at": now}).Error; err != nil {
+				return fmt.Errorf("SetPublicationChannel: %w", err)
+			}
+		}
+		if err := tx.Table(m.tables.AgencyPublications).Where("version = ?", version).
+			Updates(map[string]any{"channel": channel, "updated_at": now}).Error; err != nil {
+			return fmt.Errorf("SetPublicationChannel: %w", err)
+		}
+		row.Channel, row.UpdatedAt = channel, now
+		out = gormstore.AgencyPublicationFromRow(row)
+		return nil
+	})
 	if err != nil {
 		return models.AgencyPublication{}, err
 	}
-	if row.Status != "active" || status != "archived" {
-		return models.AgencyPublication{}, ErrInvalidPublicationStatus
+	return out, nil
+}
+
+// GetPublicationForChannel returns whichever publication currently serves
+// channel — the read production uses to find the Agency it operates from.
+// Returns [ErrPublicationNotFound] if nothing is published to it.
+func (m *agencyManager) GetPublicationForChannel(ctx context.Context, channel string) (models.AgencyPublication, error) {
+	if channel == "" {
+		channel = models.DefaultChannel
 	}
-	now := models.NowRFC3339()
-	if err := m.db.WithContext(ctx).Table(m.tables.AgencyPublications).Where("version = ?", version).
-		Updates(map[string]any{"status": status, "updated_at": now}).Error; err != nil {
-		return models.AgencyPublication{}, fmt.Errorf("UpdatePublicationStatus: %w", err)
+	var row gormstore.AgencyPublicationRow
+	err := m.db.WithContext(ctx).Table(m.tables.AgencyPublications).
+		Where("channel = ?", channel).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.AgencyPublication{}, ErrPublicationNotFound
 	}
-	row.Status, row.UpdatedAt = status, now
+	if err != nil {
+		return models.AgencyPublication{}, fmt.Errorf("GetPublicationForChannel: %w", err)
+	}
 	return gormstore.AgencyPublicationFromRow(row), nil
 }

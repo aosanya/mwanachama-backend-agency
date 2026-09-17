@@ -37,10 +37,12 @@ type DraftFilter struct {
 	Status      string
 }
 
-// PublicationFilter's Status is exact-match ("active" or "archived").
+// PublicationFilter's Channel is exact-match on a live channel name
+// ("production", "staging", …). "" is the unset filter, not a match on
+// archived publications — filter those out of a full listing instead.
 type PublicationFilter struct {
-	Tag    string
-	Status string
+	Tag     string
+	Channel string
 }
 
 type EventFlowStepFilter struct {

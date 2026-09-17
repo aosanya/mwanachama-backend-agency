@@ -12,8 +12,8 @@ import (
 )
 
 // registerAgencyTools registers Agency/Draft/Publication tools — the
-// Agency lifecycle: the live document itself, the draft an edit happens
-// against, and the versioned, hashed snapshot a Draft's promotion produces.
+// Agency lifecycle: the working design itself, the draft an edit happens
+// against, and the published, channel-served document production runs on.
 func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_agency", Title: "Create Agency", Description: "Create the Agency document (name) for a registered Instance."}, mcpCreateAgency(resolve))
 	mcp.AddTool(server, &mcp.Tool{
@@ -28,10 +28,10 @@ func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_promote_draft", Title: "Promote Draft", Description: "Promote an open Draft: its scoped copies become live, replacing what was there before."}, mcpPromoteDraft(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_archive_draft", Title: "Archive Draft", Description: "Archive an open Draft without promoting it — its scoped copies are discarded."}, mcpArchiveDraft(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Title: "Publish Agency", Description: "Publish the currently-live Agency (optionally the result of a just-promoted Draft) as a new versioned, content-hashed AgencyPublication. Pass a tag to name the publication. The Agency is validated first: if it has any error-severity issues the publish is refused and the errors are returned — call agency_list_issues with no draft_id to see them in full."}, mcpPublishAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Title: "Publish Agency", Description: "Publish the Agency: freeze the whole current design into a new versioned AgencyPublication and point a live channel at it. The publication carries the entire Agency, and production operates from it — nothing running reads the working data. Pass a tag to name the release and a channel to choose which environment it serves (default production). The Agency is validated first: if it has any error-severity issues the publish is refused and the errors are returned — call agency_list_issues with no draft_id to see them in full."}, mcpPublishAgency(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_publication", Title: "Get Publication", Description: "Get one AgencyPublication by its version number."}, mcpGetPublication(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_publications", Title: "List Publications", Description: "List every AgencyPublication for an Instance."}, mcpListPublications(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_publication_status", Title: "Update Publication Status", Description: "Set an AgencyPublication's status (e.g. archiving it)."}, mcpUpdatePublicationStatus(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_set_publication_channel", Title: "Set Publication Channel", Description: "Point a live channel (e.g. \"production\") at an AgencyPublication, or archive one by passing an empty channel. Production reads whichever publication serves its channel, so this is both how a release goes live and how a rollback to an earlier publication is done."}, mcpSetPublicationChannel(resolve))
 }
 
 // mcpCreateAgencyParams mirrors models.Agency field-for-field, but with
@@ -207,6 +207,7 @@ type mcpPublishAgencyParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	DraftID    string `json:"draft_id,omitempty" jsonschema:"a just-promoted Draft's id, if this publication follows one; empty re-tags whatever is already live"`
 	Tag        string `json:"tag,omitempty" jsonschema:"a name for this publication, unique across publications; empty falls back to v<version>"`
+	Channel    string `json:"channel,omitempty" jsonschema:"the live channel this publication serves (e.g. \"production\", \"staging\"); empty means production. Whichever publication held that channel is archived"`
 }
 
 func mcpPublishAgency(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpPublishAgencyParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
@@ -215,8 +216,8 @@ func mcpPublishAgency(resolve ManagerResolver) func(context.Context, *mcp.CallTo
 		if err != nil {
 			return nil, models.AgencyPublication{}, err
 		}
-		out, err := m.PublishAgency(ctx, p.DraftID, p.Tag)
-		return summary("Published %s (version %d, %s)", out.Tag, out.Version, out.Status), out, err
+		out, err := m.PublishAgency(ctx, p.DraftID, p.Tag, p.Channel)
+		return summary("Published %s (version %d) to %s", out.Tag, out.Version, channelLabel(out.Channel)), out, err
 	}
 }
 
@@ -232,7 +233,7 @@ func mcpGetPublication(resolve ManagerResolver) func(context.Context, *mcp.CallT
 			return nil, models.AgencyPublication{}, err
 		}
 		out, err := m.GetPublication(ctx, p.Version)
-		return summary("%s (version %d, %s)", out.Tag, out.Version, out.Status), out, err
+		return summary("%s (version %d, %s)", out.Tag, out.Version, channelLabel(out.Channel)), out, err
 	}
 }
 
@@ -240,8 +241,8 @@ func mcpGetPublication(resolve ManagerResolver) func(context.Context, *mcp.CallT
 // PublicationFilter's fields.
 type mcpListPublicationsParams struct {
 	instanceOnlyParams
-	Tag    string `json:"tag,omitempty" jsonschema:"filter: case-insensitive substring match on Tag"`
-	Status string `json:"status,omitempty" jsonschema:"filter: exact match on Status (\"active\" or \"archived\")"`
+	Tag     string `json:"tag,omitempty" jsonschema:"filter: case-insensitive substring match on Tag"`
+	Channel string `json:"channel,omitempty" jsonschema:"filter: exact match on the live channel name (e.g. \"production\"); omit to list every publication including archived ones"`
 }
 
 func mcpListPublications(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpListPublicationsParams) (*mcp.CallToolResult, ListResult[models.AgencyPublication], error) {
@@ -250,38 +251,47 @@ func mcpListPublications(resolve ManagerResolver) func(context.Context, *mcp.Cal
 		if err != nil {
 			return nil, ListResult[models.AgencyPublication]{}, err
 		}
-		out, err := m.ListPublications(ctx, mwanachamaagency.PublicationFilter{Tag: p.Tag, Status: p.Status})
+		out, err := m.ListPublications(ctx, mwanachamaagency.PublicationFilter{Tag: p.Tag, Channel: p.Channel})
 		return summaryWithContext(fmt.Sprintf("Found %d publication(s)", len(out)), publicationsContextText(out)), ListResult[models.AgencyPublication]{Items: out}, err
 	}
 }
 
 // publicationsContextText is what an LLM sees for a Publications list —
 // one line per publication. Version, not ID, is what agency_get_publication/
-// agency_update_publication_status actually take, so it leads each line.
+// agency_set_publication_channel actually take, so it leads each line.
 func publicationsContextText(publications []models.AgencyPublication) string {
 	if len(publications) == 0 {
 		return "There are no publications yet."
 	}
 	lines := make([]string, 0, len(publications))
 	for _, pub := range publications {
-		lines = append(lines, fmt.Sprintf("- %s: version %d, %s", pub.Tag, pub.Version, pub.Status))
+		lines = append(lines, fmt.Sprintf("- %s: version %d, %s", pub.Tag, pub.Version, channelLabel(pub.Channel)))
 	}
 	return "Current publications:\n" + strings.Join(lines, "\n")
 }
 
-type mcpUpdatePublicationStatusParams struct {
-	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	Version    int    `json:"version" jsonschema:"the AgencyPublication's version number"`
-	Status     string `json:"status" jsonschema:"the new status, e.g. \"active\" or \"archived\""`
+// channelLabel renders a publication's channel for a human reading a tool
+// log, where "" means archived rather than an empty name.
+func channelLabel(channel string) string {
+	if channel == models.ChannelArchived {
+		return "archived"
+	}
+	return channel
 }
 
-func mcpUpdatePublicationStatus(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpUpdatePublicationStatusParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpUpdatePublicationStatusParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
+type mcpSetPublicationChannelParams struct {
+	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	Version    int    `json:"version" jsonschema:"the AgencyPublication's version number"`
+	Channel    string `json:"channel" jsonschema:"the live channel this publication should serve (e.g. \"production\"), or empty to archive it. Setting a channel takes it off whichever publication held it — that is how a rollback to an older publication works"`
+}
+
+func mcpSetPublicationChannel(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpSetPublicationChannelParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpSetPublicationChannelParams) (*mcp.CallToolResult, models.AgencyPublication, error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
 			return nil, models.AgencyPublication{}, err
 		}
-		out, err := m.UpdatePublicationStatus(ctx, p.Version, p.Status)
-		return summary("%s status set to %q", out.Tag, out.Status), out, err
+		out, err := m.SetPublicationChannel(ctx, p.Version, p.Channel)
+		return summary("%s is now %s", out.Tag, channelLabel(out.Channel)), out, err
 	}
 }

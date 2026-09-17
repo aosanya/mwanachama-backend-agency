@@ -88,21 +88,33 @@ type AgencyManager interface {
 	// ArchiveDraft returns [ErrDraftNotOpen] if the draft isn't open.
 	ArchiveDraft(ctx context.Context, id string) (models.Draft, error)
 
-	// Publication. PublishAgency versions and content-hashes whatever is
-	// currently live; draftID, if non-"", is recorded as the Draft that
-	// prompted the publish and must already be promoted
-	// ([ErrDraftNotPromoted] otherwise). tag names the publication and
-	// must be unused ([ErrDuplicateTag]); "" falls back to "v<version>".
-	// The live scan runs first: any error-severity Issue refuses the
+	// Publication. A publication carries the whole Agency as a
+	// [models.AgencyDocument], and production operates from that rather
+	// than from the working rows (AGD-005).
+	//
+	// PublishAgency freezes the working set into a new publication.
+	// draftID, if non-"", is recorded as the Draft that prompted it and
+	// must already be promoted ([ErrDraftNotPromoted] otherwise). tag
+	// names it and must be unused ([ErrDuplicateTag]); "" falls back to
+	// "v<version>". channel is the live channel it serves; "" means
+	// [models.DefaultChannel], and whichever publication held that
+	// channel is archived — publications on other channels keep serving
+	// them. The scan runs first: any error-severity Issue refuses the
 	// publish with [ErrPublishValidationFailed]. Returns
 	// [ErrNoChangesDetected] if the content hash matches an existing
 	// publication.
-	PublishAgency(ctx context.Context, draftID, tag string) (models.AgencyPublication, error)
+	PublishAgency(ctx context.Context, draftID, tag, channel string) (models.AgencyPublication, error)
 	GetPublication(ctx context.Context, version int) (models.AgencyPublication, error)
+	// GetPublicationForChannel is the production read: whichever
+	// publication currently serves channel ("" means
+	// [models.DefaultChannel]). [ErrPublicationNotFound] if none does.
+	GetPublicationForChannel(ctx context.Context, channel string) (models.AgencyPublication, error)
 	ListPublications(ctx context.Context, filter PublicationFilter) ([]models.AgencyPublication, error)
-	// UpdatePublicationStatus only allows the active -> archived
-	// transition; anything else returns [ErrInvalidPublicationStatus].
-	UpdatePublicationStatus(ctx context.Context, version int, status string) (models.AgencyPublication, error)
+	// SetPublicationChannel moves a channel onto version, taking it off
+	// whichever publication held it; [models.ChannelArchived] archives
+	// version instead. Re-channelling an archived publication is the
+	// rollback path, so both directions are allowed.
+	SetPublicationChannel(ctx context.Context, version int, channel string) (models.AgencyPublication, error)
 
 	// EventFlowStep
 	CreateEventFlowStep(ctx context.Context, s models.EventFlowStep) (models.EventFlowStep, error)

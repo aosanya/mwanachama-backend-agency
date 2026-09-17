@@ -34,15 +34,15 @@ func TestPublishAgency_NoDraft(t *testing.T) {
 	ctx := context.Background()
 	seedPublishableAgency(t, mgr, ctx)
 
-	p1, err := mgr.PublishAgency(ctx, "", "")
+	p1, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
-	if p1.Version != 1 || p1.Tag != "v1" || p1.Status != "active" || p1.ContentHash == "" {
+	if p1.Version != 1 || p1.Tag != "v1" || p1.Channel != models.DefaultChannel || p1.ContentHash == "" {
 		t.Fatalf("unexpected first publication: %+v", p1)
 	}
 
-	if _, err := mgr.PublishAgency(ctx, "", ""); !errors.Is(err, mwanachamaagency.ErrNoChangesDetected) {
+	if _, err := mgr.PublishAgency(ctx, "", "", ""); !errors.Is(err, mwanachamaagency.ErrNoChangesDetected) {
 		t.Fatalf("expected ErrNoChangesDetected republishing unchanged content, got %v", err)
 	}
 
@@ -52,7 +52,7 @@ func TestPublishAgency_NoDraft(t *testing.T) {
 	if _, err := mgr.CreateValue(ctx, models.Value{Text: "correctness over speed"}); err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	p2, err := mgr.PublishAgency(ctx, "", "")
+	p2, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency after change: %v", err)
 	}
@@ -64,8 +64,8 @@ func TestPublishAgency_NoDraft(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPublication(1): %v", err)
 	}
-	if gotP1.Status != "archived" {
-		t.Fatalf("expected publishing v2 to archive v1, got %q", gotP1.Status)
+	if gotP1.Channel != models.ChannelArchived {
+		t.Fatalf("expected publishing v2 to archive v1, got channel %q", gotP1.Channel)
 	}
 }
 
@@ -74,7 +74,7 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
 
-	p1, err := mgr.PublishAgency(ctx, "", "")
+	p1, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
-	p2, err := mgr.PublishAgency(ctx, "", "")
+	p2, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("expected a RACI-only change to require republishing, got %v", err)
 	}
@@ -106,7 +106,7 @@ func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
 
-	p1, err := mgr.PublishAgency(ctx, "", "")
+	p1, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
-	p2, err := mgr.PublishAgency(ctx, "", "")
+	p2, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("expected a Module-only change to require republishing, got %v", err)
 	}
@@ -138,14 +138,14 @@ func TestPublishAgency_RequiresPromotedDraft(t *testing.T) {
 		t.Fatalf("CreateDraft: %v", err)
 	}
 
-	if _, err := mgr.PublishAgency(ctx, d.ID, ""); !errors.Is(err, mwanachamaagency.ErrDraftNotPromoted) {
+	if _, err := mgr.PublishAgency(ctx, d.ID, "", ""); !errors.Is(err, mwanachamaagency.ErrDraftNotPromoted) {
 		t.Fatalf("expected ErrDraftNotPromoted, got %v", err)
 	}
 
 	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
 		t.Fatalf("PromoteDraft: %v", err)
 	}
-	p, err := mgr.PublishAgency(ctx, d.ID, "")
+	p, err := mgr.PublishAgency(ctx, d.ID, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency after promote: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestPublishAgency_RefusedOnValidationError(t *testing.T) {
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	_, err := mgr.PublishAgency(ctx, "", "")
+	_, err := mgr.PublishAgency(ctx, "", "", "")
 	if !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {
 		t.Fatalf("expected ErrPublishValidationFailed, got %v", err)
 	}
@@ -196,7 +196,7 @@ func TestPublishAgency_RefusedOnValidationError(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
-	if _, err := mgr.PublishAgency(ctx, "", ""); err != nil {
+	if _, err := mgr.PublishAgency(ctx, "", "", ""); err != nil {
 		t.Fatalf("expected the publish to succeed once fixed, got %v", err)
 	}
 }
@@ -217,7 +217,7 @@ func TestPublishAgency_WarningsDoNotBlock(t *testing.T) {
 			t.Fatalf("seed should be clean of errors, got %+v", i)
 		}
 	}
-	if _, err := mgr.PublishAgency(ctx, "", ""); err != nil {
+	if _, err := mgr.PublishAgency(ctx, "", "", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 }
@@ -227,7 +227,7 @@ func TestPublishAgency_Tag(t *testing.T) {
 	ctx := context.Background()
 	seedPublishableAgency(t, mgr, ctx)
 
-	p1, err := mgr.PublishAgency(ctx, "", "2026-Q4 restructure")
+	p1, err := mgr.PublishAgency(ctx, "", "2026-Q4 restructure", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
@@ -238,11 +238,11 @@ func TestPublishAgency_Tag(t *testing.T) {
 	if _, err := mgr.CreateValue(ctx, models.Value{Text: "correctness over speed"}); err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	if _, err := mgr.PublishAgency(ctx, "", "2026-Q4 restructure"); !errors.Is(err, mwanachamaagency.ErrDuplicateTag) {
+	if _, err := mgr.PublishAgency(ctx, "", "2026-Q4 restructure", ""); !errors.Is(err, mwanachamaagency.ErrDuplicateTag) {
 		t.Fatalf("expected ErrDuplicateTag, got %v", err)
 	}
 
-	p2, err := mgr.PublishAgency(ctx, "", "")
+	p2, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency (fallback tag): %v", err)
 	}
@@ -259,37 +259,100 @@ func TestPublishAgency_TagFallbackCollision(t *testing.T) {
 	ctx := context.Background()
 	seedPublishableAgency(t, mgr, ctx)
 
-	if _, err := mgr.PublishAgency(ctx, "", "v2"); err != nil {
+	if _, err := mgr.PublishAgency(ctx, "", "v2", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 	if _, err := mgr.CreateValue(ctx, models.Value{Text: "correctness over speed"}); err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	if _, err := mgr.PublishAgency(ctx, "", ""); !errors.Is(err, mwanachamaagency.ErrDuplicateTag) {
+	if _, err := mgr.PublishAgency(ctx, "", "", ""); !errors.Is(err, mwanachamaagency.ErrDuplicateTag) {
 		t.Fatalf("expected ErrDuplicateTag from the generated tag, got %v", err)
 	}
 }
 
-func TestUpdatePublicationStatus(t *testing.T) {
+func TestSetPublicationChannel(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	seedPublishableAgency(t, mgr, ctx)
 
-	p, err := mgr.PublishAgency(ctx, "", "")
+	p, err := mgr.PublishAgency(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 
-	updated, err := mgr.UpdatePublicationStatus(ctx, p.Version, "archived")
+	archived, err := mgr.SetPublicationChannel(ctx, p.Version, models.ChannelArchived)
 	if err != nil {
-		t.Fatalf("UpdatePublicationStatus: %v", err)
+		t.Fatalf("SetPublicationChannel: %v", err)
 	}
-	if updated.Status != "archived" {
-		t.Fatalf("expected archived, got %q", updated.Status)
+	if archived.Channel != models.ChannelArchived {
+		t.Fatalf("expected archived, got channel %q", archived.Channel)
 	}
 
-	if _, err := mgr.UpdatePublicationStatus(ctx, p.Version, "active"); !errors.Is(err, mwanachamaagency.ErrInvalidPublicationStatus) {
-		t.Fatalf("expected ErrInvalidPublicationStatus reactivating an archived publication, got %v", err)
+	// Re-channelling an archived publication is the rollback path — the
+	// one-way active→archived rule this replaced would have refused it.
+	back, err := mgr.SetPublicationChannel(ctx, p.Version, models.DefaultChannel)
+	if err != nil {
+		t.Fatalf("expected re-living an archived publication to be allowed, got %v", err)
+	}
+	if back.Channel != models.DefaultChannel {
+		t.Fatalf("expected the publication back on production, got %q", back.Channel)
+	}
+}
+
+// TestPublishAgency_Channels covers the shape AGD-005 chose over a single
+// live publication: several tags live at once on different channels, one
+// tag per channel, and publishing displacing only its own channel.
+func TestPublishAgency_Channels(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	seedPublishableAgency(t, mgr, ctx)
+
+	prod, err := mgr.PublishAgency(ctx, "", "release-1", "")
+	if err != nil {
+		t.Fatalf("PublishAgency(production): %v", err)
+	}
+	if _, err := mgr.CreateValue(ctx, models.Value{Text: "correctness over speed"}); err != nil {
+		t.Fatalf("CreateValue: %v", err)
+	}
+	staging, err := mgr.PublishAgency(ctx, "", "release-2", "staging")
+	if err != nil {
+		t.Fatalf("PublishAgency(staging): %v", err)
+	}
+
+	// Publishing to staging must not disturb production.
+	gotProd, err := mgr.GetPublicationForChannel(ctx, models.DefaultChannel)
+	if err != nil {
+		t.Fatalf("GetPublicationForChannel(production): %v", err)
+	}
+	if gotProd.Version != prod.Version {
+		t.Fatalf("expected production still on version %d, got %d", prod.Version, gotProd.Version)
+	}
+	gotStaging, err := mgr.GetPublicationForChannel(ctx, "staging")
+	if err != nil {
+		t.Fatalf("GetPublicationForChannel(staging): %v", err)
+	}
+	if gotStaging.Version != staging.Version {
+		t.Fatalf("expected staging on version %d, got %d", staging.Version, gotStaging.Version)
+	}
+
+	// Promoting staging's publication to production displaces the old one
+	// and leaves exactly one publication per channel.
+	if _, err := mgr.SetPublicationChannel(ctx, staging.Version, models.DefaultChannel); err != nil {
+		t.Fatalf("SetPublicationChannel: %v", err)
+	}
+	live, err := mgr.ListPublications(ctx, mwanachamaagency.PublicationFilter{Channel: models.DefaultChannel})
+	if err != nil {
+		t.Fatalf("ListPublications: %v", err)
+	}
+	if len(live) != 1 || live[0].Version != staging.Version {
+		t.Fatalf("expected exactly version %d on production, got %+v", staging.Version, live)
+	}
+}
+
+func TestGetPublicationForChannel_NotFound(t *testing.T) {
+	mgr := newTestManager(t)
+	if _, err := mgr.GetPublicationForChannel(context.Background(), "staging"); !errors.Is(err, mwanachamaagency.ErrPublicationNotFound) {
+		t.Fatalf("expected ErrPublicationNotFound, got %v", err)
 	}
 }
 

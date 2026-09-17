@@ -88,8 +88,8 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "AgencyPublication",
-		WhatItIs: "A versioned, content-hashed, tagged snapshot of the Agency's live data.",
-		HowToAdd: "Not created directly — agency_publish_agency produces one as its result.",
+		WhatItIs: "A tagged, versioned copy of the whole Agency, and what production actually operates from — nothing running reads the working design. A publication serves a named channel (\"production\", \"staging\", …) or is archived; several may be live on different channels at once.",
+		HowToAdd: "Not created directly — agency_publish_agency produces one. agency_set_publication_channel moves a channel between publications, which is how a release goes live and how a rollback is done.",
 	},
 	{
 		Name:     "AgencySnapshot",
