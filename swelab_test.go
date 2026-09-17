@@ -27,10 +27,6 @@ func TestSeedSWELab(t *testing.T) {
 		}
 	}
 
-	if seed.GroupType.Name != "Department" || seed.GroupType.LevelID == "" {
-		t.Fatalf("unexpected group type: %+v", seed.GroupType)
-	}
-
 	if len(seed.Modules) != len(models.ModuleCatalog) {
 		t.Fatalf("expected %d modules, got %d", len(models.ModuleCatalog), len(seed.Modules))
 	}

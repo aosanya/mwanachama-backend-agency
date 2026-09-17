@@ -13,7 +13,7 @@ import (
 // TestCreate_IgnoresCallerSuppliedID_AndCreatedAt covers WK17: a caller
 // used to be able to set id/created_at directly on a Create<Type> call and
 // have the server write them verbatim. Spot-checks one Draft-scoped type
-// (Goal) and one non-Draft-scoped type (GroupType) — every other
+// (Goal) and one non-Draft-scoped type (Level) — every other
 // Create<Type> shares the identical fix.
 func TestCreate_IgnoresCallerSuppliedID_AndCreatedAt(t *testing.T) {
 	mgr := newTestManager(t)
@@ -35,15 +35,15 @@ func TestCreate_IgnoresCallerSuppliedID_AndCreatedAt(t *testing.T) {
 		t.Fatalf("CreateGoal's stamped created_at %q does not parse as RFC3339: %v", g.CreatedAt, err)
 	}
 
-	gt, err := mgr.CreateGroupType(ctx, models.GroupType{ID: "forged-group-type-id", Name: "Department", CreatedAt: forgedCreatedAt})
+	lvl, err := mgr.CreateLevel(ctx, models.Level{ID: "forged-level-id", Name: "Division", CreatedAt: forgedCreatedAt})
 	if err != nil {
-		t.Fatalf("CreateGroupType: %v", err)
+		t.Fatalf("CreateLevel: %v", err)
 	}
-	if gt.ID == "forged-group-type-id" {
-		t.Fatal("CreateGroupType honoured a caller-supplied id")
+	if lvl.ID == "forged-level-id" {
+		t.Fatal("CreateLevel honoured a caller-supplied id")
 	}
-	if gt.CreatedAt == forgedCreatedAt {
-		t.Fatal("CreateGroupType honoured a caller-supplied created_at")
+	if lvl.CreatedAt == forgedCreatedAt {
+		t.Fatal("CreateLevel honoured a caller-supplied created_at")
 	}
 }
 

@@ -19,7 +19,6 @@ package models
 type AgencyDocument struct {
 	Agency           DocumentAgency            `json:"agency"`
 	Levels           []DocumentLevel           `json:"levels"`
-	GroupTypes       []DocumentGroupType       `json:"group_types"`
 	Roles            []DocumentRole            `json:"roles"`
 	Goals            []DocumentGoal            `json:"goals"`
 	Objectives       []DocumentObjective       `json:"objectives"`
@@ -49,20 +48,6 @@ type DocumentLevel struct {
 	Code  string `json:"code"`
 	Name  string `json:"name"`
 	Depth int    `json:"depth"`
-}
-
-// DocumentGroupType is a published GroupType — the kinds of node this
-// Agency's org uses ("Department", "Ward"), not the nodes themselves. The
-// nodes are operational and live in mwanachama-backend-actor's Group tables
-// (AGD-017, which replaced the Department section this document used to
-// carry).
-type DocumentGroupType struct {
-	ID       string `json:"id"`
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	Singular string `json:"singular"`
-	Plural   string `json:"plural"`
-	LevelID  string `json:"level_id"`
 }
 
 type DocumentRole struct {
