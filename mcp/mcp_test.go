@@ -215,3 +215,82 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 		t.Fatalf("ListRoleAssignmentsForObjective = %+v", list)
 	}
 }
+
+// TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference pins a
+// known defect — board row AG33 (documentation/3. implementation/todo.md):
+// composite.go's per-section key maps (out.Roles/out.Goals/out.Objectives/
+// out.Workflows/out.WorkItems, each keyed by the spec author's own `key`
+// string) have no duplicate check, so a second spec entry reusing an
+// already-seen key silently overwrites the first entry's id in the map.
+// Every later reference to that key resolves to whichever entry was
+// created LAST, with zero entries in "errors". If this is fixed (a
+// duplicate key rejected, or reported as an error), this test's
+// assertions should invert: either the call should report a
+// duplicate-key error, or the two Goals should resolve independently.
+func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T) {
+	mgr := newTestManager(t)
+	server := newTestServer(mgr)
+	mux := http.NewServeMux()
+	mux.Handle("/mcp", gosdkmcp.NewStreamableHTTPHandler(func(*http.Request) *gosdkmcp.Server { return server }, nil))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	cs := mcpConnect(t, srv.URL)
+
+	result, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
+		Name: "agency_design_from_spec",
+		Arguments: map[string]any{
+			"instance_id": "any",
+			"goals": []map[string]any{
+				{"key": "g1", "title": "Goal One"},
+				{"key": "g1", "title": "Goal Two"},
+			},
+			"objectives": []map[string]any{
+				{"key": "o1", "goal_key": "g1", "title": "Objective referencing g1"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	if result.IsError {
+		t.Fatalf("agency_design_from_spec: IsError = true (content: %+v)", result.Content)
+	}
+	got, _ := result.StructuredContent.(map[string]any)
+
+	// pin: current behaviour reports no error for the duplicate key.
+	if errs, _ := got["errors"].([]any); len(errs) != 0 {
+		t.Fatalf("pin: current behaviour reports no error for a duplicate spec key, got %+v — if this now fails, AG33 is fixed and should report a duplicate-key error instead", errs)
+	}
+
+	goals, err := mgr.ListGoals(ctxT(t), "", mwanachamaagency.GoalFilter{})
+	if err != nil {
+		t.Fatalf("ListGoals: %v", err)
+	}
+	if len(goals) != 2 {
+		t.Fatalf("want 2 goals, got %d", len(goals))
+	}
+	var goalTwoID string
+	for _, g := range goals {
+		if g.Title == "Goal Two" {
+			goalTwoID = g.ID
+		}
+	}
+	if goalTwoID == "" {
+		t.Fatal("could not find Goal Two")
+	}
+
+	objectives, err := mgr.ListObjectives(ctxT(t), "", mwanachamaagency.ObjectiveFilter{})
+	if err != nil {
+		t.Fatalf("ListObjectives: %v", err)
+	}
+	if len(objectives) != 1 {
+		t.Fatalf("want 1 objective, got %d", len(objectives))
+	}
+	// pin: the Objective silently resolves to whichever Goal was created
+	// LAST ("Goal Two"), never "Goal One" — if this now fails, AG33 is
+	// fixed.
+	if objectives[0].GoalID != goalTwoID {
+		t.Fatalf("pin: objective.GoalID = %q, want it silently misattributed to Goal Two (%q) — if this now fails, AG33 is fixed", objectives[0].GoalID, goalTwoID)
+	}
+}
