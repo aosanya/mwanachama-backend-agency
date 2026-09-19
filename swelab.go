@@ -24,6 +24,7 @@ var SWELabPersonas = []string{
 // need to re-query it.
 type SWELabSeed struct {
 	Agency          models.Agency
+	Draft           models.Draft             // every row below belongs to this Draft (AGD-006) — publish it to make the seed live
 	Roles           map[string]models.Role   // keyed by persona name
 	Modules         map[string]models.Module // keyed by module code
 	Goals           []models.Goal
@@ -42,9 +43,12 @@ type SWELabSeed struct {
 // separate Goal/Objective pairs, one per illustrative WorkItem — RACI
 // moved to Objective-scoped 2026-09-10 (AGD-001), so three distinct RACI
 // sets need three distinct Objectives, not three WorkItems sharing one.
-// Also collects every models.ModuleCatalog entry into seed.Modules
-// (already live from gormstore.BackfillModules, not newly created here).
-// Everything is created live; publishing is left to the caller.
+// Also creates every models.ModuleCatalog entry fresh, inside the same
+// Draft — Module carries the same nullable-turned-required DraftID every
+// other type does (AGD-006), so there is no shared "live" catalog to read
+// back any more; each seed gets its own Module rows. Everything is created
+// inside one Draft this function opens itself ([CreateDraft] with
+// forkedFromType ""); publishing that Draft is left to the caller.
 func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 	var seed SWELabSeed
 
@@ -56,38 +60,26 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 	}
 	seed.Agency = agency
 
+	draft, err := m.CreateDraft(ctx, "SWELab seed", "", "")
+	if err != nil {
+		return SWELabSeed{}, fmt.Errorf("SeedSWELab: create draft: %w", err)
+	}
+	seed.Draft = draft
+	draftID := draft.ID
+
 	seed.Roles = make(map[string]models.Role, len(SWELabPersonas))
 	for _, name := range SWELabPersonas {
-		role, err := m.CreateRole(ctx, models.Role{Name: name})
+		role, err := m.CreateRole(ctx, models.Role{DraftID: draftID, Name: name})
 		if err != nil {
 			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create role %q: %w", name, err)
 		}
 		seed.Roles[name] = role
 	}
 
-	// Every code in models.ModuleCatalog already has a live row by the
-	// time this runs — gormstore.BackfillModules seeds them unconditionally
-	// at the end of every Migrate, before any Agency exists. Read those
-	// back rather than calling CreateModule again, which would collide with
-	// ErrDuplicateModule; CreateModule is still the fallback for a code
-	// Migrate somehow didn't backfill, using that same catalog entry's
-	// Name/Description/Enabled/Locked rather than a blanket Enabled: true.
-	liveModules, err := m.ListModules(ctx, "", ModuleFilter{})
-	if err != nil {
-		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
-	}
-	byCode := make(map[string]models.Module, len(liveModules))
-	for _, mod := range liveModules {
-		byCode[mod.Code] = mod
-	}
 	seed.Modules = make(map[string]models.Module, len(models.ModuleCatalog))
 	for _, entry := range models.ModuleCatalog {
-		if mod, ok := byCode[entry.Code]; ok {
-			seed.Modules[entry.Code] = mod
-			continue
-		}
 		mod, err := m.CreateModule(ctx, models.Module{
-			Code: entry.Code, Name: entry.Name, Description: entry.Description,
+			DraftID: draftID, Code: entry.Code, Name: entry.Name, Description: entry.Description,
 			Enabled: entry.Enabled, Locked: entry.Locked,
 		})
 		if err != nil {
@@ -96,7 +88,7 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 		seed.Modules[entry.Code] = mod
 	}
 
-	workflow, err := m.CreateWorkflow(ctx, models.Workflow{Name: "Code Review Process"})
+	workflow, err := m.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Code Review Process"})
 	if err != nil {
 		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %w", err)
 	}
@@ -141,20 +133,20 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 	}
 
 	for _, item := range items {
-		goal, err := m.CreateGoal(ctx, models.Goal{Title: item.goalTitle})
+		goal, err := m.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: item.goalTitle})
 		if err != nil {
 			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create goal %q: %w", item.goalTitle, err)
 		}
 		seed.Goals = append(seed.Goals, goal)
 
-		objective, err := m.CreateObjective(ctx, models.Objective{GoalID: goal.ID, Title: item.goalTitle})
+		objective, err := m.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: goal.ID, Title: item.goalTitle})
 		if err != nil {
 			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create objective for %q: %w", item.goalTitle, err)
 		}
 		seed.Objectives = append(seed.Objectives, objective)
 
 		workItem, err := m.CreateWorkItem(ctx, models.WorkItem{
-			WorkflowID: workflow.ID, ObjectiveID: objective.ID, Title: item.workItem,
+			DraftID: draftID, WorkflowID: workflow.ID, ObjectiveID: objective.ID, Title: item.workItem,
 		})
 		if err != nil {
 			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create work item %q: %w", item.workItem, err)
@@ -167,7 +159,7 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 				return SWELabSeed{}, fmt.Errorf("SeedSWELab: %q is not a seeded persona", a.persona)
 			}
 			ra, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{
-				RoleID: role.ID, ObjectiveID: objective.ID, Label: a.label,
+				DraftID: draftID, RoleID: role.ID, ObjectiveID: objective.ID, Label: a.label,
 			})
 			if err != nil {
 				return SWELabSeed{}, fmt.Errorf("SeedSWELab: assign %q to %q: %w", a.persona, item.workItem, err)

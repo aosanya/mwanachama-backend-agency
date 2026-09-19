@@ -11,15 +11,15 @@ import (
 )
 
 func TestLookupAndListEventFlowSteps(t *testing.T) {
-	mgr := newTestManager(t)
+	mgr, draftID := newTestManagerWithDraft(t)
 	if _, err := mgr.CreateEventFlowStep(t.Context(), models.EventFlowStep{
-		Code: "planning:1", WorkflowCode: "planning", Step: "1",
+		DraftID: draftID, Code: "planning:1", WorkflowCode: "planning", Step: "1",
 		HandlerCode: "wp-planning-1", Consumer: "codevaldwork",
 	}); err != nil {
 		t.Fatalf("CreateEventFlowStep: %v", err)
 	}
 
-	lookupReq := httptest.NewRequest(http.MethodGet, "/event-flow-steps/lookup?handler_code=wp-planning-1", nil)
+	lookupReq := httptest.NewRequest(http.MethodGet, "/event-flow-steps/lookup?draft_id="+draftID+"&handler_code=wp-planning-1", nil)
 	lookupRec := httptest.NewRecorder()
 	routes.LookupFlowStep(mgr)(lookupRec, lookupReq)
 	if lookupRec.Code != http.StatusOK {
@@ -33,7 +33,7 @@ func TestLookupAndListEventFlowSteps(t *testing.T) {
 		t.Fatalf("unexpected step: %+v", step)
 	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/event-flow-steps?workflow_code=planning", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/event-flow-steps?draft_id="+draftID+"&workflow_code=planning", nil)
 	listRec := httptest.NewRecorder()
 	routes.ListEventFlowSteps(mgr)(listRec, listReq)
 	if listRec.Code != http.StatusOK {

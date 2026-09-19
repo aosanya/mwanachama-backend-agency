@@ -12,8 +12,8 @@ import (
 )
 
 func TestCreateValue(t *testing.T) {
-	mgr := newTestManager(t)
-	req := httptest.NewRequest(http.MethodPost, "/values", strings.NewReader(`{"text":"we prioritize correctness over speed"}`))
+	mgr, draftID := newTestManagerWithDraft(t)
+	req := httptest.NewRequest(http.MethodPost, "/values", strings.NewReader(`{"text":"we prioritize correctness over speed","draft_id":"`+draftID+`"}`))
 	rec := httptest.NewRecorder()
 	routes.CreateValue(mgr)(rec, req)
 
@@ -43,12 +43,12 @@ func TestCreateValue_Invalid(t *testing.T) {
 // TestValueAttachment_HTTPLifecycle drives attach/list/detach through the
 // HTTP layer end to end.
 func TestValueAttachment_HTTPLifecycle(t *testing.T) {
-	mgr := newTestManager(t)
-	value, err := mgr.CreateValue(t.Context(), models.Value{Text: "never touch production data"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	value, err := mgr.CreateValue(t.Context(), models.Value{DraftID: draftID, Text: "never touch production data"})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	role, err := mgr.CreateRole(t.Context(), models.Role{Name: "bug-hunter"})
+	role, err := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestValueAttachment_HTTPLifecycle(t *testing.T) {
 		t.Fatalf("expected 1 attachment, got %d", len(atts))
 	}
 
-	filterReq := httptest.NewRequest(http.MethodGet, "/values?role_id="+role.ID, nil)
+	filterReq := httptest.NewRequest(http.MethodGet, "/values?draft_id="+draftID+"&role_id="+role.ID, nil)
 	filterRec := httptest.NewRecorder()
 	routes.ListValues(mgr)(filterRec, filterReq)
 	if filterRec.Code != http.StatusOK {
@@ -108,8 +108,8 @@ func TestValueAttachment_HTTPLifecycle(t *testing.T) {
 }
 
 func TestCreateValueAttachment_UnknownTargetIs404(t *testing.T) {
-	mgr := newTestManager(t)
-	value, err := mgr.CreateValue(t.Context(), models.Value{Text: "x"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	value, err := mgr.CreateValue(t.Context(), models.Value{DraftID: draftID, Text: "x"})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}

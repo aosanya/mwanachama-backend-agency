@@ -33,8 +33,8 @@ func TestWorkflowRoundTrip_DraftScoped(t *testing.T) {
 	w := models.Workflow{ID: "w2", DraftID: "d1", Name: "Draft-scoped workflow"}
 
 	row := WorkflowToRow(w)
-	if row.DraftID == nil || *row.DraftID != "d1" {
-		t.Fatalf("expected DraftID column %q, got %v", "d1", row.DraftID)
+	if row.DraftID != "d1" {
+		t.Fatalf("expected DraftID column %q, got %q", "d1", row.DraftID)
 	}
 
 	got := WorkflowFromRow(row)

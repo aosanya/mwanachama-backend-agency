@@ -13,12 +13,11 @@ import (
 
 func TestCreateDraftAndLifecycle(t *testing.T) {
 	mgr := newTestManager(t)
-	ag, err := mgr.CreateAgency(t.Context(), models.Agency{Name: "SWELab"})
-	if err != nil {
+	if _, err := mgr.CreateAgency(t.Context(), models.Agency{Name: "SWELab"}); err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
 
-	body := `{"description":"restructure","forked_from_id":"` + ag.ID + `","forked_from_type":"live"}`
+	body := `{"description":"restructure","forked_from_type":""}`
 	req := httptest.NewRequest(http.MethodPost, "/drafts", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	routes.CreateDraft(mgr)(rec, req)
@@ -53,26 +52,28 @@ func TestCreateDraftAndLifecycle(t *testing.T) {
 		t.Fatalf("update description status = %d, body = %s", descRec.Code, descRec.Body.String())
 	}
 
-	promoteReq := httptest.NewRequest(http.MethodPost, "/drafts/"+draft.ID+"/promote", nil)
-	promoteReq.SetPathValue("draftID", draft.ID)
-	promoteRec := httptest.NewRecorder()
-	routes.PromoteDraft(mgr)(promoteRec, promoteReq)
-	if promoteRec.Code != http.StatusOK {
-		t.Fatalf("promote status = %d, body = %s", promoteRec.Code, promoteRec.Body.String())
+	archiveReq := httptest.NewRequest(http.MethodPost, "/drafts/"+draft.ID+"/archive", nil)
+	archiveReq.SetPathValue("draftID", draft.ID)
+	archiveRec := httptest.NewRecorder()
+	routes.ArchiveDraft(mgr)(archiveRec, archiveReq)
+	if archiveRec.Code != http.StatusOK {
+		t.Fatalf("archive status = %d, body = %s", archiveRec.Code, archiveRec.Body.String())
 	}
 
-	// Already promoted -> re-promoting is refused.
-	rePromoteRec := httptest.NewRecorder()
-	routes.PromoteDraft(mgr)(rePromoteRec, promoteReq)
-	if rePromoteRec.Code != http.StatusConflict {
-		t.Fatalf("re-promote status = %d, body = %s", rePromoteRec.Code, rePromoteRec.Body.String())
+	// Already archived -> re-archiving is refused.
+	reArchiveRec := httptest.NewRecorder()
+	routes.ArchiveDraft(mgr)(reArchiveRec, archiveReq)
+	if reArchiveRec.Code != http.StatusConflict {
+		t.Fatalf("re-archive status = %d, body = %s", reArchiveRec.Code, reArchiveRec.Body.String())
 	}
 }
 
 func TestArchiveDraft(t *testing.T) {
 	mgr := newTestManager(t)
-	ag, _ := mgr.CreateAgency(t.Context(), models.Agency{Name: "SWELab"})
-	draft, err := mgr.CreateDraft(t.Context(), "abandoned", ag.ID, "live")
+	if _, err := mgr.CreateAgency(t.Context(), models.Agency{Name: "SWELab"}); err != nil {
+		t.Fatalf("CreateAgency: %v", err)
+	}
+	draft, err := mgr.CreateDraft(t.Context(), "abandoned", "", "")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}

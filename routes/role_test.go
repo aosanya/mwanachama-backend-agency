@@ -12,8 +12,8 @@ import (
 )
 
 func TestCreateRole(t *testing.T) {
-	mgr := newTestManager(t)
-	req := httptest.NewRequest(http.MethodPost, "/roles", strings.NewReader(`{"name":"bug-hunter"}`))
+	mgr, draftID := newTestManagerWithDraft(t)
+	req := httptest.NewRequest(http.MethodPost, "/roles", strings.NewReader(`{"name":"bug-hunter","draft_id":"`+draftID+`"}`))
 	rec := httptest.NewRecorder()
 	routes.CreateRole(mgr)(rec, req)
 
@@ -40,9 +40,9 @@ func TestCreateRole_Invalid(t *testing.T) {
 	}
 }
 
-func TestUpdateRole_LiveRefused(t *testing.T) {
-	mgr := newTestManager(t)
-	role, err := mgr.CreateRole(t.Context(), models.Role{Name: "bug-hunter"})
+func TestUpdateRole_WithinDraft(t *testing.T) {
+	mgr, draftID := newTestManagerWithDraft(t)
+	role, err := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
@@ -52,14 +52,14 @@ func TestUpdateRole_LiveRefused(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes.UpdateRole(mgr)(rec, req)
 
-	if rec.Code != http.StatusConflict {
+	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestDeleteRole_LiveRefused(t *testing.T) {
-	mgr := newTestManager(t)
-	role, err := mgr.CreateRole(t.Context(), models.Role{Name: "bug-hunter"})
+func TestDeleteRole_WithinDraft(t *testing.T) {
+	mgr, draftID := newTestManagerWithDraft(t)
+	role, err := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
@@ -69,18 +69,18 @@ func TestDeleteRole_LiveRefused(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes.DeleteRole(mgr)(rec, req)
 
-	if rec.Code != http.StatusConflict {
+	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 }
 
 func TestListRoles(t *testing.T) {
-	mgr := newTestManager(t)
-	if _, err := mgr.CreateRole(t.Context(), models.Role{Name: "bug-hunter"}); err != nil {
+	mgr, draftID := newTestManagerWithDraft(t)
+	if _, err := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "bug-hunter"}); err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/roles", nil)
+	req := httptest.NewRequest(http.MethodGet, "/roles?draft_id="+draftID, nil)
 	rec := httptest.NewRecorder()
 	routes.ListRoles(mgr)(rec, req)
 

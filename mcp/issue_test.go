@@ -13,20 +13,19 @@ import (
 func TestListIssues_ViaMCP(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
-	ag, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"})
-	if err != nil {
+	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"}); err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
-	g, err := mgr.CreateGoal(ctx, models.Goal{Title: "Grow adoption"})
+	d, err := mgr.CreateDraft(ctx, "review pass", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	g, err := mgr.CreateGoal(ctx, models.Goal{DraftID: d.ID, Title: "Grow adoption"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
-	if _, err := mgr.CreateObjective(ctx, models.Objective{GoalID: g.ID, Title: "Grow adoption"}); err != nil {
+	if _, err := mgr.CreateObjective(ctx, models.Objective{DraftID: d.ID, GoalID: g.ID, Title: "Grow adoption"}); err != nil {
 		t.Fatalf("CreateObjective: %v", err)
-	}
-	d, err := mgr.CreateDraft(ctx, "review pass", ag.ID, "live")
-	if err != nil {
-		t.Fatalf("CreateDraft: %v", err)
 	}
 
 	server := newTestServer(mgr)
@@ -56,10 +55,10 @@ func TestListIssues_ViaMCP(t *testing.T) {
 	}
 }
 
-// TestListIssues_ViaMCP_OmittedDraftIDScansLive asserts the tool's
-// draft_id is genuinely optional now — omitting it scans the live Agency
-// (AGD-004), which is the scope agency_publish_agency validates against.
-func TestListIssues_ViaMCP_OmittedDraftIDScansLive(t *testing.T) {
+// TestListIssues_ViaMCP_OmittedDraftIDIsError asserts draft_id is genuinely
+// required now (AGD-006 — there is no live scope left to default into):
+// omitting it fails cleanly rather than silently scanning nothing.
+func TestListIssues_ViaMCP_OmittedDraftIDIsError(t *testing.T) {
 	mgr := newTestManager(t)
 	server := newTestServer(mgr)
 	mux := http.NewServeMux()
@@ -75,7 +74,7 @@ func TestListIssues_ViaMCP_OmittedDraftIDScansLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CallTool agency_list_issues: %v", err)
 	}
-	if result.IsError {
-		t.Fatalf("expected a live scan to succeed, got content: %+v", result.Content)
+	if !result.IsError {
+		t.Fatalf("expected an omitted draft_id to fail, got content: %+v", result.Content)
 	}
 }

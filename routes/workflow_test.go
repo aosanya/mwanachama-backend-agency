@@ -12,10 +12,10 @@ import (
 )
 
 func TestCreateWorkflow(t *testing.T) {
-	mgr := newTestManager(t)
+	mgr, draftID := newTestManagerWithDraft(t)
 	handler := routes.CreateWorkflow(mgr)
 
-	req := httptest.NewRequest(http.MethodPost, "/workflows", strings.NewReader(`{"name":"Onboarding"}`))
+	req := httptest.NewRequest(http.MethodPost, "/workflows", strings.NewReader(`{"name":"Onboarding","draft_id":"`+draftID+`"}`))
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 
@@ -44,13 +44,13 @@ func TestGetWorkflow_NotFound(t *testing.T) {
 }
 
 func TestListAndUpdateWorkflow(t *testing.T) {
-	mgr := newTestManager(t)
-	w, err := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	w, err := mgr.CreateWorkflow(t.Context(), models.Workflow{DraftID: draftID, Name: "Onboarding"})
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/workflows", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/workflows?draft_id="+draftID, nil)
 	listRec := httptest.NewRecorder()
 	routes.ListWorkflows(mgr)(listRec, listReq)
 	if listRec.Code != http.StatusOK {

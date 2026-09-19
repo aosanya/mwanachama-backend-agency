@@ -74,10 +74,10 @@ func TestBackfillModules_LeavesExistingRowsAlone(t *testing.T) {
 	}
 
 	// Simulate a pre-existing deployment that already backfilled every
-	// known code as live and enabled, under the old (pre-reversal) rule.
+	// known code as enabled, under the old (pre-reversal) rule.
 	now := models.NowRFC3339()
 	for _, entry := range models.ModuleCatalog {
-		if err := db.Table(tables.Modules).Where("code = ? AND draft_id IS NULL", entry.Code).
+		if err := db.Table(tables.Modules).Where("code = ?", entry.Code).
 			Updates(map[string]any{"enabled": true, "locked": false, "updated_at": now}).Error; err != nil {
 			t.Fatalf("seed existing row %q: %v", entry.Code, err)
 		}

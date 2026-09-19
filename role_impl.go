@@ -45,8 +45,7 @@ func (m *agencyManager) GetRole(ctx context.Context, id string) (models.Role, er
 	return gormstore.RoleFromRow(row), nil
 }
 
-// ListRoles returns live Roles when draftID is "", or draftID's
-// draft-scoped copies otherwise, narrowed by filter.
+// ListRoles returns draftID's Roles, narrowed by filter.
 func (m *agencyManager) ListRoles(ctx context.Context, draftID string, filter RoleFilter) ([]models.Role, error) {
 	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Roles), draftID)
 	q = likeFilter(q, "code", filter.Code)
@@ -64,15 +63,12 @@ func (m *agencyManager) ListRoles(ctx context.Context, draftID string, filter Ro
 }
 
 // UpdateRole replaces r's mutable fields via an explicit column map (see
-// UpdateGoal's doc for why). Returns [ErrCannotEditLiveRACI] if the
-// existing row is live.
+// UpdateGoal's doc for why). Every Role belongs to some open Draft
+// (AGD-006), so there is no live row to refuse editing.
 func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.Role, error) {
 	existing, err := m.findRoleRow(ctx, m.db, r.ID)
 	if err != nil {
 		return models.Role{}, err
-	}
-	if existing.DraftID == nil {
-		return models.Role{}, ErrCannotEditLiveRACI
 	}
 	if r.Name == "" {
 		return models.Role{}, fmt.Errorf("%w: Role.Name is required", ErrInvalidRole)
@@ -92,17 +88,12 @@ func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.R
 
 // DeleteRole deletes the Role and cascades to every RoleAssignment naming
 // it, the mirror of DeleteObjective's cascade from the other side of the
-// same join table. Returns [ErrCannotEditLiveRACI] if the target row is
-// live.
+// same join table.
 func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
-	existing, err := m.findRoleRow(ctx, m.db, id)
-	if err != nil {
+	if _, err := m.findRoleRow(ctx, m.db, id); err != nil {
 		return err
 	}
-	if existing.DraftID == nil {
-		return ErrCannotEditLiveRACI
-	}
-	err = m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Table(m.tables.RoleAssignments).Where("role_id = ?", id).
 			Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
 			return err

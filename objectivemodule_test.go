@@ -12,12 +12,13 @@ import (
 func TestCreateObjectiveModule_ObjectiveNotFound(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets"})
+	draftID := newDraftAgency(t, mgr, ctx)
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "widgets", Name: "Widgets"})
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
 
-	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: "unknown", ModuleID: mod.ID})
+	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: "unknown", ModuleID: mod.ID})
 	if !errors.Is(err, mwanachamaagency.ErrObjectiveNotFound) {
 		t.Fatalf("expected ErrObjectiveNotFound, got %v", err)
 	}
@@ -28,21 +29,23 @@ func TestCreateObjectiveModule_ModuleNotFound(t *testing.T) {
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	_, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: "unknown"})
+	_, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: "unknown"})
 	if !errors.Is(err, mwanachamaagency.ErrModuleNotFound) {
 		t.Fatalf("expected ErrModuleNotFound, got %v", err)
 	}
 }
 
-// TestCreateObjectiveModule_ScopeMismatch asserts a draft-scoped Module
-// cannot be linked to a live Objective — the same same-scope rule AG6
-// established for RoleAssignment (AGD-002 decision #6).
+// TestCreateObjectiveModule_ScopeMismatch asserts a Module forked into one
+// Draft cannot be linked to an Objective that only exists in a different
+// Draft — the same same-scope rule AG6 established for RoleAssignment
+// (AGD-002 decision #6).
 func TestCreateObjectiveModule_ScopeMismatch(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	seedDraftID := o.DraftID
 
-	d, err := mgr.CreateDraft(ctx, "d", ag.ID, "live")
+	d, err := mgr.CreateDraft(ctx, "second draft", seedDraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
@@ -53,7 +56,7 @@ func TestCreateObjectiveModule_ScopeMismatch(t *testing.T) {
 
 	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: d.ID, ObjectiveID: o.ID, ModuleID: draftModule.ID})
 	if !errors.Is(err, mwanachamaagency.ErrObjectiveNotFound) {
-		t.Fatalf("expected ErrObjectiveNotFound linking a draft-scoped module to a live objective, got %v", err)
+		t.Fatalf("expected ErrObjectiveNotFound linking across two different drafts, got %v", err)
 	}
 }
 
@@ -61,15 +64,15 @@ func TestCreateObjectiveModule_Duplicate(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
-	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets"})
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "widgets", Name: "Widgets"})
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
 
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
-	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: mod.ID})
+	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID})
 	if !errors.Is(err, mwanachamaagency.ErrDuplicateObjectiveModule) {
 		t.Fatalf("expected ErrDuplicateObjectiveModule, got %v", err)
 	}
@@ -79,24 +82,24 @@ func TestObjectiveModule_CreateListDelete(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
-	modA, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets"})
+	modA, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "widgets", Name: "Widgets"})
 	if err != nil {
 		t.Fatalf("CreateModule(A): %v", err)
 	}
-	modB, err := mgr.CreateModule(ctx, models.Module{Code: "gadgets", Name: "Gadgets"})
+	modB, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "gadgets", Name: "Gadgets"})
 	if err != nil {
 		t.Fatalf("CreateModule(B): %v", err)
 	}
 
-	linkA, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: modA.ID})
+	linkA, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: modA.ID})
 	if err != nil {
 		t.Fatalf("CreateObjectiveModule(A): %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: modB.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: modB.ID}); err != nil {
 		t.Fatalf("CreateObjectiveModule(B): %v", err)
 	}
 
-	links, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, "", mwanachamaagency.ObjectiveModuleFilter{})
+	links, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, o.DraftID, mwanachamaagency.ObjectiveModuleFilter{})
 	if err != nil {
 		t.Fatalf("ListObjectiveModulesForObjective: %v", err)
 	}
@@ -104,7 +107,7 @@ func TestObjectiveModule_CreateListDelete(t *testing.T) {
 		t.Fatalf("expected 2 links for the objective, got %d", len(links))
 	}
 
-	all, err := mgr.ListObjectiveModules(ctx, "", mwanachamaagency.ObjectiveModuleFilter{})
+	all, err := mgr.ListObjectiveModules(ctx, o.DraftID, mwanachamaagency.ObjectiveModuleFilter{})
 	if err != nil {
 		t.Fatalf("ListObjectiveModules: %v", err)
 	}
@@ -115,7 +118,7 @@ func TestObjectiveModule_CreateListDelete(t *testing.T) {
 	if err := mgr.DeleteObjectiveModule(ctx, linkA.ID); err != nil {
 		t.Fatalf("DeleteObjectiveModule: %v", err)
 	}
-	remaining, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, "", mwanachamaagency.ObjectiveModuleFilter{})
+	remaining, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, o.DraftID, mwanachamaagency.ObjectiveModuleFilter{})
 	if err != nil {
 		t.Fatalf("ListObjectiveModulesForObjective(after delete): %v", err)
 	}
@@ -152,11 +155,11 @@ func TestDeleteObjective_LeavesModuleLinkDangling(t *testing.T) {
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets"})
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "widgets", Name: "Widgets"})
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
@@ -176,7 +179,7 @@ func TestDeleteObjective_LeavesModuleLinkDangling(t *testing.T) {
 	}
 
 	// BUG (AG31): the link row survives the Objective it pointed at.
-	remaining, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, "", mwanachamaagency.ObjectiveModuleFilter{})
+	remaining, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, o.DraftID, mwanachamaagency.ObjectiveModuleFilter{})
 	if err != nil {
 		t.Fatalf("ListObjectiveModulesForObjective: %v", err)
 	}
@@ -197,7 +200,7 @@ func TestDeleteObjective_LeavesModuleLinkDangling(t *testing.T) {
 
 	// BUG (AG31): the Issue scan does not flag this dangling reference at
 	// all, so PublishAgency's validation gate never catches it either.
-	issues, err := mgr.ListIssues(ctx, "", mwanachamaagency.IssueFilter{})
+	issues, err := mgr.ListIssues(ctx, o.DraftID, mwanachamaagency.IssueFilter{})
 	if err != nil {
 		t.Fatalf("ListIssues: %v", err)
 	}

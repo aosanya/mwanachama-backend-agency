@@ -12,12 +12,10 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// scopeQuery filters a Goal/Workflow/WorkItem/EventFlowStep query to live
-// rows (draftID == "") or one Draft's copies (draftID != "").
+// scopeQuery filters a query to one Draft's rows. Every row always belongs
+// to a real Draft (AGD-006 — there is no live row-scope), so draftID must
+// name one; "" matches nothing rather than any special "live" set.
 func scopeQuery(q *gorm.DB, draftID string) *gorm.DB {
-	if draftID == "" {
-		return q.Where("draft_id IS NULL")
-	}
 	return q.Where("draft_id = ?", draftID)
 }
 
@@ -55,16 +53,15 @@ func (m *agencyManager) findDraftRow(ctx context.Context, tx *gorm.DB, id string
 }
 
 // validateOpenDraftID refuses a Create<Type> call's caller-supplied
-// draftID unless it names a real, still-open Draft — draftID == "" (a live
-// row) is always allowed and returns nil without a lookup. Closes WK17: an
-// unvalidated draftID let a caller attach a new live write to an arbitrary
-// or already-promoted/archived Draft, which CreateDraft's own fork never
-// produced and PromoteDraft's copy-and-cutover logic does not expect.
-// ErrDraftNotFound for an unknown id, ErrDraftNotOpen for one that is
-// promoted or archived.
+// draftID unless it names a real, still-open Draft. AGD-006: every row
+// belongs to a Draft, so "" is no longer a valid shorthand for anything —
+// it returns [ErrDraftRequired] rather than silently passing. Originally
+// closed WK17 (an unvalidated draftID let a caller attach a new write to
+// an arbitrary or already-archived Draft); ErrDraftNotFound for an unknown
+// id, ErrDraftNotOpen for one that is archived.
 func (m *agencyManager) validateOpenDraftID(ctx context.Context, draftID string) error {
 	if draftID == "" {
-		return nil
+		return ErrDraftRequired
 	}
 	row, err := m.findDraftRow(ctx, m.db, draftID)
 	if err != nil {
@@ -76,18 +73,18 @@ func (m *agencyManager) validateOpenDraftID(ctx context.Context, draftID string)
 	return nil
 }
 
-// CreateDraft forks the sub-graph scoped to forkedFromID (an Agency.ID when
-// forkedFromType=="live", or another open Draft's ID when
-// forkedFromType=="draft") into brand-new Goal/Objective/Workflow/
+// CreateDraft forks the sub-graph scoped to forkedFromID — another open
+// Draft's ID when forkedFromType=="draft", or a published Tag when
+// forkedFromType=="publication" — into brand-new Goal/Objective/Workflow/
 // WorkItem/EventFlowStep/Role/RoleAssignment/Module/ObjectiveModule/Value/
-// Rule rows scoped to the new Draft. Objective's GoalID, WorkItem's
+// Rule rows scoped to the new Draft. forkedFromType=="" starts an empty
+// Draft instead (forkedFromID ignored) — there is no "live" source
+// (AGD-006); [ErrInvalidForkSource] for anything else. Objective's GoalID, WorkItem's
 // WorkflowID/ObjectiveID, RoleAssignment's RoleID/ObjectiveID, and
 // ObjectiveModule's ObjectiveID/ModuleID are remapped to the copies' new
 // ids; EventFlowStep needs no remap (it joins Workflow by the
 // WorkflowCode business key, not a row id), and nothing points into
-// Module, so its own copy loop needs no remap either. A live Role can only
-// be edited by forking it into a draft this way, editing the copy, then
-// promoting.
+// Module, so its own copy loop needs no remap either.
 //
 // Agency-wide Value/Rule rows (no [models.ValueAttachment]/
 // [models.RuleAttachment] at all) are deliberately never copied here —
@@ -104,9 +101,14 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			return err
 		}
 
-		sourceScope := "" // "" forks from the working set
+		var sourceScope string
 		var publication gormstore.AgencyPublicationRow
 		switch forkedFromType {
+		case "":
+			// Start empty — nothing to fork (forkedFromID is ignored).
+			// This is what provisioning a brand-new Instance uses, and
+			// what a seed like SeedSWELab uses before anything exists yet
+			// to fork from.
 		case "draft":
 			srcRow, err := m.findDraftRow(ctx, tx, forkedFromID)
 			if err != nil {
@@ -127,6 +129,10 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 			if err != nil {
 				return fmt.Errorf("CreateDraft: %w", err)
 			}
+		default:
+			// AGD-006: there is no working-set row-scope left to fork
+			// from ("live" is gone) — every fork names a real source.
+			return ErrInvalidForkSource
 		}
 
 		now := models.NowRFC3339()
@@ -393,129 +399,6 @@ func (m *agencyManager) UpdateDraftDescription(ctx context.Context, id, descript
 	}
 	draft.Description, draft.LastUpdated = description, now
 	return draft, nil
-}
-
-// PromoteDraft requires the Draft to be open. It deletes the current live
-// Goal/Objective/Workflow/WorkItem/EventFlowStep/Role/RoleAssignment/
-// Module/ObjectiveModule/Value/Rule rows (Value/Rule scoped to rows
-// carrying at least one attachment only — Agency-wide ones are never
-// draft-scoped, so must never be deleted here), flips the Draft's own
-// rows' DraftID to "" (making them
-// live — no copy-and-swap needed since a [models.Draft]-scoped row already
-// exists and just needs reclassifying), writes an AgencySnapshot, marks
-// the Agency enabled, and marks the Draft promoted.
-func (m *agencyManager) PromoteDraft(ctx context.Context, draftID string) (models.Agency, error) {
-	var out models.Agency
-	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		draftRow, err := m.findDraftRow(ctx, tx, draftID)
-		if err != nil {
-			return err
-		}
-		draft := gormstore.DraftFromRow(draftRow)
-		if !draft.Status.CanTransitionTo(models.DraftStatusPromoted) {
-			return ErrDraftNotOpen
-		}
-
-		if err := tx.Table(m.tables.Goals).Where("draft_id IS NULL").Delete(&gormstore.GoalRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Objectives).Where("draft_id IS NULL").Delete(&gormstore.ObjectiveRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Workflows).Where("draft_id IS NULL").Delete(&gormstore.WorkflowRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.WorkItems).Where("draft_id IS NULL").Delete(&gormstore.WorkItemRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.EventFlowSteps).Where("draft_id IS NULL").Delete(&gormstore.EventFlowStepRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Roles).Where("draft_id IS NULL").Delete(&gormstore.RoleRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Modules).Where("draft_id IS NULL").Delete(&gormstore.ModuleRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.RoleAssignments).Where("draft_id IS NULL").Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.ObjectiveModules).Where("draft_id IS NULL").Delete(&gormstore.ObjectiveModuleRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Values).
-			Where("draft_id IS NULL AND code IN (SELECT value_code FROM " + m.tables.ValueAttachments + ")").
-			Delete(&gormstore.ValueRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Rules).
-			Where("draft_id IS NULL AND code IN (SELECT rule_code FROM " + m.tables.RuleAttachments + ")").
-			Delete(&gormstore.RuleRow{}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-
-		now := models.NowRFC3339()
-		promote := map[string]any{"draft_id": nil, "updated_at": now}
-		if err := tx.Table(m.tables.Goals).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Objectives).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Workflows).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.WorkItems).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.EventFlowSteps).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Roles).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Modules).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.RoleAssignments).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.ObjectiveModules).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Values).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Rules).Where("draft_id = ?", draftID).Updates(promote).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-
-		snapRow := gormstore.AgencySnapshotToRow(models.AgencySnapshot{DraftID: draftID, SnapshotAt: now})
-		if err := tx.Table(m.tables.AgencySnapshots).Create(&snapRow).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-
-		agencyRow, err := m.findAgencyRow(ctx, tx)
-		if err != nil {
-			return err
-		}
-		if err := tx.Table(m.tables.Agencies).Where("id = ?", agencyRow.ID).
-			Updates(map[string]any{"enabled": true, "updated_at": now}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-		if err := tx.Table(m.tables.Drafts).Where("id = ?", draftID).
-			Updates(map[string]any{"status": string(models.DraftStatusPromoted), "updated_at": now}).Error; err != nil {
-			return fmt.Errorf("PromoteDraft: %w", err)
-		}
-
-		agencyRow.Enabled = true
-		out = gormstore.AgencyFromRow(agencyRow)
-		return nil
-	})
-	if err != nil {
-		return models.Agency{}, err
-	}
-	return out, nil
 }
 
 // ArchiveDraft requires the Draft to be open. Its now-orphaned draft-scoped

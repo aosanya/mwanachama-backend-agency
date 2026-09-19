@@ -35,8 +35,8 @@ func TestRoleAssignmentRoundTrip_DraftScoped(t *testing.T) {
 	a := models.RoleAssignment{ID: "ra2", DraftID: "d1", RoleID: "role1", ObjectiveID: "o1", Label: models.RACILabelResponsible}
 
 	row := RoleAssignmentToRow(a)
-	if row.DraftID == nil || *row.DraftID != "d1" {
-		t.Fatalf("expected DraftID column %q, got %v", "d1", row.DraftID)
+	if row.DraftID != "d1" {
+		t.Fatalf("expected DraftID column %q, got %q", "d1", row.DraftID)
 	}
 
 	got := RoleAssignmentFromRow(row)

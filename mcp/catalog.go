@@ -38,7 +38,7 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "Role",
-		WhatItIs: "A persona that can be assigned to an Objective via RACI (e.g. \"bug-hunter\", \"code-reviewer\"). A live Role can't be edited directly — only a Draft-scoped copy can.",
+		WhatItIs: "A persona that can be assigned to an Objective via RACI (e.g. \"bug-hunter\", \"code-reviewer\"). Belongs to a Draft, freely editable there.",
 		HowToAdd: "agency_create_role (name, optional description).",
 	},
 	{
@@ -73,22 +73,17 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "Draft",
-		WhatItIs: "An in-progress, scoped copy of the live Agency's editable data, opened so changes can be made without touching what's live yet.",
+		WhatItIs: "The unit of editing — every Goal/Workflow/WorkItem/Role/RoleAssignment/etc. row belongs to exactly one Draft, always. There is no separate \"live\" copy; publishing reads a Draft's rows directly.",
 		HowToAdd: "agency_create_draft — though in this chat, one is already open and managed by the host; never call it yourself.",
 	},
 	{
 		Name:     "AgencyPublication",
-		WhatItIs: "A tagged, versioned copy of the whole Agency, and what production actually operates from — nothing running reads the working design. A publication serves a named channel (\"production\", \"staging\", …) or is archived; several may be live on different channels at once.",
-		HowToAdd: "Not created directly — agency_publish_agency produces one. agency_set_publication_channel moves a channel between publications, which is how a release goes live and how a rollback is done.",
-	},
-	{
-		Name:     "AgencySnapshot",
-		WhatItIs: "An immutable audit record written automatically each time a Draft is promoted to live.",
-		HowToAdd: "Never created directly — it's a side effect of agency_promote_draft.",
+		WhatItIs: "A tagged, versioned copy of one Draft's Agency, and what production actually operates from — nothing running reads Draft rows directly. A publication serves a named channel (\"production\", \"staging\", …) or is archived; several may be live on different channels at once.",
+		HowToAdd: "Not created directly — agency_publish_agency produces one from a chosen Draft. agency_set_publication_channel moves a channel between publications, which is how a release goes live and how a rollback is done.",
 	},
 	{
 		Name:     "Issue",
-		WhatItIs: "A system-detected problem found by scanning the Agency — e.g. a Work Item whose Objective no longer exists, an Objective with no Accountable role, or a Goal with no Objectives. info/warning/error severity, scoped either to the live Agency or to one Draft. An error-severity Issue blocks publishing.",
+		WhatItIs: "A system-detected problem found by scanning a Draft — e.g. a Work Item whose Objective no longer exists, an Objective with no Accountable role, or a Goal with no Objectives. info/warning/error severity. An error-severity Issue blocks publishing that Draft.",
 		HowToAdd: "Never created directly — agency_list_issues re-scans and regenerates the Issues every time it's called.",
 	},
 }
@@ -100,7 +95,7 @@ var domainTypeCatalog = []typeInfo{
 func registerCatalogTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "agency_list_types", Title: "List Domain Types",
-		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, EventFlowStep, Draft, AgencyPublication, AgencySnapshot, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
+		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, EventFlowStep, Draft, AgencyPublication, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
 	}, mcpListTypes())
 }
 

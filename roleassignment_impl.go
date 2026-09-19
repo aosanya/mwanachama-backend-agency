@@ -81,8 +81,7 @@ func (m *agencyManager) GetRoleAssignment(ctx context.Context, id string) (model
 	return gormstore.RoleAssignmentFromRow(row), nil
 }
 
-// ListRoleAssignments returns live assignments when draftID is "", or
-// draftID's draft-scoped copies otherwise, narrowed by filter.
+// ListRoleAssignments returns draftID's assignments, narrowed by filter.
 func (m *agencyManager) ListRoleAssignments(ctx context.Context, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error) {
 	q := eqFilter(scopeQuery(m.db.WithContext(ctx).Table(m.tables.RoleAssignments), draftID), "label", filter.Label)
 	var rows []gormstore.RoleAssignmentRow
@@ -118,14 +117,12 @@ func (m *agencyManager) ListRoleAssignmentsForObjective(ctx context.Context, obj
 }
 
 // UpdateRoleAssignment replaces a's mutable fields via an explicit column
-// map. Returns [ErrCannotEditLiveRACI] if the existing row is live.
+// map. Every RoleAssignment belongs to some open Draft (AGD-006), so there
+// is no live row to refuse editing.
 func (m *agencyManager) UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error) {
 	existing, err := m.findRoleAssignmentRow(ctx, m.db, a.ID)
 	if err != nil {
 		return models.RoleAssignment{}, err
-	}
-	if existing.DraftID == nil {
-		return models.RoleAssignment{}, ErrCannotEditLiveRACI
 	}
 	a.DraftID = gormstore.RoleAssignmentFromRow(existing).DraftID
 	if err := m.validateRoleAssignment(ctx, m.db, a, a.ID); err != nil {
@@ -143,15 +140,9 @@ func (m *agencyManager) UpdateRoleAssignment(ctx context.Context, a models.RoleA
 	return gormstore.RoleAssignmentFromRow(row), nil
 }
 
-// DeleteRoleAssignment returns [ErrCannotEditLiveRACI] if the target row
-// is live.
 func (m *agencyManager) DeleteRoleAssignment(ctx context.Context, id string) error {
-	existing, err := m.findRoleAssignmentRow(ctx, m.db, id)
-	if err != nil {
+	if _, err := m.findRoleAssignmentRow(ctx, m.db, id); err != nil {
 		return err
-	}
-	if existing.DraftID == nil {
-		return ErrCannotEditLiveRACI
 	}
 	if err := m.db.WithContext(ctx).Table(m.tables.RoleAssignments).Where("id = ?", id).
 		Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {

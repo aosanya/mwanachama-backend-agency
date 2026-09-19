@@ -21,14 +21,13 @@ func registerAgencyTools(server *mcp.Server, resolve ManagerResolver) {
 		Meta: dashboardUIMeta,
 	}, mcpGetAgency(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Title: "Fork Draft", Description: "Fork a Draft — a scoped copy of the Agency's Goals/Workflows/WorkItems/Roles/RoleAssignments/EventFlowSteps to edit without touching the current design. Fork from the working design, from another open Draft, or from a published tag to revisit what an earlier release contained."}, mcpCreateDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_draft", Title: "Create Draft", Description: "Start a new Draft — the unit every Goal/Workflow/WorkItem/Role/RoleAssignment/EventFlowStep row belongs to. Start empty, fork another open Draft, or fork a published tag to revisit what an earlier release contained."}, mcpCreateDraft(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_draft", Title: "Get Draft", Description: "Get a Draft by id."}, mcpGetDraft(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_drafts", Title: "List Drafts", Description: "List every Draft for an Instance."}, mcpListDrafts(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_draft_description", Title: "Update Draft Description", Description: "Change a Draft's description."}, mcpUpdateDraftDescription(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_promote_draft", Title: "Promote Draft", Description: "Promote an open Draft: its scoped copies become live, replacing what was there before."}, mcpPromoteDraft(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_archive_draft", Title: "Archive Draft", Description: "Archive an open Draft without promoting it — its scoped copies are discarded."}, mcpArchiveDraft(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_archive_draft", Title: "Archive Draft", Description: "Archive an open Draft — its scoped rows are left in place as harmless history."}, mcpArchiveDraft(resolve))
 
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Title: "Publish Agency", Description: "Publish the Agency: freeze the whole current design into a new versioned AgencyPublication and point a live channel at it. The publication carries the entire Agency, and production operates from it — nothing running reads the working data. Pass a tag to name the release and a channel to choose which environment it serves (default production). The Agency is validated first: if it has any error-severity issues the publish is refused and the errors are returned — call agency_list_issues with no draft_id to see them in full."}, mcpPublishAgency(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_publish_agency", Title: "Publish Agency", Description: "Publish a Draft: freeze its current rows into a new versioned AgencyPublication and point a live channel at it. The publication carries the entire Agency, and production operates from it — nothing running reads Draft rows directly. Pass the Draft to publish, a tag to name the release, and a channel to choose which environment it serves (default production). The Draft is validated first: if it has any error-severity issues the publish is refused and the errors are returned — call agency_list_issues with that draft_id to see them in full."}, mcpPublishAgency(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_publication", Title: "Get Publication", Description: "Get one AgencyPublication by its version number."}, mcpGetPublication(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_publications", Title: "List Publications", Description: "List every AgencyPublication for an Instance."}, mcpListPublications(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_set_publication_channel", Title: "Set Publication Channel", Description: "Point a live channel (e.g. \"production\") at an AgencyPublication, or archive one by passing an empty channel. Production reads whichever publication serves its channel, so this is both how a release goes live and how a rollback to an earlier publication is done."}, mcpSetPublicationChannel(resolve))
@@ -97,8 +96,8 @@ func agencyContextText(a models.Agency) string {
 type mcpCreateDraftParams struct {
 	InstanceID     string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	Description    string `json:"description" jsonschema:"what this Draft is for"`
-	ForkedFromID   string `json:"forked_from_id" jsonschema:"the Agency's id, another Draft's id, or a publication's tag — matching forked_from_type"`
-	ForkedFromType string `json:"forked_from_type" jsonschema:"\"live\" to fork the current working design, \"draft\" to fork another open Draft, or \"publication\" to start from what a published tag actually contains (the way to revisit an earlier release)"`
+	ForkedFromID   string `json:"forked_from_id,omitempty" jsonschema:"another Draft's id, or a publication's tag — matching forked_from_type; omit along with forked_from_type to start empty"`
+	ForkedFromType string `json:"forked_from_type,omitempty" jsonschema:"omit or \"\" to start an empty Draft, \"draft\" to fork another open Draft, or \"publication\" to start from what a published tag actually contains (the way to revisit an earlier release)"`
 }
 
 func mcpCreateDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpCreateDraftParams) (*mcp.CallToolResult, models.Draft, error) {
@@ -181,17 +180,6 @@ func mcpUpdateDraftDescription(resolve ManagerResolver) func(context.Context, *m
 	}
 }
 
-func mcpPromoteDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDraftIDParams) (*mcp.CallToolResult, models.Agency, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpDraftIDParams) (*mcp.CallToolResult, models.Agency, error) {
-		m, err := resolve(ctx, p.InstanceID)
-		if err != nil {
-			return nil, models.Agency{}, err
-		}
-		out, err := m.PromoteDraft(ctx, p.DraftID)
-		return summary("Promoted Draft %s — Agency %q is now live from it", p.DraftID, out.Name), out, err
-	}
-}
-
 func mcpArchiveDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDraftIDParams) (*mcp.CallToolResult, models.Draft, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpDraftIDParams) (*mcp.CallToolResult, models.Draft, error) {
 		m, err := resolve(ctx, p.InstanceID)
@@ -205,7 +193,7 @@ func mcpArchiveDraft(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 
 type mcpPublishAgencyParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	DraftID    string `json:"draft_id,omitempty" jsonschema:"a just-promoted Draft's id, if this publication follows one; empty re-tags whatever is already live"`
+	DraftID    string `json:"draft_id" jsonschema:"the Draft to publish — its current rows are frozen into the new publication"`
 	Tag        string `json:"tag,omitempty" jsonschema:"a name for this publication, unique across publications; empty falls back to v<version>"`
 	Channel    string `json:"channel,omitempty" jsonschema:"the live channel this publication serves (e.g. \"production\", \"staging\"); empty means production. Whichever publication held that channel is archived"`
 }

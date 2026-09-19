@@ -26,7 +26,7 @@ func TestRoutes_DefaultNouns(t *testing.T) {
 		"GET /goals":                     true,
 		"POST /work-items":               true,
 		"GET /drafts":                    true,
-		"POST /drafts/{draftID}/promote": true,
+		"POST /drafts/{draftID}/archive": true,
 		"DELETE /roles/{roleID}":         true,
 		"GET /objectives/{objectiveID}/role-assignments": true,
 		"POST /objectives":         true,

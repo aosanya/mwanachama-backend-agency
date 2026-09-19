@@ -16,18 +16,18 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// liveContentHash SHA-256-hashes every live Goal/Objective/Workflow/
+// contentHashFor SHA-256-hashes draftID's Goal/Objective/Workflow/
 // WorkItem/EventFlowStep/Role/RoleAssignment/Module/ObjectiveModule/Value/
 // Rule plus the Agency's name/description: one JSON record per row (fields other than
 // timestamps), sorted lexically so row order never affects the hash,
 // joined with "\n". A change to any of those fields changes the hash;
 // nothing else does. Mission/Vision dropped from the Agency record
 // 2026-09-10 (AGD-001); Description was added back 2026-09-11.
-func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (string, error) {
+func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID string) (string, error) {
 	var records []string
 
 	var goalRows []gormstore.GoalRow
-	if err := tx.WithContext(ctx).Table(m.tables.Goals).Where("draft_id IS NULL").Find(&goalRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.Goals).Where("draft_id = ?", draftID).Find(&goalRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range goalRows {
@@ -38,7 +38,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var objectiveRows []gormstore.ObjectiveRow
-	if err := tx.WithContext(ctx).Table(m.tables.Objectives).Where("draft_id IS NULL").Find(&objectiveRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.Objectives).Where("draft_id = ?", draftID).Find(&objectiveRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range objectiveRows {
@@ -49,7 +49,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var workflowRows []gormstore.WorkflowRow
-	if err := tx.WithContext(ctx).Table(m.tables.Workflows).Where("draft_id IS NULL").Find(&workflowRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.Workflows).Where("draft_id = ?", draftID).Find(&workflowRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range workflowRows {
@@ -60,7 +60,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var workItemRows []gormstore.WorkItemRow
-	if err := tx.WithContext(ctx).Table(m.tables.WorkItems).Where("draft_id IS NULL").Find(&workItemRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.WorkItems).Where("draft_id = ?", draftID).Find(&workItemRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range workItemRows {
@@ -72,7 +72,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var stepRows []gormstore.EventFlowStepRow
-	if err := tx.WithContext(ctx).Table(m.tables.EventFlowSteps).Where("draft_id IS NULL").Find(&stepRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.EventFlowSteps).Where("draft_id = ?", draftID).Find(&stepRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range stepRows {
@@ -87,7 +87,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var roleRows []gormstore.RoleRow
-	if err := tx.WithContext(ctx).Table(m.tables.Roles).Where("draft_id IS NULL").Find(&roleRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.Roles).Where("draft_id = ?", draftID).Find(&roleRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range roleRows {
@@ -97,7 +97,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var moduleRows []gormstore.ModuleRow
-	if err := tx.WithContext(ctx).Table(m.tables.Modules).Where("draft_id IS NULL").Find(&moduleRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.Modules).Where("draft_id = ?", draftID).Find(&moduleRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range moduleRows {
@@ -108,7 +108,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var assignmentRows []gormstore.RoleAssignmentRow
-	if err := tx.WithContext(ctx).Table(m.tables.RoleAssignments).Where("draft_id IS NULL").Find(&assignmentRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.RoleAssignments).Where("draft_id = ?", draftID).Find(&assignmentRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range assignmentRows {
@@ -119,7 +119,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var objectiveModuleRows []gormstore.ObjectiveModuleRow
-	if err := tx.WithContext(ctx).Table(m.tables.ObjectiveModules).Where("draft_id IS NULL").Find(&objectiveModuleRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.ObjectiveModules).Where("draft_id = ?", draftID).Find(&objectiveModuleRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range objectiveModuleRows {
@@ -129,7 +129,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var valueRows []gormstore.ValueRow
-	if err := tx.WithContext(ctx).Table(m.tables.Values).Where("draft_id IS NULL").Find(&valueRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.Values).Where("draft_id = ?", draftID).Find(&valueRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range valueRows {
@@ -139,7 +139,7 @@ func (m *agencyManager) liveContentHash(ctx context.Context, tx *gorm.DB) (strin
 	}
 
 	var ruleRows []gormstore.RuleRow
-	if err := tx.WithContext(ctx).Table(m.tables.Rules).Where("draft_id IS NULL").Find(&ruleRows).Error; err != nil {
+	if err := tx.WithContext(ctx).Table(m.tables.Rules).Where("draft_id = ?", draftID).Find(&ruleRows).Error; err != nil {
 		return "", fmt.Errorf("liveContentHash: %w", err)
 	}
 	for _, r := range ruleRows {
@@ -166,12 +166,12 @@ func hashRecord(typeName string, fields map[string]any) string {
 	return string(b)
 }
 
-// validationErrors re-scans the live Agency and returns
+// validationErrors re-scans draftID and returns
 // [ErrPublishValidationFailed], wrapped with what it found, if any finding
 // is error-severity. Warnings and info are recorded by the scan but never
 // block (AGD-004).
-func validationErrors(ctx context.Context, tx *gorm.DB, tables TableNames) error {
-	found, err := rescanIssues(ctx, tx, tables, "")
+func validationErrors(ctx context.Context, tx *gorm.DB, tables TableNames, draftID string) error {
+	found, err := rescanIssues(ctx, tx, tables, draftID)
 	if err != nil {
 		return err
 	}
@@ -187,40 +187,37 @@ func validationErrors(ctx context.Context, tx *gorm.DB, tables TableNames) error
 	return fmt.Errorf("%w: %s", ErrPublishValidationFailed, strings.Join(blocking, "; "))
 }
 
-// PublishAgency freezes the working set into a new tagged publication:
-// it serializes the whole Agency into the publication's Document, which is
-// what production then operates from (AGD-005). If draftID is non-"", that
-// Draft must already be promoted (PublishAgency does not redo
-// PromoteDraft's copy-and-swap). tag names the publication; "" falls back
-// to "v<version>". channel is the live channel it serves; "" publishes to
-// [models.DefaultChannel], and whichever publication held that channel is
-// archived.
+// PublishAgency freezes draftID's own rows into a new tagged publication:
+// it serializes that Draft directly into the publication's Document, which
+// is what production then operates from (AGD-005) — no merge step first
+// (AGD-006 — there is no working set to merge into or promote through).
+// draftID must name a real Draft ([ErrDraftNotFound] otherwise); it need
+// not be open — publishing an archived Draft (e.g. re-releasing an old
+// state) is allowed, and publishing never changes the Draft's own status
+// (AGD-006 decision #6 — not auto-archived, stays re-publishable). tag
+// names the publication; "" falls back to "v<version>". channel is the
+// live channel it serves; "" publishes to [models.DefaultChannel], and
+// whichever publication held that channel is archived.
 func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag, channel string) (models.AgencyPublication, error) {
 	if channel == "" {
 		channel = models.DefaultChannel
 	}
 	var out models.AgencyPublication
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if draftID != "" {
-			draftRow, err := m.findDraftRow(ctx, tx, draftID)
-			if err != nil {
-				return err
-			}
-			if gormstore.DraftFromRow(draftRow).Status != models.DraftStatusPromoted {
-				return ErrDraftNotPromoted
-			}
-		}
-
-		if err := validationErrors(ctx, tx, m.tables); err != nil {
+		if _, err := m.findDraftRow(ctx, tx, draftID); err != nil {
 			return err
 		}
 
-		document, err := buildDocument(ctx, tx, m.tables, "")
+		if err := validationErrors(ctx, tx, m.tables, draftID); err != nil {
+			return err
+		}
+
+		document, err := buildDocument(ctx, tx, m.tables, draftID)
 		if err != nil {
 			return err
 		}
 
-		hash, err := m.liveContentHash(ctx, tx)
+		hash, err := m.contentHashFor(ctx, tx, draftID)
 		if err != nil {
 			return err
 		}

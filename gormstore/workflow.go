@@ -6,13 +6,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// WorkflowRow is the GORM row for a [models.Workflow]. DraftID is nullable
-// (NULL for live), matching ValueRow.ObjectiveID's convention: indexed, no
-// GORM association.
+// WorkflowRow is the GORM row for a [models.Workflow]. DraftID always names
+// a real Draft (AGD-006 — there is no live row-scope) — indexed, no GORM
+// association.
 type WorkflowRow struct {
-	ID          string  `gorm:"primaryKey"`
-	Code        string  `gorm:"index"`
-	DraftID     *string `gorm:"index"`
+	ID          string `gorm:"primaryKey"`
+	Code        string `gorm:"index"`
+	DraftID     string `gorm:"index;not null"`
 	Name        string
 	Description string
 	Ordinality  int
@@ -34,7 +34,7 @@ func WorkflowToRow(w models.Workflow) WorkflowRow {
 	return WorkflowRow{
 		ID:          w.ID,
 		Code:        w.Code,
-		DraftID:     StringToNullable(w.DraftID),
+		DraftID:     w.DraftID,
 		Name:        w.Name,
 		Description: w.Description,
 		Ordinality:  w.Ordinality,
@@ -50,7 +50,7 @@ func WorkflowFromRow(r WorkflowRow) models.Workflow {
 	return models.Workflow{
 		ID:          r.ID,
 		Code:        r.Code,
-		DraftID:     nullableToString(r.DraftID),
+		DraftID:     r.DraftID,
 		Name:        r.Name,
 		Description: r.Description,
 		Ordinality:  r.Ordinality,

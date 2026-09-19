@@ -51,7 +51,7 @@ func registerValueRuleTools(server *mcp.Server, resolve ManagerResolver) {
 
 type mcpValueParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	DraftID    string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Value, or the owning Draft's id for a draft-scoped copy"`
+	DraftID    string `json:"draft_id" jsonschema:"the Draft this Value belongs to"`
 	Text       string `json:"text" jsonschema:"the Value's text, e.g. \"we prioritize correctness over speed\""`
 }
 
@@ -190,7 +190,7 @@ func mcpDetachValue(resolve ManagerResolver) func(context.Context, *mcp.CallTool
 
 type mcpRuleParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	DraftID    string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Rule, or the owning Draft's id for a draft-scoped copy"`
+	DraftID    string `json:"draft_id" jsonschema:"the Draft this Rule belongs to"`
 	Text       string `json:"text" jsonschema:"the Rule's text, e.g. \"never touch production data\""`
 }
 

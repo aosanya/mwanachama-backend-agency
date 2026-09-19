@@ -14,12 +14,18 @@ var (
 	// ErrDraftNotFound is returned when a Draft id has no match.
 	ErrDraftNotFound = errors.New("mwanachamaagency: draft not found")
 	// ErrDraftNotOpen is returned when an operation that requires an open
-	// Draft (fork-from, edit, promote, archive) is attempted on a Draft
-	// whose Status is not "open".
+	// Draft (fork-from, edit, archive) is attempted on a Draft whose Status
+	// is not "open".
 	ErrDraftNotOpen = errors.New("mwanachamaagency: draft is not open")
-	// ErrDraftNotPromoted is returned by PublishAgency when given a
-	// draftID whose Draft has not been promoted yet.
-	ErrDraftNotPromoted = errors.New("mwanachamaagency: draft is not promoted")
+	// ErrDraftRequired is returned by every Create<Type> when DraftID is
+	// empty — AGD-006: every row belongs to a real Draft, there is no live
+	// row-scope left to default into.
+	ErrDraftRequired = errors.New("mwanachamaagency: a draft id is required")
+	// ErrInvalidForkSource is returned by CreateDraft when forkedFromType
+	// is none of "" (start empty), "draft", or "publication" (AGD-006
+	// dropped "live" — there is no working-set row-scope left to fork
+	// from).
+	ErrInvalidForkSource = errors.New("mwanachamaagency: forkedFromType must be \"\", \"draft\", or \"publication\"")
 	// ErrPublicationNotFound is returned when a publication version has no
 	// match.
 	ErrPublicationNotFound = errors.New("mwanachamaagency: publication not found")
@@ -47,10 +53,6 @@ var (
 	// UpdateRoleAssignment when another assignment in the same scope
 	// already labels the WorkItem Accountable.
 	ErrDuplicateAccountable = errors.New("mwanachamaagency: work item already has an accountable role")
-	// ErrCannotEditLiveRACI is returned by UpdateRole/DeleteRole/
-	// UpdateRoleAssignment/DeleteRoleAssignment when the target row is
-	// live (DraftID == "") — edit within a draft, then promote.
-	ErrCannotEditLiveRACI = errors.New("mwanachamaagency: live RACI data cannot be edited directly, edit within a draft")
 	// ErrObjectiveNotFound is returned when an Objective id has no match
 	// in the expected scope.
 	ErrObjectiveNotFound = errors.New("mwanachamaagency: objective not found")
@@ -69,12 +71,10 @@ var (
 	// ErrRuleNotFound is returned when a Rule id has no match.
 	ErrRuleNotFound = errors.New("mwanachamaagency: rule not found")
 	// ErrCannotEditLive is returned by UpdateValue/DeleteValue/
-	// UpdateRule/DeleteRule when the target row is live (DraftID == "")
-	// — same rule as [ErrCannotEditLiveRACI], separate error since Value/
-	// Rule aren't RACI data. An Agency-wide Value/Rule (no attachments) is
-	// always live and never forked into a Draft, so this is permanent for
-	// those, not just "until promoted".
-	ErrCannotEditLive = errors.New("mwanachamaagency: live data cannot be edited directly, edit within a draft")
+	// UpdateRule/DeleteRule when the target row carries no attachment
+	// (see [hasAnyAttachment]) — an Agency-wide Value/Rule is never forked
+	// into another Draft, so this is permanent, not just "until archived".
+	ErrCannotEditLive = errors.New("mwanachamaagency: agency-wide data cannot be edited directly")
 	// ErrInvalidTargetType is returned by CreateValueAttachment/
 	// CreateRuleAttachment when TargetType is not one of the five known
 	// values (see [models.TargetType.Valid]).
@@ -90,9 +90,10 @@ var (
 	// no match.
 	ErrRuleAttachmentNotFound = errors.New("mwanachamaagency: rule attachment not found")
 	// ErrPublishValidationFailed is returned by PublishAgency when the
-	// live scan found at least one error-severity Issue. Its message
-	// names them; ListIssues(ctx, "", IssueFilter{Severity: "error"})
-	// reads the same findings back as structured rows.
+	// scan of the Draft being published found at least one error-severity
+	// Issue. Its message names them; ListIssues(ctx, draftID,
+	// IssueFilter{Severity: "error"}) reads the same findings back as
+	// structured rows.
 	ErrPublishValidationFailed = errors.New("mwanachamaagency: agency has validation errors and cannot be published")
 	// ErrDuplicateTag is returned by PublishAgency when another
 	// publication already carries the requested tag.

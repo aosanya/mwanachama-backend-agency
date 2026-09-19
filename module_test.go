@@ -9,11 +9,27 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+// bootstrapDraftID returns the single Draft [gormstore.EnsureWorkingDraft]
+// creates during Migrate — the home for gormstore.BackfillModules' seeded
+// catalog rows before any test has forked or created a Draft of its own.
+func bootstrapDraftID(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) string {
+	t.Helper()
+	drafts, err := mgr.ListDrafts(ctx, mwanachamaagency.DraftFilter{})
+	if err != nil {
+		t.Fatalf("ListDrafts: %v", err)
+	}
+	if len(drafts) != 1 {
+		t.Fatalf("expected exactly 1 bootstrap draft right after Migrate, got %d: %+v", len(drafts), drafts)
+	}
+	return drafts[0].ID
+}
+
 func TestCreateAndGetModule(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
 
-	mod, err := mgr.CreateModule(ctx, models.Module{Code: "custom-module", Name: "Custom", Description: "a custom capability", Enabled: true})
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "custom-module", Name: "Custom", Description: "a custom capability", Enabled: true})
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
@@ -42,53 +58,65 @@ func TestGetModule_NotFound(t *testing.T) {
 	}
 }
 
+func TestCreateModule_EmptyDraftID(t *testing.T) {
+	mgr := newTestManager(t)
+	if _, err := mgr.CreateModule(context.Background(), models.Module{Name: "no draft"}); !errors.Is(err, mwanachamaagency.ErrDraftRequired) {
+		t.Fatalf("expected ErrDraftRequired, got %v", err)
+	}
+}
+
 func TestCreateModule_EmptyCode(t *testing.T) {
 	mgr := newTestManager(t)
-	if _, err := mgr.CreateModule(context.Background(), models.Module{Name: "no code"}); !errors.Is(err, mwanachamaagency.ErrInvalidModule) {
+	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
+	if _, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Name: "no code"}); !errors.Is(err, mwanachamaagency.ErrInvalidModule) {
 		t.Fatalf("expected ErrInvalidModule, got %v", err)
 	}
 }
 
 // TestCreateModule_DuplicateCode relies on gormstore.BackfillModules having
-// already seeded every models.ModuleCatalog entry as a live Module at
-// Migrate time (see gormstore/module.go) — so re-creating one of those
-// codes must be rejected outright.
+// already seeded every models.ModuleCatalog entry into the bootstrap Draft
+// at Migrate time (see gormstore/module.go) — so re-creating one of those
+// codes in that same Draft must be rejected outright.
 func TestCreateModule_DuplicateCode(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := bootstrapDraftID(t, mgr, ctx)
 
-	if _, err := mgr.CreateModule(ctx, models.Module{Code: "git", Name: "Git again"}); !errors.Is(err, mwanachamaagency.ErrDuplicateModule) {
+	if _, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "git", Name: "Git again"}); !errors.Is(err, mwanachamaagency.ErrDuplicateModule) {
 		t.Fatalf("expected ErrDuplicateModule for an already-backfilled code, got %v", err)
 	}
 
-	if _, err := mgr.CreateModule(ctx, models.Module{Code: "brand-new", Name: "Brand New"}); err != nil {
+	if _, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "brand-new", Name: "Brand New"}); err != nil {
 		t.Fatalf("CreateModule(brand-new): %v", err)
 	}
-	if _, err := mgr.CreateModule(ctx, models.Module{Code: "brand-new", Name: "Brand New Again"}); !errors.Is(err, mwanachamaagency.ErrDuplicateModule) {
+	if _, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "brand-new", Name: "Brand New Again"}); !errors.Is(err, mwanachamaagency.ErrDuplicateModule) {
 		t.Fatalf("expected ErrDuplicateModule for a repeat of a freshly created code, got %v", err)
 	}
 }
 
 // TestBackfillModules_SeedsCatalogDefaults asserts every Migrate call
 // (newTestManager's included) leaves every models.ModuleCatalog entry
-// present and live, with "auth" backfilled Enabled+Locked and every other
-// known code backfilled disabled and unlocked — the correctness property
-// AGD-002's reversal exists for: a fresh instance starts with only auth
-// enabled, but an already-migrated instance's existing rows (not exercised
-// by this fresh-table test) are never touched by a later Migrate.
+// present in the bootstrap Draft, with "auth" backfilled Enabled+Locked and
+// every other known code backfilled disabled and unlocked — the
+// correctness property AGD-002's reversal exists for: a fresh instance
+// starts with only auth enabled, but an already-migrated instance's
+// existing rows (not exercised by this fresh-table test) are never touched
+// by a later Migrate.
 func TestBackfillModules_SeedsCatalogDefaults(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := bootstrapDraftID(t, mgr, ctx)
 
-	live, err := mgr.ListModules(ctx, "", mwanachamaagency.ModuleFilter{})
+	mods, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{})
 	if err != nil {
 		t.Fatalf("ListModules: %v", err)
 	}
-	if len(live) != len(models.ModuleCatalog) {
-		t.Fatalf("expected %d backfilled modules, got %d: %+v", len(models.ModuleCatalog), len(live), live)
+	if len(mods) != len(models.ModuleCatalog) {
+		t.Fatalf("expected %d backfilled modules, got %d: %+v", len(models.ModuleCatalog), len(mods), mods)
 	}
-	byCode := make(map[string]models.Module, len(live))
-	for _, m := range live {
+	byCode := make(map[string]models.Module, len(mods))
+	for _, m := range mods {
 		byCode[m.Code] = m
 	}
 	for _, entry := range models.ModuleCatalog {
@@ -127,15 +155,16 @@ func TestListModules_Filter(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
-	widgets, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets"})
+	draftID := o.DraftID
+	widgets, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "widgets", Name: "Widgets"})
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: widgets.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: widgets.ID}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
-	byCode, err := mgr.ListModules(ctx, "", mwanachamaagency.ModuleFilter{Code: "widg"})
+	byCode, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{Code: "widg"})
 	if err != nil {
 		t.Fatalf("ListModules(code filter): %v", err)
 	}
@@ -144,14 +173,16 @@ func TestListModules_Filter(t *testing.T) {
 	}
 
 	trueVal := true
-	enabled, err := mgr.ListModules(ctx, "", mwanachamaagency.ModuleFilter{Enabled: &trueVal})
+	enabled, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{Enabled: &trueVal})
 	if err != nil {
 		t.Fatalf("ListModules(enabled filter): %v", err)
 	}
-	// "auth" is enabled because it is locked; "widgets" because the seeded
-	// Objective links it. Nothing else in the catalog is linked at all.
-	if len(enabled) != 2 {
-		t.Fatalf("expected auth plus widgets to be enabled, got %d: %+v", len(enabled), enabled)
+	// "widgets" is enabled because the seeded Objective links it. Nothing
+	// else forked into this draft is linked at all — "auth" isn't forked
+	// here since this draft came from seedLiveAgency's own from-scratch
+	// Draft, not the bootstrap one BackfillModules seeds.
+	if len(enabled) != 1 || enabled[0].Code != "widgets" {
+		t.Fatalf("expected exactly widgets to be enabled, got %d: %+v", len(enabled), enabled)
 	}
 }
 
@@ -162,53 +193,66 @@ func TestModuleEnabled_DerivedFromObjectiveLinks(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	git := moduleByCode(t, mgr, ctx, "", "git")
-	if git.Enabled {
-		t.Fatalf("expected git to start disabled, got %+v", git)
+	gitMod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "git", Name: "Git"})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	if gitMod.Enabled {
+		t.Fatalf("expected git to start disabled, got %+v", gitMod)
 	}
 
-	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: git.ID})
+	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: gitMod.ID})
 	if err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
-	if got := moduleByCode(t, mgr, ctx, "", "git"); !got.Enabled {
+	if got := moduleByCode(t, mgr, ctx, draftID, "git"); !got.Enabled {
 		t.Fatalf("expected git to be enabled once an objective links it, got %+v", got)
 	}
-	if got, err := mgr.GetModule(ctx, git.ID); err != nil || !got.Enabled {
+	if got, err := mgr.GetModule(ctx, gitMod.ID); err != nil || !got.Enabled {
 		t.Fatalf("expected GetModule to agree git is enabled, got %+v (%v)", got, err)
 	}
 
 	if err := mgr.DeleteObjectiveModule(ctx, link.ID); err != nil {
 		t.Fatalf("DeleteObjectiveModule: %v", err)
 	}
-	if got := moduleByCode(t, mgr, ctx, "", "git"); got.Enabled {
+	if got := moduleByCode(t, mgr, ctx, draftID, "git"); got.Enabled {
 		t.Fatalf("expected git to be disabled once its last link is gone, got %+v", got)
 	}
 }
 
 // TestModuleEnabled_LockedStaysEnabled asserts the one exception: a locked
-// code is mounted whether or not any Objective names it.
+// code is mounted whether or not any Objective names it — exercised
+// against the bootstrap Draft, since that's the one carrying the
+// models.ModuleCatalog backfill "auth" comes from.
 func TestModuleEnabled_LockedStaysEnabled(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := bootstrapDraftID(t, mgr, ctx)
 
-	auth := moduleByCode(t, mgr, ctx, "", "auth")
+	auth := moduleByCode(t, mgr, ctx, draftID, "auth")
 	if !auth.Locked || !auth.Enabled {
 		t.Fatalf("expected auth to be locked and enabled with no links at all, got %+v", auth)
 	}
 }
 
 // TestModuleEnabled_ScopedToItsOwnDraft asserts a link made inside a Draft
-// enables that Draft's own Module copy and leaves the working set's alone —
-// selecting a module is a draft edit like any other, taking effect live
-// only on promotion.
+// enables that Draft's own Module copy and leaves the Draft it forked from
+// alone — selecting a module is a draft edit like any other, taking effect
+// only where it was made.
 func TestModuleEnabled_ScopedToItsOwnDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, seedGoal, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	seedDraftID := seedGoal.DraftID
 
-	d, err := mgr.CreateDraft(ctx, "d", ag.ID, "live")
+	seedGit, err := mgr.CreateModule(ctx, models.Module{DraftID: seedDraftID, Code: "git", Name: "Git"})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+
+	d, err := mgr.CreateDraft(ctx, "d", seedDraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
@@ -217,6 +261,9 @@ func TestModuleEnabled_ScopedToItsOwnDraft(t *testing.T) {
 		t.Fatalf("ListObjectives(draft): %+v (%v)", draftObjectives, err)
 	}
 	draftGit := moduleByCode(t, mgr, ctx, d.ID, "git")
+	if draftGit.ID == seedGit.ID {
+		t.Fatal("expected the fork to mint a new Module id")
+	}
 
 	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{
 		DraftID: d.ID, ObjectiveID: draftObjectives[0].ID, ModuleID: draftGit.ID,
@@ -225,17 +272,10 @@ func TestModuleEnabled_ScopedToItsOwnDraft(t *testing.T) {
 	}
 
 	if got := moduleByCode(t, mgr, ctx, d.ID, "git"); !got.Enabled {
-		t.Fatalf("expected the draft's git copy to be enabled, got %+v", got)
+		t.Fatalf("expected the new draft's git copy to be enabled, got %+v", got)
 	}
-	if got := moduleByCode(t, mgr, ctx, "", "git"); got.Enabled {
-		t.Fatalf("expected the working set's git to stay disabled until promotion, got %+v", got)
-	}
-
-	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
-		t.Fatalf("PromoteDraft: %v", err)
-	}
-	if got := moduleByCode(t, mgr, ctx, "", "git"); !got.Enabled {
-		t.Fatalf("expected git to be enabled live after promotion, got %+v", got)
+	if got := moduleByCode(t, mgr, ctx, seedDraftID, "git"); got.Enabled {
+		t.Fatalf("expected the seed draft's git to stay disabled — the link only exists in the new draft, got %+v", got)
 	}
 }
 

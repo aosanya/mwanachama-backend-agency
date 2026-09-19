@@ -9,22 +9,32 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+func TestCreateValue_RequiresDraftID(t *testing.T) {
+	mgr := newTestManager(t)
+	if _, err := mgr.CreateValue(context.Background(), models.Value{Text: "x"}); !errors.Is(err, mwanachamaagency.ErrDraftRequired) {
+		t.Fatalf("expected ErrDraftRequired, got %v", err)
+	}
+}
+
 func TestCreateValue_RequiresText(t *testing.T) {
 	mgr := newTestManager(t)
-	if _, err := mgr.CreateValue(context.Background(), models.Value{}); !errors.Is(err, mwanachamaagency.ErrInvalidValue) {
+	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
+	if _, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID}); !errors.Is(err, mwanachamaagency.ErrInvalidValue) {
 		t.Fatalf("expected ErrInvalidValue, got %v", err)
 	}
 }
 
 // TestValue_AgencyWideNeverForkable asserts a Value with no attachment is
 // permanently immutable: CreateDraft never copies it, and Update/Delete
-// against the live row are refused.
+// against it are refused.
 func TestValue_AgencyWideNeverForkable(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, g, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	seedDraftID := g.DraftID
 
-	v, err := mgr.CreateValue(ctx, models.Value{Text: "we prioritize correctness over speed"})
+	v, err := mgr.CreateValue(ctx, models.Value{DraftID: seedDraftID, Text: "we prioritize correctness over speed"})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
@@ -34,7 +44,7 @@ func TestValue_AgencyWideNeverForkable(t *testing.T) {
 		t.Fatalf("expected ErrCannotEditLive, got %v", err)
 	}
 
-	d, err := mgr.CreateDraft(ctx, "try to edit the value", ag.ID, "live")
+	d, err := mgr.CreateDraft(ctx, "try to edit the value", seedDraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
@@ -43,14 +53,15 @@ func TestValue_AgencyWideNeverForkable(t *testing.T) {
 		t.Fatalf("ListValues(draft): %v", err)
 	}
 	if len(draftValues) != 0 {
-		t.Fatalf("expected an Agency-wide Value to never fork into a Draft, got %+v", draftValues)
+		t.Fatalf("expected an Agency-wide Value to never fork into another Draft, got %+v", draftValues)
 	}
 }
 
 func TestCreateValueAttachment_InvalidTargetType(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	v, err := mgr.CreateValue(ctx, models.Value{Text: "x"})
+	draftID := newDraftAgency(t, mgr, ctx)
+	v, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "x"})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
@@ -63,7 +74,8 @@ func TestCreateValueAttachment_InvalidTargetType(t *testing.T) {
 func TestCreateValueAttachment_TargetNotFound(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	v, err := mgr.CreateValue(ctx, models.Value{Text: "x"})
+	draftID := newDraftAgency(t, mgr, ctx)
+	v, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "x"})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
@@ -76,11 +88,12 @@ func TestCreateValueAttachment_TargetNotFound(t *testing.T) {
 func TestCreateValueAttachment_Duplicate(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	v, err := mgr.CreateValue(ctx, models.Value{Text: "x"})
+	draftID := newDraftAgency(t, mgr, ctx)
+	v, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "x"})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
@@ -93,15 +106,17 @@ func TestCreateValueAttachment_Duplicate(t *testing.T) {
 }
 
 // TestValueAttachment_Lifecycle covers attach, list-by-value,
-// filter-by-target, and detach — all live-editable, no Draft involved.
+// filter-by-target, and detach — all live-editable, no Draft status
+// involved.
 func TestValueAttachment_Lifecycle(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	v, err := mgr.CreateValue(ctx, models.Value{Text: "never touch production data"})
+	draftID := newDraftAgency(t, mgr, ctx)
+	v, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "never touch production data"})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
@@ -122,7 +137,7 @@ func TestValueAttachment_Lifecycle(t *testing.T) {
 		t.Fatalf("expected exactly the one attachment, got %+v", atts)
 	}
 
-	found, err := mgr.ListValues(ctx, "", mwanachamaagency.ValueFilter{RoleID: role.ID})
+	found, err := mgr.ListValues(ctx, draftID, mwanachamaagency.ValueFilter{RoleID: role.ID})
 	if err != nil {
 		t.Fatalf("ListValues(RoleID filter): %v", err)
 	}
@@ -130,7 +145,7 @@ func TestValueAttachment_Lifecycle(t *testing.T) {
 		t.Fatalf("expected filter to find the attached Value, got %+v", found)
 	}
 
-	notFound, err := mgr.ListValues(ctx, "", mwanachamaagency.ValueFilter{GoalID: "unknown-goal-id"})
+	notFound, err := mgr.ListValues(ctx, draftID, mwanachamaagency.ValueFilter{GoalID: "unknown-goal-id"})
 	if err != nil {
 		t.Fatalf("ListValues(unknown GoalID filter): %v", err)
 	}
@@ -144,7 +159,7 @@ func TestValueAttachment_Lifecycle(t *testing.T) {
 	if err := mgr.DeleteValueAttachment(ctx, att.ID); !errors.Is(err, mwanachamaagency.ErrValueAttachmentNotFound) {
 		t.Fatalf("expected ErrValueAttachmentNotFound on repeat delete, got %v", err)
 	}
-	afterDelete, err := mgr.ListValues(ctx, "", mwanachamaagency.ValueFilter{RoleID: role.ID})
+	afterDelete, err := mgr.ListValues(ctx, draftID, mwanachamaagency.ValueFilter{RoleID: role.ID})
 	if err != nil {
 		t.Fatalf("ListValues after detach: %v", err)
 	}
@@ -153,18 +168,18 @@ func TestValueAttachment_Lifecycle(t *testing.T) {
 	}
 }
 
-// TestValue_AttachedForksAndSurvivesPromote is the key correctness case for
+// TestValue_AttachedForksAndCanBeEdited is the key correctness case for
 // AGD-003's Code-based attachment design: a Value attached to a WorkItem
-// forks into a Draft (its Text is edited there), and after PromoteDraft
-// replaces the live row with a brand-new id, the attachment — created
-// before the fork ever happened — still resolves against the new live row,
-// because it was always keyed by Code, not id.
-func TestValue_AttachedForksAndSurvivesPromote(t *testing.T) {
+// forks into a Draft (its Text is edited there), and the attachment —
+// created before the fork ever happened — still resolves against the new
+// row, because it was always keyed by Code, not id.
+func TestValue_AttachedForksAndCanBeEdited(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	_, g, _, _, wi := seedLiveAgency(t, mgr, ctx)
+	seedDraftID := g.DraftID
 
-	v, err := mgr.CreateValue(ctx, models.Value{Text: "ship it fast"})
+	v, err := mgr.CreateValue(ctx, models.Value{DraftID: seedDraftID, Text: "ship it fast"})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
@@ -172,7 +187,7 @@ func TestValue_AttachedForksAndSurvivesPromote(t *testing.T) {
 		t.Fatalf("CreateValueAttachment: %v", err)
 	}
 
-	d, err := mgr.CreateDraft(ctx, "reword the value", ag.ID, "live")
+	d, err := mgr.CreateDraft(ctx, "reword the value", seedDraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
@@ -187,40 +202,26 @@ func TestValue_AttachedForksAndSurvivesPromote(t *testing.T) {
 	if draftV.ID == v.ID {
 		t.Fatal("expected the draft-scoped copy to have a new id")
 	}
+	if draftV.Code != v.Code {
+		t.Fatalf("expected the fork to carry the same Code, got %q want %q", draftV.Code, v.Code)
+	}
 	draftV.Text = "ship it fast, but correctly"
-	if _, err := mgr.UpdateValue(ctx, draftV); err != nil {
+	updated, err := mgr.UpdateValue(ctx, draftV)
+	if err != nil {
 		t.Fatalf("UpdateValue(draft copy): %v", err)
 	}
-
-	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
-		t.Fatalf("PromoteDraft: %v", err)
+	if updated.Text != "ship it fast, but correctly" {
+		t.Fatalf("unexpected updated value: %+v", updated)
 	}
 
-	live, err := mgr.ListValues(ctx, "", mwanachamaagency.ValueFilter{})
+	atts, err := mgr.ListValueAttachments(ctx, draftV.ID)
 	if err != nil {
-		t.Fatalf("ListValues(live): %v", err)
-	}
-	if len(live) != 1 {
-		t.Fatalf("expected exactly 1 live Value after promotion, got %d", len(live))
-	}
-	if live[0].ID == v.ID {
-		t.Fatal("expected the old live Value id to have been replaced, not reused")
-	}
-	if live[0].Code != v.Code {
-		t.Fatalf("expected Code to survive promotion, got %q want %q", live[0].Code, v.Code)
-	}
-	if live[0].Text != "ship it fast, but correctly" {
-		t.Fatalf("expected the promoted Text, got %q", live[0].Text)
-	}
-
-	atts, err := mgr.ListValueAttachments(ctx, live[0].ID)
-	if err != nil {
-		t.Fatalf("ListValueAttachments(new live id): %v", err)
+		t.Fatalf("ListValueAttachments(fork): %v", err)
 	}
 	if len(atts) != 1 {
 		t.Fatalf("expected the attachment created before the fork to still resolve, got %+v", atts)
 	}
 	if atts[0].TargetType != models.TargetTypeWorkItem {
-		t.Fatalf("unexpected attachment after promote: %+v", atts[0])
+		t.Fatalf("unexpected attachment after fork: %+v", atts[0])
 	}
 }

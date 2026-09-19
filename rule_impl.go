@@ -44,11 +44,11 @@ func (m *agencyManager) GetRule(ctx context.Context, id string) (models.Rule, er
 	return gormstore.RuleFromRow(row), nil
 }
 
-// ListRules returns live Rules when draftID is "", or draftID's
-// draft-scoped copies otherwise, narrowed by filter — including,
+// ListRules returns draftID's Rules, narrowed by filter — including,
 // optionally, "only Rules attached to this Role/Goal/Objective/Workflow/
-// WorkItem" (AGD-003). Rules with no attachment at all (Agency-wide) only
-// ever show up in the "" (live) list — they are never forked.
+// WorkItem" (AGD-003). A Rule with no attachment at all (Agency-wide) only
+// ever shows up in whichever one Draft it was created in — it is never
+// forked into any other Draft (see CreateDraft's own doc comment).
 func (m *agencyManager) ListRules(ctx context.Context, draftID string, filter RuleFilter) ([]models.Rule, error) {
 	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Rules), draftID)
 	q = likeFilter(q, "code", filter.Code)
@@ -76,14 +76,18 @@ func (m *agencyManager) ListRules(ctx context.Context, draftID string, filter Ru
 
 // UpdateRule replaces r's mutable fields via an explicit column map (see
 // UpdateGoal's doc for why). Returns [ErrCannotEditLive] if the existing
-// row is live — permanent for a Rule with no attachments, since nothing
-// ever forks one into a Draft.
+// row carries no attachment — permanent for an Agency-wide Rule, since
+// nothing ever forks one into another Draft (see [hasAnyAttachment]).
 func (m *agencyManager) UpdateRule(ctx context.Context, r models.Rule) (models.Rule, error) {
 	existing, err := m.findRuleRow(ctx, m.db, r.ID)
 	if err != nil {
 		return models.Rule{}, err
 	}
-	if existing.DraftID == nil {
+	attached, err := hasAnyAttachment(ctx, m.db, m.tables.RuleAttachments, "rule_code", existing.Code)
+	if err != nil {
+		return models.Rule{}, err
+	}
+	if !attached {
 		return models.Rule{}, ErrCannotEditLive
 	}
 	if r.Text == "" {
@@ -101,13 +105,18 @@ func (m *agencyManager) UpdateRule(ctx context.Context, r models.Rule) (models.R
 	return gormstore.RuleFromRow(row), nil
 }
 
-// DeleteRule returns [ErrCannotEditLive] if the target row is live.
+// DeleteRule returns [ErrCannotEditLive] if the target row carries no
+// attachment (see [UpdateRule]'s doc comment).
 func (m *agencyManager) DeleteRule(ctx context.Context, id string) error {
 	existing, err := m.findRuleRow(ctx, m.db, id)
 	if err != nil {
 		return err
 	}
-	if existing.DraftID == nil {
+	attached, err := hasAnyAttachment(ctx, m.db, m.tables.RuleAttachments, "rule_code", existing.Code)
+	if err != nil {
+		return err
+	}
+	if !attached {
 		return ErrCannotEditLive
 	}
 	if err := m.db.WithContext(ctx).Table(m.tables.Rules).Where("id = ?", id).

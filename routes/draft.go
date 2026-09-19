@@ -97,19 +97,6 @@ func UpdateDraftDescription(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// PromoteDraft handles POST {draftID}/promote. Returns 409 if the draft
-// isn't open.
-func PromoteDraft(m mwanachamaagency.AgencyManager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		out, err := m.PromoteDraft(r.Context(), r.PathValue("draftID"))
-		if err != nil {
-			writeDraftErr(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, out)
-	}
-}
-
 // ArchiveDraft handles POST {draftID}/archive. Returns 409 if the draft
 // isn't open.
 func ArchiveDraft(m mwanachamaagency.AgencyManager) http.HandlerFunc {
@@ -123,8 +110,9 @@ func ArchiveDraft(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// DraftRoutes is Create/Get/List/UpdateDescription/Promote/Archive for
-// Draft, addressed under names.Draft.
+// DraftRoutes is Create/Get/List/UpdateDescription/Archive for Draft,
+// addressed under names.Draft. There is no Promote route (AGD-006 — there
+// is no working set to promote into; publish a Draft directly instead).
 func DraftRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
 	base := "/" + names.Draft
@@ -133,7 +121,6 @@ func DraftRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route 
 		{Method: http.MethodGet, Path: base, Handler: ListDrafts(m)},
 		{Method: http.MethodGet, Path: base + "/{draftID}", Handler: GetDraft(m)},
 		{Method: http.MethodPatch, Path: base + "/{draftID}", Handler: UpdateDraftDescription(m)},
-		{Method: http.MethodPost, Path: base + "/{draftID}/promote", Handler: PromoteDraft(m)},
 		{Method: http.MethodPost, Path: base + "/{draftID}/archive", Handler: ArchiveDraft(m)},
 	}
 }

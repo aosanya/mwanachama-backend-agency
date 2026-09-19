@@ -9,20 +9,32 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+func TestCreateRule_RequiresDraftID(t *testing.T) {
+	mgr := newTestManager(t)
+	if _, err := mgr.CreateRule(context.Background(), models.Rule{Text: "x"}); !errors.Is(err, mwanachamaagency.ErrDraftRequired) {
+		t.Fatalf("expected ErrDraftRequired, got %v", err)
+	}
+}
+
 func TestCreateRule_RequiresText(t *testing.T) {
 	mgr := newTestManager(t)
-	if _, err := mgr.CreateRule(context.Background(), models.Rule{}); !errors.Is(err, mwanachamaagency.ErrInvalidRule) {
+	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
+	if _, err := mgr.CreateRule(ctx, models.Rule{DraftID: draftID}); !errors.Is(err, mwanachamaagency.ErrInvalidRule) {
 		t.Fatalf("expected ErrInvalidRule, got %v", err)
 	}
 }
 
 // TestRule_AgencyWideNeverForkable mirrors TestValue_AgencyWideNeverForkable.
+// A Rule with no attachment is permanently immutable and never forked into
+// another Draft — it just sits in whichever Draft it was created in.
 func TestRule_AgencyWideNeverForkable(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, g, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	seedDraftID := g.DraftID
 
-	r, err := mgr.CreateRule(ctx, models.Rule{Text: "never touch production data"})
+	r, err := mgr.CreateRule(ctx, models.Rule{DraftID: seedDraftID, Text: "never touch production data"})
 	if err != nil {
 		t.Fatalf("CreateRule: %v", err)
 	}
@@ -30,7 +42,7 @@ func TestRule_AgencyWideNeverForkable(t *testing.T) {
 		t.Fatalf("expected ErrCannotEditLive, got %v", err)
 	}
 
-	d, err := mgr.CreateDraft(ctx, "try to edit the rule", ag.ID, "live")
+	d, err := mgr.CreateDraft(ctx, "try to edit the rule", seedDraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
@@ -39,7 +51,7 @@ func TestRule_AgencyWideNeverForkable(t *testing.T) {
 		t.Fatalf("ListRules(draft): %v", err)
 	}
 	if len(draftRules) != 0 {
-		t.Fatalf("expected an Agency-wide Rule to never fork into a Draft, got %+v", draftRules)
+		t.Fatalf("expected an Agency-wide Rule to never fork into another Draft, got %+v", draftRules)
 	}
 }
 
@@ -50,16 +62,17 @@ func TestRuleAttachment_MultipleTargets(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, goal, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := goal.DraftID
 
-	r, err := mgr.CreateRule(ctx, models.Rule{Text: "never touch production data"})
+	r, err := mgr.CreateRule(ctx, models.Rule{DraftID: draftID, Text: "never touch production data"})
 	if err != nil {
 		t.Fatalf("CreateRule: %v", err)
 	}
-	role1, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	role1, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	role2, err := mgr.CreateRole(ctx, models.Role{Name: "reviewer"})
+	role2, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "reviewer"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
@@ -82,11 +95,11 @@ func TestRuleAttachment_MultipleTargets(t *testing.T) {
 		t.Fatalf("expected 3 attachments on the one Rule, got %+v", atts)
 	}
 
-	foundByRole1, err := mgr.ListRules(ctx, "", mwanachamaagency.RuleFilter{RoleID: role1.ID})
+	foundByRole1, err := mgr.ListRules(ctx, draftID, mwanachamaagency.RuleFilter{RoleID: role1.ID})
 	if err != nil {
 		t.Fatalf("ListRules(role1 filter): %v", err)
 	}
-	foundByGoal, err := mgr.ListRules(ctx, "", mwanachamaagency.RuleFilter{GoalID: goal.ID})
+	foundByGoal, err := mgr.ListRules(ctx, draftID, mwanachamaagency.RuleFilter{GoalID: goal.ID})
 	if err != nil {
 		t.Fatalf("ListRules(goal filter): %v", err)
 	}
@@ -98,16 +111,18 @@ func TestRuleAttachment_MultipleTargets(t *testing.T) {
 	}
 }
 
-// TestRule_AttachedForksAndSurvivesPromote mirrors
-// TestValue_AttachedForksAndSurvivesPromote, using a Goal target instead of
-// a WorkItem to exercise a second attachable type through the fork/promote
-// cycle.
-func TestRule_AttachedForksAndSurvivesPromote(t *testing.T) {
+// TestRule_AttachedForksAndCanBeEdited mirrors
+// TestValue_AttachedForksAndCanBeEdited, using a Goal target instead of a
+// WorkItem to exercise a second attachable type through the fork cycle —
+// an attached Rule's Text stays editable in a draft-scoped copy, and its
+// attachment (addressed by Code, AGD-003) survives the fork's new row id.
+func TestRule_AttachedForksAndCanBeEdited(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, goal, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, goal, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	seedDraftID := goal.DraftID
 
-	r, err := mgr.CreateRule(ctx, models.Rule{Text: "review before merging"})
+	r, err := mgr.CreateRule(ctx, models.Rule{DraftID: seedDraftID, Text: "review before merging"})
 	if err != nil {
 		t.Fatalf("CreateRule: %v", err)
 	}
@@ -115,7 +130,7 @@ func TestRule_AttachedForksAndSurvivesPromote(t *testing.T) {
 		t.Fatalf("CreateRuleAttachment: %v", err)
 	}
 
-	d, err := mgr.CreateDraft(ctx, "reword the rule", ag.ID, "live")
+	d, err := mgr.CreateDraft(ctx, "reword the rule", seedDraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
@@ -127,28 +142,26 @@ func TestRule_AttachedForksAndSurvivesPromote(t *testing.T) {
 		t.Fatalf("expected the attached Rule to fork into the draft, got %+v", draftRules)
 	}
 	draftR := draftRules[0]
+	if draftR.ID == r.ID {
+		t.Fatal("expected the fork to mint a new row id")
+	}
+	if draftR.Code != r.Code {
+		t.Fatalf("expected the fork to carry the same Code, got %q want %q", draftR.Code, r.Code)
+	}
 	draftR.Text = "review before merging, always"
-	if _, err := mgr.UpdateRule(ctx, draftR); err != nil {
+	updated, err := mgr.UpdateRule(ctx, draftR)
+	if err != nil {
 		t.Fatalf("UpdateRule(draft copy): %v", err)
 	}
-
-	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
-		t.Fatalf("PromoteDraft: %v", err)
+	if updated.Text != "review before merging, always" {
+		t.Fatalf("unexpected updated rule: %+v", updated)
 	}
 
-	live, err := mgr.ListRules(ctx, "", mwanachamaagency.RuleFilter{})
+	atts, err := mgr.ListRuleAttachments(ctx, draftR.ID)
 	if err != nil {
-		t.Fatalf("ListRules(live): %v", err)
-	}
-	if len(live) != 1 || live[0].ID == r.ID || live[0].Code != r.Code {
-		t.Fatalf("expected a new live row carrying the same Code, got %+v (original id %s, code %s)", live, r.ID, r.Code)
-	}
-
-	atts, err := mgr.ListRuleAttachments(ctx, live[0].ID)
-	if err != nil {
-		t.Fatalf("ListRuleAttachments(new live id): %v", err)
+		t.Fatalf("ListRuleAttachments(fork): %v", err)
 	}
 	if len(atts) != 1 || atts[0].TargetType != models.TargetTypeGoal {
-		t.Fatalf("expected the attachment to survive promotion, got %+v", atts)
+		t.Fatalf("expected the attachment to resolve against the fork by Code, got %+v", atts)
 	}
 }

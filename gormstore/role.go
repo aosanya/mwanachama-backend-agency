@@ -8,9 +8,9 @@ import (
 
 // RoleRow is the GORM row for a [models.Role].
 type RoleRow struct {
-	ID          string  `gorm:"primaryKey"`
-	Code        string  `gorm:"index"`
-	DraftID     *string `gorm:"index"`
+	ID          string `gorm:"primaryKey"`
+	Code        string `gorm:"index"`
+	DraftID     string `gorm:"index;not null"`
 	Name        string
 	Description string
 	CreatedAt   string
@@ -30,7 +30,7 @@ func RoleToRow(r models.Role) RoleRow {
 	return RoleRow{
 		ID:          r.ID,
 		Code:        r.Code,
-		DraftID:     StringToNullable(r.DraftID),
+		DraftID:     r.DraftID,
 		Name:        r.Name,
 		Description: r.Description,
 		CreatedAt:   r.CreatedAt,
@@ -44,7 +44,7 @@ func RoleFromRow(row RoleRow) models.Role {
 	return models.Role{
 		ID:          row.ID,
 		Code:        row.Code,
-		DraftID:     nullableToString(row.DraftID),
+		DraftID:     row.DraftID,
 		Name:        row.Name,
 		Description: row.Description,
 		CreatedAt:   row.CreatedAt,

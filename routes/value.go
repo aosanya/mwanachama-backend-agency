@@ -24,7 +24,8 @@ func valueStatusFor(err error) int {
 		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
 	case errors.Is(err, mwanachamaagency.ErrInvalidValue),
-		errors.Is(err, mwanachamaagency.ErrInvalidTargetType):
+		errors.Is(err, mwanachamaagency.ErrInvalidTargetType),
+		errors.Is(err, mwanachamaagency.ErrDraftRequired):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError

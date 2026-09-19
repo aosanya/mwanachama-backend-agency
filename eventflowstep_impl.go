@@ -26,9 +26,9 @@ func (m *agencyManager) CreateEventFlowStep(ctx context.Context, s models.EventF
 
 // LookupFlowStep tries lookup.HandlerCode, then (lookup.TriggerTopic,
 // lookup.Consumer) together, then lookup.Code, in that precedence order,
-// scoped to live steps.
-func (m *agencyManager) LookupFlowStep(ctx context.Context, lookup models.EventFlowStepLookup) (models.EventFlowStep, error) {
-	q := m.db.WithContext(ctx).Table(m.tables.EventFlowSteps).Where("draft_id IS NULL")
+// scoped to draftID.
+func (m *agencyManager) LookupFlowStep(ctx context.Context, draftID string, lookup models.EventFlowStepLookup) (models.EventFlowStep, error) {
+	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.EventFlowSteps), draftID)
 	switch {
 	case lookup.HandlerCode != "":
 		q = q.Where("handler_code = ?", lookup.HandlerCode)
@@ -51,13 +51,12 @@ func (m *agencyManager) LookupFlowStep(ctx context.Context, lookup models.EventF
 	return gormstore.EventFlowStepFromRow(row), nil
 }
 
-// ListEventFlowSteps returns live steps ordered by (WorkflowCode,
+// ListEventFlowSteps returns draftID's steps ordered by (WorkflowCode,
 // Ordinality, Step), optionally filtered to one workflowCode and/or
 // filter. Step sorts lexically, same as source — "1.10" sorts before
 // "1.2".
-func (m *agencyManager) ListEventFlowSteps(ctx context.Context, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error) {
-	q := m.db.WithContext(ctx).Table(m.tables.EventFlowSteps).
-		Where("draft_id IS NULL").
+func (m *agencyManager) ListEventFlowSteps(ctx context.Context, draftID, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error) {
+	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.EventFlowSteps), draftID).
 		Order("workflow_code, ordinality, step")
 	if workflowCode != "" {
 		q = q.Where("workflow_code = ?", workflowCode)

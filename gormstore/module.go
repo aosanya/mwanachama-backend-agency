@@ -14,9 +14,9 @@ import (
 // its live original while both exist side by side between CreateDraft and
 // PromoteDraft.
 type ModuleRow struct {
-	ID          string  `gorm:"primaryKey"`
-	Code        string  `gorm:"index"`
-	DraftID     *string `gorm:"index"`
+	ID          string `gorm:"primaryKey"`
+	Code        string `gorm:"index"`
+	DraftID     string `gorm:"index;not null"`
 	Name        string
 	Description string
 	Enabled     bool
@@ -38,7 +38,7 @@ func ModuleToRow(m models.Module) ModuleRow {
 	return ModuleRow{
 		ID:          m.ID,
 		Code:        m.Code,
-		DraftID:     StringToNullable(m.DraftID),
+		DraftID:     m.DraftID,
 		Name:        m.Name,
 		Description: m.Description,
 		Enabled:     m.Enabled,
@@ -54,7 +54,7 @@ func ModuleFromRow(r ModuleRow) models.Module {
 	return models.Module{
 		ID:          r.ID,
 		Code:        r.Code,
-		DraftID:     nullableToString(r.DraftID),
+		DraftID:     r.DraftID,
 		Name:        r.Name,
 		Description: r.Description,
 		Enabled:     r.Enabled,
@@ -65,21 +65,23 @@ func ModuleFromRow(r ModuleRow) models.Module {
 	}
 }
 
-// BackfillModules ensures every code in [models.ModuleCatalog] has a live
-// Module row, inserting one from that catalog entry's Name/Description/
-// Enabled/Locked for any code that doesn't yet. Idempotent, and only ever
-// inserts a missing row — an existing live row (of any Enabled/Locked
-// value) is never touched, so an already-migrated deployment keeps
-// whatever it already has. Safe to call on every Migrate, mirroring
-// [BackfillCodes]'s shape. Without this, a pre-existing deployment's
-// Module table starts empty the moment this migration ships, and a
-// gateway gating real routes on Module.Enabled would take every one of
-// those routes dark rather than leaving them as they were.
-func BackfillModules(db *gorm.DB, table string) error {
+// BackfillModules ensures every code in [models.ModuleCatalog] has a
+// Module row scoped to draftID, inserting one from that catalog entry's
+// Name/Description/Enabled/Locked for any code that doesn't yet within
+// that Draft. Idempotent, and only ever inserts a missing row — an
+// existing row (of any Enabled/Locked value) is never touched, so an
+// already-migrated deployment keeps whatever it already has. Safe to call
+// on every Migrate, mirroring [BackfillCodes]'s shape. Without this, a
+// pre-existing deployment's Module table starts empty the moment this
+// migration ships, and a gateway gating real routes on Module.Enabled
+// would take every one of those routes dark rather than leaving them as
+// they were. draftID is [EnsureWorkingDraft]'s result — every row this
+// package writes always belongs to a real Draft (AGD-006).
+func BackfillModules(db *gorm.DB, table, draftID string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		for _, entry := range models.ModuleCatalog {
 			var count int64
-			if err := tx.Table(table).Where("code = ? AND draft_id IS NULL", entry.Code).Count(&count).Error; err != nil {
+			if err := tx.Table(table).Where("code = ? AND draft_id = ?", entry.Code, draftID).Count(&count).Error; err != nil {
 				return fmt.Errorf("BackfillModules: %w", err)
 			}
 			if count > 0 {
@@ -87,6 +89,7 @@ func BackfillModules(db *gorm.DB, table string) error {
 			}
 			now := models.NowRFC3339()
 			row := ModuleRow{
+				DraftID:     draftID,
 				Code:        entry.Code,
 				Name:        entry.Name,
 				Description: entry.Description,

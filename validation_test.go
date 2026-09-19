@@ -10,8 +10,8 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// findIssue returns the first live-scope Issue of entityType naming
-// entityID, and whether one was found.
+// findIssue returns the first Issue of entityType naming entityID scoped
+// to draftID, and whether one was found.
 func findIssue(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID, entityType, entityID string) (models.Issue, bool) {
 	t.Helper()
 	issues, err := mgr.ListIssues(ctx, draftID, mwanachamaagency.IssueFilter{EntityType: entityType})
@@ -119,13 +119,13 @@ func TestScan_DanglingWorkItem(t *testing.T) {
 	_, _, _, w, _ := seedLiveAgency(t, mgr, ctx)
 
 	orphan, err := mgr.CreateWorkItem(ctx, models.WorkItem{
-		WorkflowID: w.ID, ObjectiveID: "no-such-objective", Title: "Orphan",
+		DraftID: w.DraftID, WorkflowID: w.ID, ObjectiveID: "no-such-objective", Title: "Orphan",
 	})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
 
-	issue, ok := findIssue(t, mgr, ctx, "", "work_item", orphan.ID)
+	issue, ok := findIssue(t, mgr, ctx, w.DraftID, "work_item", orphan.ID)
 	if !ok {
 		t.Fatalf("expected a dangling-Objective issue for work item %s", orphan.ID)
 	}
@@ -148,12 +148,12 @@ func TestScan_DanglingRoleAssignment(t *testing.T) {
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner"})
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "owner"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: o.DraftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
 	})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
@@ -163,7 +163,7 @@ func TestScan_DanglingRoleAssignment(t *testing.T) {
 		t.Fatalf("deleting the Role row directly: %v", err)
 	}
 
-	issue, ok := findIssue(t, mgr, ctx, "", "role_assignment", assignment.ID)
+	issue, ok := findIssue(t, mgr, ctx, o.DraftID, "role_assignment", assignment.ID)
 	if !ok {
 		t.Fatalf("expected a dangling-Role issue for assignment %s", assignment.ID)
 	}
@@ -174,13 +174,13 @@ func TestScan_DanglingRoleAssignment(t *testing.T) {
 
 // TestScan_DanglingAttachment covers AG22's Code-keyed attachments: the
 // attachment row outlives its target, since attaching is live-editable and
-// sits outside the fork/promote lifecycle entirely.
+// sits outside the fork lifecycle entirely.
 func TestScan_DanglingAttachment(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, g, _, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	rule, err := mgr.CreateRule(ctx, models.Rule{Text: "never touch production data"})
+	rule, err := mgr.CreateRule(ctx, models.Rule{DraftID: g.DraftID, Text: "never touch production data"})
 	if err != nil {
 		t.Fatalf("CreateRule: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestScan_DanglingAttachment(t *testing.T) {
 		t.Fatalf("DeleteGoal: %v", err)
 	}
 
-	issue, ok := findIssue(t, mgr, ctx, "", "rule_attachment", attachment.ID)
+	issue, ok := findIssue(t, mgr, ctx, g.DraftID, "rule_attachment", attachment.ID)
 	if !ok {
 		t.Fatalf("expected a dangling-target issue for rule attachment %s", attachment.ID)
 	}
@@ -207,20 +207,24 @@ func TestScan_DanglingAttachment(t *testing.T) {
 func TestScan_EmptyWorkflowAndAgency(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
 
-	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "Empty"}); err != nil {
-		t.Fatalf("CreateAgency: %v", err)
-	}
-	if _, ok := findIssue(t, mgr, ctx, "", "agency", ""); !ok {
+	if _, ok := findIssue(t, mgr, ctx, draftID, "agency", ""); !ok {
 		t.Fatal("expected an issue for an Agency with no Goals")
 	}
 
-	_, _, _, _, _ = seedLiveAgency(t, mgr, ctx)
-	empty, err := mgr.CreateWorkflow(ctx, models.Workflow{Name: "Empty flow"})
+	g, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	if _, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"}); err != nil {
+		t.Fatalf("CreateObjective: %v", err)
+	}
+	empty, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Empty flow"})
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
-	issue, ok := findIssue(t, mgr, ctx, "", "workflow", empty.ID)
+	issue, ok := findIssue(t, mgr, ctx, draftID, "workflow", empty.ID)
 	if !ok {
 		t.Fatalf("expected an issue for workflow %s with no work items", empty.ID)
 	}
@@ -234,16 +238,16 @@ func TestScan_EmptyWorkflowAndAgency(t *testing.T) {
 func TestScan_DanglingEventFlowStep(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	seedLiveAgency(t, mgr, ctx)
+	_, g, _, _, _ := seedLiveAgency(t, mgr, ctx)
 
 	step, err := mgr.CreateEventFlowStep(ctx, models.EventFlowStep{
-		Code: "step-1", WorkflowCode: "W-404", Step: "1", Name: "Orphan step",
+		DraftID: g.DraftID, Code: "step-1", WorkflowCode: "W-404", Step: "1", Name: "Orphan step",
 	})
 	if err != nil {
 		t.Fatalf("CreateEventFlowStep: %v", err)
 	}
 
-	issue, ok := findIssue(t, mgr, ctx, "", "event_flow_step", step.ID)
+	issue, ok := findIssue(t, mgr, ctx, g.DraftID, "event_flow_step", step.ID)
 	if !ok {
 		t.Fatalf("expected a dangling-Workflow issue for step %s", step.ID)
 	}

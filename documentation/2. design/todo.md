@@ -15,7 +15,7 @@ decision the user makes), or 🦸 super human (owner review).
 | ID | Pri | Status | Responsible | Phase | Task | Raised by | Depends On |
 |---|---|---|---|---|---|---|---|
 
-AGD-001, AGD-002, AGD-004 and AGD-005 are done for this repo — moved to
+AGD-001, AGD-002, AGD-004, AGD-005 and AGD-006 are done for this repo — moved to
 [todo_done.md](todo_done.md). Their cross-repo follow-ups
 (`mwanachama-wakala-api`, `mwanachama-wakala-studio`,
 `mwanachama-backend-api-kazi`, `mwanachama-backend-api-gateway`'s Postman

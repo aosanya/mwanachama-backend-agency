@@ -38,8 +38,8 @@ func TestWorkItemRoundTrip_DraftScoped(t *testing.T) {
 	w := models.WorkItem{ID: "wi3", WorkflowID: "w1", ObjectiveID: "o1", DraftID: "d1", Title: "Draft-scoped item"}
 
 	row := WorkItemToRow(w)
-	if row.DraftID == nil || *row.DraftID != "d1" {
-		t.Fatalf("expected DraftID column %q, got %v", "d1", row.DraftID)
+	if row.DraftID != "d1" {
+		t.Fatalf("expected DraftID column %q, got %q", "d1", row.DraftID)
 	}
 
 	got := WorkItemFromRow(row)

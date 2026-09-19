@@ -15,6 +15,8 @@ func workflowStatusFor(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
+	case errors.Is(err, mwanachamaagency.ErrDraftRequired):
+		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}

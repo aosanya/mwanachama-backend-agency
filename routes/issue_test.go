@@ -10,23 +10,21 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
-// TestListIssues_LiveScope covers the top-level GET /issues route, where
-// {draftID} is absent from the pattern entirely and so reads back "".
-func TestListIssues_LiveScope(t *testing.T) {
-	mgr := newTestManager(t)
+// TestListIssues_ScopedToDraft covers GET {draftID}/issues — every scan
+// names a real Draft (AGD-006), there is no top-level "live" route.
+func TestListIssues_ScopedToDraft(t *testing.T) {
+	mgr, draftID := newTestManagerWithDraft(t)
 	ctx := t.Context()
-	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"}); err != nil {
-		t.Fatalf("CreateAgency: %v", err)
-	}
-	g, err := mgr.CreateGoal(ctx, models.Goal{Title: "Grow adoption"})
+	g, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
-	if _, err := mgr.CreateObjective(ctx, models.Objective{GoalID: g.ID, Title: "Grow adoption"}); err != nil {
+	if _, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"}); err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/issues", nil)
+	req := httptest.NewRequest(http.MethodGet, "/drafts/"+draftID+"/issues", nil)
+	req.SetPathValue("draftID", draftID)
 	rec := httptest.NewRecorder()
 	routes.ListIssues(mgr)(rec, req)
 	if rec.Code != http.StatusOK {
@@ -36,32 +34,24 @@ func TestListIssues_LiveScope(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if len(out) != 1 || out[0].EntityType != "objective" || out[0].DraftID != "" {
-		t.Fatalf("expected one live-scoped objective issue, got %+v", out)
+	if len(out) != 1 || out[0].EntityType != "objective" || out[0].DraftID != draftID {
+		t.Fatalf("expected one draft-scoped objective issue, got %+v", out)
 	}
 }
 
 func TestListIssues_ObjectiveWithNoAccountable(t *testing.T) {
-	mgr := newTestManager(t)
+	mgr, draftID := newTestManagerWithDraft(t)
 	ctx := t.Context()
-	ag, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"})
-	if err != nil {
-		t.Fatalf("CreateAgency: %v", err)
-	}
-	g, err := mgr.CreateGoal(ctx, models.Goal{Title: "Grow adoption"})
+	g, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
-	if _, err := mgr.CreateObjective(ctx, models.Objective{GoalID: g.ID, Title: "Grow adoption"}); err != nil {
+	if _, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"}); err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
-	d, err := mgr.CreateDraft(ctx, "review pass", ag.ID, "live")
-	if err != nil {
-		t.Fatalf("CreateDraft: %v", err)
-	}
 
-	req := httptest.NewRequest(http.MethodGet, "/drafts/"+d.ID+"/issues", nil)
-	req.SetPathValue("draftID", d.ID)
+	req := httptest.NewRequest(http.MethodGet, "/drafts/"+draftID+"/issues", nil)
+	req.SetPathValue("draftID", draftID)
 	rec := httptest.NewRecorder()
 	routes.ListIssues(mgr)(rec, req)
 	if rec.Code != http.StatusOK {
@@ -83,19 +73,14 @@ func TestListIssues_ObjectiveWithNoAccountable(t *testing.T) {
 }
 
 func TestListIssues_FilterBySeverityQueryParam(t *testing.T) {
-	mgr := newTestManager(t)
+	mgr, draftID := newTestManagerWithDraft(t)
 	ctx := t.Context()
-	ag, _ := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"})
-	if _, err := mgr.CreateGoal(ctx, models.Goal{Title: "Lonely goal"}); err != nil {
+	if _, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Lonely goal"}); err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
-	d, err := mgr.CreateDraft(ctx, "review pass", ag.ID, "live")
-	if err != nil {
-		t.Fatalf("CreateDraft: %v", err)
-	}
 
-	req := httptest.NewRequest(http.MethodGet, "/drafts/"+d.ID+"/issues?severity=error", nil)
-	req.SetPathValue("draftID", d.ID)
+	req := httptest.NewRequest(http.MethodGet, "/drafts/"+draftID+"/issues?severity=error", nil)
+	req.SetPathValue("draftID", draftID)
 	rec := httptest.NewRecorder()
 	routes.ListIssues(mgr)(rec, req)
 	if rec.Code != http.StatusOK {

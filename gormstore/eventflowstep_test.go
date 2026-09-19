@@ -38,8 +38,8 @@ func TestEventFlowStepRoundTrip_DraftScoped(t *testing.T) {
 	s := models.EventFlowStep{ID: "s2", DraftID: "d1", Code: "planning:1.2"}
 
 	row := EventFlowStepToRow(s)
-	if row.DraftID == nil || *row.DraftID != "d1" {
-		t.Fatalf("expected DraftID column %q, got %v", "d1", row.DraftID)
+	if row.DraftID != "d1" {
+		t.Fatalf("expected DraftID column %q, got %q", "d1", row.DraftID)
 	}
 
 	got := EventFlowStepFromRow(row)

@@ -13,26 +13,26 @@ import (
 
 // registerRACITools registers Role/RoleAssignment tools — the RACI matrix:
 // personas (Role) assigned to Objectives with a
-// Responsible/Accountable/Consulted/Informed label. A live Role or
-// RoleAssignment cannot be edited or deleted directly — fork a Draft, edit
-// the draft-scoped copy, promote (agency_create_draft/agency_promote_draft
-// in agency.go).
+// Responsible/Accountable/Consulted/Informed label. Every Role/
+// RoleAssignment belongs to some open Draft and is freely editable there
+// (AGD-006) — fork one with agency_create_draft, edit, then publish it
+// with agency_publish_agency.
 func registerRACITools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_create_role", Title: "Create Role", Description: "Create a Role (a persona, e.g. \"bug-hunter\")."}, mcpCreateRole(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_role", Title: "Get Role", Description: "Get a Role by id."}, mcpGetRole(resolve))
 	mcp.AddTool(server, &mcp.Tool{
-		Name: "agency_list_roles", Title: "List Roles", Description: "List Roles — live, or a Draft's scoped copies.",
+		Name: "agency_list_roles", Title: "List Roles", Description: "List a Draft's Roles.",
 		Meta: dashboardUIMeta,
 	}, mcpListRoles(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role", Title: "Update Role", Description: "Update a Role. Refused on a live Role — only a Draft-scoped copy may be edited."}, mcpUpdateRole(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role", Title: "Delete Role", Description: "Delete a Role. Refused on a live Role — only a Draft-scoped copy may be deleted."}, mcpDeleteRole(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role", Title: "Update Role", Description: "Update a Role."}, mcpUpdateRole(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role", Title: "Delete Role", Description: "Delete a Role."}, mcpDeleteRole(resolve))
 
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_set_raci", Title: "Assign RACI", Description: "Assign a Role to an Objective with a RACI label (responsible/accountable/consulted/informed). At most one accountable assignment may exist per Objective."}, mcpCreateRoleAssignment(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_get_role_assignment", Title: "Get RACI Assignment", Description: "Get a RoleAssignment by id."}, mcpGetRoleAssignment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_role_assignments", Title: "List RACI Assignments", Description: "List RoleAssignments — live, or a Draft's scoped copies."}, mcpListRoleAssignments(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_role_assignments", Title: "List RACI Assignments", Description: "List a Draft's RoleAssignments."}, mcpListRoleAssignments(resolve))
 	mcp.AddTool(server, &mcp.Tool{Name: "agency_list_role_assignments_for_objective", Title: "List RACI for Objective", Description: "List who is assigned to an Objective, and with what RACI label."}, mcpListRoleAssignmentsForObjective(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role_assignment", Title: "Update RACI Assignment", Description: "Update a RoleAssignment. Refused on a live one — only a Draft-scoped copy may be edited."}, mcpUpdateRoleAssignment(resolve))
-	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role_assignment", Title: "Delete RACI Assignment", Description: "Delete a RoleAssignment. Refused on a live one — only a Draft-scoped copy may be deleted."}, mcpDeleteRoleAssignment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_update_role_assignment", Title: "Update RACI Assignment", Description: "Update a RoleAssignment."}, mcpUpdateRoleAssignment(resolve))
+	mcp.AddTool(server, &mcp.Tool{Name: "agency_delete_role_assignment", Title: "Delete RACI Assignment", Description: "Delete a RoleAssignment."}, mcpDeleteRoleAssignment(resolve))
 }
 
 // mcpRoleParams mirrors models.Role, but with every field but Name marked
@@ -43,7 +43,7 @@ func registerRACITools(server *mcp.Server, resolve ManagerResolver) {
 type mcpRoleParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ID          string `json:"id,omitempty" jsonschema:"the Role's id — required for update, ignored for create"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Role, or the owning Draft's id for a draft-scoped copy"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft this Role belongs to"`
 	Name        string `json:"name" jsonschema:"the Role's name, e.g. \"bug-hunter\""`
 	Description string `json:"description,omitempty" jsonschema:"what this Role is responsible for"`
 }
@@ -147,7 +147,7 @@ func mcpDeleteRole(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 type mcpRoleAssignmentParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ID          string `json:"id,omitempty" jsonschema:"the RoleAssignment's id — required for update, ignored for create"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" for a live RoleAssignment, or the owning Draft's id for a draft-scoped copy"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft this RoleAssignment belongs to"`
 	RoleID      string `json:"role_id" jsonschema:"the assigned Role's id"`
 	ObjectiveID string `json:"objective_id" jsonschema:"the Objective this Role is assigned to"`
 	Label       string `json:"label" jsonschema:"the RACI label: responsible, accountable, consulted, or informed — at most one accountable assignment may exist per Objective"`
@@ -221,7 +221,7 @@ func roleAssignmentsContextText(assignments []models.RoleAssignment) string {
 type mcpRoleAssignmentsForObjectiveParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ObjectiveID string `json:"objective_id" jsonschema:"the Objective's id"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"scope to this Draft's copy; empty means the live (published) copy"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft to scope to"`
 	Label       string `json:"label,omitempty" jsonschema:"filter: exact match on the RACI label (responsible, accountable, consulted, or informed)"`
 }
 

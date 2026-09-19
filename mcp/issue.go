@@ -19,13 +19,13 @@ func registerIssueTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "agency_list_issues",
 		Title:       "List Issues",
-		Description: "Re-scan the Agency and list its current issues (info/warning/error) — e.g. a Work Item whose Objective no longer exists, an Objective with no Accountable role, or a Goal with no Objectives. Omit draft_id to scan what is live, which is what agency_publish_agency validates against; pass one to scan that Draft instead.",
+		Description: "Re-scan a Draft and list its current issues (info/warning/error) — e.g. a Work Item whose Objective no longer exists, an Objective with no Accountable role, or a Goal with no Objectives. This is exactly what agency_publish_agency validates against before publishing that Draft.",
 	}, mcpListIssues(resolve))
 }
 
 type mcpListIssuesParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	DraftID    string `json:"draft_id,omitempty" jsonschema:"the Draft to scan; empty scans the live Agency"`
+	DraftID    string `json:"draft_id" jsonschema:"the Draft to scan"`
 	Message    string `json:"message,omitempty" jsonschema:"filter: case-insensitive substring match on Message"`
 	Severity   string `json:"severity,omitempty" jsonschema:"filter: exact match on Severity (info, warning, error)"`
 	EntityType string `json:"entity_type,omitempty" jsonschema:"filter: exact match on EntityType (e.g. objective, goal)"`

@@ -10,10 +10,10 @@ import (
 // indexed but deliberately not a GORM association/foreign key, matching
 // WorkItemRow.WorkflowID/GoalID's precedent.
 type ObjectiveRow struct {
-	ID          string  `gorm:"primaryKey"`
-	Code        string  `gorm:"index"`
-	GoalID      string  `gorm:"index"`
-	DraftID     *string `gorm:"index"`
+	ID          string `gorm:"primaryKey"`
+	Code        string `gorm:"index"`
+	GoalID      string `gorm:"index"`
+	DraftID     string `gorm:"index;not null"`
 	Title       string
 	Description string
 	Ordinality  int
@@ -36,7 +36,7 @@ func ObjectiveToRow(o models.Objective) ObjectiveRow {
 		ID:          o.ID,
 		Code:        o.Code,
 		GoalID:      o.GoalID,
-		DraftID:     StringToNullable(o.DraftID),
+		DraftID:     o.DraftID,
 		Title:       o.Title,
 		Description: o.Description,
 		Ordinality:  o.Ordinality,
@@ -52,7 +52,7 @@ func ObjectiveFromRow(r ObjectiveRow) models.Objective {
 		ID:          r.ID,
 		Code:        r.Code,
 		GoalID:      r.GoalID,
-		DraftID:     nullableToString(r.DraftID),
+		DraftID:     r.DraftID,
 		Title:       r.Title,
 		Description: r.Description,
 		Ordinality:  r.Ordinality,

@@ -22,9 +22,12 @@
 // granular calls (agency_create_role, then agency_set_raci) even though
 // this tool exists precisely to collapse that kind of round trip.
 //
-// Scoped to live creation only — no Draft support. One entity failing does
-// not abort the rest: everything created so far, plus every failure with
-// which spec entry caused it, comes back in the result — there is no
+// Every entity this tool creates belongs to the caller-supplied draft_id —
+// every Goal/Objective/Workflow/WorkItem/Role/RoleAssignment always belongs
+// to some Draft (AGD-006), so there is no "create it live" option; the
+// caller forks a Draft first with agency_create_draft. One entity failing
+// does not abort the rest: everything created so far, plus every failure
+// with which spec entry caused it, comes back in the result — there is no
 // cross-entity transaction in mwanachama-backend-agency to roll back to
 // anyway.
 package mcp
@@ -44,7 +47,7 @@ func registerCompositeTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:  "agency_design_from_spec",
 		Title: "Design Agency From Spec",
-		Description: "Build out an Agency's roles, goals/objectives/workflows/work items, and RACI assignments from one structured spec, composing the granular agency_* tools internally. " +
+		Description: "Build out an Agency's roles, goals/objectives/workflows/work items, and RACI assignments from one structured spec, composing the granular agency_* tools internally. Every entity is created inside the Draft named by draft_id — fork one with agency_create_draft first. " +
 			"Entities reference each other by a caller-chosen \"key\" (not a real id); a reference must name a key defined earlier in that section or in a section this tool applies first. " +
 			"Order applied: agency (only if none exists yet), roles, goals, objectives (goal_key), workflows, work_items (objective_key), raci (objective_key). " +
 			"A raci entry may instead reference an already-existing Role/Objective directly by its real id (role_id/objective_id) if it isn't also being created in this same spec — use this to create one new Role (or Objective) and assign it RACI against something that already exists in a single call, instead of a separate create-then-assign round trip. " +
@@ -100,6 +103,7 @@ type specRACI struct {
 
 type mcpDesignFromSpecParams struct {
 	InstanceID string          `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	DraftID    string          `json:"draft_id,omitempty" jsonschema:"the Draft every created entity belongs to — fork one with agency_create_draft first. Only optional for an agency-only spec (just the agency field set); every other section needs it"`
 	Agency     *specAgency     `json:"agency,omitempty" jsonschema:"created only if this Instance has no Agency yet; omit or leave unset otherwise"`
 	Roles      []specRole      `json:"roles,omitempty"`
 	Goals      []specGoal      `json:"goals,omitempty"`
@@ -149,7 +153,7 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		for _, r := range p.Roles {
-			row, err := m.CreateRole(ctx, models.Role{Name: r.Name, Description: r.Description})
+			row, err := m.CreateRole(ctx, models.Role{DraftID: p.DraftID, Name: r.Name, Description: r.Description})
 			if err != nil {
 				out.Errors = append(out.Errors, fmt.Sprintf("role %q: %v", r.Key, err))
 				continue
@@ -158,7 +162,7 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		for _, g := range p.Goals {
-			row, err := m.CreateGoal(ctx, models.Goal{Title: g.Title, Description: g.Description})
+			row, err := m.CreateGoal(ctx, models.Goal{DraftID: p.DraftID, Title: g.Title, Description: g.Description})
 			if err != nil {
 				out.Errors = append(out.Errors, fmt.Sprintf("goal %q: %v", g.Key, err))
 				continue
@@ -172,7 +176,7 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 				out.Errors = append(out.Errors, fmt.Sprintf("objective %q: unknown goal_key %q", o.Key, o.GoalKey))
 				continue
 			}
-			row, err := m.CreateObjective(ctx, models.Objective{GoalID: goalID, Title: o.Title, Description: o.Description})
+			row, err := m.CreateObjective(ctx, models.Objective{DraftID: p.DraftID, GoalID: goalID, Title: o.Title, Description: o.Description})
 			if err != nil {
 				out.Errors = append(out.Errors, fmt.Sprintf("objective %q: %v", o.Key, err))
 				continue
@@ -181,7 +185,7 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		for _, w := range p.Workflows {
-			row, err := m.CreateWorkflow(ctx, models.Workflow{Name: w.Name, Description: w.Description})
+			row, err := m.CreateWorkflow(ctx, models.Workflow{DraftID: p.DraftID, Name: w.Name, Description: w.Description})
 			if err != nil {
 				out.Errors = append(out.Errors, fmt.Sprintf("workflow %q: %v", w.Key, err))
 				continue
@@ -201,7 +205,7 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 				out.Errors = append(out.Errors, fmt.Sprintf("work_item %q: unknown objective_key %q", wi.Key, wi.ObjectiveKey))
 				continue
 			}
-			row, err := m.CreateWorkItem(ctx, models.WorkItem{WorkflowID: workflowID, ObjectiveID: objectiveID, Title: wi.Title, Description: wi.Description, Prompt: wi.Prompt})
+			row, err := m.CreateWorkItem(ctx, models.WorkItem{DraftID: p.DraftID, WorkflowID: workflowID, ObjectiveID: objectiveID, Title: wi.Title, Description: wi.Description, Prompt: wi.Prompt})
 			if err != nil {
 				out.Errors = append(out.Errors, fmt.Sprintf("work_item %q: %v", wi.Key, err))
 				continue
@@ -241,7 +245,7 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 				continue
 			}
 
-			row, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: roleID, ObjectiveID: objectiveID, Label: models.RACILabel(ra.Label)})
+			row, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: p.DraftID, RoleID: roleID, ObjectiveID: objectiveID, Label: models.RACILabel(ra.Label)})
 			if err != nil {
 				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: %v", i, err))
 				continue

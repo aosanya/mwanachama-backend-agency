@@ -8,68 +8,93 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// TestListIssues_LiveScope asserts an empty draftID scans the live Agency
-// rather than being refused — what PublishAgency's own gate depends on.
-func TestListIssues_LiveScope(t *testing.T) {
+// TestListIssues_ScopedToDraft asserts a scan is recorded against the
+// Draft it ran on, not some implicit shared scope (AGD-006 — there is no
+// live row-scope).
+func TestListIssues_ScopedToDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	issues, err := mgr.ListIssues(ctx, "", mwanachamaagency.IssueFilter{})
+	issues, err := mgr.ListIssues(ctx, draftID, mwanachamaagency.IssueFilter{})
 	if err != nil {
-		t.Fatalf("ListIssues(live): %v", err)
+		t.Fatalf("ListIssues: %v", err)
 	}
 	if len(issues) != 1 {
 		t.Fatalf("expected exactly the unassigned-Objective issue, got %d: %+v", len(issues), issues)
 	}
-	if issues[0].EntityID != o.ID || issues[0].DraftID != "" {
-		t.Fatalf("expected a live-scoped issue for objective %s, got %+v", o.ID, issues[0])
+	if issues[0].EntityID != o.ID || issues[0].DraftID != draftID {
+		t.Fatalf("expected an issue scoped to draft %s for objective %s, got %+v", draftID, o.ID, issues[0])
 	}
 }
 
-// TestListIssues_ScopesAreIndependent asserts a live scan does not delete
-// or return a Draft's findings, and vice versa — both live in one table,
-// separated only by the nullable draft_id scopeQuery filters on.
+// TestListIssues_ScopesAreIndependent asserts a scan of one Draft does not
+// delete or return another Draft's findings — both live in one table,
+// separated only by the draft_id scopeQuery filters on.
 func TestListIssues_ScopesAreIndependent(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	d, _, _ := seedDraftForIssues(t, mgr, ctx)
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftA := o.DraftID
 
-	if _, err := mgr.ListIssues(ctx, d.ID, mwanachamaagency.IssueFilter{}); err != nil {
-		t.Fatalf("ListIssues(draft): %v", err)
-	}
-	live, err := mgr.ListIssues(ctx, "", mwanachamaagency.IssueFilter{})
+	draftB, err := mgr.CreateDraft(ctx, "second draft", draftA, "draft")
 	if err != nil {
-		t.Fatalf("ListIssues(live): %v", err)
+		t.Fatalf("CreateDraft: %v", err)
 	}
-	for _, i := range live {
-		if i.DraftID != "" {
-			t.Fatalf("live scan returned a draft-scoped issue: %+v", i)
+	objectivesB, err := mgr.ListObjectives(ctx, draftB.ID, mwanachamaagency.ObjectiveFilter{})
+	if err != nil || len(objectivesB) != 1 {
+		t.Fatalf("ListObjectives(draftB): %v, %+v", err, objectivesB)
+	}
+	roleB, err := mgr.CreateRole(ctx, models.Role{DraftID: draftB.ID, Name: "bug-hunter"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		DraftID: draftB.ID, RoleID: roleB.ID, ObjectiveID: objectivesB[0].ID, Label: models.RACILabelAccountable,
+	}); err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+
+	issuesA, err := mgr.ListIssues(ctx, draftA, mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues(draftA): %v", err)
+	}
+	if len(issuesA) != 1 {
+		t.Fatalf("expected draftA's unassigned-Objective issue to still be there, got %+v", issuesA)
+	}
+	for _, i := range issuesA {
+		if i.DraftID != draftA {
+			t.Fatalf("draftA scan returned an out-of-scope issue: %+v", i)
 		}
 	}
 
-	draft, err := mgr.ListIssues(ctx, d.ID, mwanachamaagency.IssueFilter{})
+	issuesB, err := mgr.ListIssues(ctx, draftB.ID, mwanachamaagency.IssueFilter{})
 	if err != nil {
-		t.Fatalf("ListIssues(draft, again): %v", err)
+		t.Fatalf("ListIssues(draftB): %v", err)
 	}
-	if len(draft) == 0 {
-		t.Fatal("the live scan wiped the draft's issues")
+	if len(issuesB) != 0 {
+		t.Fatalf("expected draftB's Objective (now Accountable) to have no issue, got %+v", issuesB)
 	}
-	for _, i := range draft {
-		if i.DraftID != d.ID {
-			t.Fatalf("draft scan returned an out-of-scope issue: %+v", i)
-		}
+
+	// Re-scan draftA again — draftB's scan must not have wiped it.
+	again, err := mgr.ListIssues(ctx, draftA, mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues(draftA, again): %v", err)
+	}
+	if len(again) != 1 {
+		t.Fatalf("draftB's scan affected draftA's issues: %+v", again)
 	}
 }
 
-// seedDraftForIssues opens a Draft forked from a fresh live Agency and
-// returns it alongside the Draft-scoped Goal it forked in — seedLiveAgency
+// seedDraftForIssues opens a Draft forked from a fresh seed and returns it
+// alongside the Draft-scoped Goal it forked in — seedLiveAgency
 // (draft_test.go) already gives that Goal one Objective, so tests here
 // start from "one Objective, no RoleAssignment" and adjust from there.
 func seedDraftForIssues(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) (models.Draft, models.Goal, models.Objective) {
 	t.Helper()
-	ag, _, _, _, _ := seedLiveAgency(t, mgr, ctx)
-	d, err := mgr.CreateDraft(ctx, "review pass", ag.ID, "live")
+	_, g, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	d, err := mgr.CreateDraft(ctx, "review pass", g.DraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}

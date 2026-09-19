@@ -9,11 +9,27 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+// newDraftAgency creates an Agency and one empty open Draft, returning
+// the Draft's id — every business-entity row belongs to a real Draft
+// (AGD-006), so this is the minimum setup any Create<Type> call needs.
+func newDraftAgency(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) string {
+	t.Helper()
+	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"}); err != nil {
+		t.Fatalf("CreateAgency: %v", err)
+	}
+	d, err := mgr.CreateDraft(ctx, "seed", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	return d.ID
+}
+
 func TestGoalCRUD(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
 
-	g, err := mgr.CreateGoal(ctx, models.Goal{Title: "Grow adoption", Ordinality: 1})
+	g, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption", Ordinality: 1})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
@@ -39,12 +55,12 @@ func TestGoalCRUD(t *testing.T) {
 		t.Fatalf("update did not apply zero-value field: %+v", updated)
 	}
 
-	live, err := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{})
+	goals, err := mgr.ListGoals(ctx, draftID, mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals: %v", err)
 	}
-	if len(live) != 1 {
-		t.Fatalf("expected 1 live goal, got %d", len(live))
+	if len(goals) != 1 {
+		t.Fatalf("expected 1 goal, got %d", len(goals))
 	}
 }
 
@@ -64,20 +80,19 @@ func TestDeleteGoal_NotFound(t *testing.T) {
 
 // TestDeleteGoal_CascadesObjectivesAndRoleAssignments asserts DeleteGoal
 // takes its Objectives (and those Objectives' RoleAssignments) down with
-// it, even though the RoleAssignment is live — DeleteRoleAssignment on its
-// own would refuse that with ErrCannotEditLiveRACI, but the cascade
-// bypasses that per-row check (see AgencyManager's DeleteGoal doc).
+// it (see AgencyManager's DeleteGoal doc).
 func TestDeleteGoal_CascadesObjectivesAndRoleAssignments(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, g, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := g.DraftID
 
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: draftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
 	})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
@@ -109,7 +124,8 @@ func TestDeleteGoal_CascadesObjectivesAndRoleAssignments(t *testing.T) {
 func TestDeleteGoal_NoObjectives(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	g, err := mgr.CreateGoal(ctx, models.Goal{Title: "Lonely goal"})
+	draftID := newDraftAgency(t, mgr, ctx)
+	g, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Lonely goal"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
@@ -128,8 +144,9 @@ func TestDeleteGoal_NoObjectives(t *testing.T) {
 func TestGoalCode_SequentialAndImmutable(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
 
-	g1, err := mgr.CreateGoal(ctx, models.Goal{Title: "First"})
+	g1, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "First"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
@@ -137,7 +154,7 @@ func TestGoalCode_SequentialAndImmutable(t *testing.T) {
 		t.Fatalf("expected Code %q, got %q", "G-1", g1.Code)
 	}
 
-	g2, err := mgr.CreateGoal(ctx, models.Goal{Title: "Second"})
+	g2, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Second"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
@@ -163,21 +180,19 @@ func TestGoalCode_SequentialAndImmutable(t *testing.T) {
 	}
 }
 
-// TestGoalCode_SurvivesDraftPromote asserts a Goal's Code carries unchanged
-// from the live row, through its draft-scoped copy (which gets a brand-new
-// ID at fork time), through an edit of that copy, to the row that ends up
-// live after PromoteDraft (which itself gets a new ID relative to the
-// original live row — see draft_impl.go's CreateDraft/PromoteDraft).
-func TestGoalCode_SurvivesDraftPromote(t *testing.T) {
+// TestGoalCode_SurvivesDraftFork asserts a Goal's Code carries unchanged
+// from the source row, through its draft-scoped copy (which gets a
+// brand-new ID at fork time, AG16), through an edit of that copy.
+func TestGoalCode_SurvivesDraftFork(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, g, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, g, _, _, _ := seedLiveAgency(t, mgr, ctx)
 	originalCode := g.Code
 	if originalCode == "" {
 		t.Fatal("expected seeded goal to have a non-empty Code")
 	}
 
-	d, err := mgr.CreateDraft(ctx, "rename the goal", ag.ID, "live")
+	d, err := mgr.CreateDraft(ctx, "rename the goal", g.DraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
@@ -190,28 +205,14 @@ func TestGoalCode_SurvivesDraftPromote(t *testing.T) {
 		t.Fatal("expected the draft-scoped copy to have a new id")
 	}
 	if edited.Code != originalCode {
-		t.Fatalf("expected draft-scoped copy to carry the live Code %q, got %q", originalCode, edited.Code)
+		t.Fatalf("expected draft-scoped copy to carry the same Code %q, got %q", originalCode, edited.Code)
 	}
 	edited.Title = "Grow adoption worldwide"
-	if _, err := mgr.UpdateGoal(ctx, edited); err != nil {
+	updated, err := mgr.UpdateGoal(ctx, edited)
+	if err != nil {
 		t.Fatalf("UpdateGoal: %v", err)
 	}
-
-	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
-		t.Fatalf("PromoteDraft: %v", err)
-	}
-
-	liveGoals, err := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{})
-	if err != nil {
-		t.Fatalf("ListGoals: %v", err)
-	}
-	if len(liveGoals) != 1 {
-		t.Fatalf("expected exactly 1 live goal after promotion, got %d", len(liveGoals))
-	}
-	if liveGoals[0].ID == g.ID {
-		t.Fatal("expected the old live goal id to have been replaced, not reused")
-	}
-	if liveGoals[0].Code != originalCode {
-		t.Fatalf("expected promoted goal's Code to survive unchanged, got %q want %q", liveGoals[0].Code, originalCode)
+	if updated.Code != originalCode {
+		t.Fatalf("expected edited copy's Code to survive unchanged, got %q want %q", updated.Code, originalCode)
 	}
 }

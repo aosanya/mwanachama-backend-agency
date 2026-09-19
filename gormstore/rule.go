@@ -9,9 +9,9 @@ import (
 // RuleRow is the GORM row for a [models.Rule]. Scoping lives entirely in
 // RuleAttachmentRow now (AGD-003) — see [ValueRow]'s doc comment.
 type RuleRow struct {
-	ID        string  `gorm:"primaryKey"`
-	Code      string  `gorm:"index"`
-	DraftID   *string `gorm:"index"`
+	ID        string `gorm:"primaryKey"`
+	Code      string `gorm:"index"`
+	DraftID   string `gorm:"index;not null"`
 	Text      string
 	CreatedAt string
 	UpdatedAt string
@@ -30,7 +30,7 @@ func RuleToRow(v models.Rule) RuleRow {
 	return RuleRow{
 		ID:        v.ID,
 		Code:      v.Code,
-		DraftID:   StringToNullable(v.DraftID),
+		DraftID:   v.DraftID,
 		Text:      v.Text,
 		CreatedAt: v.CreatedAt,
 		UpdatedAt: models.NowRFC3339(),
@@ -43,7 +43,7 @@ func RuleFromRow(r RuleRow) models.Rule {
 	return models.Rule{
 		ID:          r.ID,
 		Code:        r.Code,
-		DraftID:     nullableToString(r.DraftID),
+		DraftID:     r.DraftID,
 		Text:        r.Text,
 		CreatedAt:   r.CreatedAt,
 		LastUpdated: r.UpdatedAt,

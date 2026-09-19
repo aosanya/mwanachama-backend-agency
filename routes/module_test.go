@@ -30,8 +30,9 @@ func TestGetModule_NotFound(t *testing.T) {
 // (e.g. "auth") rather than a route-created Module.
 func TestListAndGetModule(t *testing.T) {
 	mgr := newTestManager(t)
+	draftID := bootstrapDraftID(t, mgr)
 
-	listReq := httptest.NewRequest(http.MethodGet, "/modules?code=auth", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/modules?draft_id="+draftID+"&code=auth", nil)
 	listRec := httptest.NewRecorder()
 	routes.ListModules(mgr)(listRec, listReq)
 	if listRec.Code != http.StatusOK {
@@ -69,8 +70,9 @@ func TestListAndGetModule(t *testing.T) {
 // every other known code disabled.
 func TestListModules_DefaultCatalogState(t *testing.T) {
 	mgr := newTestManager(t)
+	draftID := bootstrapDraftID(t, mgr)
 
-	req := httptest.NewRequest(http.MethodGet, "/modules", nil)
+	req := httptest.NewRequest(http.MethodGet, "/modules?draft_id="+draftID, nil)
 	rec := httptest.NewRecorder()
 	routes.ListModules(mgr)(rec, req)
 	if rec.Code != http.StatusOK {
@@ -104,22 +106,23 @@ func TestListModules_DefaultCatalogState(t *testing.T) {
 func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := t.Context()
-	goal, err := mgr.CreateGoal(ctx, models.Goal{Title: "Grow adoption"})
+	draftID := bootstrapDraftID(t, mgr)
+	goal, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
-	objective, err := mgr.CreateObjective(ctx, models.Objective{GoalID: goal.ID, Title: "Grow adoption"})
+	objective, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: goal.ID, Title: "Grow adoption"})
 	if err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
-	mods, err := mgr.ListModules(ctx, "", mwanachamaagency.ModuleFilter{Code: "auth"})
+	mods, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{Code: "auth"})
 	if err != nil || len(mods) != 1 {
 		t.Fatalf("ListModules(code=auth): rows=%+v err=%v", mods, err)
 	}
 	mod := mods[0]
 
 	req := httptest.NewRequest(http.MethodPost, "/objectives/"+objective.ID+"/modules",
-		strings.NewReader(`{"module_id":"`+mod.ID+`"}`))
+		strings.NewReader(`{"module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
 	req.SetPathValue("objectiveID", objective.ID)
 	rec := httptest.NewRecorder()
 	routes.CreateObjectiveModule(mgr)(rec, req)
@@ -136,7 +139,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 
 	// Duplicate attach is a conflict.
 	dupReq := httptest.NewRequest(http.MethodPost, "/objectives/"+objective.ID+"/modules",
-		strings.NewReader(`{"module_id":"`+mod.ID+`"}`))
+		strings.NewReader(`{"module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
 	dupReq.SetPathValue("objectiveID", objective.ID)
 	dupRec := httptest.NewRecorder()
 	routes.CreateObjectiveModule(mgr)(dupRec, dupReq)
@@ -144,7 +147,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 		t.Fatalf("expected 409 on duplicate link, got %d: %s", dupRec.Code, dupRec.Body.String())
 	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/objectives/"+objective.ID+"/modules", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/objectives/"+objective.ID+"/modules?draft_id="+draftID, nil)
 	listReq.SetPathValue("objectiveID", objective.ID)
 	listRec := httptest.NewRecorder()
 	routes.ListObjectiveModulesForObjective(mgr)(listRec, listReq)
@@ -167,7 +170,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 		t.Fatalf("delete status = %d, body = %s", delRec.Code, delRec.Body.String())
 	}
 
-	afterReq := httptest.NewRequest(http.MethodGet, "/objectives/"+objective.ID+"/modules", nil)
+	afterReq := httptest.NewRequest(http.MethodGet, "/objectives/"+objective.ID+"/modules?draft_id="+draftID, nil)
 	afterReq.SetPathValue("objectiveID", objective.ID)
 	afterRec := httptest.NewRecorder()
 	routes.ListObjectiveModulesForObjective(mgr)(afterRec, afterReq)
@@ -184,12 +187,13 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 // objectiveID (as named by the URL path, not the body) is refused cleanly.
 func TestCreateObjectiveModule_ObjectiveNotFoundIs404(t *testing.T) {
 	mgr := newTestManager(t)
-	mods, err := mgr.ListModules(t.Context(), "", mwanachamaagency.ModuleFilter{Code: "auth"})
+	draftID := bootstrapDraftID(t, mgr)
+	mods, err := mgr.ListModules(t.Context(), draftID, mwanachamaagency.ModuleFilter{Code: "auth"})
 	if err != nil || len(mods) != 1 {
 		t.Fatalf("ListModules(code=auth): rows=%+v err=%v", mods, err)
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/objectives/unknown/modules", strings.NewReader(`{"module_id":"`+mods[0].ID+`"}`))
+	req := httptest.NewRequest(http.MethodPost, "/objectives/unknown/modules", strings.NewReader(`{"module_id":"`+mods[0].ID+`","draft_id":"`+draftID+`"}`))
 	req.SetPathValue("objectiveID", "unknown")
 	rec := httptest.NewRecorder()
 	routes.CreateObjectiveModule(mgr)(rec, req)

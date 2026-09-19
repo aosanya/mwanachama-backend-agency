@@ -13,10 +13,10 @@ func roleStatusFor(err error) int {
 	case errors.Is(err, mwanachamaagency.ErrRoleNotFound),
 		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, mwanachamaagency.ErrCannotEditLiveRACI),
-		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
+	case errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
-	case errors.Is(err, mwanachamaagency.ErrInvalidRole):
+	case errors.Is(err, mwanachamaagency.ErrInvalidRole),
+		errors.Is(err, mwanachamaagency.ErrDraftRequired):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
@@ -76,8 +76,7 @@ func ListRoles(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// UpdateRole handles PATCH {roleID}. Returns 409 if the target role is
-// live — see [mwanachamaagency.ErrCannotEditLiveRACI].
+// UpdateRole handles PATCH {roleID}.
 func UpdateRole(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var in models.Role
@@ -95,8 +94,7 @@ func UpdateRole(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// DeleteRole handles DELETE {roleID}. Returns 409 if the target role is
-// live — see [mwanachamaagency.ErrCannotEditLiveRACI].
+// DeleteRole handles DELETE {roleID}.
 func DeleteRole(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := m.DeleteRole(r.Context(), r.PathValue("roleID")); err != nil {

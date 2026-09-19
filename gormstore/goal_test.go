@@ -32,8 +32,8 @@ func TestGoalRoundTrip_DraftScoped(t *testing.T) {
 	g := models.Goal{ID: "g2", DraftID: "d1", Title: "Draft-scoped goal"}
 
 	row := GoalToRow(g)
-	if row.DraftID == nil || *row.DraftID != "d1" {
-		t.Fatalf("expected DraftID column %q, got %v", "d1", row.DraftID)
+	if row.DraftID != "d1" {
+		t.Fatalf("expected DraftID column %q, got %q", "d1", row.DraftID)
 	}
 
 	got := GoalFromRow(row)

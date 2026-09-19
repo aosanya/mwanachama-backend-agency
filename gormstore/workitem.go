@@ -14,11 +14,11 @@ import (
 // mounted instance via db.Table(...), which a GORM-managed association
 // would not follow).
 type WorkItemRow struct {
-	ID          string  `gorm:"primaryKey"`
-	Code        string  `gorm:"index"`
-	WorkflowID  string  `gorm:"index"`
-	ObjectiveID string  `gorm:"index"`
-	DraftID     *string `gorm:"index"`
+	ID          string `gorm:"primaryKey"`
+	Code        string `gorm:"index"`
+	WorkflowID  string `gorm:"index"`
+	ObjectiveID string `gorm:"index"`
+	DraftID     string `gorm:"index;not null"`
 	Title       string
 	Description string
 	Ordinality  int
@@ -42,7 +42,7 @@ func WorkItemToRow(w models.WorkItem) WorkItemRow {
 		Code:        w.Code,
 		WorkflowID:  w.WorkflowID,
 		ObjectiveID: w.ObjectiveID,
-		DraftID:     StringToNullable(w.DraftID),
+		DraftID:     w.DraftID,
 		Title:       w.Title,
 		Description: w.Description,
 		Ordinality:  w.Ordinality,
@@ -60,7 +60,7 @@ func WorkItemFromRow(r WorkItemRow) models.WorkItem {
 		Code:        r.Code,
 		WorkflowID:  r.WorkflowID,
 		ObjectiveID: r.ObjectiveID,
-		DraftID:     nullableToString(r.DraftID),
+		DraftID:     r.DraftID,
 		Title:       r.Title,
 		Description: r.Description,
 		Ordinality:  r.Ordinality,

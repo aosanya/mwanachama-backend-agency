@@ -27,7 +27,7 @@ type mcpObjectiveParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ID          string `json:"id,omitempty" jsonschema:"the Objective's id — required for update, ignored for create"`
 	GoalID      string `json:"goal_id" jsonschema:"the Goal this Objective operationalizes"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Objective, or the owning Draft's id for a draft-scoped copy"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft this Objective belongs to"`
 	Title       string `json:"title" jsonschema:"the Objective's title"`
 	Description string `json:"description,omitempty" jsonschema:"the Objective's description"`
 	Ordinality  int    `json:"ordinality,omitempty" jsonschema:"sort order among sibling Objectives"`

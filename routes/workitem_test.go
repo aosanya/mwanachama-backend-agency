@@ -12,16 +12,16 @@ import (
 )
 
 func TestCreateWorkItem(t *testing.T) {
-	mgr := newTestManager(t)
-	w, err := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	w, err := mgr.CreateWorkflow(t.Context(), models.Workflow{DraftID: draftID, Name: "Onboarding"})
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
 
 	handler := routes.CreateWorkItem(mgr)
-	body := `{"workflow_id":"` + w.ID + `","objective_id":"` + o.ID + `","title":"Write charter"}`
+	body := `{"workflow_id":"` + w.ID + `","objective_id":"` + o.ID + `","title":"Write charter","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/work-items", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	handler(rec, req)
@@ -39,11 +39,11 @@ func TestCreateWorkItem(t *testing.T) {
 }
 
 func TestCreateWorkItem_RequiresObjective(t *testing.T) {
-	mgr := newTestManager(t)
-	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{DraftID: draftID, Name: "Onboarding"})
 
 	handler := routes.CreateWorkItem(mgr)
-	body := `{"workflow_id":"` + w.ID + `","title":"Write charter"}`
+	body := `{"workflow_id":"` + w.ID + `","title":"Write charter","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/work-items", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	handler(rec, req)
@@ -66,11 +66,11 @@ func TestGetWorkItem_NotFound(t *testing.T) {
 }
 
 func TestUpdateWorkItem(t *testing.T) {
-	mgr := newTestManager(t)
-	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{Name: "Onboarding"})
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
-	wi, err := mgr.CreateWorkItem(t.Context(), models.WorkItem{WorkflowID: w.ID, ObjectiveID: o.ID, Title: "Write charter"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{DraftID: draftID, Name: "Onboarding"})
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
+	wi, err := mgr.CreateWorkItem(t.Context(), models.WorkItem{DraftID: draftID, WorkflowID: w.ID, ObjectiveID: o.ID, Title: "Write charter"})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}

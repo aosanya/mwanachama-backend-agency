@@ -38,6 +38,21 @@ func resolveCodeByID(ctx context.Context, tx *gorm.DB, table, id string, notFoun
 	return row.Code, nil
 }
 
+// hasAnyAttachment reports whether code has at least one row in
+// attachmentsTable under codeColumn — the "is this Value/Rule Agency-wide
+// (permanently immutable) or does it carry at least one attachment (Draft-
+// editable)" test. Before AGD-006 this was read off DraftID == nil, a
+// side effect of CreateDraft never forking a zero-attachment row; now every
+// row always belongs to some real Draft, so attachment existence is the
+// only signal left that actually means what it's being asked.
+func hasAnyAttachment(ctx context.Context, tx *gorm.DB, attachmentsTable, codeColumn, code string) (bool, error) {
+	var count int64
+	if err := tx.WithContext(ctx).Table(attachmentsTable).Where(codeColumn+" = ?", code).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("hasAnyAttachment: %w", err)
+	}
+	return count > 0, nil
+}
+
 // targetTable maps a TargetType to the table it's stored in and the
 // sentinel error to return when an id names no row there.
 func (m *agencyManager) targetTable(t models.TargetType) (table string, notFound error, ok bool) {

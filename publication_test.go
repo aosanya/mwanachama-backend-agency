@@ -12,17 +12,18 @@ import (
 
 // seedPublishableAgency is seedLiveAgency plus the one thing publish-time
 // validation demands that it leaves out: an Accountable Role on its
-// Objective. Every test here needs a live Agency that actually passes the
-// gate before it can assert anything about versions, tags or statuses.
+// Objective. Every test here needs a Draft that actually passes the gate
+// before it can assert anything about versions, tags or statuses. The
+// Draft's id is o.DraftID.
 func seedPublishableAgency(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) (models.Agency, models.Objective, models.Role) {
 	t.Helper()
 	ag, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner"})
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "owner"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: o.DraftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
@@ -32,9 +33,10 @@ func seedPublishableAgency(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx
 func TestPublishAgency_NoDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	seedPublishableAgency(t, mgr, ctx)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	p1, err := mgr.PublishAgency(ctx, "", "", "")
+	p1, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
@@ -42,17 +44,17 @@ func TestPublishAgency_NoDraft(t *testing.T) {
 		t.Fatalf("unexpected first publication: %+v", p1)
 	}
 
-	if _, err := mgr.PublishAgency(ctx, "", "", ""); !errors.Is(err, mwanachamaagency.ErrNoChangesDetected) {
+	if _, err := mgr.PublishAgency(ctx, draftID, "", ""); !errors.Is(err, mwanachamaagency.ErrNoChangesDetected) {
 		t.Fatalf("expected ErrNoChangesDetected republishing unchanged content, got %v", err)
 	}
 
 	// An Agency-wide Value changes the content hash without introducing a
 	// blocking Issue, unlike a bare new Goal (which would have no
 	// Objectives).
-	if _, err := mgr.CreateValue(ctx, models.Value{Text: "correctness over speed"}); err != nil {
+	if _, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "correctness over speed"}); err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	p2, err := mgr.PublishAgency(ctx, "", "", "")
+	p2, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency after change: %v", err)
 	}
@@ -73,23 +75,24 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	p1, err := mgr.PublishAgency(ctx, "", "", "")
+	p1, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 
-	consulted, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter"})
+	consulted, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: consulted.ID, ObjectiveID: o.ID, Label: models.RACILabelConsulted,
+		DraftID: draftID, RoleID: consulted.ID, ObjectiveID: o.ID, Label: models.RACILabelConsulted,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
-	p2, err := mgr.PublishAgency(ctx, "", "", "")
+	p2, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
 		t.Fatalf("expected a RACI-only change to require republishing, got %v", err)
 	}
@@ -100,26 +103,27 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 
 // TestPublishAgency_ModuleOnlyChangeIsAChange mirrors
 // TestPublishAgency_RACIOnlyChangeIsAChange: a Module/ObjectiveModule-only
-// edit must require republishing too, now that liveContentHash covers them.
+// edit must require republishing too, now that contentHashFor covers them.
 func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	p1, err := mgr.PublishAgency(ctx, "", "", "")
+	p1, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 
-	mod, err := mgr.CreateModule(ctx, models.Module{Code: "widgets", Name: "Widgets", Enabled: true})
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "widgets", Name: "Widgets", Enabled: true})
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
-	p2, err := mgr.PublishAgency(ctx, "", "", "")
+	p2, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
 		t.Fatalf("expected a Module-only change to require republishing, got %v", err)
 	}
@@ -128,29 +132,49 @@ func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
 	}
 }
 
-func TestPublishAgency_RequiresPromotedDraft(t *testing.T) {
+// TestPublishAgency_UnknownDraftRefused asserts a nonexistent draftID is
+// refused outright — including "" (AGD-006: every publish names a real
+// Draft, there is nothing implicit left to publish).
+func TestPublishAgency_UnknownDraftRefused(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	ag, _, _ := seedPublishableAgency(t, mgr, ctx)
+	seedPublishableAgency(t, mgr, ctx)
 
-	d, err := mgr.CreateDraft(ctx, "not promoted yet", ag.ID, "live")
+	if _, err := mgr.PublishAgency(ctx, "no-such-draft", "", ""); !errors.Is(err, mwanachamaagency.ErrDraftNotFound) {
+		t.Fatalf("expected ErrDraftNotFound for an unknown draftID, got %v", err)
+	}
+	if _, err := mgr.PublishAgency(ctx, "", "", ""); !errors.Is(err, mwanachamaagency.ErrDraftNotFound) {
+		t.Fatalf("expected ErrDraftNotFound for an empty draftID, got %v", err)
+	}
+}
+
+// TestPublishAgency_ArchivedDraftAllowed is AGD-006 decision #6: publishing
+// does not require the Draft to still be open, and does not change its
+// status — a Draft can be archived and its already-clean content still
+// published (e.g. re-releasing an earlier state).
+func TestPublishAgency_ArchivedDraftAllowed(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
+
+	if _, err := mgr.ArchiveDraft(ctx, draftID); err != nil {
+		t.Fatalf("ArchiveDraft: %v", err)
+	}
+	p, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
-		t.Fatalf("CreateDraft: %v", err)
+		t.Fatalf("expected publishing an archived draft to succeed, got %v", err)
+	}
+	if p.DraftID != draftID {
+		t.Fatalf("expected publication to record DraftID %q, got %q", draftID, p.DraftID)
 	}
 
-	if _, err := mgr.PublishAgency(ctx, d.ID, "", ""); !errors.Is(err, mwanachamaagency.ErrDraftNotPromoted) {
-		t.Fatalf("expected ErrDraftNotPromoted, got %v", err)
-	}
-
-	if _, err := mgr.PromoteDraft(ctx, d.ID); err != nil {
-		t.Fatalf("PromoteDraft: %v", err)
-	}
-	p, err := mgr.PublishAgency(ctx, d.ID, "", "")
+	gotDraft, err := mgr.GetDraft(ctx, draftID)
 	if err != nil {
-		t.Fatalf("PublishAgency after promote: %v", err)
+		t.Fatalf("GetDraft: %v", err)
 	}
-	if p.DraftID != d.ID {
-		t.Fatalf("expected publication to record DraftID %q, got %q", d.ID, p.DraftID)
+	if gotDraft.Status != models.DraftStatusArchived {
+		t.Fatalf("expected publish to leave the draft's own status unchanged, got %q", gotDraft.Status)
 	}
 }
 
@@ -161,8 +185,9 @@ func TestPublishAgency_RefusedOnValidationError(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	_, err := mgr.PublishAgency(ctx, "", "", "")
+	_, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {
 		t.Fatalf("expected ErrPublishValidationFailed, got %v", err)
 	}
@@ -178,25 +203,25 @@ func TestPublishAgency_RefusedOnValidationError(t *testing.T) {
 		t.Fatalf("a refused publish must not write a publication, got %+v", pubs)
 	}
 
-	// The same findings are readable as rows through the live scan.
-	issues, err := mgr.ListIssues(ctx, "", mwanachamaagency.IssueFilter{Severity: "error"})
+	// The same findings are readable as rows through the draft scan.
+	issues, err := mgr.ListIssues(ctx, draftID, mwanachamaagency.IssueFilter{Severity: "error"})
 	if err != nil {
-		t.Fatalf("ListIssues(live, error): %v", err)
+		t.Fatalf("ListIssues(draft, error): %v", err)
 	}
 	if len(issues) != 1 || issues[0].EntityID != o.ID {
 		t.Fatalf("expected the same single finding for objective %s, got %+v", o.ID, issues)
 	}
 
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner"})
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "owner"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: draftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
-	if _, err := mgr.PublishAgency(ctx, "", "", ""); err != nil {
+	if _, err := mgr.PublishAgency(ctx, draftID, "", ""); err != nil {
 		t.Fatalf("expected the publish to succeed once fixed, got %v", err)
 	}
 }
@@ -206,18 +231,19 @@ func TestPublishAgency_RefusedOnValidationError(t *testing.T) {
 func TestPublishAgency_WarningsDoNotBlock(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	seedPublishableAgency(t, mgr, ctx)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	issues, err := mgr.ListIssues(ctx, "", mwanachamaagency.IssueFilter{})
+	issues, err := mgr.ListIssues(ctx, draftID, mwanachamaagency.IssueFilter{})
 	if err != nil {
-		t.Fatalf("ListIssues(live): %v", err)
+		t.Fatalf("ListIssues(draft): %v", err)
 	}
 	for _, i := range issues {
 		if i.Severity == models.IssueSeverityError {
 			t.Fatalf("seed should be clean of errors, got %+v", i)
 		}
 	}
-	if _, err := mgr.PublishAgency(ctx, "", "", ""); err != nil {
+	if _, err := mgr.PublishAgency(ctx, draftID, "", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 }
@@ -225,9 +251,10 @@ func TestPublishAgency_WarningsDoNotBlock(t *testing.T) {
 func TestPublishAgency_Tag(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	seedPublishableAgency(t, mgr, ctx)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	p1, err := mgr.PublishAgency(ctx, "", "2026-Q4 restructure", "")
+	p1, err := mgr.PublishAgency(ctx, draftID, "2026-Q4 restructure", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
@@ -235,14 +262,14 @@ func TestPublishAgency_Tag(t *testing.T) {
 		t.Fatalf("expected the operator's tag on version 1, got %+v", p1)
 	}
 
-	if _, err := mgr.CreateValue(ctx, models.Value{Text: "correctness over speed"}); err != nil {
+	if _, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "correctness over speed"}); err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	if _, err := mgr.PublishAgency(ctx, "", "2026-Q4 restructure", ""); !errors.Is(err, mwanachamaagency.ErrDuplicateTag) {
+	if _, err := mgr.PublishAgency(ctx, draftID, "2026-Q4 restructure", ""); !errors.Is(err, mwanachamaagency.ErrDuplicateTag) {
 		t.Fatalf("expected ErrDuplicateTag, got %v", err)
 	}
 
-	p2, err := mgr.PublishAgency(ctx, "", "", "")
+	p2, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency (fallback tag): %v", err)
 	}
@@ -257,15 +284,16 @@ func TestPublishAgency_Tag(t *testing.T) {
 func TestPublishAgency_TagFallbackCollision(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	seedPublishableAgency(t, mgr, ctx)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	if _, err := mgr.PublishAgency(ctx, "", "v2", ""); err != nil {
+	if _, err := mgr.PublishAgency(ctx, draftID, "v2", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
-	if _, err := mgr.CreateValue(ctx, models.Value{Text: "correctness over speed"}); err != nil {
+	if _, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "correctness over speed"}); err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	if _, err := mgr.PublishAgency(ctx, "", "", ""); !errors.Is(err, mwanachamaagency.ErrDuplicateTag) {
+	if _, err := mgr.PublishAgency(ctx, draftID, "", ""); !errors.Is(err, mwanachamaagency.ErrDuplicateTag) {
 		t.Fatalf("expected ErrDuplicateTag from the generated tag, got %v", err)
 	}
 }
@@ -273,9 +301,9 @@ func TestPublishAgency_TagFallbackCollision(t *testing.T) {
 func TestSetPublicationChannel(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	seedPublishableAgency(t, mgr, ctx)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
 
-	p, err := mgr.PublishAgency(ctx, "", "", "")
+	p, err := mgr.PublishAgency(ctx, o.DraftID, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
@@ -305,16 +333,17 @@ func TestSetPublicationChannel(t *testing.T) {
 func TestPublishAgency_Channels(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	seedPublishableAgency(t, mgr, ctx)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
 
-	prod, err := mgr.PublishAgency(ctx, "", "release-1", "")
+	prod, err := mgr.PublishAgency(ctx, draftID, "release-1", "")
 	if err != nil {
 		t.Fatalf("PublishAgency(production): %v", err)
 	}
-	if _, err := mgr.CreateValue(ctx, models.Value{Text: "correctness over speed"}); err != nil {
+	if _, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "correctness over speed"}); err != nil {
 		t.Fatalf("CreateValue: %v", err)
 	}
-	staging, err := mgr.PublishAgency(ctx, "", "release-2", "staging")
+	staging, err := mgr.PublishAgency(ctx, draftID, "release-2", "staging")
 	if err != nil {
 		t.Fatalf("PublishAgency(staging): %v", err)
 	}
@@ -365,22 +394,23 @@ func TestGetPublication_NotFound(t *testing.T) {
 
 // TestPublishAgency_CarriesDocument is AGD-005's whole point: the
 // publication holds the Agency, so what production reads is fixed at
-// publish time and does not move when the working set does.
+// publish time and does not move when the Draft it came from does.
 func TestPublishAgency_CarriesDocument(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, g, o, w, wi := seedLiveAgency(t, mgr, ctx)
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner"})
+	draftID := g.DraftID
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "owner"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: draftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
-	pub, err := mgr.PublishAgency(ctx, "", "release-1", "")
+	pub, err := mgr.PublishAgency(ctx, draftID, "release-1", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
@@ -409,8 +439,8 @@ func TestPublishAgency_CarriesDocument(t *testing.T) {
 	}
 
 	// The published document is frozen: deleting the Goal out of the
-	// working set cascades through the rows but must not touch what was
-	// already published.
+	// Draft it came from cascades through the rows but must not touch
+	// what was already published.
 	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
 		t.Fatalf("DeleteGoal: %v", err)
 	}
@@ -419,41 +449,42 @@ func TestPublishAgency_CarriesDocument(t *testing.T) {
 		t.Fatalf("GetPublicationForChannel: %v", err)
 	}
 	if len(reread.Document.Goals) != 1 || reread.Document.Goals[0].ID != g.ID {
-		t.Fatalf("the published document moved with the working set: %+v", reread.Document.Goals)
+		t.Fatalf("the published document moved with the draft: %+v", reread.Document.Goals)
 	}
 	if len(reread.Document.WorkItems) != 1 {
-		t.Fatalf("expected the published WorkItem to survive the working-set delete, got %+v", reread.Document.WorkItems)
+		t.Fatalf("expected the published WorkItem to survive the draft-side delete, got %+v", reread.Document.WorkItems)
 	}
 }
 
 // TestCreateDraft_ForkFromPublication is AGD-005 #5: a Draft can start
 // from what a tag actually contains, which is what makes "go back to
-// release-1 and change one thing" possible after the working set has
+// release-1 and change one thing" possible after the source draft has
 // moved on.
 func TestCreateDraft_ForkFromPublication(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, g, o, _, _ := seedLiveAgency(t, mgr, ctx)
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner"})
+	draftID := g.DraftID
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "owner"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: draftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
-	if _, err := mgr.PublishAgency(ctx, "", "release-1", ""); err != nil {
+	if _, err := mgr.PublishAgency(ctx, draftID, "release-1", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 
-	// The working set moves on: the Goal published as release-1 is gone.
+	// The source draft moves on: the Goal published as release-1 is gone.
 	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
 		t.Fatalf("DeleteGoal: %v", err)
 	}
-	liveGoals, err := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{})
-	if err != nil || len(liveGoals) != 0 {
-		t.Fatalf("expected the working set to have no Goals, got %v / %+v", err, liveGoals)
+	remainingGoals, err := mgr.ListGoals(ctx, draftID, mwanachamaagency.GoalFilter{})
+	if err != nil || len(remainingGoals) != 0 {
+		t.Fatalf("expected the source draft to have no Goals, got %v / %+v", err, remainingGoals)
 	}
 
 	d, err := mgr.CreateDraft(ctx, "revisit release-1", "release-1", "publication")

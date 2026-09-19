@@ -56,7 +56,7 @@ func registerGoalWorkflowTools(server *mcp.Server, resolve ManagerResolver) {
 type mcpGoalParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ID          string `json:"id,omitempty" jsonschema:"the Goal's id — required for update, ignored for create"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Goal, or the owning Draft's id for a draft-scoped copy"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft this Goal belongs to"`
 	Title       string `json:"title" jsonschema:"the Goal's title"`
 	Description string `json:"description,omitempty" jsonschema:"the Goal's description"`
 	Ordinality  int    `json:"ordinality,omitempty" jsonschema:"sort order among sibling Goals"`
@@ -159,7 +159,7 @@ func mcpDeleteGoal(resolve ManagerResolver) func(context.Context, *mcp.CallToolR
 type mcpWorkflowParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ID          string `json:"id,omitempty" jsonschema:"the Workflow's id — required for update, ignored for create"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" for a live Workflow, or the owning Draft's id for a draft-scoped copy"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft this Workflow belongs to"`
 	Name        string `json:"name" jsonschema:"the Workflow's name"`
 	Description string `json:"description,omitempty" jsonschema:"the Workflow's description"`
 	Ordinality  int    `json:"ordinality,omitempty" jsonschema:"sort order among sibling Workflows"`
@@ -264,7 +264,7 @@ type mcpWorkItemParams struct {
 	ID          string `json:"id,omitempty" jsonschema:"the WorkItem's id — required for update, ignored for create"`
 	WorkflowID  string `json:"workflow_id" jsonschema:"the owning Workflow's id"`
 	ObjectiveID string `json:"objective_id" jsonschema:"the Objective this WorkItem belongs to"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" for a live WorkItem, or the owning Draft's id for a draft-scoped copy"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft this WorkItem belongs to"`
 	Title       string `json:"title" jsonschema:"the WorkItem's title"`
 	Description string `json:"description,omitempty" jsonschema:"the WorkItem's description"`
 	Ordinality  int    `json:"ordinality,omitempty" jsonschema:"sort order among sibling WorkItems"`
@@ -369,6 +369,7 @@ func mcpDeleteWorkItem(resolve ManagerResolver) func(context.Context, *mcp.CallT
 
 type mcpLookupFlowStepParams struct {
 	InstanceID   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	DraftID      string `json:"draft_id" jsonschema:"the Draft to look up within"`
 	HandlerCode  string `json:"handler_code,omitempty" jsonschema:"highest-precedence lookup key: the code of the handler that executes the step"`
 	TriggerTopic string `json:"trigger_topic,omitempty" jsonschema:"used with consumer as the second-precedence lookup key"`
 	Consumer     string `json:"consumer,omitempty" jsonschema:"used with trigger_topic as the second-precedence lookup key"`
@@ -381,7 +382,7 @@ func mcpLookupFlowStep(resolve ManagerResolver) func(context.Context, *mcp.CallT
 		if err != nil {
 			return nil, models.EventFlowStep{}, err
 		}
-		out, err := m.LookupFlowStep(ctx, models.EventFlowStepLookup{
+		out, err := m.LookupFlowStep(ctx, p.DraftID, models.EventFlowStepLookup{
 			HandlerCode:  p.HandlerCode,
 			TriggerTopic: p.TriggerTopic,
 			Consumer:     p.Consumer,
@@ -393,6 +394,7 @@ func mcpLookupFlowStep(resolve ManagerResolver) func(context.Context, *mcp.CallT
 
 type mcpListEventFlowStepsParams struct {
 	InstanceID   string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
+	DraftID      string `json:"draft_id" jsonschema:"the Draft to list within"`
 	WorkflowCode string `json:"workflow_code" jsonschema:"the owning Workflow's code"`
 	Code         string `json:"code,omitempty" jsonschema:"filter: case-insensitive substring match on Code"`
 	Name         string `json:"name,omitempty" jsonschema:"filter: case-insensitive substring match on Name"`
@@ -405,7 +407,7 @@ func mcpListEventFlowSteps(resolve ManagerResolver) func(context.Context, *mcp.C
 		if err != nil {
 			return nil, ListResult[models.EventFlowStep]{}, err
 		}
-		out, err := m.ListEventFlowSteps(ctx, p.WorkflowCode, mwanachamaagency.EventFlowStepFilter{Code: p.Code, Name: p.Name, Description: p.Description})
+		out, err := m.ListEventFlowSteps(ctx, p.DraftID, p.WorkflowCode, mwanachamaagency.EventFlowStepFilter{Code: p.Code, Name: p.Name, Description: p.Description})
 		return summaryWithContext(fmt.Sprintf("Found %d event flow step(s) for workflow %q", len(out), p.WorkflowCode), eventFlowStepsContextText(out)), ListResult[models.EventFlowStep]{Items: out}, err
 	}
 }

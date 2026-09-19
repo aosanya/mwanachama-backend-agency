@@ -12,14 +12,14 @@ import (
 )
 
 func TestCreateObjective(t *testing.T) {
-	mgr := newTestManager(t)
-	g, err := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	g, err := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
 
 	handler := routes.CreateObjective(mgr)
-	body := `{"goal_id":"` + g.ID + `","title":"Grow adoption"}`
+	body := `{"goal_id":"` + g.ID + `","title":"Grow adoption","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/objectives", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	handler(rec, req)
@@ -37,13 +37,13 @@ func TestCreateObjective(t *testing.T) {
 }
 
 func TestCreateObjective_MultiplePerGoal(t *testing.T) {
-	mgr := newTestManager(t)
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
-	if _, err := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "First"}); err != nil {
+	mgr, draftID := newTestManagerWithDraft(t)
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	if _, err := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "First"}); err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
 
-	body := `{"goal_id":"` + g.ID + `","title":"Second"}`
+	body := `{"goal_id":"` + g.ID + `","title":"Second","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/objectives", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	routes.CreateObjective(mgr)(rec, req)
@@ -52,7 +52,7 @@ func TestCreateObjective_MultiplePerGoal(t *testing.T) {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/objectives", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/objectives?draft_id="+draftID, nil)
 	listRec := httptest.NewRecorder()
 	routes.ListObjectives(mgr)(listRec, listReq)
 	var out []models.Objective
@@ -65,18 +65,18 @@ func TestCreateObjective_MultiplePerGoal(t *testing.T) {
 }
 
 func TestListRoleAssignmentsForObjective(t *testing.T) {
-	mgr := newTestManager(t)
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
-	role, err := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
+	role, err := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "tech-lead"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable}); err != nil {
+	if _, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{DraftID: draftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/objectives/"+o.ID+"/role-assignments", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/objectives/"+o.ID+"/role-assignments?draft_id="+draftID, nil)
 	listReq.SetPathValue("objectiveID", o.ID)
 	listRec := httptest.NewRecorder()
 	routes.ListRoleAssignmentsForObjective(mgr)(listRec, listReq)

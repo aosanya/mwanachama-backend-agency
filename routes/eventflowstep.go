@@ -43,7 +43,7 @@ func LookupFlowStep(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 			Consumer:     q.Get("consumer"),
 			Code:         q.Get("code"),
 		}
-		out, err := m.LookupFlowStep(r.Context(), lookup)
+		out, err := m.LookupFlowStep(r.Context(), q.Get("draft_id"), lookup)
 		if err != nil {
 			writeEventFlowStepErr(w, err)
 			return
@@ -60,7 +60,7 @@ func ListEventFlowSteps(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		filter := mwanachamaagency.EventFlowStepFilter{Code: q.Get("code"), Name: q.Get("name"), Description: q.Get("description")}
-		out, err := m.ListEventFlowSteps(r.Context(), q.Get("workflow_code"), filter)
+		out, err := m.ListEventFlowSteps(r.Context(), q.Get("draft_id"), q.Get("workflow_code"), filter)
 		if err != nil {
 			writeEventFlowStepErr(w, err)
 			return

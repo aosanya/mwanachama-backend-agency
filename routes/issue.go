@@ -22,12 +22,10 @@ func writeIssueErr(w http.ResponseWriter, err error) {
 	writeErr(w, code, err.Error())
 }
 
-// ListIssues handles both GET /issues (the live Agency) and GET
-// {draftID}/issues (one Draft) — {draftID} is absent, and so reads back
-// "", on the live route. Re-scans before responding (see
-// [mwanachamaagency.AgencyManager.ListIssues]). ?message= narrows by a
-// case-insensitive substring match; ?severity=/?entity_type= narrow by an
-// exact match.
+// ListIssues handles GET {draftID}/issues — re-scans that Draft before
+// responding (see [mwanachamaagency.AgencyManager.ListIssues]). ?message=
+// narrows by a case-insensitive substring match; ?severity=/?entity_type=
+// narrow by an exact match.
 func ListIssues(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
@@ -45,14 +43,12 @@ func ListIssues(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// IssueRoutes is List in both scopes: the top-level names.Issue
-// collection scans the live Agency, the names.Draft/{draftID}-nested one
-// scans that Draft.
+// IssueRoutes is List, nested under names.Draft/{draftID} — every scan
+// names a real Draft (AGD-006), so there is no top-level "scan whatever is
+// live" route any more.
 func IssueRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
 	names = names.withDefaults()
-	handler := ListIssues(m)
 	return []Route{
-		{Method: http.MethodGet, Path: "/" + names.Issue, Handler: handler},
-		{Method: http.MethodGet, Path: "/" + names.Draft + "/{draftID}/" + names.Issue, Handler: handler},
+		{Method: http.MethodGet, Path: "/" + names.Draft + "/{draftID}/" + names.Issue, Handler: ListIssues(m)},
 	}
 }

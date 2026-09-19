@@ -53,7 +53,7 @@ func TestSeedSWELab(t *testing.T) {
 		t.Fatal("expected a \"Review pull request\" work item to have been seeded")
 	}
 
-	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, reviewItem.ObjectiveID, "", mwanachamaagency.RoleAssignmentFilter{})
+	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, reviewItem.ObjectiveID, seed.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
 		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
 	}
@@ -76,13 +76,13 @@ func TestSeedSWELab(t *testing.T) {
 	// The at-most-one-Accountable rule still holds against seeded data.
 	otherRole := seed.Roles["business-analyst"]
 	_, err = mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: otherRole.ID, ObjectiveID: reviewItem.ObjectiveID, Label: models.RACILabelAccountable,
+		DraftID: seed.Draft.ID, RoleID: otherRole.ID, ObjectiveID: reviewItem.ObjectiveID, Label: models.RACILabelAccountable,
 	})
 	if !errors.Is(err, mwanachamaagency.ErrDuplicateAccountable) {
 		t.Fatalf("expected ErrDuplicateAccountable adding a second accountable, got %v", err)
 	}
 
-	pub, err := mgr.PublishAgency(ctx, "", "", "")
+	pub, err := mgr.PublishAgency(ctx, seed.Draft.ID, "", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}

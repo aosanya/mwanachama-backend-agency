@@ -99,8 +99,24 @@ func TestAgencyAndGoalLifecycle(t *testing.T) {
 	}
 
 	result, err = cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
+		Name:      "agency_create_draft",
+		Arguments: map[string]any{"instance_id": "any", "description": "seed"},
+	})
+	if err != nil {
+		t.Fatalf("CallTool agency_create_draft: %v", err)
+	}
+	if result.IsError {
+		t.Fatalf("agency_create_draft: IsError = true (content: %+v)", result.Content)
+	}
+	draftSC, _ := result.StructuredContent.(map[string]any)
+	draftID, _ := draftSC["id"].(string)
+	if draftID == "" {
+		t.Fatalf("agency_create_draft structured content = %+v", result.StructuredContent)
+	}
+
+	result, err = cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name:      "agency_create_goal",
-		Arguments: map[string]any{"instance_id": "any", "title": "Grow membership"},
+		Arguments: map[string]any{"instance_id": "any", "title": "Grow membership", "draft_id": draftID},
 	})
 	if err != nil {
 		t.Fatalf("CallTool agency_create_goal: %v", err)
@@ -111,7 +127,7 @@ func TestAgencyAndGoalLifecycle(t *testing.T) {
 
 	result, err = cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name:      "agency_list_goals",
-		Arguments: map[string]any{"instance_id": "any"},
+		Arguments: map[string]any{"instance_id": "any", "draft_id": draftID},
 	})
 	if err != nil {
 		t.Fatalf("CallTool agency_list_goals: %v", err)
@@ -132,11 +148,46 @@ func TestDesignFromSpec(t *testing.T) {
 
 	cs := mcpConnect(t, srv.URL)
 
+	// The spec's own "agency" section — creates it since none exists yet.
+	// This step alone needs no draft_id: CreateAgency isn't Draft-scoped.
 	result, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name: "agency_design_from_spec",
 		Arguments: map[string]any{
 			"instance_id": "any",
 			"agency":      map[string]any{"name": "SWELab"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool agency_design_from_spec (agency only): %v", err)
+	}
+	if result.IsError {
+		t.Fatalf("agency_design_from_spec (agency only): IsError = true (content: %+v)", result.Content)
+	}
+	got, _ := result.StructuredContent.(map[string]any)
+	if got["agency_created"] != true {
+		t.Fatalf("agency_design_from_spec structured content = %+v", result.StructuredContent)
+	}
+
+	// Everything else — Goal/Objective — belongs to a Draft (AGD-006), so
+	// that needs one forked first.
+	result, err = cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
+		Name:      "agency_create_draft",
+		Arguments: map[string]any{"instance_id": "any", "description": "seed"},
+	})
+	if err != nil {
+		t.Fatalf("CallTool agency_create_draft: %v", err)
+	}
+	draftSC, _ := result.StructuredContent.(map[string]any)
+	draftID, _ := draftSC["id"].(string)
+	if draftID == "" {
+		t.Fatalf("agency_create_draft structured content = %+v", result.StructuredContent)
+	}
+
+	result, err = cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
+		Name: "agency_design_from_spec",
+		Arguments: map[string]any{
+			"instance_id": "any",
+			"draft_id":    draftID,
 			"goals":       []map[string]any{{"key": "g1", "title": "Grow membership"}},
 			"objectives":  []map[string]any{{"key": "o1", "goal_key": "g1", "title": "Grow membership by 10%"}},
 		},
@@ -147,8 +198,12 @@ func TestDesignFromSpec(t *testing.T) {
 	if result.IsError {
 		t.Fatalf("agency_design_from_spec: IsError = true (content: %+v)", result.Content)
 	}
-	got, _ := result.StructuredContent.(map[string]any)
-	if got["agency_created"] != true {
+	got, _ = result.StructuredContent.(map[string]any)
+	if errs, _ := got["errors"].([]any); len(errs) != 0 {
+		t.Fatalf("agency_design_from_spec unexpected errors: %+v", errs)
+	}
+	goals, _ := got["goals"].(map[string]any)
+	if len(goals) != 1 {
 		t.Fatalf("agency_design_from_spec structured content = %+v", result.StructuredContent)
 	}
 }
@@ -175,11 +230,15 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CallTool agency_create_agency: %v", err)
 	}
-	goal, err := mgr.CreateGoal(ctxT(t), models.Goal{Title: "Ship reliable software"})
+	draft, err := mgr.CreateDraft(ctxT(t), "seed", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	goal, err := mgr.CreateGoal(ctxT(t), models.Goal{DraftID: draft.ID, Title: "Ship reliable software"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
-	objective, err := mgr.CreateObjective(ctxT(t), models.Objective{GoalID: goal.ID, Title: "Ship reliable software"})
+	objective, err := mgr.CreateObjective(ctxT(t), models.Objective{DraftID: draft.ID, GoalID: goal.ID, Title: "Ship reliable software"})
 	if err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
@@ -188,6 +247,7 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 		Name: "agency_design_from_spec",
 		Arguments: map[string]any{
 			"instance_id": "any",
+			"draft_id":    draft.ID,
 			"roles":       []map[string]any{{"key": "r1", "name": "wire-check-role"}},
 			"raci":        []map[string]any{{"role_key": "r1", "objective_id": objective.ID, "label": "informed"}},
 		},
@@ -207,7 +267,7 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 		t.Fatalf("agency_design_from_spec role_assignments = %+v", got["role_assignments"])
 	}
 
-	list, err := mgr.ListRoleAssignmentsForObjective(ctxT(t), objective.ID, "", mwanachamaagency.RoleAssignmentFilter{})
+	list, err := mgr.ListRoleAssignmentsForObjective(ctxT(t), objective.ID, draft.ID, mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
 		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
 	}

@@ -41,7 +41,8 @@ func TestDeleteWorkflow_CascadesWorkItems(t *testing.T) {
 func TestDeleteWorkflow_NoWorkItems(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	w, err := mgr.CreateWorkflow(ctx, models.Workflow{Name: "Lonely workflow"})
+	draftID := newDraftAgency(t, mgr, ctx)
+	w, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Lonely workflow"})
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}

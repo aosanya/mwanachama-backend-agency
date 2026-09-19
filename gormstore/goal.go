@@ -6,13 +6,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// GoalRow is the GORM row for a [models.Goal]. DraftID is nullable (NULL
-// for live), matching ValueRow.ObjectiveID's convention: indexed, no GORM
+// GoalRow is the GORM row for a [models.Goal]. DraftID always names a real
+// Draft (AGD-006 — there is no live row-scope) — indexed, no GORM
 // association.
 type GoalRow struct {
-	ID          string  `gorm:"primaryKey"`
-	Code        string  `gorm:"index"`
-	DraftID     *string `gorm:"index"`
+	ID          string `gorm:"primaryKey"`
+	Code        string `gorm:"index"`
+	DraftID     string `gorm:"index;not null"`
 	Title       string
 	Description string
 	Ordinality  int
@@ -33,7 +33,7 @@ func GoalToRow(g models.Goal) GoalRow {
 	return GoalRow{
 		ID:          g.ID,
 		Code:        g.Code,
-		DraftID:     StringToNullable(g.DraftID),
+		DraftID:     g.DraftID,
 		Title:       g.Title,
 		Description: g.Description,
 		Ordinality:  g.Ordinality,
@@ -48,7 +48,7 @@ func GoalFromRow(r GoalRow) models.Goal {
 	return models.Goal{
 		ID:          r.ID,
 		Code:        r.Code,
-		DraftID:     nullableToString(r.DraftID),
+		DraftID:     r.DraftID,
 		Title:       r.Title,
 		Description: r.Description,
 		Ordinality:  r.Ordinality,

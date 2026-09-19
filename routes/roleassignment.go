@@ -15,11 +15,11 @@ func roleAssignmentStatusFor(err error) int {
 		errors.Is(err, mwanachamaagency.ErrObjectiveNotFound),
 		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, mwanachamaagency.ErrCannotEditLiveRACI),
-		errors.Is(err, mwanachamaagency.ErrDuplicateAccountable),
+	case errors.Is(err, mwanachamaagency.ErrDuplicateAccountable),
 		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
-	case errors.Is(err, mwanachamaagency.ErrInvalidRACILabel):
+	case errors.Is(err, mwanachamaagency.ErrInvalidRACILabel),
+		errors.Is(err, mwanachamaagency.ErrDraftRequired):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
@@ -81,8 +81,7 @@ func ListRoleAssignments(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// UpdateRoleAssignment handles PATCH {assignmentID}. Returns 409 if the
-// target assignment is live — see [mwanachamaagency.ErrCannotEditLiveRACI].
+// UpdateRoleAssignment handles PATCH {assignmentID}.
 func UpdateRoleAssignment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var in models.RoleAssignment
@@ -100,8 +99,7 @@ func UpdateRoleAssignment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	}
 }
 
-// DeleteRoleAssignment handles DELETE {assignmentID}. Returns 409 if the
-// target assignment is live — see [mwanachamaagency.ErrCannotEditLiveRACI].
+// DeleteRoleAssignment handles DELETE {assignmentID}.
 func DeleteRoleAssignment(m mwanachamaagency.AgencyManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := m.DeleteRoleAssignment(r.Context(), r.PathValue("assignmentID")); err != nil {

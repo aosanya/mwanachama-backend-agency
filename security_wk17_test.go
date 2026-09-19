@@ -18,10 +18,11 @@ import (
 func TestCreate_IgnoresCallerSuppliedID_AndCreatedAt(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
 
 	forgedCreatedAt := "1999-01-01T00:00:00Z"
 
-	g, err := mgr.CreateGoal(ctx, models.Goal{ID: "forged-goal-id", Title: "Probe", CreatedAt: forgedCreatedAt})
+	g, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, ID: "forged-goal-id", Title: "Probe", CreatedAt: forgedCreatedAt})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
@@ -35,7 +36,7 @@ func TestCreate_IgnoresCallerSuppliedID_AndCreatedAt(t *testing.T) {
 		t.Fatalf("CreateGoal's stamped created_at %q does not parse as RFC3339: %v", g.CreatedAt, err)
 	}
 
-	ag, err := mgr.CreateAgency(ctx, models.Agency{ID: "forged-agency-id", Name: "Probe Co", CreatedAt: forgedCreatedAt})
+	ag, err := mgr.CreateAgency(ctx, models.Agency{ID: "forged-agency-id", Name: "Probe Co 2", CreatedAt: forgedCreatedAt})
 	if err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
@@ -49,7 +50,7 @@ func TestCreate_IgnoresCallerSuppliedID_AndCreatedAt(t *testing.T) {
 
 // TestCreate_RefusesUnknownDraftID covers the other half of WK17: a
 // caller-supplied draft_id naming no real Draft used to be written
-// verbatim, attaching a live row to a Draft CreateDraft's own fork never
+// verbatim, attaching a row to a Draft CreateDraft's own fork never
 // produced.
 func TestCreate_RefusesUnknownDraftID(t *testing.T) {
 	mgr := newTestManager(t)
@@ -61,35 +62,18 @@ func TestCreate_RefusesUnknownDraftID(t *testing.T) {
 	}
 }
 
-// TestCreate_RefusesPromotedOrArchivedDraftID: a Draft that already
-// finished its lifecycle (promoted or archived) is terminal — a new row
-// attached to it after the fact would never be reachable by any future
-// PromoteDraft/ArchiveDraft call.
-func TestCreate_RefusesPromotedOrArchivedDraftID(t *testing.T) {
+// TestCreate_RefusesArchivedDraftID: a Draft that is already archived is
+// terminal — a new row attached to it after the fact would never be
+// reachable by any future publish.
+func TestCreate_RefusesArchivedDraftID(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
 
-	seedLiveAgency(t, mgr, ctx)
-
-	promoted, err := mgr.CreateDraft(ctx, "will be promoted", "", "live")
-	if err != nil {
-		t.Fatalf("CreateDraft: %v", err)
-	}
-	if _, err := mgr.PromoteDraft(ctx, promoted.ID); err != nil {
-		t.Fatalf("PromoteDraft: %v", err)
-	}
-	if _, err := mgr.CreateGoal(ctx, models.Goal{Title: "Late arrival", DraftID: promoted.ID}); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
-		t.Fatalf("CreateGoal into a promoted draft: got %v, want ErrDraftNotOpen", err)
-	}
-
-	archived, err := mgr.CreateDraft(ctx, "will be archived", "", "live")
-	if err != nil {
-		t.Fatalf("CreateDraft: %v", err)
-	}
-	if _, err := mgr.ArchiveDraft(ctx, archived.ID); err != nil {
+	if _, err := mgr.ArchiveDraft(ctx, draftID); err != nil {
 		t.Fatalf("ArchiveDraft: %v", err)
 	}
-	if _, err := mgr.CreateGoal(ctx, models.Goal{Title: "Late arrival", DraftID: archived.ID}); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
+	if _, err := mgr.CreateGoal(ctx, models.Goal{Title: "Late arrival", DraftID: draftID}); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
 		t.Fatalf("CreateGoal into an archived draft: got %v, want ErrDraftNotOpen", err)
 	}
 }
@@ -101,11 +85,9 @@ func TestCreate_RefusesPromotedOrArchivedDraftID(t *testing.T) {
 func TestCreate_AllowsOpenDraftID(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
 
-	if _, _, _, _, _ = seedLiveAgency(t, mgr, ctx); true {
-	}
-
-	draft, err := mgr.CreateDraft(ctx, "in progress", "", "live")
+	draft, err := mgr.CreateDraft(ctx, "in progress", draftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}

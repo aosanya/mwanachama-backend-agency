@@ -62,11 +62,11 @@ type instanceOnlyParams struct {
 }
 
 // instanceAndDraftParams is the params shape for a List call scoped to a
-// Draft — Goal/Workflow/WorkItem/Role/RoleAssignment's shared nullable-
-// DraftID convention: empty means the live (published) copy.
+// Draft — every Goal/Workflow/WorkItem/Role/RoleAssignment row belongs to
+// one (AGD-006), so DraftID always names a real Draft.
 type instanceAndDraftParams struct {
 	InstanceID string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
-	DraftID    string `json:"draft_id,omitempty" jsonschema:"scope to this Draft's copy; empty means the live (published) copy"`
+	DraftID    string `json:"draft_id" jsonschema:"the Draft to scope to"`
 }
 
 // summary builds a *mcp.CallToolResult carrying a one-line human-readable

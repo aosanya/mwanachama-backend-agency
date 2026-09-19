@@ -1,8 +1,11 @@
 package gormstore
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/aosanya/mwanachama-backend-agency/models"
 	"gorm.io/gorm"
 )
 
@@ -59,7 +62,72 @@ func DefaultTableNames(instance string) TableNames {
 	}
 }
 
-// Migrate creates or updates the tables named by t, then backfills a Code
+// draftScopedTables names every table whose DraftID column is non-nullable
+// (AGD-006 — every row belongs to a real Draft). Driven from a list so
+// [EnsureWorkingDraft]'s pre-migration backfill and the AutoMigrate calls
+// below stay in lockstep with what actually needs one.
+func draftScopedTables(t TableNames) []string {
+	return []string{
+		t.Goals, t.Objectives, t.Workflows, t.WorkItems, t.EventFlowSteps,
+		t.Roles, t.RoleAssignments, t.Modules, t.ObjectiveModules,
+		t.Values, t.Rules, t.Issues,
+	}
+}
+
+// EnsureWorkingDraft guarantees at least one Draft row exists for this
+// Instance and returns its id — the home for BackfillModules' catalog rows
+// and the anchor [backfillLegacyDraftScope] reassigns any pre-AGD-006
+// NULL-scoped row to. Returns the oldest open Draft if any Draft already
+// exists (idempotent across repeated Migrate calls), or creates one
+// ("Initial draft") if the Drafts table is empty — the bootstrap path a
+// brand-new Instance needs, since [AgencyManager.CreateDraft] can no
+// longer fork from a "live" row-scope that doesn't exist (AGD-006).
+func EnsureWorkingDraft(db *gorm.DB, t TableNames) (string, error) {
+	var existing DraftRow
+	err := db.Table(t.Drafts).Where("status = ?", string(models.DraftStatusOpen)).
+		Order("created_at").First(&existing).Error
+	if err == nil {
+		return existing.ID, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", fmt.Errorf("EnsureWorkingDraft: %w", err)
+	}
+	now := models.NowRFC3339()
+	row := DraftRow{
+		Description: "Initial draft",
+		Status:      string(models.DraftStatusOpen),
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+	if err := db.Table(t.Drafts).Create(&row).Error; err != nil {
+		return "", fmt.Errorf("EnsureWorkingDraft: %w", err)
+	}
+	return row.ID, nil
+}
+
+// backfillLegacyDraftScope reassigns every currently NULL/""-scoped row
+// across every table [draftScopedTables] names to draftID, ahead of that
+// table's own AutoMigrate call adding the NOT NULL constraint (AGD-006) —
+// a live ALTER COLUMN ... SET NOT NULL fails outright while NULLs remain.
+// A no-op wherever the table doesn't exist yet (a brand-new Instance has
+// nothing to backfill; AutoMigrate creates the column NOT NULL from
+// scratch) or already carries no such rows (every deployment migrated
+// since AGD-006 shipped).
+func backfillLegacyDraftScope(db *gorm.DB, t TableNames, draftID string) error {
+	for _, table := range draftScopedTables(t) {
+		if !db.Migrator().HasTable(table) {
+			continue
+		}
+		if err := db.Table(table).Where("draft_id IS NULL OR draft_id = ?", "").
+			Updates(map[string]any{"draft_id": draftID}).Error; err != nil {
+			return fmt.Errorf("backfillLegacyDraftScope(%s): %w", table, err)
+		}
+	}
+	return nil
+}
+
+// Migrate creates or updates the tables named by t, backfills any
+// pre-AGD-006 NULL-scoped row into a real Draft, then backfills a Code
 // onto any pre-existing row of a named business-entity type that predates
 // it (see [BackfillCodes]).
 func Migrate(db *gorm.DB, t TableNames) error {
@@ -72,6 +140,15 @@ func Migrate(db *gorm.DB, t TableNames) error {
 	if err := db.Table(t.Drafts).AutoMigrate(&DraftRow{}); err != nil {
 		return err
 	}
+
+	workingDraftID, err := EnsureWorkingDraft(db, t)
+	if err != nil {
+		return err
+	}
+	if err := backfillLegacyDraftScope(db, t, workingDraftID); err != nil {
+		return err
+	}
+
 	if err := db.Table(t.Goals).AutoMigrate(&GoalRow{}); err != nil {
 		return err
 	}
@@ -141,7 +218,7 @@ func Migrate(db *gorm.DB, t TableNames) error {
 	// (AGD-002) — BackfillModules is its own idempotent seed-if-missing
 	// step instead, covering every deployment (fresh or pre-existing) so a
 	// gateway gating routes on Module.Enabled never finds an empty catalog.
-	if err := BackfillModules(db, t.Modules); err != nil {
+	if err := BackfillModules(db, t.Modules, workingDraftID); err != nil {
 		return err
 	}
 	return DropRetiredTables(db, t)

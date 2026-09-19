@@ -7,12 +7,12 @@ import (
 )
 
 // EventFlowStepRow is the GORM row for a [models.EventFlowStep]. DraftID
-// is nullable (NULL for live), same convention as GoalRow/WorkflowRow.
+// always names a real Draft (AGD-006 — there is no live row-scope).
 type EventFlowStepRow struct {
-	ID                 string  `gorm:"primaryKey"`
-	DraftID            *string `gorm:"index"`
-	Code               string  `gorm:"index"`
-	WorkflowCode       string  `gorm:"index"`
+	ID                 string `gorm:"primaryKey"`
+	DraftID            string `gorm:"index;not null"`
+	Code               string `gorm:"index"`
+	WorkflowCode       string `gorm:"index"`
 	Step               string
 	Name               string
 	Description        string
@@ -41,7 +41,7 @@ func (r *EventFlowStepRow) BeforeCreate(_ *gorm.DB) error {
 func EventFlowStepToRow(s models.EventFlowStep) EventFlowStepRow {
 	return EventFlowStepRow{
 		ID:                 s.ID,
-		DraftID:            StringToNullable(s.DraftID),
+		DraftID:            s.DraftID,
 		Code:               s.Code,
 		WorkflowCode:       s.WorkflowCode,
 		Step:               s.Step,
@@ -65,7 +65,7 @@ func EventFlowStepToRow(s models.EventFlowStep) EventFlowStepRow {
 func EventFlowStepFromRow(r EventFlowStepRow) models.EventFlowStep {
 	return models.EventFlowStep{
 		ID:                 r.ID,
-		DraftID:            nullableToString(r.DraftID),
+		DraftID:            r.DraftID,
 		Code:               r.Code,
 		WorkflowCode:       r.WorkflowCode,
 		Step:               r.Step,

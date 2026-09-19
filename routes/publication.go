@@ -10,10 +10,10 @@ import (
 
 func publicationStatusFor(err error) int {
 	switch {
-	case errors.Is(err, mwanachamaagency.ErrPublicationNotFound):
+	case errors.Is(err, mwanachamaagency.ErrPublicationNotFound),
+		errors.Is(err, mwanachamaagency.ErrDraftNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, mwanachamaagency.ErrDraftNotPromoted),
-		errors.Is(err, mwanachamaagency.ErrNoChangesDetected),
+	case errors.Is(err, mwanachamaagency.ErrNoChangesDetected),
 		errors.Is(err, mwanachamaagency.ErrPublishValidationFailed),
 		errors.Is(err, mwanachamaagency.ErrDuplicateTag):
 		return http.StatusConflict

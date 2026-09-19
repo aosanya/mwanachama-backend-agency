@@ -9,32 +9,29 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// AgencyManager is the behavior surface this package exposes: CRUD for the
-// live Agency/Goal/Workflow/WorkItem/EventFlowStep data, the Draft edit
-// lifecycle, and publication.
+// AgencyManager is the behavior surface this package exposes: CRUD for
+// Agency/Goal/Workflow/WorkItem/EventFlowStep data (every one of which
+// always belongs to some Draft — AGD-006, there is no live row-scope), the
+// Draft edit lifecycle, and publication.
 type AgencyManager interface {
 	// Agency. UpdateAgency only ever touches Name/Description —
 	// Mission/Vision were removed 2026-09-10 (AGD-001); Description was
 	// added back 2026-09-11 at the user's explicit request. Nothing else
 	// has asked to edit Enabled/DefaultFailurePipelineBudget/
-	// InactivityTimeoutSeconds/EventFlows yet.
+	// InactivityTimeoutSeconds/EventFlows yet. Agency itself is a
+	// singleton with no DraftID — always directly editable.
 	CreateAgency(ctx context.Context, a models.Agency) (models.Agency, error)
 	GetAgency(ctx context.Context) (models.Agency, error)
 	UpdateAgency(ctx context.Context, a models.Agency) (models.Agency, error)
 
-	// Goal. List's draftID selects scope: "" lists live Goals, a Draft's
-	// ID lists that draft's copies.
+	// Goal. List's draftID selects which Draft's copies to return.
 	CreateGoal(ctx context.Context, g models.Goal) (models.Goal, error)
 	GetGoal(ctx context.Context, id string) (models.Goal, error)
 	ListGoals(ctx context.Context, draftID string, filter GoalFilter) ([]models.Goal, error)
 	UpdateGoal(ctx context.Context, g models.Goal) (models.Goal, error)
 	// DeleteGoal cascades: every Objective scoped to it, and every
 	// RoleAssignment and WorkItem scoped to each of those Objectives, is
-	// deleted too — bypassing RoleAssignment/Objective's own
-	// independent-edit rules (Role's live-immutability check exists to
-	// stop a live RACI row being tampered with piecemeal, not to block a
-	// cascade from the Goal it already hangs off, which itself carries no
-	// such restriction).
+	// deleted too.
 	DeleteGoal(ctx context.Context, id string) error
 
 	// Objective. A Goal may have several — each one a granular unit a
@@ -72,42 +69,45 @@ type AgencyManager interface {
 	// Objective-scoped, AG12), so there is nothing to cascade into.
 	DeleteWorkItem(ctx context.Context, id string) error
 
-	// Draft lifecycle. CreateDraft forks into new rows scoped to the new
-	// Draft. forkedFromType selects the source: "live" forks the working
-	// set (forkedFromID is the Agency's ID), "draft" forks another open
-	// Draft (its ID), and "publication" forks a published tag —
-	// forkedFromID is then the Tag, and the publication's document is
-	// materialized into the Draft rather than rows being copied
-	// ([ErrPublicationNotFound] if no publication carries that tag). That
-	// last one is what "go back to what release-1 was and change one
-	// thing" needs. PromoteDraft replaces the working set with the
-	// Draft's copies; ArchiveDraft discards a Draft without promoting it.
-	// Returns [ErrDraftNotOpen] where noted.
+	// Draft lifecycle. Every business-entity row belongs to some Draft —
+	// there is no live row-scope (AGD-006). CreateDraft forks into new
+	// rows scoped to the new Draft. forkedFromType selects the source:
+	// "" starts an empty Draft (forkedFromID ignored — what a brand-new
+	// Instance or a from-scratch seed like SeedSWELab uses); "draft"
+	// forks another open Draft (forkedFromID is its ID); "publication"
+	// forks a published tag — forkedFromID is then the Tag, and the
+	// publication's document is materialized into the Draft rather than
+	// rows being copied ([ErrPublicationNotFound] if no publication
+	// carries that tag; that's what "go back to what release-1 was and
+	// change one thing" needs). Anything else returns
+	// [ErrInvalidForkSource]. ArchiveDraft discards a Draft; it is the
+	// only terminal transition (there is no "promote" — see
+	// PublishAgency). Returns [ErrDraftNotOpen] where noted.
 	CreateDraft(ctx context.Context, description, forkedFromID, forkedFromType string) (models.Draft, error)
 	GetDraft(ctx context.Context, id string) (models.Draft, error)
 	ListDrafts(ctx context.Context, filter DraftFilter) ([]models.Draft, error)
 	// UpdateDraftDescription returns [ErrDraftNotOpen] if the draft isn't open.
 	UpdateDraftDescription(ctx context.Context, id, description string) (models.Draft, error)
-	// PromoteDraft returns [ErrDraftNotOpen] if the draft isn't open.
-	PromoteDraft(ctx context.Context, id string) (models.Agency, error)
 	// ArchiveDraft returns [ErrDraftNotOpen] if the draft isn't open.
 	ArchiveDraft(ctx context.Context, id string) (models.Draft, error)
 
 	// Publication. A publication carries the whole Agency as a
 	// [models.AgencyDocument], and production operates from that rather
-	// than from the working rows (AGD-005).
+	// than from any Draft's rows directly (AGD-005).
 	//
-	// PublishAgency freezes the working set into a new publication.
-	// draftID, if non-"", is recorded as the Draft that prompted it and
-	// must already be promoted ([ErrDraftNotPromoted] otherwise). tag
-	// names it and must be unused ([ErrDuplicateTag]); "" falls back to
+	// PublishAgency freezes draftID's own rows into a new publication —
+	// no merge step, no promotion; it reads that Draft directly
+	// ([ErrDraftNotFound] if it doesn't exist; it need not be open —
+	// publishing an archived Draft is allowed, and publishing never
+	// changes the Draft's own status, AGD-006). tag names the publication
+	// and must be unused ([ErrDuplicateTag]); "" falls back to
 	// "v<version>". channel is the live channel it serves; "" means
 	// [models.DefaultChannel], and whichever publication held that
 	// channel is archived — publications on other channels keep serving
-	// them. The scan runs first: any error-severity Issue refuses the
-	// publish with [ErrPublishValidationFailed]. Returns
-	// [ErrNoChangesDetected] if the content hash matches an existing
-	// publication.
+	// them. The scan runs first, against draftID: any error-severity
+	// Issue refuses the publish with [ErrPublishValidationFailed].
+	// Returns [ErrNoChangesDetected] if the content hash matches an
+	// existing publication.
 	PublishAgency(ctx context.Context, draftID, tag, channel string) (models.AgencyPublication, error)
 	GetPublication(ctx context.Context, version int) (models.AgencyPublication, error)
 	// GetPublicationForChannel is the production read: whichever
@@ -121,32 +121,32 @@ type AgencyManager interface {
 	// rollback path, so both directions are allowed.
 	SetPublicationChannel(ctx context.Context, version int, channel string) (models.AgencyPublication, error)
 
-	// EventFlowStep
+	// EventFlowStep. Every step belongs to some Draft, same as
+	// Goal/Workflow/WorkItem (AGD-006).
 	CreateEventFlowStep(ctx context.Context, s models.EventFlowStep) (models.EventFlowStep, error)
 	// LookupFlowStep tries lookup.HandlerCode, then
 	// (lookup.TriggerTopic, lookup.Consumer) together, then lookup.Code, in
-	// that order. Returns [ErrInvalidLookup] if none are set.
-	LookupFlowStep(ctx context.Context, lookup models.EventFlowStepLookup) (models.EventFlowStep, error)
-	// ListEventFlowSteps returns live steps ordered by (WorkflowCode,
+	// that order, scoped to draftID. Returns [ErrInvalidLookup] if none are
+	// set.
+	LookupFlowStep(ctx context.Context, draftID string, lookup models.EventFlowStepLookup) (models.EventFlowStep, error)
+	// ListEventFlowSteps returns draftID's steps ordered by (WorkflowCode,
 	// Ordinality, Step), optionally filtered to one workflowCode.
-	ListEventFlowSteps(ctx context.Context, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error)
+	ListEventFlowSteps(ctx context.Context, draftID, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error)
 
-	// Role. A live Role cannot be edited directly — fork a Draft, edit the
-	// draft-scoped copy, then promote. List's draftID selects scope, same
-	// as Goal/Workflow/WorkItem.
+	// Role. Every Role belongs to some Draft and is freely editable there
+	// (AGD-006). List's draftID selects scope, same as Goal/Workflow/
+	// WorkItem.
 	CreateRole(ctx context.Context, r models.Role) (models.Role, error)
 	GetRole(ctx context.Context, id string) (models.Role, error)
 	ListRoles(ctx context.Context, draftID string, filter RoleFilter) ([]models.Role, error)
-	// UpdateRole/DeleteRole return [ErrCannotEditLiveRACI] if the target
-	// row is live. DeleteRole cascades into every RoleAssignment naming
-	// the Role, the mirror of DeleteObjective's cascade from the other
-	// side of the same join table.
+	// DeleteRole cascades into every RoleAssignment naming the Role, the
+	// mirror of DeleteObjective's cascade from the other side of the same
+	// join table.
 	UpdateRole(ctx context.Context, r models.Role) (models.Role, error)
 	DeleteRole(ctx context.Context, id string) error
 
 	// RoleAssignment. Assigns a Role to an Objective with a RACILabel
-	// (moved from WorkItem-scoped 2026-09-10, AGD-001); same
-	// live-immutability rule as Role.
+	// (moved from WorkItem-scoped 2026-09-10, AGD-001).
 	//
 	// CreateRoleAssignment/UpdateRoleAssignment return [ErrInvalidRACILabel]
 	// for an invalid Label, [ErrRoleNotFound]/[ErrObjectiveNotFound] if the
@@ -160,8 +160,6 @@ type AgencyManager interface {
 	// Objective, and with what RACI label" — a caller that needs a
 	// WorkItem's RACI resolves via WorkItem.ObjectiveID first.
 	ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error)
-	// UpdateRoleAssignment/DeleteRoleAssignment return
-	// [ErrCannotEditLiveRACI] if the target row is live.
 	UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
 	DeleteRoleAssignment(ctx context.Context, id string) error
 
@@ -200,14 +198,14 @@ type AgencyManager interface {
 	// Agency-wide: meant to be set once (at Agency creation/seed time)
 	// and never edited — nothing here stops a caller from trying, but
 	// [CreateDraft] never forks one with zero attachments, so
-	// UpdateValue/DeleteValue's [ErrCannotEditLive] check makes it
-	// permanent in practice. One with at least one attachment is
-	// Draft-scoped for Text edits, same live-immutability rule as Role —
-	// but attaching/detaching a target (AGD-003, 2026-09-15) is
-	// live-editable and never goes through the Draft cycle at all, even
-	// on a live row. The write-authorization rule from AGD-001 (only a
-	// target's Accountable may write) is NOT enforced here — flagged as
-	// new machinery needing its own design.
+	// UpdateValue/DeleteValue's [ErrCannotEditLive] check
+	// ([hasAnyAttachment]) makes it permanent in practice. One with at
+	// least one attachment is freely Text-editable within whichever Draft
+	// it belongs to — attaching/detaching a target (AGD-003, 2026-09-15)
+	// is its own always-editable operation, never gated by Draft scope at
+	// all. The write-authorization rule from AGD-001 (only a target's
+	// Accountable may write) is NOT enforced here — flagged as new
+	// machinery needing its own design.
 	CreateValue(ctx context.Context, v models.Value) (models.Value, error)
 	GetValue(ctx context.Context, id string) (models.Value, error)
 	// ListValues' filter can narrow to "attached to this
@@ -245,9 +243,9 @@ type AgencyManager interface {
 
 	// Issue. A system-detected diagnostics list (info/warning/error) — a
 	// dangling reference, an Objective with no Accountable, a Goal with
-	// no Objectives. draftID selects scope like every other scoped read:
-	// "" scans the live Agency, a Draft's id scans that Draft.
-	// ListIssues re-scans on every call: it deletes that scope's existing
+	// no Objectives. draftID selects which Draft to scan, like every
+	// other scoped read. ListIssues re-scans on every call: it deletes
+	// that scope's existing
 	// Issue rows, re-runs every check against its current data,
 	// re-inserts, then returns the (possibly filtered) result — so there
 	// is no Create/Update/Delete surface; nothing here is ever authored

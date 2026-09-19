@@ -24,10 +24,11 @@ import (
 func TestListGoals_PinsLikeFilterWildcardInjection(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
 
 	titles := []string{"Alpha Beta", "Gamma Delta", "Contains_Underscore", "Has%Percent"}
 	for _, title := range titles {
-		if _, err := mgr.CreateGoal(ctx, models.Goal{Title: title, Ordinality: 1}); err != nil {
+		if _, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: title, Ordinality: 1}); err != nil {
 			t.Fatalf("CreateGoal(%q): %v", title, err)
 		}
 	}
@@ -41,7 +42,7 @@ func TestListGoals_PinsLikeFilterWildcardInjection(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		got, err := mgr.ListGoals(ctx, "", mwanachamaagency.GoalFilter{Title: tc.filter})
+		got, err := mgr.ListGoals(ctx, draftID, mwanachamaagency.GoalFilter{Title: tc.filter})
 		if err != nil {
 			t.Fatalf("ListGoals(title=%q): %v", tc.filter, err)
 		}

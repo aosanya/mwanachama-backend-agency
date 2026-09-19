@@ -8,10 +8,10 @@ import (
 
 // ObjectiveModuleRow is the GORM row for a [models.ObjectiveModule].
 type ObjectiveModuleRow struct {
-	ID          string  `gorm:"primaryKey"`
-	DraftID     *string `gorm:"index"`
-	ObjectiveID string  `gorm:"index"`
-	ModuleID    string  `gorm:"index"`
+	ID          string `gorm:"primaryKey"`
+	DraftID     string `gorm:"index;not null"`
+	ObjectiveID string `gorm:"index"`
+	ModuleID    string `gorm:"index"`
 	CreatedAt   string
 	UpdatedAt   string
 	Deleted     bool
@@ -29,7 +29,7 @@ func (r *ObjectiveModuleRow) BeforeCreate(_ *gorm.DB) error {
 func ObjectiveModuleToRow(om models.ObjectiveModule) ObjectiveModuleRow {
 	return ObjectiveModuleRow{
 		ID:          om.ID,
-		DraftID:     StringToNullable(om.DraftID),
+		DraftID:     om.DraftID,
 		ObjectiveID: om.ObjectiveID,
 		ModuleID:    om.ModuleID,
 		CreatedAt:   om.CreatedAt,
@@ -42,7 +42,7 @@ func ObjectiveModuleToRow(om models.ObjectiveModule) ObjectiveModuleRow {
 func ObjectiveModuleFromRow(row ObjectiveModuleRow) models.ObjectiveModule {
 	return models.ObjectiveModule{
 		ID:          row.ID,
-		DraftID:     nullableToString(row.DraftID),
+		DraftID:     row.DraftID,
 		ObjectiveID: row.ObjectiveID,
 		ModuleID:    row.ModuleID,
 		CreatedAt:   row.CreatedAt,

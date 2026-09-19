@@ -76,7 +76,7 @@ type mcpAttachModuleParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ObjectiveID string `json:"objective_id" jsonschema:"the Objective's id"`
 	ModuleID    string `json:"module_id" jsonschema:"the Module's id"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"\"\" to link within live data, or the owning Draft's id to link within that Draft's scope — the Objective and Module must both already exist in that same scope"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft to link within — the Objective and Module must both already exist in that same Draft"`
 }
 
 func mcpAttachModule(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpAttachModuleParams) (*mcp.CallToolResult, models.ObjectiveModule, error) {
@@ -93,7 +93,7 @@ func mcpAttachModule(resolve ManagerResolver) func(context.Context, *mcp.CallToo
 type mcpObjectiveModulesParams struct {
 	InstanceID  string `json:"instance_id" jsonschema:"which Agency this operates on, as resolved by the mounting host"`
 	ObjectiveID string `json:"objective_id" jsonschema:"the Objective's id"`
-	DraftID     string `json:"draft_id,omitempty" jsonschema:"scope to this Draft's copy; empty means the live (published) copy"`
+	DraftID     string `json:"draft_id" jsonschema:"the Draft to scope to"`
 	ModuleID    string `json:"module_id,omitempty" jsonschema:"filter: exact match on the linked Module's id"`
 }
 

@@ -11,9 +11,9 @@ import (
 // ValueAttachmentRow now (AGD-003) — this row carries no target reference
 // of its own.
 type ValueRow struct {
-	ID        string  `gorm:"primaryKey"`
-	Code      string  `gorm:"index"`
-	DraftID   *string `gorm:"index"`
+	ID        string `gorm:"primaryKey"`
+	Code      string `gorm:"index"`
+	DraftID   string `gorm:"index;not null"`
 	Text      string
 	CreatedAt string
 	UpdatedAt string
@@ -32,7 +32,7 @@ func ValueToRow(v models.Value) ValueRow {
 	return ValueRow{
 		ID:        v.ID,
 		Code:      v.Code,
-		DraftID:   StringToNullable(v.DraftID),
+		DraftID:   v.DraftID,
 		Text:      v.Text,
 		CreatedAt: v.CreatedAt,
 		UpdatedAt: models.NowRFC3339(),
@@ -45,7 +45,7 @@ func ValueFromRow(r ValueRow) models.Value {
 	return models.Value{
 		ID:          r.ID,
 		Code:        r.Code,
-		DraftID:     nullableToString(r.DraftID),
+		DraftID:     r.DraftID,
 		Text:        r.Text,
 		CreatedAt:   r.CreatedAt,
 		LastUpdated: r.UpdatedAt,

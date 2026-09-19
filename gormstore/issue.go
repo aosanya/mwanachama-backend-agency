@@ -6,12 +6,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// IssueRow is the GORM row for a [models.Issue]. DraftID is nullable
-// (NULL for live), the same convention as GoalRow's — the scan runs
-// against the live Agency as well as against a Draft (AGD-004).
+// IssueRow is the GORM row for a [models.Issue]. DraftID always names a
+// real Draft (AGD-006 — there is no live row-scope; a scan always runs
+// against a specific Draft, AGD-004).
 type IssueRow struct {
-	ID         string  `gorm:"primaryKey"`
-	DraftID    *string `gorm:"index"`
+	ID         string `gorm:"primaryKey"`
+	DraftID    string `gorm:"index;not null"`
 	Severity   string
 	Message    string
 	EntityType string
@@ -30,7 +30,7 @@ func (r *IssueRow) BeforeCreate(_ *gorm.DB) error {
 func IssueToRow(i models.Issue) IssueRow {
 	return IssueRow{
 		ID:         i.ID,
-		DraftID:    StringToNullable(i.DraftID),
+		DraftID:    i.DraftID,
 		Severity:   string(i.Severity),
 		Message:    i.Message,
 		EntityType: i.EntityType,
@@ -43,7 +43,7 @@ func IssueToRow(i models.Issue) IssueRow {
 func IssueFromRow(r IssueRow) models.Issue {
 	return models.Issue{
 		ID:         r.ID,
-		DraftID:    nullableToString(r.DraftID),
+		DraftID:    r.DraftID,
 		Severity:   models.IssueSeverity(r.Severity),
 		Message:    r.Message,
 		EntityType: r.EntityType,

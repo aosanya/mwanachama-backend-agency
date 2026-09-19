@@ -12,15 +12,15 @@ import (
 )
 
 func TestCreateRoleAssignment(t *testing.T) {
-	mgr := newTestManager(t)
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
-	role, err := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
+	role, err := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "tech-lead"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 
-	body := `{"role_id":"` + role.ID + `","objective_id":"` + o.ID + `","label":"accountable"}`
+	body := `{"role_id":"` + role.ID + `","objective_id":"` + o.ID + `","label":"accountable","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/role-assignments", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	routes.CreateRoleAssignment(mgr)(rec, req)
@@ -38,17 +38,17 @@ func TestCreateRoleAssignment(t *testing.T) {
 }
 
 func TestCreateRoleAssignment_DuplicateAccountable(t *testing.T) {
-	mgr := newTestManager(t)
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
-	roleA, _ := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
-	roleB, _ := mgr.CreateRole(t.Context(), models.Role{Name: "developer"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
+	roleA, _ := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "tech-lead"})
+	roleB, _ := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "developer"})
 
-	if _, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: roleA.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable}); err != nil {
+	if _, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{DraftID: draftID, RoleID: roleA.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable}); err != nil {
 		t.Fatalf("CreateRoleAssignment(A): %v", err)
 	}
 
-	body := `{"role_id":"` + roleB.ID + `","objective_id":"` + o.ID + `","label":"accountable"}`
+	body := `{"role_id":"` + roleB.ID + `","objective_id":"` + o.ID + `","label":"accountable","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/role-assignments", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	routes.CreateRoleAssignment(mgr)(rec, req)
@@ -58,12 +58,12 @@ func TestCreateRoleAssignment_DuplicateAccountable(t *testing.T) {
 	}
 }
 
-func TestUpdateRoleAssignment_LiveRefused(t *testing.T) {
-	mgr := newTestManager(t)
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
-	role, _ := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
-	ra, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible})
+func TestUpdateRoleAssignment_WithinDraft(t *testing.T) {
+	mgr, draftID := newTestManagerWithDraft(t)
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
+	role, _ := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "tech-lead"})
+	ra, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{DraftID: draftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
@@ -73,17 +73,17 @@ func TestUpdateRoleAssignment_LiveRefused(t *testing.T) {
 	rec := httptest.NewRecorder()
 	routes.UpdateRoleAssignment(mgr)(rec, req)
 
-	if rec.Code != http.StatusConflict {
+	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 }
 
 func TestGetAndListRoleAssignments(t *testing.T) {
-	mgr := newTestManager(t)
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{GoalID: g.ID, Title: "Grow adoption"})
-	role, _ := mgr.CreateRole(t.Context(), models.Role{Name: "tech-lead"})
-	ra, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible})
+	mgr, draftID := newTestManagerWithDraft(t)
+	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
+	role, _ := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "tech-lead"})
+	ra, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{DraftID: draftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelResponsible})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestGetAndListRoleAssignments(t *testing.T) {
 		t.Fatalf("get status = %d, body = %s", getRec.Code, getRec.Body.String())
 	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/role-assignments", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/role-assignments?draft_id="+draftID, nil)
 	listRec := httptest.NewRecorder()
 	routes.ListRoleAssignments(mgr)(listRec, listReq)
 	if listRec.Code != http.StatusOK {

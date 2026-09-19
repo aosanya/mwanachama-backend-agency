@@ -8,10 +8,10 @@ import (
 
 // RoleAssignmentRow is the GORM row for a [models.RoleAssignment].
 type RoleAssignmentRow struct {
-	ID          string  `gorm:"primaryKey"`
-	DraftID     *string `gorm:"index"`
-	RoleID      string  `gorm:"index"`
-	ObjectiveID string  `gorm:"index"`
+	ID          string `gorm:"primaryKey"`
+	DraftID     string `gorm:"index;not null"`
+	RoleID      string `gorm:"index"`
+	ObjectiveID string `gorm:"index"`
 	Label       string
 	CreatedAt   string
 	UpdatedAt   string
@@ -30,7 +30,7 @@ func (r *RoleAssignmentRow) BeforeCreate(_ *gorm.DB) error {
 func RoleAssignmentToRow(a models.RoleAssignment) RoleAssignmentRow {
 	return RoleAssignmentRow{
 		ID:          a.ID,
-		DraftID:     StringToNullable(a.DraftID),
+		DraftID:     a.DraftID,
 		RoleID:      a.RoleID,
 		ObjectiveID: a.ObjectiveID,
 		Label:       string(a.Label),
@@ -44,7 +44,7 @@ func RoleAssignmentToRow(a models.RoleAssignment) RoleAssignmentRow {
 func RoleAssignmentFromRow(row RoleAssignmentRow) models.RoleAssignment {
 	return models.RoleAssignment{
 		ID:          row.ID,
-		DraftID:     nullableToString(row.DraftID),
+		DraftID:     row.DraftID,
 		RoleID:      row.RoleID,
 		ObjectiveID: row.ObjectiveID,
 		Label:       models.RACILabel(row.Label),

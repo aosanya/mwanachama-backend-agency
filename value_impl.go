@@ -44,11 +44,11 @@ func (m *agencyManager) GetValue(ctx context.Context, id string) (models.Value, 
 	return gormstore.ValueFromRow(row), nil
 }
 
-// ListValues returns live Values when draftID is "", or draftID's
-// draft-scoped copies otherwise, narrowed by filter — including,
+// ListValues returns draftID's Values, narrowed by filter — including,
 // optionally, "only Values attached to this Role/Goal/Objective/Workflow/
-// WorkItem" (AGD-003). Values with no attachment at all (Agency-wide)
-// only ever show up in the "" (live) list — they are never forked.
+// WorkItem" (AGD-003). A Value with no attachment at all (Agency-wide)
+// only ever shows up in whichever one Draft it was created in — it is
+// never forked into any other Draft (see CreateDraft's own doc comment).
 func (m *agencyManager) ListValues(ctx context.Context, draftID string, filter ValueFilter) ([]models.Value, error) {
 	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Values), draftID)
 	q = likeFilter(q, "code", filter.Code)
@@ -76,14 +76,18 @@ func (m *agencyManager) ListValues(ctx context.Context, draftID string, filter V
 
 // UpdateValue replaces v's mutable fields via an explicit column map (see
 // UpdateGoal's doc for why). Returns [ErrCannotEditLive] if the existing
-// row is live — permanent for a Value with no attachments, since nothing
-// ever forks one into a Draft.
+// row carries no attachment — permanent for an Agency-wide Value, since
+// nothing ever forks one into another Draft (see [hasAnyAttachment]).
 func (m *agencyManager) UpdateValue(ctx context.Context, v models.Value) (models.Value, error) {
 	existing, err := m.findValueRow(ctx, m.db, v.ID)
 	if err != nil {
 		return models.Value{}, err
 	}
-	if existing.DraftID == nil {
+	attached, err := hasAnyAttachment(ctx, m.db, m.tables.ValueAttachments, "value_code", existing.Code)
+	if err != nil {
+		return models.Value{}, err
+	}
+	if !attached {
 		return models.Value{}, ErrCannotEditLive
 	}
 	if v.Text == "" {
@@ -101,13 +105,18 @@ func (m *agencyManager) UpdateValue(ctx context.Context, v models.Value) (models
 	return gormstore.ValueFromRow(row), nil
 }
 
-// DeleteValue returns [ErrCannotEditLive] if the target row is live.
+// DeleteValue returns [ErrCannotEditLive] if the target row carries no
+// attachment (see [UpdateValue]'s doc comment).
 func (m *agencyManager) DeleteValue(ctx context.Context, id string) error {
 	existing, err := m.findValueRow(ctx, m.db, id)
 	if err != nil {
 		return err
 	}
-	if existing.DraftID == nil {
+	attached, err := hasAnyAttachment(ctx, m.db, m.tables.ValueAttachments, "value_code", existing.Code)
+	if err != nil {
+		return err
+	}
+	if !attached {
 		return ErrCannotEditLive
 	}
 	if err := m.db.WithContext(ctx).Table(m.tables.Values).Where("id = ?", id).

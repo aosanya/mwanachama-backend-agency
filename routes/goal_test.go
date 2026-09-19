@@ -12,10 +12,10 @@ import (
 )
 
 func TestCreateGoal(t *testing.T) {
-	mgr := newTestManager(t)
+	mgr, draftID := newTestManagerWithDraft(t)
 	handler := routes.CreateGoal(mgr)
 
-	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(`{"title":"Grow adoption"}`))
+	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(`{"title":"Grow adoption","draft_id":"`+draftID+`"}`))
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 
@@ -35,7 +35,7 @@ func TestCreateGoal(t *testing.T) {
 // regression: a caller-supplied id/created_at/draft_id used to be written
 // verbatim by this exact handler.
 func TestCreateGoal_IgnoresForgedFieldsOverHTTP(t *testing.T) {
-	mgr := newTestManager(t)
+	mgr, draftID := newTestManagerWithDraft(t)
 	handler := routes.CreateGoal(mgr)
 
 	body := `{"id":"forged-goal-id","title":"Probe","created_at":"1999-01-01T00:00:00Z","draft_id":"unknown-draft"}`
@@ -48,7 +48,7 @@ func TestCreateGoal_IgnoresForgedFieldsOverHTTP(t *testing.T) {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 
-	body = `{"id":"forged-goal-id","title":"Probe","created_at":"1999-01-01T00:00:00Z"}`
+	body = `{"id":"forged-goal-id","title":"Probe","created_at":"1999-01-01T00:00:00Z","draft_id":"` + draftID + `"}`
 	req = httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(body))
 	rec = httptest.NewRecorder()
 	handler(rec, req)
@@ -99,13 +99,13 @@ func TestGetGoal_NotFound(t *testing.T) {
 }
 
 func TestListAndUpdateGoal(t *testing.T) {
-	mgr := newTestManager(t)
-	g, err := mgr.CreateGoal(t.Context(), models.Goal{Title: "Grow adoption"})
+	mgr, draftID := newTestManagerWithDraft(t)
+	g, err := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
 	if err != nil {
 		t.Fatalf("CreateGoal: %v", err)
 	}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/goals", nil)
+	listReq := httptest.NewRequest(http.MethodGet, "/goals?draft_id="+draftID, nil)
 	listRec := httptest.NewRecorder()
 	routes.ListGoals(mgr)(listRec, listReq)
 	if listRec.Code != http.StatusOK {
