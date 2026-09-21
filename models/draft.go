@@ -1,7 +1,6 @@
 package models
 
-// DraftStatus is a Draft's position in its edit lifecycle. Ported from
-// CodeValdAgency's AgencyDraftStatus.
+// DraftStatus is a Draft's position in its edit lifecycle.
 type DraftStatus string
 
 const (
@@ -18,8 +17,7 @@ func (s DraftStatus) CanTransitionTo(next DraftStatus) bool {
 }
 
 // Draft is a header/pointer entity for an in-progress edit of an Agency's
-// sub-graph — it does not itself carry a copy of that sub-graph. Ported
-// from CodeValdAgency's AgencyDraft, dropping AgencyID (single-agency
+// sub-graph — it does not itself carry a copy of that sub-graph. It omits AgencyID (single-agency
 // deployment, no cross-agency scoping needed yet).
 type Draft struct {
 	ID          string `json:"id"`

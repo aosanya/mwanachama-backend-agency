@@ -1,7 +1,7 @@
 package models
 
-// Goal is a strategic objective belonging to an Agency. Ported from
-// CodeValdAgency's Goal, dropping AgencyID (single-agency deployment, no
+// Goal is a strategic objective belonging to an Agency. It omits
+// AgencyID (single-agency deployment, no
 // cross-agency scoping needed yet).
 type Goal struct {
 	ID string `json:"id"`

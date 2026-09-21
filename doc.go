@@ -1,8 +1,7 @@
 // Package mwanachamaagency models an Agency as a declarative document — an
 // org chart, a strategy (Goals/Objectives, Values/Rules), and a RACI
-// matrix — rather than a live operational store. Ported from the standalone CodeValdAgency
-// gRPC/ArangoDB microservice onto GORM-backed relational storage,
-// following mwanachama-backend-actor's shape as closely as possible. See
+// matrix — rather than a live operational store. Backed by GORM relational
+// storage, following mwanachama-backend-actor's shape as closely as possible. See
 // documentation/1. requirements/requirements.md for the full decision
 // record and documentation/3. implementation/todo.md for build status.
 //

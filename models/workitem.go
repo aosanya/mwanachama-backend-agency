@@ -1,8 +1,7 @@
 package models
 
 // WorkItem is a unit of work owned by exactly one Workflow, and belongs
-// to exactly one Objective it advances. Ported from CodeValdAgency's
-// WorkItem. As of 2026-09-10 (AGD-001), ObjectiveID replaces the former
+// to exactly one Objective it advances. As of 2026-09-10 (AGD-001), ObjectiveID replaces the former
 // optional GoalID tag — every WorkItem now has an Objective, there is no
 // more "untagged" WorkItem.
 type WorkItem struct {

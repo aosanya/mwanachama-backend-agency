@@ -9,13 +9,12 @@ A standalone Go library, sibling to
 Agency: departments under one Agency, Goals/Workflows/WorkItems, and a RACI
 matrix (Responsible/Accountable/Consulted/Informed) assigning Roles to
 WorkItems. Module path `github.com/aosanya/mwanachama-backend-agency` (not
-yet scaffolded). Ported from the standalone `CodeValdAgency` gRPC
-microservice at `/Users/tony/Agents/workdir/CodeVald-AIProject/CodeValdAgency` —
+yet scaffolded). Ported from a standalone gRPC microservice —
 see [documentation/1. requirements/requirements.md](documentation/1.%20requirements/requirements.md)
 for the full decision record from the 2026-09-09 scoping session.
 
 Scoped 2026-09-09. No code yet — this session produced the requirements
-record and the initial task board; the actual port from `CodeValdAgency`,
+record and the initial task board; the actual port from the standalone service,
 the GORM conversion, and the new RACI/Role work are follow-up work (see
 [documentation/3. implementation/todo.md](documentation/3.%20implementation/todo.md)).
 
@@ -29,7 +28,7 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   department scoping" is satisfied by simply not adding the field yet, not
   by inventing a placeholder. Revisit when AG5's department type lands and
   a real scoping column is needed.
-- `Draft` ports `CodeValdAgency`'s `AgencyDraft` as a header/pointer type
+- `Draft` ports the source's `AgencyDraft` as a header/pointer type
   only (`ID`, `Description`, `ForkedFromID`/`ForkedFromType`, `Status`,
   timestamps) — it does not carry a copy of the forked sub-graph.
   `AgencySnapshot`, `AgencyPublication`, and the `Draft*` sub-entity shadow
@@ -51,7 +50,7 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   same reasoning as actor's own `models/time.go` doc comment.
 - **AG4 landed 2026-09-09: the first behavior/manager layer.** `AgencyManager`
   interface + `agencyManager` struct live in root `agency.go` (named after
-  the domain, like `CodeValdAgency`'s own `agency.go` — not copying actor's
+  the domain, like the source's own `agency.go` — not copying actor's
   `UserManager`/`user.go` naming). Explicit user instruction: GORM only, no
   ArangoDB/entitygraph concepts, keep it simple.
 - **Draft-scoped rows reuse the live tables via a nullable `DraftID`
@@ -102,12 +101,12 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
   `drafts.go`/`event_flow_steps.go` — out of scope; `CreateEventFlowStep`
   exists for direct population instead.
 - **Resolved, not carried forward from AG3's note:** a peer session
-  grepped `CodeValdAgency/raci.go` directly and confirmed it's genuinely
+  grepped the source's `raci.go` directly and confirmed it's genuinely
   all WorkPlan/`ContextSource` CRUD with zero RACI logic (every
   RACI-labeled hit is in generated proto code) — matching requirements.md's
   original read. AG8 does not need a closer look at it.
 - **AG5 landed 2026-09-09: `Department`/`Level`, the org chart.** Net
-  new — `CodeValdAgency` has no department concept at all. Modeled on
+  new — the source has no department concept at all. Modeled on
   actor's Group/Hierarchy but deliberately smaller: no `Hierarchy`
   container (this repo has exactly one implicit org chart, not actor's
   multi-hierarchy-per-gateway-mount case), no `Attributes`/`Discoverable`/
@@ -1045,7 +1044,7 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
 - Documentation follows the workspace-wide four-phase layout
   (`1. requirements/2. design/3. implementation/4. qa`) — see
   [documentation/README.md](documentation/README.md).
-- Read `CodeValdAgency`'s `agency.go`, `models.go`, `schema.go`, `drafts.go`,
+- Read the source service's `agency.go`, `models.go`, `schema.go`, `drafts.go`,
   `event_flow_steps.go` before porting — they carry the domain logic.
   `raci.go` does NOT implement RACI despite its name (it's WorkPlan/
   ContextSource event-topic routing, stranded under the wrong filename by a

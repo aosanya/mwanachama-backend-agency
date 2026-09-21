@@ -2,8 +2,7 @@ package models
 
 // EventFlowStep is the queryable, structured projection of one step of a
 // Workflow's EventFlows JSON blob: which topic/consumer triggers it, which
-// handler runs it, and what it emits on success or error. Ported
-// from CodeValdAgency's EventFlowStep.
+// handler runs it, and what it emits on success or error.
 type EventFlowStep struct {
 	ID string `json:"id"`
 	// DraftID is "" for a live EventFlowStep, or the owning Draft's ID for
