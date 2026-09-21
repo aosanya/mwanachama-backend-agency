@@ -119,7 +119,7 @@ func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective"}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 

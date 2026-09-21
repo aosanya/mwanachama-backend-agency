@@ -12,6 +12,7 @@ type ObjectiveModuleRow struct {
 	DraftID     string `gorm:"index;not null"`
 	ObjectiveID string `gorm:"index"`
 	ModuleID    string `gorm:"index"`
+	Rationale   string
 	CreatedAt   string
 	UpdatedAt   string
 	Deleted     bool
@@ -32,6 +33,7 @@ func ObjectiveModuleToRow(om models.ObjectiveModule) ObjectiveModuleRow {
 		DraftID:     om.DraftID,
 		ObjectiveID: om.ObjectiveID,
 		ModuleID:    om.ModuleID,
+		Rationale:   om.Rationale,
 		CreatedAt:   om.CreatedAt,
 		UpdatedAt:   models.NowRFC3339(),
 		Deleted:     om.Deleted,
@@ -45,6 +47,7 @@ func ObjectiveModuleFromRow(row ObjectiveModuleRow) models.ObjectiveModule {
 		DraftID:     row.DraftID,
 		ObjectiveID: row.ObjectiveID,
 		ModuleID:    row.ModuleID,
+		Rationale:   row.Rationale,
 		CreatedAt:   row.CreatedAt,
 		LastUpdated: row.UpdatedAt,
 		Deleted:     row.Deleted,

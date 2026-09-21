@@ -122,7 +122,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 	mod := mods[0]
 
 	req := httptest.NewRequest(http.MethodPost, "/objectives/"+objective.ID+"/modules",
-		strings.NewReader(`{"module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
+		strings.NewReader(`{"rationale":"needed","module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
 	req.SetPathValue("objectiveID", objective.ID)
 	rec := httptest.NewRecorder()
 	routes.CreateObjectiveModule(mgr)(rec, req)
@@ -139,7 +139,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 
 	// Duplicate attach is a conflict.
 	dupReq := httptest.NewRequest(http.MethodPost, "/objectives/"+objective.ID+"/modules",
-		strings.NewReader(`{"module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
+		strings.NewReader(`{"rationale":"needed","module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
 	dupReq.SetPathValue("objectiveID", objective.ID)
 	dupRec := httptest.NewRecorder()
 	routes.CreateObjectiveModule(mgr)(dupRec, dupReq)
@@ -193,7 +193,7 @@ func TestCreateObjectiveModule_ObjectiveNotFoundIs404(t *testing.T) {
 		t.Fatalf("ListModules(code=auth): rows=%+v err=%v", mods, err)
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/objectives/unknown/modules", strings.NewReader(`{"module_id":"`+mods[0].ID+`","draft_id":"`+draftID+`"}`))
+	req := httptest.NewRequest(http.MethodPost, "/objectives/unknown/modules", strings.NewReader(`{"rationale":"needed","module_id":"`+mods[0].ID+`","draft_id":"`+draftID+`"}`))
 	req.SetPathValue("objectiveID", "unknown")
 	rec := httptest.NewRecorder()
 	routes.CreateObjectiveModule(mgr)(rec, req)

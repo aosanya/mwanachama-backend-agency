@@ -203,7 +203,7 @@ func TestCreateDraft_ForksModulesAndObjectiveModules(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: seedDraftID, ObjectiveID: o.ID, ModuleID: mod.ID})
+	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: seedDraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective"})
 	if err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}

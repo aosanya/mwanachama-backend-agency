@@ -190,6 +190,10 @@ type AgencyManager interface {
 	// ListObjectiveModulesForObjective answers "which Modules does this
 	// Objective link, in this scope."
 	ListObjectiveModulesForObjective(ctx context.Context, objectiveID, draftID string, filter ObjectiveModuleFilter) ([]models.ObjectiveModule, error)
+	// UpdateObjectiveModule replaces a link's Rationale. Returns
+	// [ErrRationaleRequired] for a blank one and [ErrObjectiveModuleNotFound]
+	// for an unknown id.
+	UpdateObjectiveModule(ctx context.Context, id, rationale string) (models.ObjectiveModule, error)
 	DeleteObjectiveModule(ctx context.Context, id string) error
 
 	// Value/Rule. Plain-text statements an AI agent acting as a Role

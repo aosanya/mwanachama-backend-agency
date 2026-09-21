@@ -38,7 +38,8 @@ func objectiveModuleStatusFor(err error) int {
 	case errors.Is(err, mwanachamaagency.ErrDuplicateObjectiveModule),
 		errors.Is(err, mwanachamaagency.ErrDraftNotOpen):
 		return http.StatusConflict
-	case errors.Is(err, mwanachamaagency.ErrDraftRequired):
+	case errors.Is(err, mwanachamaagency.ErrDraftRequired),
+		errors.Is(err, mwanachamaagency.ErrRationaleRequired):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError

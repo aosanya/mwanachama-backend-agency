@@ -160,7 +160,7 @@ func buildDocument(ctx context.Context, tx *gorm.DB, tables TableNames, draftID 
 		om := gormstore.ObjectiveModuleFromRow(r)
 		linkedModules[om.ModuleID] = true
 		doc.ObjectiveModules = append(doc.ObjectiveModules, models.DocumentObjectiveModule{
-			ObjectiveID: om.ObjectiveID, ModuleID: om.ModuleID,
+			ObjectiveID: om.ObjectiveID, ModuleID: om.ModuleID, Rationale: om.Rationale,
 		})
 	}
 
@@ -306,7 +306,7 @@ func applyDocumentToDraft(ctx context.Context, tx *gorm.DB, tables TableNames, d
 	for _, om := range doc.ObjectiveModules {
 		row := gormstore.ObjectiveModuleToRow(models.ObjectiveModule{
 			DraftID: draftID, ObjectiveID: objectiveIDs[om.ObjectiveID],
-			ModuleID: moduleIDs[om.ModuleID], CreatedAt: now,
+			ModuleID: moduleIDs[om.ModuleID], Rationale: om.Rationale, CreatedAt: now,
 		})
 		if err := tx.WithContext(ctx).Table(tables.ObjectiveModules).Create(&row).Error; err != nil {
 			return fail(err)

@@ -18,7 +18,7 @@ func TestCreateObjectiveModule_ObjectiveNotFound(t *testing.T) {
 		t.Fatalf("CreateModule: %v", err)
 	}
 
-	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: "unknown", ModuleID: mod.ID})
+	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: "unknown", ModuleID: mod.ID, Rationale: "needed for the objective"})
 	if !errors.Is(err, mwanachamaagency.ErrObjectiveNotFound) {
 		t.Fatalf("expected ErrObjectiveNotFound, got %v", err)
 	}
@@ -29,7 +29,7 @@ func TestCreateObjectiveModule_ModuleNotFound(t *testing.T) {
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	_, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: "unknown"})
+	_, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: "unknown", Rationale: "needed for the objective"})
 	if !errors.Is(err, mwanachamaagency.ErrModuleNotFound) {
 		t.Fatalf("expected ErrModuleNotFound, got %v", err)
 	}
@@ -54,9 +54,32 @@ func TestCreateObjectiveModule_ScopeMismatch(t *testing.T) {
 		t.Fatalf("CreateModule(draft-scoped): %v", err)
 	}
 
-	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: d.ID, ObjectiveID: o.ID, ModuleID: draftModule.ID})
+	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: d.ID, ObjectiveID: o.ID, ModuleID: draftModule.ID, Rationale: "needed for the objective"})
 	if !errors.Is(err, mwanachamaagency.ErrObjectiveNotFound) {
 		t.Fatalf("expected ErrObjectiveNotFound linking across two different drafts, got %v", err)
+	}
+}
+
+func TestCreateObjectiveModule_RationaleRequired(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "widgets", Name: "Widgets"})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	for _, blank := range []string{"", "   \n"} {
+		_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: blank})
+		if !errors.Is(err, mwanachamaagency.ErrRationaleRequired) {
+			t.Fatalf("rationale %q: expected ErrRationaleRequired, got %v", blank, err)
+		}
+	}
+	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "  keeps the ledger  "})
+	if err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+	if link.Rationale != "keeps the ledger" {
+		t.Fatalf("rationale not stored trimmed: %q", link.Rationale)
 	}
 }
 
@@ -69,10 +92,10 @@ func TestCreateObjectiveModule_Duplicate(t *testing.T) {
 		t.Fatalf("CreateModule: %v", err)
 	}
 
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective"}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
-	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID})
+	_, err = mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective"})
 	if !errors.Is(err, mwanachamaagency.ErrDuplicateObjectiveModule) {
 		t.Fatalf("expected ErrDuplicateObjectiveModule, got %v", err)
 	}
@@ -91,11 +114,11 @@ func TestObjectiveModule_CreateListDelete(t *testing.T) {
 		t.Fatalf("CreateModule(B): %v", err)
 	}
 
-	linkA, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: modA.ID})
+	linkA, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: modA.ID, Rationale: "needed for the objective"})
 	if err != nil {
 		t.Fatalf("CreateObjectiveModule(A): %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: modB.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: modB.ID, Rationale: "needed for the objective"}); err != nil {
 		t.Fatalf("CreateObjectiveModule(B): %v", err)
 	}
 
@@ -159,7 +182,7 @@ func TestDeleteObjective_LeavesModuleLinkDangling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective"}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
@@ -208,5 +231,37 @@ func TestDeleteObjective_LeavesModuleLinkDangling(t *testing.T) {
 		if iss.EntityType == "objective_module" {
 			t.Fatalf("pinned bug regressed: scan now reports an objective_module issue (%+v) — this test needs updating, not just deleting", iss)
 		}
+	}
+}
+
+func TestUpdateObjectiveModule(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "widgets", Name: "Widgets"})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "first reason"})
+	if err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+
+	if _, err := mgr.UpdateObjectiveModule(ctx, link.ID, "  "); !errors.Is(err, mwanachamaagency.ErrRationaleRequired) {
+		t.Fatalf("blank: expected ErrRationaleRequired, got %v", err)
+	}
+	if _, err := mgr.UpdateObjectiveModule(ctx, "unknown", "x"); !errors.Is(err, mwanachamaagency.ErrObjectiveModuleNotFound) {
+		t.Fatalf("unknown id: expected ErrObjectiveModuleNotFound, got %v", err)
+	}
+	got, err := mgr.UpdateObjectiveModule(ctx, link.ID, " second reason ")
+	if err != nil {
+		t.Fatalf("UpdateObjectiveModule: %v", err)
+	}
+	if got.Rationale != "second reason" || got.ObjectiveID != o.ID || got.ModuleID != mod.ID {
+		t.Fatalf("unexpected link after update: %+v", got)
+	}
+	links, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, o.DraftID, mwanachamaagency.ObjectiveModuleFilter{})
+	if err != nil || len(links) != 1 || links[0].Rationale != "second reason" {
+		t.Fatalf("update not persisted: %+v err=%v", links, err)
 	}
 }

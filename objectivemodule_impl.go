@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -39,7 +40,8 @@ func (m *agencyManager) validateObjectiveModule(ctx context.Context, tx *gorm.DB
 	return nil
 }
 
-// CreateObjectiveModule returns [ErrDuplicateObjectiveModule] if the
+// CreateObjectiveModule returns [ErrRationaleRequired] when om.Rationale is
+// blank, and [ErrDuplicateObjectiveModule] if the
 // (ObjectiveID, ModuleID) pair is already linked in this scope.
 func (m *agencyManager) CreateObjectiveModule(ctx context.Context, om models.ObjectiveModule) (models.ObjectiveModule, error) {
 	if err := m.validateOpenDraftID(ctx, om.DraftID); err != nil {
@@ -47,6 +49,10 @@ func (m *agencyManager) CreateObjectiveModule(ctx context.Context, om models.Obj
 	}
 	if err := m.validateObjectiveModule(ctx, m.db, om); err != nil {
 		return models.ObjectiveModule{}, err
+	}
+	om.Rationale = strings.TrimSpace(om.Rationale)
+	if om.Rationale == "" {
+		return models.ObjectiveModule{}, ErrRationaleRequired
 	}
 	om.ID = ""
 	om.CreatedAt = models.NowRFC3339()
@@ -103,6 +109,24 @@ func (m *agencyManager) ListObjectiveModulesForObjective(ctx context.Context, ob
 		out[i] = gormstore.ObjectiveModuleFromRow(r)
 	}
 	return out, nil
+}
+
+func (m *agencyManager) UpdateObjectiveModule(ctx context.Context, id, rationale string) (models.ObjectiveModule, error) {
+	rationale = strings.TrimSpace(rationale)
+	if rationale == "" {
+		return models.ObjectiveModule{}, ErrRationaleRequired
+	}
+	row, err := m.findObjectiveModuleRow(ctx, m.db, id)
+	if err != nil {
+		return models.ObjectiveModule{}, err
+	}
+	row.Rationale = rationale
+	row.UpdatedAt = models.NowRFC3339()
+	if err := m.db.WithContext(ctx).Table(m.tables.ObjectiveModules).Where("id = ?", id).
+		Updates(map[string]any{"rationale": row.Rationale, "updated_at": row.UpdatedAt}).Error; err != nil {
+		return models.ObjectiveModule{}, fmt.Errorf("UpdateObjectiveModule: %w", err)
+	}
+	return gormstore.ObjectiveModuleFromRow(row), nil
 }
 
 func (m *agencyManager) DeleteObjectiveModule(ctx context.Context, id string) error {

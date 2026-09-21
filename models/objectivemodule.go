@@ -16,6 +16,9 @@ type ObjectiveModule struct {
 	DraftID     string `json:"draft_id,omitempty"`
 	ObjectiveID string `json:"objective_id"`
 	ModuleID    string `json:"module_id"`
+	// Rationale is why this Objective needs this Module; CreateObjectiveModule
+	// rejects a blank one.
+	Rationale   string `json:"rationale"`
 	CreatedAt   string `json:"created_at"`
 	LastUpdated string `json:"last_updated"`
 	Deleted     bool   `json:"deleted"`

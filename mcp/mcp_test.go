@@ -2,8 +2,10 @@ package mcp_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,6 +72,7 @@ func TestRegisterTools_ListsExpectedTools(t *testing.T) {
 		"agency_set_raci",
 		"agency_create_value", "agency_create_rule", "agency_design_from_spec",
 		"agency_list_types",
+		"agency_update_module_rationale", "agency_list_module_objectives",
 	}
 	for _, w := range want {
 		if !names[w] {
@@ -352,5 +355,63 @@ func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T)
 	// fixed.
 	if objectives[0].GoalID != goalTwoID {
 		t.Fatalf("pin: objective.GoalID = %q, want it silently misattributed to Goal Two (%q) — if this now fails, AG33 is fixed", objectives[0].GoalID, goalTwoID)
+	}
+}
+
+func TestModuleLinkTools_UpdateAndInverseList(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := ctxT(t)
+	drafts, err := mgr.ListDrafts(ctx, mwanachamaagency.DraftFilter{})
+	if err != nil || len(drafts) != 1 {
+		t.Fatalf("ListDrafts: %+v err=%v", drafts, err)
+	}
+	draftID := drafts[0].ID
+	goal, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	obj, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: goal.ID, Title: "Onboard members"})
+	if err != nil {
+		t.Fatalf("CreateObjective: %v", err)
+	}
+	mods, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{Code: "auth"})
+	if err != nil || len(mods) != 1 {
+		t.Fatalf("ListModules: %+v err=%v", mods, err)
+	}
+	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: obj.ID, ModuleID: mods[0].ID, Rationale: "signs members in"})
+	if err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	server := newTestServer(mgr)
+	mux.Handle("/mcp", gosdkmcp.NewStreamableHTTPHandler(func(*http.Request) *gosdkmcp.Server { return server }, nil))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	cs := mcpConnect(t, srv.URL)
+
+	blank, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_update_module_rationale",
+		Arguments: map[string]any{"instance_id": "any", "objective_module_id": link.ID, "rationale": " "}})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	if !blank.IsError {
+		t.Fatalf("blank rationale should be a tool error")
+	}
+	upd, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_update_module_rationale",
+		Arguments: map[string]any{"instance_id": "any", "objective_module_id": link.ID, "rationale": "keeps members' identities verified"}})
+	if err != nil || upd.IsError {
+		t.Fatalf("update: err=%v result=%+v", err, upd)
+	}
+	inv, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_list_module_objectives",
+		Arguments: map[string]any{"instance_id": "any", "module_id": mods[0].ID, "draft_id": draftID}})
+	if err != nil || inv.IsError {
+		t.Fatalf("inverse list: err=%v result=%+v", err, inv)
+	}
+	b, _ := json.Marshal(inv)
+	for _, want := range []string{"Onboard members", "Grow adoption", "keeps members' identities verified"} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("inverse list result missing %q: %s", want, b)
+		}
 	}
 }

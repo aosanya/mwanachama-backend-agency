@@ -146,6 +146,26 @@ func ListObjectiveModulesForObjective(m mwanachamaagency.AgencyManager) http.Han
 	}
 }
 
+// UpdateObjectiveModule handles PATCH
+// {objectiveID}/modules/{objectiveModuleID} — body {"rationale": "..."}.
+func UpdateObjectiveModule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Rationale string `json:"rationale"`
+		}
+		if err := readJSON(r, &in); err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		out, err := m.UpdateObjectiveModule(r.Context(), r.PathValue("objectiveModuleID"), in.Rationale)
+		if err != nil {
+			writeObjectiveModuleErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
 // DeleteObjectiveModule handles DELETE
 // {objectiveID}/modules/{objectiveModuleID}.
 func DeleteObjectiveModule(m mwanachamaagency.AgencyManager) http.HandlerFunc {
@@ -173,6 +193,7 @@ func ObjectiveRoutes(m mwanachamaagency.AgencyManager, names ResourceNames) []Ro
 		{Method: http.MethodGet, Path: base + "/{objectiveID}/" + names.RoleAssignment, Handler: ListRoleAssignmentsForObjective(m)},
 		{Method: http.MethodPost, Path: base + "/{objectiveID}/" + names.Module, Handler: CreateObjectiveModule(m)},
 		{Method: http.MethodGet, Path: base + "/{objectiveID}/" + names.Module, Handler: ListObjectiveModulesForObjective(m)},
+		{Method: http.MethodPatch, Path: base + "/{objectiveID}/" + names.Module + "/{objectiveModuleID}", Handler: UpdateObjectiveModule(m)},
 		{Method: http.MethodDelete, Path: base + "/{objectiveID}/" + names.Module + "/{objectiveModuleID}", Handler: DeleteObjectiveModule(m)},
 	}
 }

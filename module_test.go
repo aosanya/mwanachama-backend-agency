@@ -160,7 +160,7 @@ func TestListModules_Filter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: widgets.ID}); err != nil {
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: widgets.ID, Rationale: "needed for the objective"}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
@@ -203,7 +203,7 @@ func TestModuleEnabled_DerivedFromObjectiveLinks(t *testing.T) {
 		t.Fatalf("expected git to start disabled, got %+v", gitMod)
 	}
 
-	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: gitMod.ID})
+	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: gitMod.ID, Rationale: "needed for the objective"})
 	if err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
@@ -266,7 +266,7 @@ func TestModuleEnabled_ScopedToItsOwnDraft(t *testing.T) {
 	}
 
 	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{
-		DraftID: d.ID, ObjectiveID: draftObjectives[0].ID, ModuleID: draftGit.ID,
+		DraftID: d.ID, ObjectiveID: draftObjectives[0].ID, ModuleID: draftGit.ID, Rationale: "needed for the objective",
 	}); err != nil {
 		t.Fatalf("CreateObjectiveModule(draft): %v", err)
 	}

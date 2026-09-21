@@ -119,4 +119,5 @@ type DocumentModule struct {
 type DocumentObjectiveModule struct {
 	ObjectiveID string `json:"objective_id"`
 	ModuleID    string `json:"module_id"`
+	Rationale   string `json:"rationale"`
 }
