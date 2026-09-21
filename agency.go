@@ -41,8 +41,8 @@ type AgencyManager interface {
 	GetObjective(ctx context.Context, id string) (models.Objective, error)
 	ListObjectives(ctx context.Context, draftID string, filter ObjectiveFilter) ([]models.Objective, error)
 	UpdateObjective(ctx context.Context, o models.Objective) (models.Objective, error)
-	// DeleteObjective cascades: every RoleAssignment and WorkItem scoped
-	// to it is deleted too — same bypass of RoleAssignment's own
+	// DeleteObjective cascades: every RoleAssignment, WorkItem and
+	// ObjectiveModule scoped to it is deleted too — same bypass of RoleAssignment's own
 	// independent-edit rule as DeleteGoal's cascade (see its doc comment
 	// above). WorkItem.ObjectiveID is required, so a surviving WorkItem
 	// would be unreachable rather than merely untagged.

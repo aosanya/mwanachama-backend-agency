@@ -19,6 +19,10 @@ func scopeQuery(q *gorm.DB, draftID string) *gorm.DB {
 	return q.Where("draft_id = ?", draftID)
 }
 
+// likeEscaper backslash-escapes the LIKE metacharacters so a caller-supplied
+// value matches literally; the backslash itself is escaped first.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
 // likeFilter chains a case-insensitive substring match on column onto q,
 // or returns q unchanged if value is "". LOWER(x) LIKE ? rather than
 // Postgres-only ILIKE, matching the existing idiom in roleNotFoundError —
@@ -27,7 +31,7 @@ func likeFilter(q *gorm.DB, column, value string) *gorm.DB {
 	if value == "" {
 		return q
 	}
-	return q.Where("LOWER("+column+") LIKE ?", "%"+strings.ToLower(value)+"%")
+	return q.Where("LOWER("+column+") LIKE ? ESCAPE '\\'", "%"+likeEscaper.Replace(strings.ToLower(value))+"%")
 }
 
 // eqFilter chains an exact match on column onto q, or returns q unchanged

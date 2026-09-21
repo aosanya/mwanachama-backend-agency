@@ -117,6 +117,10 @@ func (m *agencyManager) DeleteGoal(ctx context.Context, id string) error {
 				Delete(&gormstore.WorkItemRow{}).Error; err != nil {
 				return err
 			}
+			if err := tx.Table(m.tables.ObjectiveModules).Where("objective_id IN ?", objectiveIDs).
+				Delete(&gormstore.ObjectiveModuleRow{}).Error; err != nil {
+				return err
+			}
 			if err := tx.Table(m.tables.Objectives).Where("goal_id = ?", id).
 				Delete(&gormstore.ObjectiveRow{}).Error; err != nil {
 				return err

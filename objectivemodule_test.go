@@ -157,23 +157,11 @@ func TestDeleteObjectiveModule_NotFound(t *testing.T) {
 	}
 }
 
-// TestDeleteObjective_LeavesModuleLinkDangling pins board row AG31: unlike
-// DeleteObjective's cascade into RoleAssignment/WorkItem (AG27),
-// DeleteObjective never cascades into ObjectiveModule. agency_attach_module's
-// own documented contract is "a Module is enabled exactly while some
-// Objective links it" (mcp/module.go) — deleting the only Objective that
-// linked a Module leaves the ObjectiveModule row behind, so the Module
-// stays permanently Enabled, and AG26's Issue scan (issue_impl.go,
-// checkAttachments/checkRACI/checkWorkItems) has no check for this dangling
-// reference the way it does for WorkItem/RoleAssignment/attachments, so
-// PublishAgency's validation gate never catches it either.
-//
-// This test asserts the CURRENT (broken) behavior. Once fixed —
-// DeleteObjective/DeleteGoal cascading into ObjectiveModule, and/or the
-// Issue scan gaining a check for an ObjectiveModule whose ObjectiveID no
-// longer resolves — this test should go red: `remaining` should be empty
-// and `mod.Enabled` should be false after the Objective is deleted.
-func TestDeleteObjective_LeavesModuleLinkDangling(t *testing.T) {
+// TestDeleteObjective_CascadesIntoObjectiveModule pins the AG31 fix:
+// deleting the only Objective that linked a Module removes the link row too,
+// so the Module reads disabled again ("enabled exactly while some Objective
+// links it", mcp/module.go).
+func TestDeleteObjective_CascadesIntoObjectiveModule(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
@@ -185,13 +173,8 @@ func TestDeleteObjective_LeavesModuleLinkDangling(t *testing.T) {
 	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective"}); err != nil {
 		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
-
-	before, err := mgr.GetModule(ctx, mod.ID)
-	if err != nil {
-		t.Fatalf("GetModule (before delete): %v", err)
-	}
-	if !before.Enabled {
-		t.Fatalf("expected module enabled once linked, got %+v", before)
+	if before, err := mgr.GetModule(ctx, mod.ID); err != nil || !before.Enabled {
+		t.Fatalf("expected module enabled once linked, got %+v (err %v)", before, err)
 	}
 
 	if err := mgr.DeleteObjective(ctx, o.ID); err != nil {
@@ -201,36 +184,43 @@ func TestDeleteObjective_LeavesModuleLinkDangling(t *testing.T) {
 		t.Fatalf("expected the Objective to really be gone, got %v", err)
 	}
 
-	// BUG (AG31): the link row survives the Objective it pointed at.
 	remaining, err := mgr.ListObjectiveModulesForObjective(ctx, o.ID, o.DraftID, mwanachamaagency.ObjectiveModuleFilter{})
 	if err != nil {
 		t.Fatalf("ListObjectiveModulesForObjective: %v", err)
 	}
-	if len(remaining) != 1 {
-		t.Fatalf("pinned bug regressed: expected the dangling link to still be reported (len=1), got %d", len(remaining))
+	if len(remaining) != 0 {
+		t.Fatalf("expected the link to be deleted with its Objective, got %d", len(remaining))
 	}
-
-	// BUG (AG31): the Module stays derived-Enabled forever, since
-	// linkedModuleIDs (module_impl.go) never checks the Objective it found
-	// still exists.
 	after, err := mgr.GetModule(ctx, mod.ID)
 	if err != nil {
 		t.Fatalf("GetModule (after delete): %v", err)
 	}
-	if !after.Enabled {
-		t.Fatalf("pinned bug regressed: expected the module to still read Enabled=true, got %+v", after)
+	if after.Enabled {
+		t.Fatalf("expected the module disabled once its only Objective is gone, got %+v", after)
 	}
+}
 
-	// BUG (AG31): the Issue scan does not flag this dangling reference at
-	// all, so PublishAgency's validation gate never catches it either.
-	issues, err := mgr.ListIssues(ctx, o.DraftID, mwanachamaagency.IssueFilter{})
+func TestDeleteGoal_CascadesIntoObjectiveModule(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, g, o, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "widgets", Name: "Widgets"})
 	if err != nil {
-		t.Fatalf("ListIssues: %v", err)
+		t.Fatalf("CreateModule: %v", err)
 	}
-	for _, iss := range issues {
-		if iss.EntityType == "objective_module" {
-			t.Fatalf("pinned bug regressed: scan now reports an objective_module issue (%+v) — this test needs updating, not just deleting", iss)
-		}
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective"}); err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
+		t.Fatalf("DeleteGoal: %v", err)
+	}
+	after, err := mgr.GetModule(ctx, mod.ID)
+	if err != nil {
+		t.Fatalf("GetModule: %v", err)
+	}
+	if after.Enabled {
+		t.Fatalf("expected the module disabled once its Goal's Objectives are gone, got %+v", after)
 	}
 }
 
