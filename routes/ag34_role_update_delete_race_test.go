@@ -55,8 +55,7 @@ func TestPinsAG34_UpdateRoleCanReport200OverARoleDeleteConcurrentlyRemoved(t *te
 	if err != nil {
 		t.Fatalf("NewAgencyManager: %v", err)
 	}
-	ag, err := mgr.CreateAgency(context.Background(), models.Agency{Name: "AG34 Probe Co"})
-	if err != nil {
+	if _, err := mgr.CreateAgency(context.Background(), models.Agency{Name: "AG34 Probe Co"}); err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}
 
@@ -70,7 +69,9 @@ func TestPinsAG34_UpdateRoleCanReport200OverARoleDeleteConcurrentlyRemoved(t *te
 	const total = 200
 	staleUpdateSucceeded := 0
 	for i := 0; i < total; i++ {
-		d, err := mgr.CreateDraft(context.Background(), fmt.Sprintf("d%d", i), ag.ID, "live")
+		// AGD-006 (AG33-35) removed "live" as a fork type — "" now means
+		// "start empty", which is what this loop wants each iteration.
+		d, err := mgr.CreateDraft(context.Background(), fmt.Sprintf("d%d", i), "", "")
 		if err != nil {
 			t.Fatalf("CreateDraft: %v", err)
 		}

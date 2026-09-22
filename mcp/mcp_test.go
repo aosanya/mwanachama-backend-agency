@@ -300,10 +300,26 @@ func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T)
 
 	cs := mcpConnect(t, srv.URL)
 
+	if _, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
+		Name:      "agency_create_agency",
+		Arguments: map[string]any{"instance_id": "any", "name": "AG33 pin"},
+	}); err != nil {
+		t.Fatalf("CallTool agency_create_agency: %v", err)
+	}
+
+	// AGD-006 (AG33-35) made DraftID non-nullable everywhere — there is no
+	// more "live" scope a Draft-scoped entity can be created against, so
+	// this spec (which creates Goals/Objectives) now needs a real draft_id.
+	draft, err := mgr.CreateDraft(ctxT(t), "AG33 pin", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+
 	result, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name: "agency_design_from_spec",
 		Arguments: map[string]any{
 			"instance_id": "any",
+			"draft_id":    draft.ID,
 			"goals": []map[string]any{
 				{"key": "g1", "title": "Goal One"},
 				{"key": "g1", "title": "Goal Two"},
@@ -326,7 +342,7 @@ func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T)
 		t.Fatalf("pin: current behaviour reports no error for a duplicate spec key, got %+v — if this now fails, AG33 is fixed and should report a duplicate-key error instead", errs)
 	}
 
-	goals, err := mgr.ListGoals(ctxT(t), "", mwanachamaagency.GoalFilter{})
+	goals, err := mgr.ListGoals(ctxT(t), draft.ID, mwanachamaagency.GoalFilter{})
 	if err != nil {
 		t.Fatalf("ListGoals: %v", err)
 	}
@@ -343,7 +359,7 @@ func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T)
 		t.Fatal("could not find Goal Two")
 	}
 
-	objectives, err := mgr.ListObjectives(ctxT(t), "", mwanachamaagency.ObjectiveFilter{})
+	objectives, err := mgr.ListObjectives(ctxT(t), draft.ID, mwanachamaagency.ObjectiveFilter{})
 	if err != nil {
 		t.Fatalf("ListObjectives: %v", err)
 	}
