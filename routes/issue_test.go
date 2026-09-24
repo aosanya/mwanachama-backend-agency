@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 // TestListIssues_ScopedToDraft covers GET {draftID}/issues — every scan
@@ -26,7 +25,7 @@ func TestListIssues_ScopedToDraft(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/drafts/"+draftID+"/issues", nil)
 	req.SetPathValue("draftID", draftID)
 	rec := httptest.NewRecorder()
-	routes.ListIssues(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -53,7 +52,7 @@ func TestListIssues_ObjectiveWithNoAccountable(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/drafts/"+draftID+"/issues", nil)
 	req.SetPathValue("draftID", draftID)
 	rec := httptest.NewRecorder()
-	routes.ListIssues(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -82,7 +81,7 @@ func TestListIssues_FilterBySeverityQueryParam(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/drafts/"+draftID+"/issues?severity=error", nil)
 	req.SetPathValue("draftID", draftID)
 	rec := httptest.NewRecorder()
-	routes.ListIssues(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}

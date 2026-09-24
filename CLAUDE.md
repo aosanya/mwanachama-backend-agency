@@ -1031,16 +1031,36 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
 
 ## Conventions
 
-- Follow `mwanachama-backend-actor`'s shape as closely as possible: `models/`
-  (one file per domain type), `gormstore/` (row structs, `BeforeCreate` UUID
-  minting, `XToRow`/`XFromRow`, `Migrate`/`TableNames`), a `routes/` package,
-  and root `doc.go`/`tables.go`/`*_impl.go` files. Read
-  `mwanachama-backend-actor/CLAUDE.md` first — it documents these decisions
-  in detail (multi-tenancy dropped, recursive tree walks stay Go loops not
-  CTEs, `group_impl.go`/`hierarchy_impl.go` as the pattern for this repo's
-  department modeling).
-- `mcp/`, matching actor/CLAUDE.md's "MCP tools" standard exactly (AG13) —
-  this repo is that standard's reference implementation.
+- **The objects are declared, not written (AGD-007, 2026-09-24).**
+  `agency.blueprint.json` declares every object, field and index;
+  `agency.agency.json` names what this domain calls them; the engine is
+  `mwanachama-backend-shared/spec` and `/specstore`. There are no row
+  structs and no `AutoMigrate` — `gormstore/` was deleted. Adding a field
+  means editing the blueprint and the `models/` type together, and a
+  disagreement between them fails when the manager is built rather than
+  dropping a value on every write. The format's reference is
+  [declared-domains.md](../mwanachama-backend-shared/documentation/2.%20design/declared-domains.md);
+  do not reintroduce the `mwanachama-backend-actor` row-struct shape here.
+- **A table is `<instance>_agency_<table>`** — `agency_agency_goals`. A
+  mount chooses only the instance, through `SpecFor(instance)`, and
+  `Provision(db, spec)` moves a pre-spec database onto the declared names
+  before creating what is missing. An instance segment carries no
+  underscore and has to leave room for a 63-byte identifier, so a long one
+  is refused at startup rather than truncated by Postgres.
+- The column every model calls `LastUpdated` is `last_updated`, not
+  `updated_at` — the store joins a declared column to a Go field by name.
+- `mcp/` no longer hand-writes a tool per manager method (AG41): the
+  per-entity tools come from `agency.operations.json` through
+  `mwanachama-backend-shared/dispatch`, and only the composites, the type
+  glossary, the inverse capability listing and the dashboard are written by
+  hand. A tool's **name is declared** (`"tool": "agency_create_goal"`)
+  because callers hardcode it, its **arguments are snake_case** because they
+  always were, and a **listing is returned as `{"items": [...]}`** because
+  MCP defines `structuredContent` as an object and a bare array fails a
+  spec-strict client (AG13's live failure). Adding a tool means adding an
+  operation; the per-tool conventions in `mwanachama-backend-actor`'s
+  CLAUDE.md still describe what a hand-written surface should look like, and
+  this repo is no longer an example of one.
 - Documentation follows the workspace-wide four-phase layout
   (`1. requirements/2. design/3. implementation/4. qa`) — see
   [documentation/README.md](documentation/README.md).

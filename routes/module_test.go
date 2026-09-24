@@ -9,7 +9,6 @@ import (
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 func TestGetModule_NotFound(t *testing.T) {
@@ -17,7 +16,7 @@ func TestGetModule_NotFound(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/modules/unknown", nil)
 	req.SetPathValue("moduleID", "unknown")
 	rec := httptest.NewRecorder()
-	routes.GetModule(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -34,7 +33,7 @@ func TestListAndGetModule(t *testing.T) {
 
 	listReq := httptest.NewRequest(http.MethodGet, "/modules?draft_id="+draftID+"&code=auth", nil)
 	listRec := httptest.NewRecorder()
-	routes.ListModules(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}
@@ -52,7 +51,7 @@ func TestListAndGetModule(t *testing.T) {
 	getReq := httptest.NewRequest(http.MethodGet, "/modules/"+list[0].ID, nil)
 	getReq.SetPathValue("moduleID", list[0].ID)
 	getRec := httptest.NewRecorder()
-	routes.GetModule(mgr)(getRec, getReq)
+	serve(mgr, getRec, getReq)
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("get status = %d, body = %s", getRec.Code, getRec.Body.String())
 	}
@@ -74,7 +73,7 @@ func TestListModules_DefaultCatalogState(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/modules?draft_id="+draftID, nil)
 	rec := httptest.NewRecorder()
-	routes.ListModules(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -125,7 +124,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 		strings.NewReader(`{"rationale":"needed","module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
 	req.SetPathValue("objectiveID", objective.ID)
 	rec := httptest.NewRecorder()
-	routes.CreateObjectiveModule(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("attach status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -142,7 +141,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 		strings.NewReader(`{"rationale":"needed","module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
 	dupReq.SetPathValue("objectiveID", objective.ID)
 	dupRec := httptest.NewRecorder()
-	routes.CreateObjectiveModule(mgr)(dupRec, dupReq)
+	serve(mgr, dupRec, dupReq)
 	if dupRec.Code != http.StatusConflict {
 		t.Fatalf("expected 409 on duplicate link, got %d: %s", dupRec.Code, dupRec.Body.String())
 	}
@@ -150,7 +149,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 	listReq := httptest.NewRequest(http.MethodGet, "/objectives/"+objective.ID+"/modules?draft_id="+draftID, nil)
 	listReq.SetPathValue("objectiveID", objective.ID)
 	listRec := httptest.NewRecorder()
-	routes.ListObjectiveModulesForObjective(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}
@@ -165,7 +164,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 	delReq := httptest.NewRequest(http.MethodDelete, "/objectives/"+objective.ID+"/modules/"+link.ID, nil)
 	delReq.SetPathValue("objectiveModuleID", link.ID)
 	delRec := httptest.NewRecorder()
-	routes.DeleteObjectiveModule(mgr)(delRec, delReq)
+	serve(mgr, delRec, delReq)
 	if delRec.Code != http.StatusNoContent {
 		t.Fatalf("delete status = %d, body = %s", delRec.Code, delRec.Body.String())
 	}
@@ -173,7 +172,7 @@ func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
 	afterReq := httptest.NewRequest(http.MethodGet, "/objectives/"+objective.ID+"/modules?draft_id="+draftID, nil)
 	afterReq.SetPathValue("objectiveID", objective.ID)
 	afterRec := httptest.NewRecorder()
-	routes.ListObjectiveModulesForObjective(mgr)(afterRec, afterReq)
+	serve(mgr, afterRec, afterReq)
 	var afterLinks []models.ObjectiveModule
 	if err := json.Unmarshal(afterRec.Body.Bytes(), &afterLinks); err != nil {
 		t.Fatalf("unmarshal after-delete links: %v", err)
@@ -196,7 +195,7 @@ func TestCreateObjectiveModule_ObjectiveNotFoundIs404(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/objectives/unknown/modules", strings.NewReader(`{"rationale":"needed","module_id":"`+mods[0].ID+`","draft_id":"`+draftID+`"}`))
 	req.SetPathValue("objectiveID", "unknown")
 	rec := httptest.NewRecorder()
-	routes.CreateObjectiveModule(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}

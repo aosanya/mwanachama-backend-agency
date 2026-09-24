@@ -1,10 +1,16 @@
-// Package mcp exposes mwanachama-backend-agency's manager methods as Model
-// Context Protocol tools — mirroring routes/'s "one file per domain group,
-// each function takes an already-resolved manager" shape, adapted for MCP:
-// mcp.AddTool wires a handler onto the server once, at registration time,
-// not per-call the way routes/ rebuilds Routes(m, names) fresh on every
-// HTTP request — so every tool here closes over a ManagerResolver instead
-// of a concrete manager.
+// Package mcp exposes this module's acts as Model Context Protocol tools.
+//
+// The per-entity tools are not written here: they come from
+// agency.operations.json through mwanachama-backend-shared/dispatch, with
+// each field's prose read off agency.blueprint.json, so a tool and its HTTP
+// address say the same thing because they are the same declaration. What
+// stays hand-written is what a single operation cannot express — the
+// composite that builds a whole design in one call, the static type
+// glossary, the inverse capability listing, and the dashboard.
+//
+// Every tool takes the instance it operates on: one mount serves many
+// Agencies, so the manager is resolved per call through a ManagerResolver
+// and the tool is rebuilt against it.
 package mcp
 
 import (
@@ -26,13 +32,10 @@ type ManagerResolver func(ctx context.Context, id string) (mwanachamaagency.Agen
 // RegisterTools registers every tool this package exposes onto server,
 // each one resolving its manager via resolve.
 func RegisterTools(server *mcp.Server, resolve ManagerResolver) {
-	registerAgencyTools(server, resolve)
-	registerGoalWorkflowTools(server, resolve)
-	registerObjectiveTools(server, resolve)
-	registerRACITools(server, resolve)
-	registerModuleTools(server, resolve)
-	registerValueRuleTools(server, resolve)
-	registerIssueTools(server, resolve)
+	if err := registerDeclaredTools(server, resolve); err != nil {
+		panic(fmt.Sprintf("agency tools: %v", err))
+	}
+	registerModuleObjectivesTool(server, resolve)
 	registerCompositeTools(server, resolve)
 	registerCatalogTools(server)
 	registerDashboardUI(server)

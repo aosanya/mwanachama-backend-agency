@@ -19,12 +19,15 @@ func newTestManager(t *testing.T) mwanachamaagency.AgencyManager {
 		t.Fatalf("gorm.Open: %v", err)
 	}
 
-	tables := mwanachamaagency.DefaultTableNames("mcp_test")
-	if err := mwanachamaagency.Migrate(db, tables); err != nil {
-		t.Fatalf("Migrate: %v", err)
+	s, err := mwanachamaagency.SpecFor("mcptest")
+	if err != nil {
+		t.Fatalf("SpecFor: %v", err)
+	}
+	if err := mwanachamaagency.Provision(db, s); err != nil {
+		t.Fatalf("Provision: %v", err)
 	}
 
-	mgr, err := mwanachamaagency.NewAgencyManager(db, tables)
+	mgr, err := mwanachamaagency.NewAgencyManager(db, s)
 	if err != nil {
 		t.Fatalf("NewAgencyManager: %v", err)
 	}

@@ -8,7 +8,6 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/aosanya/mwanachama-backend-agency/gormstore"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -19,86 +18,73 @@ func (m *agencyManager) CreateRole(ctx context.Context, r models.Role) (models.R
 	if err := m.validateOpenDraftID(ctx, r.DraftID); err != nil {
 		return models.Role{}, err
 	}
-	r.ID = ""
+	r.ID = newID()
 	r.CreatedAt = models.NowRFC3339()
-	var row gormstore.RoleRow
-	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "role", "R")
-		if err != nil {
-			return err
-		}
+	r.LastUpdated = r.CreatedAt
+
+	err := m.createWithCode(ctx, roleRole, "role", "R", func(code string) any {
 		r.Code = code
-		row = gormstore.RoleToRow(r)
-		return tx.Table(m.tables.Roles).Create(&row).Error
+		return r
 	})
 	if err != nil {
 		return models.Role{}, fmt.Errorf("CreateRole: %w", err)
 	}
-	return gormstore.RoleFromRow(row), nil
+	return r, nil
 }
 
 func (m *agencyManager) GetRole(ctx context.Context, id string) (models.Role, error) {
-	row, err := m.findRoleRow(ctx, m.db, id)
-	if err != nil {
-		return models.Role{}, err
-	}
-	return gormstore.RoleFromRow(row), nil
+	return m.findRole(ctx, m.db, id)
 }
 
-// ListRoles returns draftID's Roles, narrowed by filter.
 func (m *agencyManager) ListRoles(ctx context.Context, draftID string, filter RoleFilter) ([]models.Role, error) {
-	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Roles), draftID)
+	q := scopeQuery(m.q(ctx, roleRole), draftID)
 	q = likeFilter(q, "code", filter.Code)
 	q = likeFilter(q, "name", filter.Name)
 	q = likeFilter(q, "description", filter.Description)
-	var rows []gormstore.RoleRow
-	if err := q.Find(&rows).Error; err != nil {
+
+	out, err := list[models.Role](m, q, roleRole)
+	if err != nil {
 		return nil, fmt.Errorf("ListRoles: %w", err)
-	}
-	out := make([]models.Role, len(rows))
-	for i, row := range rows {
-		out[i] = gormstore.RoleFromRow(row)
 	}
 	return out, nil
 }
 
-// UpdateRole replaces r's mutable fields via an explicit column map (see
-// UpdateGoal's doc for why). Every Role belongs to some open Draft
-// (AGD-006), so there is no live row to refuse editing.
 func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.Role, error) {
-	existing, err := m.findRoleRow(ctx, m.db, r.ID)
-	if err != nil {
-		return models.Role{}, err
-	}
 	if r.Name == "" {
 		return models.Role{}, fmt.Errorf("%w: Role.Name is required", ErrInvalidRole)
 	}
-	row := gormstore.RoleToRow(r)
-	row.CreatedAt = existing.CreatedAt
-	row.Code = existing.Code
-	cols := map[string]any{
-		"name": row.Name, "description": row.Description,
-		"updated_at": row.UpdatedAt, "deleted": row.Deleted,
-	}
-	if err := m.db.WithContext(ctx).Table(m.tables.Roles).Where("id = ?", r.ID).Updates(cols).Error; err != nil {
-		return models.Role{}, fmt.Errorf("UpdateRole: %w", err)
-	}
-	return gormstore.RoleFromRow(row), nil
-}
-
-// DeleteRole deletes the Role and cascades to every RoleAssignment naming
-// it, the mirror of DeleteObjective's cascade from the other side of the
-// same join table.
-func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
-	if _, err := m.findRoleRow(ctx, m.db, id); err != nil {
-		return err
-	}
+	var out models.Role
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Table(m.tables.RoleAssignments).Where("role_id = ?", id).
-			Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+		existing, err := m.findRole(ctx, tx, r.ID)
+		if err != nil {
 			return err
 		}
-		return tx.Table(m.tables.Roles).Where("id = ?", id).Delete(&gormstore.RoleRow{}).Error
+		r.Code = existing.Code
+		r.DraftID = existing.DraftID
+		r.CreatedAt = existing.CreatedAt
+		r.LastUpdated = models.NowRFC3339()
+
+		if err := m.writeUpdate(ctx, tx, roleRole, r.ID, r, ErrRoleNotFound, "draft_id"); err != nil {
+			return err
+		}
+		out = r
+		return nil
+	})
+	if err != nil {
+		return models.Role{}, fmt.Errorf("UpdateRole: %w", err)
+	}
+	return out, nil
+}
+
+func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if _, err := m.findRole(ctx, tx, id); err != nil {
+			return err
+		}
+		if err := m.deleteWhere(ctx, tx, roleRoleAssignment, "role_id = ?", id); err != nil {
+			return err
+		}
+		return m.deleteWhere(ctx, tx, roleRole, "id = ?", id)
 	})
 	if err != nil {
 		return fmt.Errorf("DeleteRole: %w", err)
@@ -106,30 +92,25 @@ func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
 	return nil
 }
 
-func (m *agencyManager) findRoleRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.RoleRow, error) {
-	var row gormstore.RoleRow
-	err := tx.WithContext(ctx).Table(m.tables.Roles).Where("id = ?", id).First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return gormstore.RoleRow{}, m.roleNotFoundError(ctx, tx, id)
+func (m *agencyManager) findRole(ctx context.Context, tx *gorm.DB, id string) (models.Role, error) {
+	var r models.Role
+	err := m.find(ctx, tx, roleRole, id, &r, ErrRoleNotFound)
+	if errors.Is(err, ErrRoleNotFound) {
+		return models.Role{}, m.roleNotFoundError(ctx, tx, id)
 	}
 	if err != nil {
-		return gormstore.RoleRow{}, fmt.Errorf("findRoleRow: %w", err)
+		return models.Role{}, err
 	}
-	return row, nil
+	return r, nil
 }
 
-// roleNotFoundError enriches ErrRoleNotFound with any roles whose Code or
-// Name contains id (case-insensitive) — an AI agent that mistakes a Role's
-// id for its Code/Name (or guesses one from the other, e.g. slugifying
-// "Test" into "test") gets pointed at the real id right in this error,
-// instead of a bare "not found" that costs it another blind round trip.
 func (m *agencyManager) roleNotFoundError(ctx context.Context, tx *gorm.DB, id string) error {
 	pattern := "%" + strings.ToLower(id) + "%"
-	var matches []gormstore.RoleRow
-	tx.WithContext(ctx).Table(m.tables.Roles).
-		Where("LOWER(code) LIKE ? OR LOWER(name) LIKE ?", pattern, pattern).
-		Find(&matches)
-	if len(matches) == 0 {
+	q := tx.WithContext(ctx).Table(m.table(roleRole)).
+		Where("LOWER(code) LIKE ? OR LOWER(name) LIKE ?", pattern, pattern)
+
+	matches, err := list[models.Role](m, q, roleRole)
+	if err != nil || len(matches) == 0 {
 		return ErrRoleNotFound
 	}
 	hints := make([]string, len(matches))

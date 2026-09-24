@@ -1,110 +1,92 @@
 package routes
 
 import (
-	"net/http"
+	"fmt"
+	"sort"
+	"sync"
+
+	"github.com/aosanya/mwanachama-backend-shared/dispatch"
+	"github.com/aosanya/mwanachama-backend-shared/httpwire"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 )
 
-// Route is one address this package answers, relative to wherever the
-// mounting process prefixes it.
-type Route struct {
-	Method  string
-	Path    string
-	Handler http.HandlerFunc
+type Route = httpwire.Route
+
+var operations = sync.OnceValues(func() (*dispatch.Spec, error) {
+	return dispatch.Parse(mwanachamaagency.Operations())
+})
+
+var sentinels = map[string]error{
+	"ErrAgencyNotFound":           mwanachamaagency.ErrAgencyNotFound,
+	"ErrCannotEditLive":           mwanachamaagency.ErrCannotEditLive,
+	"ErrDraftNotFound":            mwanachamaagency.ErrDraftNotFound,
+	"ErrDraftNotOpen":             mwanachamaagency.ErrDraftNotOpen,
+	"ErrDraftRequired":            mwanachamaagency.ErrDraftRequired,
+	"ErrDuplicateAccountable":     mwanachamaagency.ErrDuplicateAccountable,
+	"ErrDuplicateAttachment":      mwanachamaagency.ErrDuplicateAttachment,
+	"ErrDuplicateModule":          mwanachamaagency.ErrDuplicateModule,
+	"ErrDuplicateObjectiveModule": mwanachamaagency.ErrDuplicateObjectiveModule,
+	"ErrDuplicateTag":             mwanachamaagency.ErrDuplicateTag,
+	"ErrEventFlowStepNotFound":    mwanachamaagency.ErrEventFlowStepNotFound,
+	"ErrGoalNotFound":             mwanachamaagency.ErrGoalNotFound,
+	"ErrInvalidForkSource":        mwanachamaagency.ErrInvalidForkSource,
+	"ErrInvalidLookup":            mwanachamaagency.ErrInvalidLookup,
+	"ErrInvalidModule":            mwanachamaagency.ErrInvalidModule,
+	"ErrInvalidRACILabel":         mwanachamaagency.ErrInvalidRACILabel,
+	"ErrInvalidRole":              mwanachamaagency.ErrInvalidRole,
+	"ErrInvalidRule":              mwanachamaagency.ErrInvalidRule,
+	"ErrInvalidTargetType":        mwanachamaagency.ErrInvalidTargetType,
+	"ErrInvalidValue":             mwanachamaagency.ErrInvalidValue,
+	"ErrInvalidWorkItem":          mwanachamaagency.ErrInvalidWorkItem,
+	"ErrModuleNotFound":           mwanachamaagency.ErrModuleNotFound,
+	"ErrNoChangesDetected":        mwanachamaagency.ErrNoChangesDetected,
+	"ErrObjectiveModuleNotFound":  mwanachamaagency.ErrObjectiveModuleNotFound,
+	"ErrObjectiveNotFound":        mwanachamaagency.ErrObjectiveNotFound,
+	"ErrPublicationNotFound":      mwanachamaagency.ErrPublicationNotFound,
+	"ErrPublishValidationFailed":  mwanachamaagency.ErrPublishValidationFailed,
+	"ErrRationaleRequired":        mwanachamaagency.ErrRationaleRequired,
+	"ErrRoleAssignmentNotFound":   mwanachamaagency.ErrRoleAssignmentNotFound,
+	"ErrRoleNotFound":             mwanachamaagency.ErrRoleNotFound,
+	"ErrRuleAttachmentNotFound":   mwanachamaagency.ErrRuleAttachmentNotFound,
+	"ErrRuleNotFound":             mwanachamaagency.ErrRuleNotFound,
+	"ErrValueAttachmentNotFound":  mwanachamaagency.ErrValueAttachmentNotFound,
+	"ErrValueNotFound":            mwanachamaagency.ErrValueNotFound,
+	"ErrWorkItemNotFound":         mwanachamaagency.ErrWorkItemNotFound,
+	"ErrWorkflowNotFound":         mwanachamaagency.ErrWorkflowNotFound,
 }
 
-// Pattern returns the http.ServeMux registration pattern for this route
-// once mounted under prefix.
-func (r Route) Pattern(prefix string) string {
-	return r.Method + " " + prefix + r.Path
+func Build(m mwanachamaagency.AgencyManager) ([]Route, error) {
+	s, err := operations()
+	if err != nil {
+		return nil, err
+	}
+	return dispatch.Dispatch(s, dispatch.Deps{Manager: m, Errors: sentinels})
 }
 
-// ResourceNames configures the URL noun each type is addressed under.
-// Every field defaults to this package's own noun for the type when left
-// "" — a mounting process overrides only the ones its own domain renames.
-type ResourceNames struct {
-	Agency         string
-	Goal           string
-	Objective      string
-	Workflow       string
-	WorkItem       string
-	Draft          string
-	Publication    string
-	EventFlowStep  string
-	Role           string
-	RoleAssignment string
-	Module         string
-	Value          string
-	Rule           string
-	Issue          string
+func Routes(m mwanachamaagency.AgencyManager) []Route {
+	out, err := Build(m)
+	if err != nil {
+		panic(fmt.Sprintf("agency routes: %v", err))
+	}
+	return out
 }
 
-func (n ResourceNames) withDefaults() ResourceNames {
-	if n.Agency == "" {
-		n.Agency = "agency"
+func Shape() []Route {
+	s, err := operations()
+	if err != nil {
+		panic(fmt.Sprintf("agency routes: %v", err))
 	}
-	if n.Goal == "" {
-		n.Goal = "goals"
+	names := make([]string, 0, len(s.Operations))
+	for name := range s.Operations {
+		names = append(names, name)
 	}
-	if n.Objective == "" {
-		n.Objective = "objectives"
-	}
-	if n.Workflow == "" {
-		n.Workflow = "workflows"
-	}
-	if n.WorkItem == "" {
-		n.WorkItem = "work-items"
-	}
-	if n.Draft == "" {
-		n.Draft = "drafts"
-	}
-	if n.Publication == "" {
-		n.Publication = "publications"
-	}
-	if n.EventFlowStep == "" {
-		n.EventFlowStep = "event-flow-steps"
-	}
-	if n.Role == "" {
-		n.Role = "roles"
-	}
-	if n.RoleAssignment == "" {
-		n.RoleAssignment = "role-assignments"
-	}
-	if n.Module == "" {
-		n.Module = "modules"
-	}
-	if n.Value == "" {
-		n.Value = "values"
-	}
-	if n.Rule == "" {
-		n.Rule = "rules"
-	}
-	if n.Issue == "" {
-		n.Issue = "issues"
-	}
-	return n
-}
+	sort.Strings(names)
 
-// Routes is every address this package answers today, sharing one
-// ResourceNames so all of it stays consistent. A mounting process that
-// wants to wrap one domain's routes differently from another's calls the
-// per-domain *Routes functions separately instead.
-func Routes(m mwanachamaagency.AgencyManager, names ResourceNames) []Route {
-	var out []Route
-	out = append(out, AgencyRoutes(m, names)...)
-	out = append(out, GoalRoutes(m, names)...)
-	out = append(out, ObjectiveRoutes(m, names)...)
-	out = append(out, WorkflowRoutes(m, names)...)
-	out = append(out, WorkItemRoutes(m, names)...)
-	out = append(out, DraftRoutes(m, names)...)
-	out = append(out, PublicationRoutes(m, names)...)
-	out = append(out, EventFlowStepRoutes(m, names)...)
-	out = append(out, RoleRoutes(m, names)...)
-	out = append(out, RoleAssignmentRoutes(m, names)...)
-	out = append(out, ModuleRoutes(m, names)...)
-	out = append(out, ValueRoutes(m, names)...)
-	out = append(out, RuleRoutes(m, names)...)
-	out = append(out, IssueRoutes(m, names)...)
+	out := make([]Route, 0, len(names))
+	for _, name := range names {
+		op := s.Operations[name]
+		out = append(out, Route{Method: op.Method, Path: s.Base + op.Path, Action: op.Action})
+	}
 	return out
 }

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 func TestLookupAndListEventFlowSteps(t *testing.T) {
@@ -21,7 +20,7 @@ func TestLookupAndListEventFlowSteps(t *testing.T) {
 
 	lookupReq := httptest.NewRequest(http.MethodGet, "/event-flow-steps/lookup?draft_id="+draftID+"&handler_code=wp-planning-1", nil)
 	lookupRec := httptest.NewRecorder()
-	routes.LookupFlowStep(mgr)(lookupRec, lookupReq)
+	serve(mgr, lookupRec, lookupReq)
 	if lookupRec.Code != http.StatusOK {
 		t.Fatalf("lookup status = %d, body = %s", lookupRec.Code, lookupRec.Body.String())
 	}
@@ -35,7 +34,7 @@ func TestLookupAndListEventFlowSteps(t *testing.T) {
 
 	listReq := httptest.NewRequest(http.MethodGet, "/event-flow-steps?draft_id="+draftID+"&workflow_code=planning", nil)
 	listRec := httptest.NewRecorder()
-	routes.ListEventFlowSteps(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}
@@ -45,7 +44,7 @@ func TestLookupFlowStep_InvalidLookup(t *testing.T) {
 	mgr := newTestManager(t)
 	req := httptest.NewRequest(http.MethodGet, "/event-flow-steps/lookup", nil)
 	rec := httptest.NewRecorder()
-	routes.LookupFlowStep(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())

@@ -40,8 +40,8 @@ type EventFlowStep struct {
 // in precedence order: HandlerCode, then (TriggerTopic, Consumer)
 // together, then Code.
 type EventFlowStepLookup struct {
-	HandlerCode  string
-	TriggerTopic string
-	Consumer     string
-	Code         string
+	HandlerCode  string `query:"handler_code"`
+	TriggerTopic string `query:"trigger_topic"`
+	Consumer     string `query:"consumer"`
+	Code         string `query:"code"`
 }

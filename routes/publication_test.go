@@ -9,7 +9,6 @@ import (
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 // seedPublishableAgency builds the smallest Agency that passes
@@ -61,7 +60,7 @@ func TestPublishAgency_ValidationFailureIsConflict(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":"`+d.ID+`"}`))
 	rec := httptest.NewRecorder()
-	routes.PublishAgency(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -78,7 +77,7 @@ func TestPublishAgency_Tag(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":"`+draftID+`","tag":"launch"}`))
 	rec := httptest.NewRecorder()
-	routes.PublishAgency(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("publish status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -95,7 +94,7 @@ func TestPublishAgency_Tag(t *testing.T) {
 	}
 	dup := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":"`+draftID+`","tag":"launch"}`))
 	dupRec := httptest.NewRecorder()
-	routes.PublishAgency(mgr)(dupRec, dup)
+	serve(mgr, dupRec, dup)
 	if dupRec.Code != http.StatusConflict {
 		t.Fatalf("duplicate-tag status = %d, body = %s", dupRec.Code, dupRec.Body.String())
 	}
@@ -107,7 +106,7 @@ func TestPublishAgencyAndGetPublication(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":"`+draftID+`"}`))
 	rec := httptest.NewRecorder()
-	routes.PublishAgency(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("publish status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -122,7 +121,7 @@ func TestPublishAgencyAndGetPublication(t *testing.T) {
 	// Republishing unchanged content is refused.
 	req2 := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":"`+draftID+`"}`))
 	rec2 := httptest.NewRecorder()
-	routes.PublishAgency(mgr)(rec2, req2)
+	serve(mgr, rec2, req2)
 	if rec2.Code != http.StatusConflict {
 		t.Fatalf("re-publish status = %d, body = %s", rec2.Code, rec2.Body.String())
 	}
@@ -130,14 +129,14 @@ func TestPublishAgencyAndGetPublication(t *testing.T) {
 	getReq := httptest.NewRequest(http.MethodGet, "/publications/1", nil)
 	getReq.SetPathValue("version", "1")
 	getRec := httptest.NewRecorder()
-	routes.GetPublication(mgr)(getRec, getReq)
+	serve(mgr, getRec, getReq)
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("get status = %d, body = %s", getRec.Code, getRec.Body.String())
 	}
 
 	listReq := httptest.NewRequest(http.MethodGet, "/publications", nil)
 	listRec := httptest.NewRecorder()
-	routes.ListPublications(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}
@@ -145,7 +144,7 @@ func TestPublishAgencyAndGetPublication(t *testing.T) {
 	statusReq := httptest.NewRequest(http.MethodPatch, "/publications/1", strings.NewReader(`{"channel":""}`))
 	statusReq.SetPathValue("version", "1")
 	statusRec := httptest.NewRecorder()
-	routes.SetPublicationChannel(mgr)(statusRec, statusReq)
+	serve(mgr, statusRec, statusReq)
 	if statusRec.Code != http.StatusOK {
 		t.Fatalf("update status = %d, body = %s", statusRec.Code, statusRec.Body.String())
 	}
@@ -156,7 +155,7 @@ func TestGetPublication_BadVersion(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/publications/not-a-number", nil)
 	req.SetPathValue("version", "not-a-number")
 	rec := httptest.NewRecorder()
-	routes.GetPublication(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())

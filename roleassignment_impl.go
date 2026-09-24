@@ -7,52 +7,47 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/aosanya/mwanachama-backend-agency/gormstore"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// validateRoleAssignment checks a's Label, that its Role and Objective
-// exist in the same scope (a.DraftID), and — for excludeID != "" on
-// update, "" on create — that no other assignment in that scope already
-// labels the Objective Accountable.
 func (m *agencyManager) validateRoleAssignment(ctx context.Context, tx *gorm.DB, a models.RoleAssignment, excludeID string) error {
 	if !a.Label.Valid() {
 		return ErrInvalidRACILabel
 	}
 
-	var roleRow gormstore.RoleRow
-	err := scopeQuery(tx.WithContext(ctx).Table(m.tables.Roles), a.DraftID).
-		Where("id = ?", a.RoleID).First(&roleRow).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ErrRoleNotFound
-	}
-	if err != nil {
+	var r models.Role
+	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRole)), a.DraftID).Where("id = ?", a.RoleID)
+	if err := m.take(q, roleRole, &r, ErrRoleNotFound); err != nil {
+		if errors.Is(err, ErrRoleNotFound) {
+			return ErrRoleNotFound
+		}
 		return fmt.Errorf("validateRoleAssignment: %w", err)
 	}
 
-	var objectiveRow gormstore.ObjectiveRow
-	err = scopeQuery(tx.WithContext(ctx).Table(m.tables.Objectives), a.DraftID).
-		Where("id = ?", a.ObjectiveID).First(&objectiveRow).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ErrObjectiveNotFound
-	}
-	if err != nil {
+	var o models.Objective
+	q = scopeQuery(tx.WithContext(ctx).Table(m.table(roleObjective)), a.DraftID).Where("id = ?", a.ObjectiveID)
+	if err := m.take(q, roleObjective, &o, ErrObjectiveNotFound); err != nil {
+		if errors.Is(err, ErrObjectiveNotFound) {
+			return ErrObjectiveNotFound
+		}
 		return fmt.Errorf("validateRoleAssignment: %w", err)
 	}
 
-	if a.Label == models.RACILabelAccountable {
-		q := scopeQuery(tx.WithContext(ctx).Table(m.tables.RoleAssignments), a.DraftID).
-			Where("objective_id = ? AND label = ?", a.ObjectiveID, string(models.RACILabelAccountable))
-		if excludeID != "" {
-			q = q.Where("id <> ?", excludeID)
-		}
-		var count int64
-		if err := q.Count(&count).Error; err != nil {
-			return fmt.Errorf("validateRoleAssignment: %w", err)
-		}
-		if count > 0 {
-			return ErrDuplicateAccountable
-		}
+	if a.Label != models.RACILabelAccountable {
+		return nil
+	}
+
+	held := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRoleAssignment)), a.DraftID).
+		Where("objective_id = ? AND label = ?", a.ObjectiveID, string(models.RACILabelAccountable))
+	if excludeID != "" {
+		held = held.Where("id <> ?", excludeID)
+	}
+	var count int64
+	if err := held.Count(&count).Error; err != nil {
+		return fmt.Errorf("validateRoleAssignment: %w", err)
+	}
+	if count > 0 {
+		return ErrDuplicateAccountable
 	}
 	return nil
 }
@@ -64,101 +59,84 @@ func (m *agencyManager) CreateRoleAssignment(ctx context.Context, a models.RoleA
 	if err := m.validateRoleAssignment(ctx, m.db, a, ""); err != nil {
 		return models.RoleAssignment{}, err
 	}
-	a.ID = ""
+	a.ID = newID()
 	a.CreatedAt = models.NowRFC3339()
-	row := gormstore.RoleAssignmentToRow(a)
-	if err := m.db.WithContext(ctx).Table(m.tables.RoleAssignments).Create(&row).Error; err != nil {
+	a.LastUpdated = a.CreatedAt
+
+	if err := m.insert(ctx, roleRoleAssignment, a); err != nil {
 		return models.RoleAssignment{}, fmt.Errorf("CreateRoleAssignment: %w", err)
 	}
-	return gormstore.RoleAssignmentFromRow(row), nil
+	return a, nil
 }
 
 func (m *agencyManager) GetRoleAssignment(ctx context.Context, id string) (models.RoleAssignment, error) {
-	row, err := m.findRoleAssignmentRow(ctx, m.db, id)
-	if err != nil {
-		return models.RoleAssignment{}, err
-	}
-	return gormstore.RoleAssignmentFromRow(row), nil
+	return m.findRoleAssignment(ctx, m.db, id)
 }
 
-// ListRoleAssignments returns draftID's assignments, narrowed by filter.
 func (m *agencyManager) ListRoleAssignments(ctx context.Context, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error) {
-	q := eqFilter(scopeQuery(m.db.WithContext(ctx).Table(m.tables.RoleAssignments), draftID), "label", filter.Label)
-	var rows []gormstore.RoleAssignmentRow
-	if err := q.Find(&rows).Error; err != nil {
+	q := eqFilter(scopeQuery(m.q(ctx, roleRoleAssignment), draftID), "label", filter.Label)
+
+	out, err := list[models.RoleAssignment](m, q, roleRoleAssignment)
+	if err != nil {
 		return nil, fmt.Errorf("ListRoleAssignments: %w", err)
-	}
-	out := make([]models.RoleAssignment, len(rows))
-	for i, row := range rows {
-		out[i] = gormstore.RoleAssignmentFromRow(row)
 	}
 	return out, nil
 }
 
-// ListRoleAssignmentsForObjective answers "who is assigned to this
-// Objective, and with what RACI label" — the lookup a caller (e.g.
-// mwanachama-backend-api-kazi's K6) uses to find who to notify. A caller
-// that only has a WorkItem resolves via WorkItem.ObjectiveID first (RACI
-// moved from WorkItem-scoped to Objective-scoped 2026-09-10, AGD-001).
 func (m *agencyManager) ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error) {
-	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.RoleAssignments), draftID).
-		Where("objective_id = ?", objectiveID)
+	q := scopeQuery(m.q(ctx, roleRoleAssignment), draftID).Where("objective_id = ?", objectiveID)
 	q = eqFilter(q, "label", filter.Label)
-	var rows []gormstore.RoleAssignmentRow
-	err := q.Find(&rows).Error
+
+	out, err := list[models.RoleAssignment](m, q, roleRoleAssignment)
 	if err != nil {
 		return nil, fmt.Errorf("ListRoleAssignmentsForObjective: %w", err)
 	}
-	out := make([]models.RoleAssignment, len(rows))
-	for i, row := range rows {
-		out[i] = gormstore.RoleAssignmentFromRow(row)
+	return out, nil
+}
+
+func (m *agencyManager) UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error) {
+	var out models.RoleAssignment
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		existing, err := m.findRoleAssignment(ctx, tx, a.ID)
+		if err != nil {
+			return err
+		}
+		a.DraftID = existing.DraftID
+		if err := m.validateRoleAssignment(ctx, tx, a, a.ID); err != nil {
+			return err
+		}
+		a.CreatedAt = existing.CreatedAt
+		a.LastUpdated = models.NowRFC3339()
+
+		if err := m.writeUpdate(ctx, tx, roleRoleAssignment, a.ID, a, ErrRoleAssignmentNotFound, "draft_id"); err != nil {
+			return err
+		}
+		out = a
+		return nil
+	})
+	if err != nil {
+		return models.RoleAssignment{}, fmt.Errorf("UpdateRoleAssignment: %w", err)
 	}
 	return out, nil
 }
 
-// UpdateRoleAssignment replaces a's mutable fields via an explicit column
-// map. Every RoleAssignment belongs to some open Draft (AGD-006), so there
-// is no live row to refuse editing.
-func (m *agencyManager) UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error) {
-	existing, err := m.findRoleAssignmentRow(ctx, m.db, a.ID)
-	if err != nil {
-		return models.RoleAssignment{}, err
-	}
-	a.DraftID = gormstore.RoleAssignmentFromRow(existing).DraftID
-	if err := m.validateRoleAssignment(ctx, m.db, a, a.ID); err != nil {
-		return models.RoleAssignment{}, err
-	}
-	row := gormstore.RoleAssignmentToRow(a)
-	row.CreatedAt = existing.CreatedAt
-	cols := map[string]any{
-		"role_id": row.RoleID, "objective_id": row.ObjectiveID, "label": row.Label,
-		"updated_at": row.UpdatedAt, "deleted": row.Deleted,
-	}
-	if err := m.db.WithContext(ctx).Table(m.tables.RoleAssignments).Where("id = ?", a.ID).Updates(cols).Error; err != nil {
-		return models.RoleAssignment{}, fmt.Errorf("UpdateRoleAssignment: %w", err)
-	}
-	return gormstore.RoleAssignmentFromRow(row), nil
-}
-
 func (m *agencyManager) DeleteRoleAssignment(ctx context.Context, id string) error {
-	if _, err := m.findRoleAssignmentRow(ctx, m.db, id); err != nil {
-		return err
-	}
-	if err := m.db.WithContext(ctx).Table(m.tables.RoleAssignments).Where("id = ?", id).
-		Delete(&gormstore.RoleAssignmentRow{}).Error; err != nil {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if _, err := m.findRoleAssignment(ctx, tx, id); err != nil {
+			return err
+		}
+		return m.deleteWhere(ctx, tx, roleRoleAssignment, "id = ?", id)
+	})
+	if err != nil {
 		return fmt.Errorf("DeleteRoleAssignment: %w", err)
 	}
 	return nil
 }
 
-func (m *agencyManager) findRoleAssignmentRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.RoleAssignmentRow, error) {
-	var row gormstore.RoleAssignmentRow
-	err := tx.WithContext(ctx).Table(m.tables.RoleAssignments).Where("id = ?", id).First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return gormstore.RoleAssignmentRow{}, ErrRoleAssignmentNotFound
+func (m *agencyManager) findRoleAssignment(ctx context.Context, tx *gorm.DB, id string) (models.RoleAssignment, error) {
+	var a models.RoleAssignment
+	if err := m.find(ctx, tx, roleRoleAssignment, id, &a, ErrRoleAssignmentNotFound); err != nil {
+		return models.RoleAssignment{}, err
 	}
-	if err != nil {
-		return gormstore.RoleAssignmentRow{}, fmt.Errorf("findRoleAssignmentRow: %w", err)
-	}
-	return row, nil
+	return a, nil
 }

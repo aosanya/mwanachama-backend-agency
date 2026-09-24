@@ -2,72 +2,57 @@ package mwanachamaagency
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
 
-	"github.com/aosanya/mwanachama-backend-agency/gormstore"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
 func (m *agencyManager) CreateAgency(ctx context.Context, a models.Agency) (models.Agency, error) {
-	a.ID = ""
+	a.ID = newID()
 	a.CreatedAt = models.NowRFC3339()
-	row := gormstore.AgencyToRow(a)
-	if err := m.db.WithContext(ctx).Table(m.tables.Agencies).Create(&row).Error; err != nil {
+	a.LastUpdated = a.CreatedAt
+	if err := m.insert(ctx, roleAgency, a); err != nil {
 		return models.Agency{}, fmt.Errorf("CreateAgency: %w", err)
 	}
-	return gormstore.AgencyFromRow(row), nil
+	return a, nil
 }
 
-// GetAgency fetches the sole Agency row (single-agency deployment).
 func (m *agencyManager) GetAgency(ctx context.Context) (models.Agency, error) {
-	row, err := m.findAgencyRow(ctx, m.db)
-	if err != nil {
-		return models.Agency{}, err
-	}
-	return gormstore.AgencyFromRow(row), nil
+	return m.findAgency(ctx, m.db)
 }
 
-// UpdateAgency updates the sole Agency row's name and description
-// (single-agency deployment, same lookup as GetAgency — a's own ID is
-// ignored). Enabled/DefaultFailurePipelineBudget/InactivityTimeoutSeconds/
-// EventFlows/Deleted are untouched; nothing has asked to edit those yet.
-// Mission/Vision were removed 2026-09-10 (AGD-001); Description was added
-// back 2026-09-11 at the user's explicit request.
 func (m *agencyManager) UpdateAgency(ctx context.Context, a models.Agency) (models.Agency, error) {
-	existing, err := m.findAgencyRow(ctx, m.db)
+	var out models.Agency
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		existing, err := m.findAgency(ctx, tx)
+		if err != nil {
+			return err
+		}
+		existing.Name = a.Name
+		existing.Description = a.Description
+		existing.LastUpdated = models.NowRFC3339()
+
+		if err := m.writeUpdate(ctx, tx, roleAgency, existing.ID, existing, ErrAgencyNotFound,
+			"enabled", "default_failure_pipeline_budget", "inactivity_timeout_seconds",
+			"event_flows", "deleted"); err != nil {
+			return err
+		}
+		out = existing
+		return nil
+	})
 	if err != nil {
-		return models.Agency{}, err
-	}
-	a.ID = existing.ID
-	a.CreatedAt = existing.CreatedAt
-	row := gormstore.AgencyToRow(a)
-	cols := map[string]any{
-		"name":        row.Name,
-		"description": row.Description,
-		"updated_at":  row.UpdatedAt,
-	}
-	if err := m.db.WithContext(ctx).Table(m.tables.Agencies).Where("id = ?", existing.ID).Updates(cols).Error; err != nil {
 		return models.Agency{}, fmt.Errorf("UpdateAgency: %w", err)
 	}
-	row.Enabled = existing.Enabled
-	row.DefaultFailurePipelineBudget = existing.DefaultFailurePipelineBudget
-	row.InactivityTimeoutSeconds = existing.InactivityTimeoutSeconds
-	row.EventFlows = existing.EventFlows
-	row.Deleted = existing.Deleted
-	return gormstore.AgencyFromRow(row), nil
+	return out, nil
 }
 
-func (m *agencyManager) findAgencyRow(ctx context.Context, tx *gorm.DB) (gormstore.AgencyRow, error) {
-	var row gormstore.AgencyRow
-	err := tx.WithContext(ctx).Table(m.tables.Agencies).Order("created_at").First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return gormstore.AgencyRow{}, ErrAgencyNotFound
+func (m *agencyManager) findAgency(ctx context.Context, tx *gorm.DB) (models.Agency, error) {
+	var a models.Agency
+	q := tx.WithContext(ctx).Table(m.table(roleAgency)).Order("created_at")
+	if err := m.take(q, roleAgency, &a, ErrAgencyNotFound); err != nil {
+		return models.Agency{}, err
 	}
-	if err != nil {
-		return gormstore.AgencyRow{}, fmt.Errorf("findAgencyRow: %w", err)
-	}
-	return row, nil
+	return a, nil
 }

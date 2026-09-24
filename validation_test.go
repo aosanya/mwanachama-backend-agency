@@ -144,7 +144,7 @@ func TestScan_DanglingWorkItem(t *testing.T) {
 // underneath it. That data still exists in any database that ran the old
 // DeleteRole, which is exactly what the scan is for.
 func TestScan_DanglingRoleAssignment(t *testing.T) {
-	mgr, db, tables := newTestManagerDB(t)
+	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
@@ -159,7 +159,7 @@ func TestScan_DanglingRoleAssignment(t *testing.T) {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
-	if err := db.Table(tables.Roles).Where("id = ?", role.ID).Delete(nil).Error; err != nil {
+	if err := db.Exec("delete from "+tableOf(t, s, "role")+" where id = ?", role.ID).Error; err != nil {
 		t.Fatalf("deleting the Role row directly: %v", err)
 	}
 

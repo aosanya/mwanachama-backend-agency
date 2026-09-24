@@ -1,0 +1,115 @@
+{
+  "module": "agency",
+  "domain": "agency",
+  "instance": "agency",
+  "objects": [
+    {
+      "role": "agency",
+      "name": "agency",
+      "table": "agencies",
+      "description": "The organization this mount serves, of which there is one."
+    },
+    {
+      "role": "draft",
+      "name": "draft",
+      "table": "drafts",
+      "description": "An editable copy of the organization, which is the only thing anybody edits."
+    },
+    {
+      "role": "goal",
+      "name": "goal",
+      "table": "goals",
+      "description": "Something the organization is trying to achieve."
+    },
+    {
+      "role": "objective",
+      "name": "objective",
+      "table": "objectives",
+      "description": "One granular thing under a goal, and the unit a seat is answerable for."
+    },
+    {
+      "role": "workflow",
+      "name": "workflow",
+      "table": "workflows",
+      "description": "A named sequence of work the organization performs."
+    },
+    {
+      "role": "work_item",
+      "name": "work_item",
+      "table": "work_items",
+      "description": "One step of a workflow, with the instruction it is performed from."
+    },
+    {
+      "role": "event_flow_step",
+      "name": "event_flow_step",
+      "table": "event_flow_steps",
+      "description": "One step of a workflow's event flow, from trigger to handler."
+    },
+    {
+      "role": "role",
+      "name": "role",
+      "table": "roles",
+      "description": "A seat somebody or something holds in this organization."
+    },
+    {
+      "role": "role_assignment",
+      "name": "role_assignment",
+      "table": "role_assignments",
+      "description": "One RACI link between a seat and an objective."
+    },
+    {
+      "role": "module",
+      "name": "module",
+      "table": "modules",
+      "description": "One capability from the platform catalog, switched on or off."
+    },
+    {
+      "role": "objective_module",
+      "name": "objective_module",
+      "table": "objective_modules",
+      "description": "The reason one objective needs one capability."
+    },
+    {
+      "role": "value",
+      "name": "value",
+      "table": "values",
+      "description": "Something this organization believes, written down to be read."
+    },
+    {
+      "role": "value_attachment",
+      "name": "value_attachment",
+      "table": "value_attachments",
+      "description": "One place a belief of this organization applies."
+    },
+    {
+      "role": "rule",
+      "name": "rule",
+      "table": "rules",
+      "description": "Something this organization requires or forbids."
+    },
+    {
+      "role": "rule_attachment",
+      "name": "rule_attachment",
+      "table": "rule_attachments",
+      "description": "One place a requirement of this organization applies."
+    },
+    {
+      "role": "issue",
+      "name": "issue",
+      "table": "issues",
+      "description": "Something the validation scan found wrong in a draft."
+    },
+    {
+      "role": "agency_publication",
+      "name": "agency_publication",
+      "table": "agency_publications",
+      "description": "A frozen copy of this organization, and what production runs from."
+    },
+    {
+      "role": "code_sequence",
+      "name": "code_sequence",
+      "table": "code_sequences",
+      "description": "The counter behind each kind of stable handle."
+    }
+  ]
+}

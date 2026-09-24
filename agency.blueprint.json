@@ -1,0 +1,338 @@
+{
+  "module": "agency",
+  "objects": [
+    {
+      "role": "agency",
+      "description": "The organization itself, of which there is exactly one per mounted instance.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "name", "type": "string", "description": "What the organization calls itself.", "required": true},
+        {"name": "description", "type": "text", "description": "What this organization is for, in its own words."},
+        {"name": "enabled", "type": "bool", "description": "Whether anything runs for this organization at all."},
+        {"name": "default_failure_pipeline_budget", "type": "int", "description": "How many times a failing pipeline is retried before it stops."},
+        {"name": "inactivity_timeout_seconds", "type": "int", "description": "How long a run may sit idle before it is abandoned."},
+        {"name": "event_flows", "type": "text", "description": "The raw event-flow definition, kept verbatim; a workflow with none of its own falls back to this."},
+        {"name": "created_at", "type": "timestamp", "description": "When the organization was first written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When anything about it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ]
+    },
+    {
+      "role": "draft",
+      "description": "One editable copy of the whole organization, and the only thing anybody edits.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "description", "type": "text", "description": "What this round of editing is for."},
+        {"name": "forked_from_id", "type": "string", "description": "Another draft's id, or a publication's tag, depending on what this was forked from. Empty for a draft started from nothing."},
+        {"name": "forked_from_type", "type": "string", "description": "Whether this was forked from a draft or from a publication. Empty means it started from nothing."},
+        {"name": "status", "type": "enum", "description": "Whether this draft is still being edited or has been put away.", "default": "open", "values": ["open", "archived"]},
+        {"name": "created_at", "type": "timestamp", "description": "When the draft was forked.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When anything in it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether the draft has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "status", "description": "The drafts listing, which reads the open ones first.", "fields": ["status"]}
+      ]
+    },
+    {
+      "role": "goal",
+      "description": "Something the organization is trying to achieve, broken down by its objectives.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as G-1, minted once and never edited. A draft's copy keeps the code its original had, which is what survives publishing.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "title", "type": "string", "description": "The goal in one line.", "required": true},
+        {"name": "description", "type": "text", "description": "What achieving it would mean."},
+        {"name": "ordinality", "type": "int", "description": "Where it sits in the listed order."},
+        {"name": "created_at", "type": "timestamp", "description": "When the goal was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds a goal by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "objective",
+      "description": "One granular thing under a goal, and the unit a single role is answerable for.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as O-1, minted once and never edited.", "immutable": true},
+        {"name": "goal_id", "type": "string", "description": "The goal this serves. A goal may have several.", "required": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "title", "type": "string", "description": "The objective in one line.", "required": true},
+        {"name": "description", "type": "text", "description": "What meeting it would mean."},
+        {"name": "ordinality", "type": "int", "description": "Where it sits in the listed order."},
+        {"name": "created_at", "type": "timestamp", "description": "When the objective was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds an objective by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "goal", "description": "Reads the objectives under one goal.", "fields": ["goal_id"]}
+      ]
+    },
+    {
+      "role": "workflow",
+      "description": "A named sequence of work the organization performs, made of work items.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as W-1, minted once and never edited. The event-flow steps join to it by this code rather than by row id.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "name", "type": "string", "description": "What this piece of work is called.", "required": true},
+        {"name": "description", "type": "text", "description": "What the sequence accomplishes."},
+        {"name": "ordinality", "type": "int", "description": "Where it sits in the listed order."},
+        {"name": "event_flows", "type": "text", "description": "This workflow's own raw event-flow definition; empty falls back to the organization's."},
+        {"name": "created_at", "type": "timestamp", "description": "When the workflow was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds a workflow by the handle its steps quote.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "work_item",
+      "description": "One step of a workflow, carrying the instruction whoever performs it works from.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as WI-1, minted once and never edited.", "immutable": true},
+        {"name": "workflow_id", "type": "string", "description": "The workflow that owns this step.", "required": true},
+        {"name": "objective_id", "type": "string", "description": "The objective this step serves. Required — there is no untagged work.", "required": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "title", "type": "string", "description": "The step in one line.", "required": true},
+        {"name": "description", "type": "text", "description": "What doing it involves."},
+        {"name": "ordinality", "type": "int", "description": "Where it sits within its workflow."},
+        {"name": "prompt", "type": "text", "description": "The instruction handed to whoever or whatever performs this step."},
+        {"name": "created_at", "type": "timestamp", "description": "When the step was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds a step by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "workflow", "description": "Reads the steps of one workflow, and backs its delete cascade.", "fields": ["workflow_id"]},
+        {"name": "objective", "description": "Reads the work serving one objective.", "fields": ["objective_id"]}
+      ]
+    },
+    {
+      "role": "event_flow_step",
+      "description": "One step of a workflow's event flow: what fires it, what runs it, and what it emits.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "code", "type": "string", "description": "The workflow's code and the step number joined, such as planning:1.1.1.2.1.", "immutable": true},
+        {"name": "workflow_code", "type": "string", "description": "The owning workflow, joined by its stable code rather than by row id.", "required": true},
+        {"name": "step", "type": "string", "description": "The dotted step number from the flow this was read out of."},
+        {"name": "name", "type": "string", "description": "What this step is called."},
+        {"name": "description", "type": "text", "description": "What the step does."},
+        {"name": "step_type", "type": "string", "description": "Whether this starts a flow, calls a function or runs a handler."},
+        {"name": "trigger_topic", "type": "string", "description": "The topic that fires this step. Empty for one that starts a flow."},
+        {"name": "trigger_publisher", "type": "string", "description": "What publishes the firing topic."},
+        {"name": "consumer", "type": "string", "description": "The service that runs this step's handler."},
+        {"name": "handler_code", "type": "string", "description": "Which handler executes the step."},
+        {"name": "emits_topics", "type": "text", "description": "The topics a successful step publishes, comma joined."},
+        {"name": "on_error_emits_topics", "type": "text", "description": "The topics a failing step publishes, comma joined."},
+        {"name": "ordinality", "type": "int", "description": "Where it sits in its flow's order."},
+        {"name": "created_at", "type": "timestamp", "description": "When the step was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds one step by its own composite code.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "workflow_code", "description": "Reads one workflow's steps, which is how a flow is assembled.", "fields": ["workflow_code"]},
+        {"name": "handler_code", "description": "Answers which steps a given handler runs.", "fields": ["handler_code"]}
+      ]
+    },
+    {
+      "role": "role",
+      "description": "A seat somebody or something holds, and what RACI assigns to an objective.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as R-1, minted once and never edited.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "name", "type": "string", "description": "What the seat is called.", "required": true},
+        {"name": "description", "type": "text", "description": "What whoever holds this seat is there to do."},
+        {"name": "created_at", "type": "timestamp", "description": "When the seat was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds a seat by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "role_assignment",
+      "description": "One RACI link: which seat is answerable for which objective, and how.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "role_id", "type": "string", "description": "The seat being assigned. Must be in the same draft as this link.", "required": true},
+        {"name": "objective_id", "type": "string", "description": "The objective it is assigned to. Must be in the same draft as this link.", "required": true},
+        {"name": "label", "type": "enum", "description": "How the seat relates to the objective. At most one accountable per objective.", "required": true, "values": ["responsible", "accountable", "consulted", "informed"]},
+        {"name": "created_at", "type": "timestamp", "description": "When the link was made.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "role", "description": "Answers what one seat is answerable for.", "fields": ["role_id"]},
+        {"name": "objective", "description": "Answers who to notify about one objective.", "fields": ["objective_id"]}
+      ]
+    },
+    {
+      "role": "module",
+      "description": "One capability the organization may switch on, from a fixed catalog.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "The catalog's own name for the capability, such as taskmanager or comm.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "name", "type": "string", "description": "What the capability is called in a listing.", "required": true},
+        {"name": "description", "type": "text", "description": "What switching it on gives the organization."},
+        {"name": "enabled", "type": "bool", "description": "Whether this capability is switched on. Derived from the objectives that link to it, never set directly."},
+        {"name": "locked", "type": "bool", "description": "Whether this capability may never be switched off. The operator door is the only one."},
+        {"name": "created_at", "type": "timestamp", "description": "When the catalog row was seeded.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds a capability by the name the catalog uses.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "objective_module",
+      "description": "One reason an objective needs a capability, which is what switches that capability on.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "objective_id", "type": "string", "description": "The objective doing the needing. Must be in the same draft as this link.", "required": true},
+        {"name": "module_id", "type": "string", "description": "The capability it needs. Must be in the same draft as this link.", "required": true},
+        {"name": "rationale", "type": "text", "description": "Why this objective needs it, which is what a reviewer reads.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When the link was made.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "objective", "description": "Reads what one objective needs.", "fields": ["objective_id"]},
+        {"name": "module", "description": "Reads what needs one capability, which is what decides whether it is on.", "fields": ["module_id"]}
+      ]
+    },
+    {
+      "role": "value",
+      "description": "Something the organization believes, written down so an agent holding a seat can read it.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as V-1. Attachments reference it by this, because a row id does not survive publishing.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "text", "type": "text", "description": "The belief itself, in plain words.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When it was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds one by the handle its attachments quote.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "value_attachment",
+      "description": "One place a belief applies. None at all means it applies to the whole organization.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "value_code", "type": "string", "description": "The belief being attached, by its stable handle rather than its row id.", "required": true},
+        {"name": "target_type", "type": "enum", "description": "What kind of thing it is attached to.", "required": true, "values": ["role", "goal", "objective", "workflow", "work_item"]},
+        {"name": "target_code", "type": "string", "description": "The thing itself, by its stable handle. Resolved against whatever is current on every read.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When the attachment was made.", "immutable": true}
+      ],
+      "indexes": [
+        {"name": "value_code", "description": "Reads everywhere one belief applies.", "fields": ["value_code"]},
+        {"name": "target", "description": "Reads every belief that applies to one thing.", "fields": ["target_type", "target_code"]}
+      ]
+    },
+    {
+      "role": "rule",
+      "description": "Something the organization requires or forbids, written down for whoever holds a seat.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as RU-1. Attachments reference it by this, because a row id does not survive publishing.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "text", "type": "text", "description": "The requirement itself, in plain words.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When it was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds one by the handle its attachments quote.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "rule_attachment",
+      "description": "One place a requirement applies. None at all means it applies to the whole organization.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "rule_code", "type": "string", "description": "The requirement being attached, by its stable handle rather than its row id.", "required": true},
+        {"name": "target_type", "type": "enum", "description": "What kind of thing it is attached to.", "required": true, "values": ["role", "goal", "objective", "workflow", "work_item"]},
+        {"name": "target_code", "type": "string", "description": "The thing itself, by its stable handle. Resolved against whatever is current on every read.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When the attachment was made.", "immutable": true}
+      ],
+      "indexes": [
+        {"name": "rule_code", "description": "Reads everywhere one requirement applies.", "fields": ["rule_code"]},
+        {"name": "target", "description": "Reads every requirement that applies to one thing.", "fields": ["target_type", "target_code"]}
+      ]
+    },
+    {
+      "role": "issue",
+      "description": "Something the validation scan found wrong, and what stands between a draft and publishing.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft that was scanned.", "required": true},
+        {"name": "severity", "type": "enum", "description": "Whether this blocks publishing or only warns.", "required": true, "values": ["info", "warning", "error"]},
+        {"name": "message", "type": "text", "description": "What is wrong, in words a reviewer can act on.", "required": true},
+        {"name": "entity_type", "type": "string", "description": "What kind of thing the finding is about."},
+        {"name": "entity_id", "type": "string", "description": "The thing the finding is about."},
+        {"name": "created_at", "type": "timestamp", "description": "When the scan that found it ran.", "immutable": true}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's findings, and the rescan deletes them the same way.", "fields": ["draft_id"]},
+        {"name": "severity", "description": "The publish gate reads only the blocking ones.", "fields": ["severity"]}
+      ]
+    },
+    {
+      "role": "agency_publication",
+      "description": "A frozen copy of the whole organization, and what anything in production actually runs from.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this was published from."},
+        {"name": "content_hash", "type": "string", "description": "What was published, hashed, so republishing something unchanged can be refused."},
+        {"name": "version", "type": "int", "description": "The counter this publication took, and the key a caller names it by.", "immutable": true},
+        {"name": "tag", "type": "string", "description": "The operator's own name for this publication, unique across all of them.", "required": true, "unique": true},
+        {"name": "channel", "type": "string", "description": "Which live channel serves it — production, staging — or empty for one nothing runs from. At most one publication per channel."},
+        {"name": "document", "type": "json", "description": "The whole organization as published. Empty only for publications written before documents were kept.", "matches": "json_object"},
+        {"name": "published_at", "type": "timestamp", "description": "When it was published.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When its channel was last changed."}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Reads what one draft has published.", "fields": ["draft_id"]},
+        {"name": "content_hash", "description": "Answers whether this exact content has been published before.", "fields": ["content_hash"]},
+        {"name": "version", "description": "Reads the publications in order, and finds the one a caller named.", "fields": ["version"]},
+        {"name": "channel", "description": "The production read: which publication serves this channel.", "fields": ["channel"]}
+      ]
+    },
+    {
+      "role": "code_sequence",
+      "description": "The counter behind each stable handle, one row per kind of thing that has one.",
+      "fields": [
+        {"name": "entity_type", "type": "string", "description": "Which kind of thing this counter mints handles for.", "primary": true},
+        {"name": "next_number", "type": "int", "description": "The number the next handle of this kind will take."}
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 package routes_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/glebarez/sqlite"
@@ -8,6 +9,7 @@ import (
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
+	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 // newTestManager builds an AgencyManager backed by a fresh in-memory
@@ -19,12 +21,15 @@ func newTestManager(t *testing.T) mwanachamaagency.AgencyManager {
 		t.Fatalf("gorm.Open: %v", err)
 	}
 
-	tables := mwanachamaagency.DefaultTableNames("routes_test")
-	if err := mwanachamaagency.Migrate(db, tables); err != nil {
-		t.Fatalf("Migrate: %v", err)
+	s, err := mwanachamaagency.SpecFor("routestest")
+	if err != nil {
+		t.Fatalf("SpecFor: %v", err)
+	}
+	if err := mwanachamaagency.Provision(db, s); err != nil {
+		t.Fatalf("Provision: %v", err)
 	}
 
-	mgr, err := mwanachamaagency.NewAgencyManager(db, tables)
+	mgr, err := mwanachamaagency.NewAgencyManager(db, s)
 	if err != nil {
 		t.Fatalf("NewAgencyManager: %v", err)
 	}
@@ -61,4 +66,12 @@ func newTestManagerWithDraft(t *testing.T) (mwanachamaagency.AgencyManager, stri
 		t.Fatalf("CreateDraft: %v", err)
 	}
 	return mgr, d.ID
+}
+
+func serve(mgr mwanachamaagency.AgencyManager, w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	for _, rt := range routes.Routes(mgr) {
+		mux.Handle(rt.Pattern(""), rt.Handler)
+	}
+	mux.ServeHTTP(w, r)
 }

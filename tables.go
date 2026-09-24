@@ -1,22 +1,56 @@
 package mwanachamaagency
 
 import (
-	"gorm.io/gorm"
-
-	"github.com/aosanya/mwanachama-backend-agency/gormstore"
+	"github.com/aosanya/mwanachama-backend-shared/spec"
 )
 
-// TableNames configures which physical tables this package reads and
-// writes. See [gormstore.TableNames].
-type TableNames = gormstore.TableNames
-
-// DefaultTableNames builds the conventional table set for one mounted
-// instance of this package. See [gormstore.DefaultTableNames].
-func DefaultTableNames(instance string) TableNames {
-	return gormstore.DefaultTableNames(instance)
+type TableNames struct {
+	Agencies           string
+	Drafts             string
+	Goals              string
+	Objectives         string
+	Workflows          string
+	WorkItems          string
+	EventFlowSteps     string
+	AgencyPublications string
+	Roles              string
+	RoleAssignments    string
+	Modules            string
+	ObjectiveModules   string
+	Values             string
+	ValueAttachments   string
+	Rules              string
+	RuleAttachments    string
+	Issues             string
+	CodeSequences      string
 }
 
-// Migrate creates or updates the tables t names. See [gormstore.Migrate].
-func Migrate(db *gorm.DB, t TableNames) error {
-	return gormstore.Migrate(db, t)
+func TablesFor(s *spec.Spec) TableNames {
+	table := func(role string) string {
+		o, ok := s.ByRole(role)
+		if !ok {
+			return ""
+		}
+		return s.TableFor(o)
+	}
+	return TableNames{
+		Agencies:           table(roleAgency),
+		Drafts:             table(roleDraft),
+		Goals:              table(roleGoal),
+		Objectives:         table(roleObjective),
+		Workflows:          table(roleWorkflow),
+		WorkItems:          table(roleWorkItem),
+		EventFlowSteps:     table(roleEventFlowStep),
+		AgencyPublications: table(rolePublication),
+		Roles:              table(roleRole),
+		RoleAssignments:    table(roleRoleAssignment),
+		Modules:            table(roleModule),
+		ObjectiveModules:   table(roleObjectiveModule),
+		Values:             table(roleValue),
+		ValueAttachments:   table(roleValueAttachment),
+		Rules:              table(roleRule),
+		RuleAttachments:    table(roleRuleAttachment),
+		Issues:             table(roleIssue),
+		CodeSequences:      table(roleCodeSequence),
+	}
 }

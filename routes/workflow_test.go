@@ -8,16 +8,14 @@ import (
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 func TestCreateWorkflow(t *testing.T) {
 	mgr, draftID := newTestManagerWithDraft(t)
-	handler := routes.CreateWorkflow(mgr)
 
 	req := httptest.NewRequest(http.MethodPost, "/workflows", strings.NewReader(`{"name":"Onboarding","draft_id":"`+draftID+`"}`))
 	rec := httptest.NewRecorder()
-	handler(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -36,7 +34,7 @@ func TestGetWorkflow_NotFound(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/workflows/unknown", nil)
 	req.SetPathValue("workflowID", "unknown")
 	rec := httptest.NewRecorder()
-	routes.GetWorkflow(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -52,7 +50,7 @@ func TestListAndUpdateWorkflow(t *testing.T) {
 
 	listReq := httptest.NewRequest(http.MethodGet, "/workflows?draft_id="+draftID, nil)
 	listRec := httptest.NewRecorder()
-	routes.ListWorkflows(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}
@@ -60,7 +58,7 @@ func TestListAndUpdateWorkflow(t *testing.T) {
 	updateReq := httptest.NewRequest(http.MethodPatch, "/workflows/"+w.ID, strings.NewReader(`{"name":"Onboarding v2"}`))
 	updateReq.SetPathValue("workflowID", w.ID)
 	updateRec := httptest.NewRecorder()
-	routes.UpdateWorkflow(mgr)(updateRec, updateReq)
+	serve(mgr, updateRec, updateReq)
 	if updateRec.Code != http.StatusOK {
 		t.Fatalf("update status = %d, body = %s", updateRec.Code, updateRec.Body.String())
 	}

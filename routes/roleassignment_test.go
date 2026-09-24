@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 func TestCreateRoleAssignment(t *testing.T) {
@@ -23,7 +22,7 @@ func TestCreateRoleAssignment(t *testing.T) {
 	body := `{"role_id":"` + role.ID + `","objective_id":"` + o.ID + `","label":"accountable","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/role-assignments", strings.NewReader(body))
 	rec := httptest.NewRecorder()
-	routes.CreateRoleAssignment(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -51,7 +50,7 @@ func TestCreateRoleAssignment_DuplicateAccountable(t *testing.T) {
 	body := `{"role_id":"` + roleB.ID + `","objective_id":"` + o.ID + `","label":"accountable","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/role-assignments", strings.NewReader(body))
 	rec := httptest.NewRecorder()
-	routes.CreateRoleAssignment(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -71,7 +70,7 @@ func TestUpdateRoleAssignment_WithinDraft(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPatch, "/role-assignments/"+ra.ID, strings.NewReader(`{"role_id":"`+role.ID+`","objective_id":"`+o.ID+`","label":"accountable"}`))
 	req.SetPathValue("assignmentID", ra.ID)
 	rec := httptest.NewRecorder()
-	routes.UpdateRoleAssignment(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -91,14 +90,14 @@ func TestGetAndListRoleAssignments(t *testing.T) {
 	getReq := httptest.NewRequest(http.MethodGet, "/role-assignments/"+ra.ID, nil)
 	getReq.SetPathValue("assignmentID", ra.ID)
 	getRec := httptest.NewRecorder()
-	routes.GetRoleAssignment(mgr)(getRec, getReq)
+	serve(mgr, getRec, getReq)
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("get status = %d, body = %s", getRec.Code, getRec.Body.String())
 	}
 
 	listReq := httptest.NewRequest(http.MethodGet, "/role-assignments?draft_id="+draftID, nil)
 	listRec := httptest.NewRecorder()
-	routes.ListRoleAssignments(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}

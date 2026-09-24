@@ -7,60 +7,60 @@ package mwanachamaagency
 // rather than free text.
 
 type GoalFilter struct {
-	Code        string
-	Title       string
-	Description string
+	Code        string `query:"code"`
+	Title       string `query:"title"`
+	Description string `query:"description"`
 }
 
 type ObjectiveFilter struct {
-	Code        string
-	Title       string
-	Description string
+	Code        string `query:"code"`
+	Title       string `query:"title"`
+	Description string `query:"description"`
 }
 
 type WorkflowFilter struct {
-	Code        string
-	Name        string
-	Description string
+	Code        string `query:"code"`
+	Name        string `query:"name"`
+	Description string `query:"description"`
 }
 
 type WorkItemFilter struct {
-	Code        string
-	Title       string
-	Description string
+	Code        string `query:"code"`
+	Title       string `query:"title"`
+	Description string `query:"description"`
 }
 
 // DraftFilter's Status is exact-match against [models.DraftStatus]'s
 // values ("open", "promoted", "archived").
 type DraftFilter struct {
-	Description string
-	Status      string
+	Description string `query:"description"`
+	Status      string `query:"status"`
 }
 
 // PublicationFilter's Channel is exact-match on a live channel name
 // ("production", "staging", …). "" is the unset filter, not a match on
 // archived publications — filter those out of a full listing instead.
 type PublicationFilter struct {
-	Tag     string
-	Channel string
+	Tag     string `query:"tag"`
+	Channel string `query:"channel"`
 }
 
 type EventFlowStepFilter struct {
-	Code        string
-	Name        string
-	Description string
+	Code        string `query:"code"`
+	Name        string `query:"name"`
+	Description string `query:"description"`
 }
 
 type RoleFilter struct {
-	Code        string
-	Name        string
-	Description string
+	Code        string `query:"code"`
+	Name        string `query:"name"`
+	Description string `query:"description"`
 }
 
 // RoleAssignmentFilter's Label is exact-match against
 // [models.RACILabel]'s four values.
 type RoleAssignmentFilter struct {
-	Label string
+	Label string `query:"label"`
 }
 
 // ModuleFilter's Code/Name/Description are case-insensitive substring
@@ -68,16 +68,16 @@ type RoleAssignmentFilter struct {
 // a bare bool so "not filtering on Enabled" is distinguishable from
 // "filtering on Enabled == false".
 type ModuleFilter struct {
-	Code        string
-	Name        string
-	Description string
-	Enabled     *bool
+	Code        string `query:"code"`
+	Name        string `query:"name"`
+	Description string `query:"description"`
+	Enabled     *bool  `query:"enabled"`
 }
 
 // ObjectiveModuleFilter's ObjectiveID/ModuleID are exact-match narrows.
 type ObjectiveModuleFilter struct {
-	ObjectiveID string
-	ModuleID    string
+	ObjectiveID string `query:"-"`
+	ModuleID    string `query:"module_id"`
 }
 
 // ValueFilter's Role/Goal/Objective/Workflow/WorkItem ID fields each
@@ -86,31 +86,31 @@ type ObjectiveModuleFilter struct {
 // Set more than one and a Value must be attached to every target named,
 // not just one of them (same AND-all-fields rule as everything else).
 type ValueFilter struct {
-	Code        string
-	Text        string
-	RoleID      string
-	GoalID      string
-	ObjectiveID string
-	WorkflowID  string
-	WorkItemID  string
+	Code        string `query:"code"`
+	Text        string `query:"text"`
+	RoleID      string `query:"role_id"`
+	GoalID      string `query:"goal_id"`
+	ObjectiveID string `query:"-"`
+	WorkflowID  string `query:"workflow_id"`
+	WorkItemID  string `query:"work_item_id"`
 }
 
 // RuleFilter's target-id fields work exactly like [ValueFilter]'s.
 type RuleFilter struct {
-	Code        string
-	Text        string
-	RoleID      string
-	GoalID      string
-	ObjectiveID string
-	WorkflowID  string
-	WorkItemID  string
+	Code        string `query:"code"`
+	Text        string `query:"text"`
+	RoleID      string `query:"role_id"`
+	GoalID      string `query:"goal_id"`
+	ObjectiveID string `query:"-"`
+	WorkflowID  string `query:"workflow_id"`
+	WorkItemID  string `query:"work_item_id"`
 }
 
 // IssueFilter's Severity/EntityType are exact-match against
 // [models.IssueSeverity]'s three values / the entity noun ("objective",
 // "goal", ...) an Issue points at.
 type IssueFilter struct {
-	Message    string
-	Severity   string
-	EntityType string
+	Message    string `query:"message"`
+	Severity   string `query:"severity"`
+	EntityType string `query:"entity_type"`
 }

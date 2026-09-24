@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 func TestCreateObjective(t *testing.T) {
@@ -18,11 +17,10 @@ func TestCreateObjective(t *testing.T) {
 		t.Fatalf("CreateGoal: %v", err)
 	}
 
-	handler := routes.CreateObjective(mgr)
 	body := `{"goal_id":"` + g.ID + `","title":"Grow adoption","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/objectives", strings.NewReader(body))
 	rec := httptest.NewRecorder()
-	handler(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -46,7 +44,7 @@ func TestCreateObjective_MultiplePerGoal(t *testing.T) {
 	body := `{"goal_id":"` + g.ID + `","title":"Second","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/objectives", strings.NewReader(body))
 	rec := httptest.NewRecorder()
-	routes.CreateObjective(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -54,7 +52,7 @@ func TestCreateObjective_MultiplePerGoal(t *testing.T) {
 
 	listReq := httptest.NewRequest(http.MethodGet, "/objectives?draft_id="+draftID, nil)
 	listRec := httptest.NewRecorder()
-	routes.ListObjectives(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	var out []models.Objective
 	if err := json.Unmarshal(listRec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
@@ -79,7 +77,7 @@ func TestListRoleAssignmentsForObjective(t *testing.T) {
 	listReq := httptest.NewRequest(http.MethodGet, "/objectives/"+o.ID+"/role-assignments?draft_id="+draftID, nil)
 	listReq.SetPathValue("objectiveID", o.ID)
 	listRec := httptest.NewRecorder()
-	routes.ListRoleAssignmentsForObjective(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}

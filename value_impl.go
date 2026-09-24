@@ -2,12 +2,10 @@ package mwanachamaagency
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
 
-	"github.com/aosanya/mwanachama-backend-agency/gormstore"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -18,42 +16,30 @@ func (m *agencyManager) CreateValue(ctx context.Context, v models.Value) (models
 	if err := m.validateOpenDraftID(ctx, v.DraftID); err != nil {
 		return models.Value{}, err
 	}
-	v.ID = ""
+	v.ID = newID()
 	v.CreatedAt = models.NowRFC3339()
-	var row gormstore.ValueRow
-	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "value", "V")
-		if err != nil {
-			return err
-		}
+	v.LastUpdated = v.CreatedAt
+
+	err := m.createWithCode(ctx, roleValue, "value", "V", func(code string) any {
 		v.Code = code
-		row = gormstore.ValueToRow(v)
-		return tx.Table(m.tables.Values).Create(&row).Error
+		return v
 	})
 	if err != nil {
 		return models.Value{}, fmt.Errorf("CreateValue: %w", err)
 	}
-	return gormstore.ValueFromRow(row), nil
+	return v, nil
 }
 
 func (m *agencyManager) GetValue(ctx context.Context, id string) (models.Value, error) {
-	row, err := m.findValueRow(ctx, m.db, id)
-	if err != nil {
-		return models.Value{}, err
-	}
-	return gormstore.ValueFromRow(row), nil
+	return m.findValue(ctx, m.db, id)
 }
 
-// ListValues returns draftID's Values, narrowed by filter — including,
-// optionally, "only Values attached to this Role/Goal/Objective/Workflow/
-// WorkItem" (AGD-003). A Value with no attachment at all (Agency-wide)
-// only ever shows up in whichever one Draft it was created in — it is
-// never forked into any other Draft (see CreateDraft's own doc comment).
 func (m *agencyManager) ListValues(ctx context.Context, draftID string, filter ValueFilter) ([]models.Value, error) {
-	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Values), draftID)
+	q := scopeQuery(m.q(ctx, roleValue), draftID)
 	q = likeFilter(q, "code", filter.Code)
 	q = likeFilter(q, "text", filter.Text)
-	q, matchable, err := m.applyTargetFilters(ctx, q, m.tables.ValueAttachments, "value_code", targetFilters{
+
+	q, matchable, err := m.applyTargetFilters(ctx, q, m.table(roleValueAttachment), "value_code", targetFilters{
 		RoleID: filter.RoleID, GoalID: filter.GoalID, ObjectiveID: filter.ObjectiveID,
 		WorkflowID: filter.WorkflowID, WorkItemID: filter.WorkItemID,
 	})
@@ -63,91 +49,81 @@ func (m *agencyManager) ListValues(ctx context.Context, draftID string, filter V
 	if !matchable {
 		return nil, nil
 	}
-	var rows []gormstore.ValueRow
-	if err := q.Find(&rows).Error; err != nil {
+
+	out, err := list[models.Value](m, q, roleValue)
+	if err != nil {
 		return nil, fmt.Errorf("ListValues: %w", err)
-	}
-	out := make([]models.Value, len(rows))
-	for i, row := range rows {
-		out[i] = gormstore.ValueFromRow(row)
 	}
 	return out, nil
 }
 
-// UpdateValue replaces v's mutable fields via an explicit column map (see
-// UpdateGoal's doc for why). Returns [ErrCannotEditLive] if the existing
-// row carries no attachment — permanent for an Agency-wide Value, since
-// nothing ever forks one into another Draft (see [hasAnyAttachment]).
 func (m *agencyManager) UpdateValue(ctx context.Context, v models.Value) (models.Value, error) {
-	existing, err := m.findValueRow(ctx, m.db, v.ID)
-	if err != nil {
-		return models.Value{}, err
-	}
-	attached, err := hasAnyAttachment(ctx, m.db, m.tables.ValueAttachments, "value_code", existing.Code)
-	if err != nil {
-		return models.Value{}, err
-	}
-	if !attached {
-		return models.Value{}, ErrCannotEditLive
-	}
 	if v.Text == "" {
 		return models.Value{}, fmt.Errorf("%w: Value.Text is required", ErrInvalidValue)
 	}
-	row := gormstore.ValueToRow(v)
-	row.CreatedAt = existing.CreatedAt
-	row.Code = existing.Code
-	cols := map[string]any{
-		"text": row.Text, "updated_at": row.UpdatedAt, "deleted": row.Deleted,
-	}
-	if err := m.db.WithContext(ctx).Table(m.tables.Values).Where("id = ?", v.ID).Updates(cols).Error; err != nil {
+	var out models.Value
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		existing, err := m.findValue(ctx, tx, v.ID)
+		if err != nil {
+			return err
+		}
+		attached, err := hasAnyAttachment(ctx, tx, m.table(roleValueAttachment), "value_code", existing.Code)
+		if err != nil {
+			return err
+		}
+		if !attached {
+			return ErrCannotEditLive
+		}
+		v.Code = existing.Code
+		v.DraftID = existing.DraftID
+		v.CreatedAt = existing.CreatedAt
+		v.LastUpdated = models.NowRFC3339()
+
+		if err := m.writeUpdate(ctx, tx, roleValue, v.ID, v, ErrValueNotFound, "draft_id"); err != nil {
+			return err
+		}
+		out = v
+		return nil
+	})
+	if err != nil {
 		return models.Value{}, fmt.Errorf("UpdateValue: %w", err)
 	}
-	return gormstore.ValueFromRow(row), nil
+	return out, nil
 }
 
-// DeleteValue returns [ErrCannotEditLive] if the target row carries no
-// attachment (see [UpdateValue]'s doc comment).
 func (m *agencyManager) DeleteValue(ctx context.Context, id string) error {
-	existing, err := m.findValueRow(ctx, m.db, id)
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		existing, err := m.findValue(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		attached, err := hasAnyAttachment(ctx, tx, m.table(roleValueAttachment), "value_code", existing.Code)
+		if err != nil {
+			return err
+		}
+		if !attached {
+			return ErrCannotEditLive
+		}
+		return m.deleteWhere(ctx, tx, roleValue, "id = ?", id)
+	})
 	if err != nil {
-		return err
-	}
-	attached, err := hasAnyAttachment(ctx, m.db, m.tables.ValueAttachments, "value_code", existing.Code)
-	if err != nil {
-		return err
-	}
-	if !attached {
-		return ErrCannotEditLive
-	}
-	if err := m.db.WithContext(ctx).Table(m.tables.Values).Where("id = ?", id).
-		Delete(&gormstore.ValueRow{}).Error; err != nil {
 		return fmt.Errorf("DeleteValue: %w", err)
 	}
 	return nil
 }
 
-func (m *agencyManager) findValueRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.ValueRow, error) {
-	var row gormstore.ValueRow
-	err := tx.WithContext(ctx).Table(m.tables.Values).Where("id = ?", id).First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return gormstore.ValueRow{}, ErrValueNotFound
+func (m *agencyManager) findValue(ctx context.Context, tx *gorm.DB, id string) (models.Value, error) {
+	var v models.Value
+	if err := m.find(ctx, tx, roleValue, id, &v, ErrValueNotFound); err != nil {
+		return models.Value{}, err
 	}
-	if err != nil {
-		return gormstore.ValueRow{}, fmt.Errorf("findValueRow: %w", err)
-	}
-	return row, nil
+	return v, nil
 }
 
-// CreateValueAttachment attaches valueID to one target (targetID, of
-// targetType) — live-editable, no Draft involved even when valueID names
-// a live Value (AGD-003 decision #3). Returns [ErrInvalidTargetType] for
-// an unrecognized targetType, or the target type's own NotFound sentinel
-// (e.g. [ErrRoleNotFound]) if targetID names no row. [ErrDuplicateAttachment]
-// if this exact (Value, target) pair is already attached.
 func (m *agencyManager) CreateValueAttachment(ctx context.Context, valueID string, targetType models.TargetType, targetID string) (models.ValueAttachment, error) {
 	var out models.ValueAttachment
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		valueCode, err := resolveCodeByID(ctx, tx, m.tables.Values, valueID, ErrValueNotFound)
+		valueCode, err := m.resolveCodeByID(ctx, tx, roleValue, valueID, ErrValueNotFound)
 		if err != nil {
 			return err
 		}
@@ -155,8 +131,9 @@ func (m *agencyManager) CreateValueAttachment(ctx context.Context, valueID strin
 		if err != nil {
 			return err
 		}
+
 		var count int64
-		if err := tx.WithContext(ctx).Table(m.tables.ValueAttachments).
+		if err := tx.WithContext(ctx).Table(m.table(roleValueAttachment)).
 			Where("value_code = ? AND target_type = ? AND target_code = ?", valueCode, string(targetType), targetCode).
 			Count(&count).Error; err != nil {
 			return fmt.Errorf("CreateValueAttachment: %w", err)
@@ -164,14 +141,18 @@ func (m *agencyManager) CreateValueAttachment(ctx context.Context, valueID strin
 		if count > 0 {
 			return ErrDuplicateAttachment
 		}
-		row := gormstore.ValueAttachmentToRow(models.ValueAttachment{
-			ValueCode: valueCode, TargetType: targetType, TargetCode: targetCode,
-			CreatedAt: models.NowRFC3339(),
-		})
-		if err := tx.Table(m.tables.ValueAttachments).Create(&row).Error; err != nil {
+
+		a := models.ValueAttachment{
+			ID:         newID(),
+			ValueCode:  valueCode,
+			TargetType: targetType,
+			TargetCode: targetCode,
+			CreatedAt:  models.NowRFC3339(),
+		}
+		if err := m.copyRow(ctx, tx, roleValueAttachment, a); err != nil {
 			return fmt.Errorf("CreateValueAttachment: %w", err)
 		}
-		out = gormstore.ValueAttachmentFromRow(row)
+		out = a
 		return nil
 	})
 	if err != nil {
@@ -180,29 +161,22 @@ func (m *agencyManager) CreateValueAttachment(ctx context.Context, valueID strin
 	return out, nil
 }
 
-// ListValueAttachments lists every target valueID is attached to.
 func (m *agencyManager) ListValueAttachments(ctx context.Context, valueID string) ([]models.ValueAttachment, error) {
-	valueCode, err := resolveCodeByID(ctx, m.db.WithContext(ctx), m.tables.Values, valueID, ErrValueNotFound)
+	valueCode, err := m.resolveCodeByID(ctx, m.db, roleValue, valueID, ErrValueNotFound)
 	if err != nil {
 		return nil, err
 	}
-	var rows []gormstore.ValueAttachmentRow
-	if err := m.db.WithContext(ctx).Table(m.tables.ValueAttachments).
-		Where("value_code = ?", valueCode).Find(&rows).Error; err != nil {
+	q := m.q(ctx, roleValueAttachment).Where("value_code = ?", valueCode)
+
+	out, err := list[models.ValueAttachment](m, q, roleValueAttachment)
+	if err != nil {
 		return nil, fmt.Errorf("ListValueAttachments: %w", err)
-	}
-	out := make([]models.ValueAttachment, len(rows))
-	for i, row := range rows {
-		out[i] = gormstore.ValueAttachmentFromRow(row)
 	}
 	return out, nil
 }
 
-// DeleteValueAttachment removes one attachment by its own id. Live-editable,
-// same as Create — see [AgencyManager.CreateValueAttachment].
 func (m *agencyManager) DeleteValueAttachment(ctx context.Context, id string) error {
-	res := m.db.WithContext(ctx).Table(m.tables.ValueAttachments).Where("id = ?", id).
-		Delete(&gormstore.ValueAttachmentRow{})
+	res := m.db.WithContext(ctx).Exec("delete from "+m.table(roleValueAttachment)+" where id = ?", id)
 	if res.Error != nil {
 		return fmt.Errorf("DeleteValueAttachment: %w", res.Error)
 	}

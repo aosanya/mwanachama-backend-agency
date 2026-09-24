@@ -1,0 +1,1678 @@
+{
+  "errors": {
+    "ErrAgencyNotFound": 404,
+    "ErrCannotEditLive": 409,
+    "ErrDraftNotFound": 404,
+    "ErrDraftNotOpen": 409,
+    "ErrDraftRequired": 400,
+    "ErrDuplicateAccountable": 409,
+    "ErrDuplicateAttachment": 409,
+    "ErrDuplicateModule": 409,
+    "ErrDuplicateObjectiveModule": 409,
+    "ErrDuplicateTag": 409,
+    "ErrEventFlowStepNotFound": 404,
+    "ErrGoalNotFound": 404,
+    "ErrInvalidForkSource": 400,
+    "ErrInvalidLookup": 400,
+    "ErrInvalidModule": 400,
+    "ErrInvalidRACILabel": 400,
+    "ErrInvalidRole": 400,
+    "ErrInvalidRule": 400,
+    "ErrInvalidTargetType": 400,
+    "ErrInvalidValue": 400,
+    "ErrInvalidWorkItem": 400,
+    "ErrModuleNotFound": 404,
+    "ErrNoChangesDetected": 409,
+    "ErrObjectiveModuleNotFound": 404,
+    "ErrObjectiveNotFound": 404,
+    "ErrPublicationNotFound": 404,
+    "ErrPublishValidationFailed": 409,
+    "ErrRationaleRequired": 400,
+    "ErrRoleAssignmentNotFound": 404,
+    "ErrRoleNotFound": 404,
+    "ErrRuleAttachmentNotFound": 404,
+    "ErrRuleNotFound": 404,
+    "ErrValueAttachmentNotFound": 404,
+    "ErrValueNotFound": 404,
+    "ErrWorkItemNotFound": 404,
+    "ErrWorkflowNotFound": 404
+  },
+  "operations": {
+    "create_agency": {
+      "method": "POST",
+      "path": "/agency",
+      "call": "CreateAgency",
+      "action": "agency.agency.create",
+      "status": 201,
+      "title": "Create agency",
+      "description": "Write the one organization this mount serves. Everything else hangs off it, so nothing can be created before it.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_agency"
+    },
+    "get_agency": {
+      "method": "GET",
+      "path": "/agency",
+      "call": "GetAgency",
+      "action": "agency.agency.read",
+      "title": "Read agency",
+      "description": "Read the organization: its name, description and settings.",
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_agency"
+    },
+    "update_agency": {
+      "method": "PATCH",
+      "path": "/agency",
+      "call": "UpdateAgency",
+      "action": "agency.agency.update",
+      "title": "Rename agency",
+      "description": "Change the organization's name and description. Nothing else about it is editable here.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_agency"
+    },
+    "create_draft": {
+      "method": "POST",
+      "path": "/drafts",
+      "call": "CreateDraft",
+      "action": "agency.draft.create",
+      "status": 201,
+      "title": "Start a draft",
+      "description": "Start an editable copy of the organization. An empty forked_from_type starts from nothing; \"draft\" forks another open draft by its id; \"publication\" forks a published tag, materializing its document.",
+      "args": [
+        {
+          "from": "body",
+          "as": "description",
+          "description": "What this round of editing is for."
+        },
+        {
+          "from": "body",
+          "as": "forked_from_id",
+          "description": "The draft's id, or the publication's tag, depending on forked_from_type."
+        },
+        {
+          "from": "body",
+          "as": "forked_from_type",
+          "description": "Empty, \"draft\" or \"publication\"."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_draft"
+    },
+    "list_drafts": {
+      "method": "GET",
+      "path": "/drafts",
+      "call": "ListDrafts",
+      "action": "agency.draft.list",
+      "title": "List drafts",
+      "description": "List every draft, oldest first, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_drafts"
+    },
+    "get_draft": {
+      "method": "GET",
+      "path": "/drafts/{draft_id}",
+      "call": "GetDraft",
+      "action": "agency.draft.read",
+      "title": "Read draft",
+      "description": "Read one draft's header — what it is for, what it was forked from, and whether it is still open.",
+      "args": [
+        {
+          "from": "path",
+          "as": "draft_id",
+          "description": "The draft to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_draft"
+    },
+    "update_draft": {
+      "method": "PATCH",
+      "path": "/drafts/{draft_id}",
+      "call": "UpdateDraftDescription",
+      "action": "agency.draft.update",
+      "title": "Describe draft",
+      "description": "Change what a draft says it is for. Only an open draft may be edited.",
+      "args": [
+        {
+          "from": "path",
+          "as": "draft_id",
+          "description": "The draft to describe."
+        },
+        {
+          "from": "body",
+          "as": "description",
+          "required": true,
+          "description": "What this round of editing is for."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_draft_description"
+    },
+    "archive_draft": {
+      "method": "POST",
+      "path": "/drafts/{draft_id}/archive",
+      "call": "ArchiveDraft",
+      "action": "agency.draft.archive",
+      "title": "Archive draft",
+      "description": "Put a draft away. Archiving is terminal, and an archived draft can still be published from.",
+      "args": [
+        {
+          "from": "path",
+          "as": "draft_id",
+          "description": "The draft to archive."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_archive_draft"
+    },
+    "create_goal": {
+      "method": "POST",
+      "path": "/goals",
+      "call": "CreateGoal",
+      "action": "agency.goal.create",
+      "status": 201,
+      "title": "Create goal",
+      "description": "Add something the organization is trying to achieve. It belongs to the draft named in the body.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_goal"
+    },
+    "list_goals": {
+      "method": "GET",
+      "path": "/goals",
+      "call": "ListGoals",
+      "action": "agency.goal.list",
+      "title": "List goals",
+      "description": "List one draft's goals in their listed order, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose goals to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_goals"
+    },
+    "get_goal": {
+      "method": "GET",
+      "path": "/goals/{goal_id}",
+      "call": "GetGoal",
+      "action": "agency.goal.read",
+      "title": "Read goal",
+      "description": "Read one goal by its id — its code, title, description and the draft it belongs to.",
+      "args": [
+        {
+          "from": "path",
+          "as": "goal_id",
+          "description": "The goal to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_goal"
+    },
+    "update_goal": {
+      "method": "PATCH",
+      "path": "/goals/{goal_id}",
+      "call": "UpdateGoal",
+      "action": "agency.goal.update",
+      "title": "Update goal",
+      "description": "Replace a goal's title, description and position. Its code and its draft do not change.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "goal_id",
+          "into": "ID",
+          "description": "The goal to update."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_goal"
+    },
+    "create_objective": {
+      "method": "POST",
+      "path": "/objectives",
+      "call": "CreateObjective",
+      "action": "agency.objective.create",
+      "status": 201,
+      "title": "Create objective",
+      "description": "Add a granular thing under a goal. This is the unit a seat is answerable for, so a goal usually has several.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_objective"
+    },
+    "list_objectives": {
+      "method": "GET",
+      "path": "/objectives",
+      "call": "ListObjectives",
+      "action": "agency.objective.list",
+      "title": "List objectives",
+      "description": "List one draft's objectives in their listed order, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose objectives to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_objectives"
+    },
+    "get_objective": {
+      "method": "GET",
+      "path": "/objectives/{objective_id}",
+      "call": "GetObjective",
+      "action": "agency.objective.read",
+      "title": "Read objective",
+      "description": "Read one objective by its id — its code, title, the goal it serves and the draft it belongs to.",
+      "args": [
+        {
+          "from": "path",
+          "as": "objective_id",
+          "description": "The objective to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_objective"
+    },
+    "update_objective": {
+      "method": "PATCH",
+      "path": "/objectives/{objective_id}",
+      "call": "UpdateObjective",
+      "action": "agency.objective.update",
+      "title": "Update objective",
+      "description": "Replace an objective's title, description, position and the goal it serves.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "objective_id",
+          "into": "ID",
+          "description": "The objective to update."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_objective"
+    },
+    "list_objective_raci": {
+      "method": "GET",
+      "path": "/objectives/{objective_id}/role-assignments",
+      "call": "ListRoleAssignmentsForObjective",
+      "action": "agency.objective.list_raci",
+      "title": "Read objective RACI",
+      "description": "Answer who is answerable for one objective, and how. This is the lookup anything asking \"who do I notify\" uses.",
+      "args": [
+        {
+          "from": "path",
+          "as": "objective_id",
+          "description": "The objective whose seats to read."
+        },
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft to read it in."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_role_assignments_for_objective"
+    },
+    "create_objective_module": {
+      "method": "POST",
+      "path": "/objectives/{objective_id}/modules",
+      "call": "CreateObjectiveModule",
+      "action": "agency.objective_module.create",
+      "status": 201,
+      "title": "Need a capability",
+      "description": "Record that an objective needs a capability, with the reason. This link is what switches the capability on.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "objective_id",
+          "into": "ObjectiveID",
+          "description": "The objective doing the needing."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_attach_module"
+    },
+    "list_objective_modules": {
+      "method": "GET",
+      "path": "/objectives/{objective_id}/modules",
+      "call": "ListObjectiveModulesForObjective",
+      "action": "agency.objective_module.list",
+      "title": "List an objective's capabilities",
+      "description": "List what one objective needs, and why.",
+      "args": [
+        {
+          "from": "path",
+          "as": "objective_id",
+          "description": "The objective whose needs to read."
+        },
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft to read it in."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_objective_modules"
+    },
+    "update_objective_module": {
+      "method": "PATCH",
+      "path": "/objectives/{objective_id}/modules/{objective_module_id}",
+      "call": "UpdateObjectiveModule",
+      "action": "agency.objective_module.update",
+      "title": "Change the reason",
+      "description": "Rewrite why an objective needs a capability. The reason may not be emptied.",
+      "args": [
+        {
+          "from": "path",
+          "as": "objective_id",
+          "ignored": true,
+          "description": "The objective the link hangs off. Part of the address, not of the call."
+        },
+        {
+          "from": "path",
+          "as": "objective_module_id",
+          "description": "The link to rewrite."
+        },
+        {
+          "from": "body",
+          "as": "rationale",
+          "required": true,
+          "description": "Why this objective needs it."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_module_rationale"
+    },
+    "delete_objective_module": {
+      "method": "DELETE",
+      "path": "/objectives/{objective_id}/modules/{objective_module_id}",
+      "call": "DeleteObjectiveModule",
+      "action": "agency.objective_module.delete",
+      "status": 204,
+      "title": "Stop needing a capability",
+      "description": "Remove the link between an objective and a capability, which may switch that capability off.",
+      "args": [
+        {
+          "from": "path",
+          "as": "objective_id",
+          "ignored": true,
+          "description": "The objective the link hangs off. Part of the address, not of the call."
+        },
+        {
+          "from": "path",
+          "as": "objective_module_id",
+          "description": "The link to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_detach_module"
+    },
+    "create_workflow": {
+      "method": "POST",
+      "path": "/workflows",
+      "call": "CreateWorkflow",
+      "action": "agency.workflow.create",
+      "status": 201,
+      "title": "Create workflow",
+      "description": "Add a named sequence of work the organization performs.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_workflow"
+    },
+    "list_workflows": {
+      "method": "GET",
+      "path": "/workflows",
+      "call": "ListWorkflows",
+      "action": "agency.workflow.list",
+      "title": "List workflows",
+      "description": "List one draft's workflows in their listed order, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose workflows to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_workflows"
+    },
+    "get_workflow": {
+      "method": "GET",
+      "path": "/workflows/{workflow_id}",
+      "call": "GetWorkflow",
+      "action": "agency.workflow.read",
+      "title": "Read workflow",
+      "description": "Read one workflow by its id — its code, name, position and its own event-flow definition.",
+      "args": [
+        {
+          "from": "path",
+          "as": "workflow_id",
+          "description": "The workflow to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_workflow"
+    },
+    "update_workflow": {
+      "method": "PATCH",
+      "path": "/workflows/{workflow_id}",
+      "call": "UpdateWorkflow",
+      "action": "agency.workflow.update",
+      "title": "Update workflow",
+      "description": "Replace a workflow's name, description, position and event-flow definition.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "workflow_id",
+          "into": "ID",
+          "description": "The workflow to update."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_workflow"
+    },
+    "create_work_item": {
+      "method": "POST",
+      "path": "/work-items",
+      "call": "CreateWorkItem",
+      "action": "agency.work_item.create",
+      "status": 201,
+      "title": "Create work item",
+      "description": "Add one step of a workflow, with the instruction whoever performs it works from. It must name the objective it serves.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_work_item"
+    },
+    "list_work_items": {
+      "method": "GET",
+      "path": "/work-items",
+      "call": "ListWorkItems",
+      "action": "agency.work_item.list",
+      "title": "List work items",
+      "description": "List one draft's work items in their listed order, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose work items to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_work_items"
+    },
+    "get_work_item": {
+      "method": "GET",
+      "path": "/work-items/{work_item_id}",
+      "call": "GetWorkItem",
+      "action": "agency.work_item.read",
+      "title": "Read work item",
+      "description": "Read one work item by its id — its code, title, prompt, and the workflow and objective it belongs to.",
+      "args": [
+        {
+          "from": "path",
+          "as": "work_item_id",
+          "description": "The work item to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_work_item"
+    },
+    "update_work_item": {
+      "method": "PATCH",
+      "path": "/work-items/{work_item_id}",
+      "call": "UpdateWorkItem",
+      "action": "agency.work_item.update",
+      "title": "Update work item",
+      "description": "Replace a work item's title, description, position, prompt and the workflow and objective it belongs to.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "work_item_id",
+          "into": "ID",
+          "description": "The work item to update."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_work_item"
+    },
+    "create_role": {
+      "method": "POST",
+      "path": "/roles",
+      "call": "CreateRole",
+      "action": "agency.role.create",
+      "status": 201,
+      "title": "Create role",
+      "description": "Add a seat somebody or something holds. A seat needs a name.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_role"
+    },
+    "list_roles": {
+      "method": "GET",
+      "path": "/roles",
+      "call": "ListRoles",
+      "action": "agency.role.list",
+      "title": "List roles",
+      "description": "List one draft's seats, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose seats to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_roles"
+    },
+    "get_role": {
+      "method": "GET",
+      "path": "/roles/{role_id}",
+      "call": "GetRole",
+      "action": "agency.role.read",
+      "title": "Read role",
+      "description": "Read one seat. An unknown id answers with the seats whose code or name look like what was asked for.",
+      "args": [
+        {
+          "from": "path",
+          "as": "role_id",
+          "description": "The seat to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_role"
+    },
+    "update_role": {
+      "method": "PATCH",
+      "path": "/roles/{role_id}",
+      "call": "UpdateRole",
+      "action": "agency.role.update",
+      "title": "Update role",
+      "description": "Replace a seat's name and description.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "role_id",
+          "into": "ID",
+          "description": "The seat to update."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_role"
+    },
+    "delete_role": {
+      "method": "DELETE",
+      "path": "/roles/{role_id}",
+      "call": "DeleteRole",
+      "action": "agency.role.delete",
+      "status": 204,
+      "title": "Delete role",
+      "description": "Remove a seat and every RACI link that named it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "role_id",
+          "description": "The seat to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_role"
+    },
+    "create_raci": {
+      "method": "POST",
+      "path": "/role-assignments",
+      "call": "CreateRoleAssignment",
+      "action": "agency.raci.create",
+      "status": 201,
+      "title": "Assign RACI",
+      "description": "Make a seat responsible, accountable, consulted or informed for an objective. Both ends must be in the same draft, and an objective has at most one accountable.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_set_raci"
+    },
+    "list_raci": {
+      "method": "GET",
+      "path": "/role-assignments",
+      "call": "ListRoleAssignments",
+      "action": "agency.raci.list",
+      "title": "List RACI",
+      "description": "List one draft's RACI links, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose links to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_role_assignments"
+    },
+    "get_raci": {
+      "method": "GET",
+      "path": "/role-assignments/{assignment_id}",
+      "call": "GetRoleAssignment",
+      "action": "agency.raci.read",
+      "title": "Read RACI link",
+      "description": "Read one RACI link by its id — which seat it names, which objective, and how the two relate.",
+      "args": [
+        {
+          "from": "path",
+          "as": "assignment_id",
+          "description": "The link to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_role_assignment"
+    },
+    "update_raci": {
+      "method": "PATCH",
+      "path": "/role-assignments/{assignment_id}",
+      "call": "UpdateRoleAssignment",
+      "action": "agency.raci.update",
+      "title": "Change a RACI link",
+      "description": "Point a RACI link at a different seat or objective, or change how it relates.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "assignment_id",
+          "into": "ID",
+          "description": "The link to change."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_role_assignment"
+    },
+    "delete_raci": {
+      "method": "DELETE",
+      "path": "/role-assignments/{assignment_id}",
+      "call": "DeleteRoleAssignment",
+      "action": "agency.raci.delete",
+      "status": 204,
+      "title": "Remove a RACI link",
+      "description": "Remove one RACI link, leaving both the seat and the objective in place.",
+      "args": [
+        {
+          "from": "path",
+          "as": "assignment_id",
+          "description": "The link to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_role_assignment"
+    },
+    "list_modules": {
+      "method": "GET",
+      "path": "/modules",
+      "call": "ListModules",
+      "action": "agency.module.list",
+      "title": "List capabilities",
+      "description": "List the capability catalog for one draft, each showing whether it is switched on. Whether it is on is derived from the objectives that need it, never set here.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose catalog to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_modules"
+    },
+    "get_module": {
+      "method": "GET",
+      "path": "/modules/{module_id}",
+      "call": "GetModule",
+      "action": "agency.module.read",
+      "title": "Read capability",
+      "description": "Read one capability and whether it is switched on.",
+      "args": [
+        {
+          "from": "path",
+          "as": "module_id",
+          "description": "The capability to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_module"
+    },
+    "create_value": {
+      "method": "POST",
+      "path": "/values",
+      "call": "CreateValue",
+      "action": "agency.value.create",
+      "status": 201,
+      "title": "Create value",
+      "description": "Write down something the organization believes. Attaching it somewhere is a separate call.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_value"
+    },
+    "list_values": {
+      "method": "GET",
+      "path": "/values",
+      "call": "ListValues",
+      "action": "agency.value.list",
+      "title": "List values",
+      "description": "List one draft's beliefs, narrowed by the filter — including by what they are attached to.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose beliefs to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_values"
+    },
+    "get_value": {
+      "method": "GET",
+      "path": "/values/{value_id}",
+      "call": "GetValue",
+      "action": "agency.value.read",
+      "title": "Read value",
+      "description": "Read one belief by its id — its code and the text itself.",
+      "args": [
+        {
+          "from": "path",
+          "as": "value_id",
+          "description": "The belief to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_value"
+    },
+    "update_value": {
+      "method": "PATCH",
+      "path": "/values/{value_id}",
+      "call": "UpdateValue",
+      "action": "agency.value.update",
+      "title": "Update value",
+      "description": "Rewrite a belief. One attached nowhere belongs to the whole organization and is permanently immutable.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "value_id",
+          "into": "ID",
+          "description": "The belief to rewrite."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_value"
+    },
+    "delete_value": {
+      "method": "DELETE",
+      "path": "/values/{value_id}",
+      "call": "DeleteValue",
+      "action": "agency.value.delete",
+      "status": 204,
+      "title": "Delete value",
+      "description": "Remove a belief. One attached nowhere is permanently immutable and cannot be removed.",
+      "args": [
+        {
+          "from": "path",
+          "as": "value_id",
+          "description": "The belief to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_value"
+    },
+    "attach_value": {
+      "method": "POST",
+      "path": "/values/{value_id}/attachments",
+      "call": "CreateValueAttachment",
+      "action": "agency.value.attach",
+      "status": 201,
+      "title": "Attach value",
+      "description": "Say where a belief applies — to a role, goal, objective, workflow or work item. Both ends are stored by their stable code, so the attachment survives publishing.",
+      "args": [
+        {
+          "from": "path",
+          "as": "value_id",
+          "description": "The belief being attached."
+        },
+        {
+          "from": "body",
+          "as": "target_type",
+          "required": true,
+          "field": "ValueAttachment.target_type"
+        },
+        {
+          "from": "body",
+          "as": "target_id",
+          "required": true,
+          "description": "The thing it is attached to, by id."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_attach_value"
+    },
+    "list_value_attachments": {
+      "method": "GET",
+      "path": "/values/{value_id}/attachments",
+      "call": "ListValueAttachments",
+      "action": "agency.value.list_attachments",
+      "title": "List where a value applies",
+      "description": "List everywhere one belief is attached.",
+      "args": [
+        {
+          "from": "path",
+          "as": "value_id",
+          "description": "The belief whose attachments to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_value_attachments"
+    },
+    "detach_value": {
+      "method": "DELETE",
+      "path": "/values/{value_id}/attachments/{attachment_id}",
+      "call": "DeleteValueAttachment",
+      "action": "agency.value.detach",
+      "status": 204,
+      "title": "Detach value",
+      "description": "Remove one attachment, leaving the belief itself in place.",
+      "args": [
+        {
+          "from": "path",
+          "as": "value_id",
+          "ignored": true,
+          "description": "The belief the attachment hangs off. Part of the address, not of the call."
+        },
+        {
+          "from": "path",
+          "as": "attachment_id",
+          "description": "The attachment to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_detach_value"
+    },
+    "create_rule": {
+      "method": "POST",
+      "path": "/rules",
+      "call": "CreateRule",
+      "action": "agency.rule.create",
+      "status": 201,
+      "title": "Create rule",
+      "description": "Write down something the organization requires or forbids. Attaching it somewhere is a separate call.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_rule"
+    },
+    "list_rules": {
+      "method": "GET",
+      "path": "/rules",
+      "call": "ListRules",
+      "action": "agency.rule.list",
+      "title": "List rules",
+      "description": "List one draft's requirements, narrowed by the filter — including by what they are attached to.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose requirements to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_rules"
+    },
+    "get_rule": {
+      "method": "GET",
+      "path": "/rules/{rule_id}",
+      "call": "GetRule",
+      "action": "agency.rule.read",
+      "title": "Read rule",
+      "description": "Read one requirement by its id — its code and the text itself.",
+      "args": [
+        {
+          "from": "path",
+          "as": "rule_id",
+          "description": "The requirement to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_rule"
+    },
+    "update_rule": {
+      "method": "PATCH",
+      "path": "/rules/{rule_id}",
+      "call": "UpdateRule",
+      "action": "agency.rule.update",
+      "title": "Update rule",
+      "description": "Rewrite a requirement. One attached nowhere belongs to the whole organization and is permanently immutable.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "rule_id",
+          "into": "ID",
+          "description": "The requirement to rewrite."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_rule"
+    },
+    "delete_rule": {
+      "method": "DELETE",
+      "path": "/rules/{rule_id}",
+      "call": "DeleteRule",
+      "action": "agency.rule.delete",
+      "status": 204,
+      "title": "Delete rule",
+      "description": "Remove a requirement. One attached nowhere is permanently immutable and cannot be removed.",
+      "args": [
+        {
+          "from": "path",
+          "as": "rule_id",
+          "description": "The requirement to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_rule"
+    },
+    "attach_rule": {
+      "method": "POST",
+      "path": "/rules/{rule_id}/attachments",
+      "call": "CreateRuleAttachment",
+      "action": "agency.rule.attach",
+      "status": 201,
+      "title": "Attach rule",
+      "description": "Say where a requirement applies — to a role, goal, objective, workflow or work item.",
+      "args": [
+        {
+          "from": "path",
+          "as": "rule_id",
+          "description": "The requirement being attached."
+        },
+        {
+          "from": "body",
+          "as": "target_type",
+          "required": true,
+          "field": "RuleAttachment.target_type"
+        },
+        {
+          "from": "body",
+          "as": "target_id",
+          "required": true,
+          "description": "The thing it is attached to, by id."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_attach_rule"
+    },
+    "list_rule_attachments": {
+      "method": "GET",
+      "path": "/rules/{rule_id}/attachments",
+      "call": "ListRuleAttachments",
+      "action": "agency.rule.list_attachments",
+      "title": "List where a rule applies",
+      "description": "List everywhere one requirement is attached.",
+      "args": [
+        {
+          "from": "path",
+          "as": "rule_id",
+          "description": "The requirement whose attachments to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_rule_attachments"
+    },
+    "detach_rule": {
+      "method": "DELETE",
+      "path": "/rules/{rule_id}/attachments/{attachment_id}",
+      "call": "DeleteRuleAttachment",
+      "action": "agency.rule.detach",
+      "status": 204,
+      "title": "Detach rule",
+      "description": "Remove one attachment, leaving the requirement itself in place.",
+      "args": [
+        {
+          "from": "path",
+          "as": "rule_id",
+          "ignored": true,
+          "description": "The requirement the attachment hangs off. Part of the address, not of the call."
+        },
+        {
+          "from": "path",
+          "as": "attachment_id",
+          "description": "The attachment to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_detach_rule"
+    },
+    "publish_agency": {
+      "method": "POST",
+      "path": "/publications",
+      "call": "PublishAgency",
+      "action": "agency.publication.create",
+      "status": 201,
+      "title": "Publish",
+      "description": "Freeze a draft into a publication and put it on a channel. The validation scan runs first and any blocking finding refuses the publish; republishing unchanged content is refused too. An empty tag becomes v<version>, and an empty channel means production.",
+      "args": [
+        {
+          "from": "body",
+          "as": "draft_id",
+          "required": true,
+          "description": "The draft to publish."
+        },
+        {
+          "from": "body",
+          "as": "tag",
+          "description": "The operator's own name for this publication. Must be unused."
+        },
+        {
+          "from": "body",
+          "as": "channel",
+          "description": "The channel it should serve. Empty means production."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_publish_agency"
+    },
+    "list_publications": {
+      "method": "GET",
+      "path": "/publications",
+      "call": "ListPublications",
+      "action": "agency.publication.list",
+      "title": "List publications",
+      "description": "List every publication in version order, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_publications"
+    },
+    "get_publication": {
+      "method": "GET",
+      "path": "/publications/{version}",
+      "call": "GetPublication",
+      "action": "agency.publication.read",
+      "title": "Read publication",
+      "description": "Read one publication, document included.",
+      "args": [
+        {
+          "from": "path",
+          "as": "version",
+          "description": "The publication's version number."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_publication"
+    },
+    "set_publication_channel": {
+      "method": "PATCH",
+      "path": "/publications/{version}",
+      "call": "SetPublicationChannel",
+      "action": "agency.publication.set_channel",
+      "title": "Move a channel",
+      "description": "Move a channel onto this publication, taking it off whichever held it. An empty channel archives this one instead, and re-channelling an archived publication is how a rollback works.",
+      "args": [
+        {
+          "from": "path",
+          "as": "version",
+          "description": "The publication to move."
+        },
+        {
+          "from": "body",
+          "as": "channel",
+          "description": "The channel it should serve, or empty to archive it."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_set_publication_channel"
+    },
+    "list_event_flow_steps": {
+      "method": "GET",
+      "path": "/event-flow-steps",
+      "call": "ListEventFlowSteps",
+      "action": "agency.event_flow_step.list",
+      "title": "List event flow steps",
+      "description": "List one draft's event-flow steps, in flow order, optionally for a single workflow.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose steps to read."
+        },
+        {
+          "from": "query",
+          "as": "workflow_code",
+          "description": "Only this workflow's steps. Empty means all of them."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_event_flow_steps"
+    },
+    "lookup_event_flow_step": {
+      "method": "GET",
+      "path": "/event-flow-steps/lookup",
+      "call": "LookupFlowStep",
+      "action": "agency.event_flow_step.lookup",
+      "title": "Find an event flow step",
+      "description": "Find one step by its handler, by its trigger topic and consumer together, or by its own code — whichever is given, in that order.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft to look in."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_lookup_event_flow_step"
+    },
+    "list_issues": {
+      "method": "GET",
+      "path": "/drafts/{draft_id}/issues",
+      "call": "ListIssues",
+      "action": "agency.issue.list",
+      "title": "List issues",
+      "description": "Re-run the validation scan over one draft and list what it found. An error-severity finding is what refuses a publish.",
+      "args": [
+        {
+          "from": "path",
+          "as": "draft_id",
+          "description": "The draft to scan."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_issues"
+    },
+    "delete_goal": {
+      "method": "DELETE",
+      "path": "/goals/{goal_id}",
+      "call": "DeleteGoal",
+      "action": "agency.goal.delete",
+      "tool": "agency_delete_goal",
+      "status": 204,
+      "title": "Delete goal",
+      "description": "Remove a goal, every objective under it, and the work items, RACI links and capability links under those.",
+      "args": [
+        {
+          "from": "path",
+          "as": "goal_id",
+          "description": "The goal to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ]
+    },
+    "delete_objective": {
+      "method": "DELETE",
+      "path": "/objectives/{objective_id}",
+      "call": "DeleteObjective",
+      "action": "agency.objective.delete",
+      "tool": "agency_delete_objective",
+      "status": 204,
+      "title": "Delete objective",
+      "description": "Remove an objective and the work items, RACI links and capability links that hang off it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "objective_id",
+          "description": "The objective to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ]
+    },
+    "delete_workflow": {
+      "method": "DELETE",
+      "path": "/workflows/{workflow_id}",
+      "call": "DeleteWorkflow",
+      "action": "agency.workflow.delete",
+      "tool": "agency_delete_workflow",
+      "status": 204,
+      "title": "Delete workflow",
+      "description": "Remove a workflow and every work item it owns.",
+      "args": [
+        {
+          "from": "path",
+          "as": "workflow_id",
+          "description": "The workflow to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ]
+    },
+    "delete_work_item": {
+      "method": "DELETE",
+      "path": "/work-items/{work_item_id}",
+      "call": "DeleteWorkItem",
+      "action": "agency.work_item.delete",
+      "tool": "agency_delete_work_item",
+      "status": 204,
+      "title": "Delete work item",
+      "description": "Remove one work item. It carries no RACI of its own, so nothing else goes with it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "work_item_id",
+          "description": "The work item to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ]
+    }
+  }
+}

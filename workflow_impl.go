@@ -2,12 +2,10 @@ package mwanachamaagency
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
 
-	"github.com/aosanya/mwanachama-backend-agency/gormstore"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -15,90 +13,69 @@ func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (
 	if err := m.validateOpenDraftID(ctx, w.DraftID); err != nil {
 		return models.Workflow{}, err
 	}
-	w.ID = ""
+	w.ID = newID()
 	w.CreatedAt = models.NowRFC3339()
-	var row gormstore.WorkflowRow
-	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		code, err := gormstore.NextCode(ctx, tx, m.tables.CodeSequences, "workflow", "W")
-		if err != nil {
-			return err
-		}
+	w.LastUpdated = w.CreatedAt
+
+	err := m.createWithCode(ctx, roleWorkflow, "workflow", "W", func(code string) any {
 		w.Code = code
-		row = gormstore.WorkflowToRow(w)
-		return tx.Table(m.tables.Workflows).Create(&row).Error
+		return w
 	})
 	if err != nil {
 		return models.Workflow{}, fmt.Errorf("CreateWorkflow: %w", err)
 	}
-	return gormstore.WorkflowFromRow(row), nil
+	return w, nil
 }
 
 func (m *agencyManager) GetWorkflow(ctx context.Context, id string) (models.Workflow, error) {
-	row, err := m.findWorkflowRow(ctx, m.db, id)
-	if err != nil {
-		return models.Workflow{}, err
-	}
-	return gormstore.WorkflowFromRow(row), nil
+	return m.findWorkflow(ctx, m.db, id)
 }
 
-// ListWorkflows returns live Workflows when draftID is "", or draftID's
-// draft-scoped copies otherwise, narrowed by filter.
 func (m *agencyManager) ListWorkflows(ctx context.Context, draftID string, filter WorkflowFilter) ([]models.Workflow, error) {
-	var rows []gormstore.WorkflowRow
-	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.Workflows).Order("ordinality"), draftID)
+	q := scopeQuery(m.q(ctx, roleWorkflow).Order("ordinality"), draftID)
 	q = likeFilter(q, "code", filter.Code)
 	q = likeFilter(q, "name", filter.Name)
 	q = likeFilter(q, "description", filter.Description)
-	if err := q.Find(&rows).Error; err != nil {
+
+	out, err := list[models.Workflow](m, q, roleWorkflow)
+	if err != nil {
 		return nil, fmt.Errorf("ListWorkflows: %w", err)
-	}
-	out := make([]models.Workflow, len(rows))
-	for i, r := range rows {
-		out[i] = gormstore.WorkflowFromRow(r)
 	}
 	return out, nil
 }
 
-// UpdateWorkflow replaces w's mutable fields via an explicit column map —
-// see UpdateGoal's doc for why (GORM's struct-based Updates skips
-// zero-value fields).
 func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error) {
-	existing, err := m.findWorkflowRow(ctx, m.db, w.ID)
-	if err != nil {
-		return models.Workflow{}, err
-	}
-	row := gormstore.WorkflowToRow(w)
-	row.CreatedAt = existing.CreatedAt
-	row.Code = existing.Code
-	cols := map[string]any{
-		"draft_id":    row.DraftID,
-		"name":        row.Name,
-		"description": row.Description,
-		"ordinality":  row.Ordinality,
-		"event_flows": row.EventFlows,
-		"updated_at":  row.UpdatedAt,
-		"deleted":     row.Deleted,
-	}
-	if err := m.db.WithContext(ctx).Table(m.tables.Workflows).Where("id = ?", w.ID).Updates(cols).Error; err != nil {
-		return models.Workflow{}, fmt.Errorf("UpdateWorkflow: %w", err)
-	}
-	return gormstore.WorkflowFromRow(row), nil
-}
-
-// DeleteWorkflow deletes w and cascades to every WorkItem owned by it —
-// see [AgencyManager]'s doc comment. One transaction, so a failure partway
-// through never leaves a Workflow deleted with orphaned WorkItems still
-// behind, or vice versa.
-func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
-	if _, err := m.findWorkflowRow(ctx, m.db, id); err != nil {
-		return err
-	}
+	var out models.Workflow
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Table(m.tables.WorkItems).Where("workflow_id = ?", id).
-			Delete(&gormstore.WorkItemRow{}).Error; err != nil {
+		existing, err := m.findWorkflow(ctx, tx, w.ID)
+		if err != nil {
 			return err
 		}
-		return tx.Table(m.tables.Workflows).Where("id = ?", id).Delete(&gormstore.WorkflowRow{}).Error
+		w.Code = existing.Code
+		w.CreatedAt = existing.CreatedAt
+		w.LastUpdated = models.NowRFC3339()
+
+		if err := m.writeUpdate(ctx, tx, roleWorkflow, w.ID, w, ErrWorkflowNotFound); err != nil {
+			return err
+		}
+		out = w
+		return nil
+	})
+	if err != nil {
+		return models.Workflow{}, fmt.Errorf("UpdateWorkflow: %w", err)
+	}
+	return out, nil
+}
+
+func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if _, err := m.findWorkflow(ctx, tx, id); err != nil {
+			return err
+		}
+		if err := m.deleteWhere(ctx, tx, roleWorkItem, "workflow_id = ?", id); err != nil {
+			return err
+		}
+		return m.deleteWhere(ctx, tx, roleWorkflow, "id = ?", id)
 	})
 	if err != nil {
 		return fmt.Errorf("DeleteWorkflow: %w", err)
@@ -106,14 +83,10 @@ func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
 	return nil
 }
 
-func (m *agencyManager) findWorkflowRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.WorkflowRow, error) {
-	var row gormstore.WorkflowRow
-	err := tx.WithContext(ctx).Table(m.tables.Workflows).Where("id = ?", id).First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return gormstore.WorkflowRow{}, ErrWorkflowNotFound
+func (m *agencyManager) findWorkflow(ctx context.Context, tx *gorm.DB, id string) (models.Workflow, error) {
+	var w models.Workflow
+	if err := m.find(ctx, tx, roleWorkflow, id, &w, ErrWorkflowNotFound); err != nil {
+		return models.Workflow{}, err
 	}
-	if err != nil {
-		return gormstore.WorkflowRow{}, fmt.Errorf("findWorkflowRow: %w", err)
-	}
-	return row, nil
+	return w, nil
 }

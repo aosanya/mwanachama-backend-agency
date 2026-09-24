@@ -2,12 +2,8 @@ package mwanachamaagency
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"gorm.io/gorm"
-
-	"github.com/aosanya/mwanachama-backend-agency/gormstore"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -15,20 +11,18 @@ func (m *agencyManager) CreateEventFlowStep(ctx context.Context, s models.EventF
 	if err := m.validateOpenDraftID(ctx, s.DraftID); err != nil {
 		return models.EventFlowStep{}, err
 	}
-	s.ID = ""
+	s.ID = newID()
 	s.CreatedAt = models.NowRFC3339()
-	row := gormstore.EventFlowStepToRow(s)
-	if err := m.db.WithContext(ctx).Table(m.tables.EventFlowSteps).Create(&row).Error; err != nil {
+	s.LastUpdated = s.CreatedAt
+
+	if err := m.insert(ctx, roleEventFlowStep, s); err != nil {
 		return models.EventFlowStep{}, fmt.Errorf("CreateEventFlowStep: %w", err)
 	}
-	return gormstore.EventFlowStepFromRow(row), nil
+	return s, nil
 }
 
-// LookupFlowStep tries lookup.HandlerCode, then (lookup.TriggerTopic,
-// lookup.Consumer) together, then lookup.Code, in that precedence order,
-// scoped to draftID.
 func (m *agencyManager) LookupFlowStep(ctx context.Context, draftID string, lookup models.EventFlowStepLookup) (models.EventFlowStep, error) {
-	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.EventFlowSteps), draftID)
+	q := scopeQuery(m.q(ctx, roleEventFlowStep), draftID)
 	switch {
 	case lookup.HandlerCode != "":
 		q = q.Where("handler_code = ?", lookup.HandlerCode)
@@ -40,37 +34,25 @@ func (m *agencyManager) LookupFlowStep(ctx context.Context, draftID string, look
 		return models.EventFlowStep{}, ErrInvalidLookup
 	}
 
-	var row gormstore.EventFlowStepRow
-	err := q.First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models.EventFlowStep{}, ErrEventFlowStepNotFound
+	var step models.EventFlowStep
+	if err := m.take(q, roleEventFlowStep, &step, ErrEventFlowStepNotFound); err != nil {
+		return models.EventFlowStep{}, err
 	}
-	if err != nil {
-		return models.EventFlowStep{}, fmt.Errorf("LookupFlowStep: %w", err)
-	}
-	return gormstore.EventFlowStepFromRow(row), nil
+	return step, nil
 }
 
-// ListEventFlowSteps returns draftID's steps ordered by (WorkflowCode,
-// Ordinality, Step), optionally filtered to one workflowCode and/or
-// filter. Step sorts lexically, same as source — "1.10" sorts before
-// "1.2".
 func (m *agencyManager) ListEventFlowSteps(ctx context.Context, draftID, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error) {
-	q := scopeQuery(m.db.WithContext(ctx).Table(m.tables.EventFlowSteps), draftID).
-		Order("workflow_code, ordinality, step")
+	q := scopeQuery(m.q(ctx, roleEventFlowStep), draftID).Order("workflow_code, ordinality, step")
 	if workflowCode != "" {
 		q = q.Where("workflow_code = ?", workflowCode)
 	}
 	q = likeFilter(q, "code", filter.Code)
 	q = likeFilter(q, "name", filter.Name)
 	q = likeFilter(q, "description", filter.Description)
-	var rows []gormstore.EventFlowStepRow
-	if err := q.Find(&rows).Error; err != nil {
+
+	out, err := list[models.EventFlowStep](m, q, roleEventFlowStep)
+	if err != nil {
 		return nil, fmt.Errorf("ListEventFlowSteps: %w", err)
-	}
-	out := make([]models.EventFlowStep, len(rows))
-	for i, r := range rows {
-		out[i] = gormstore.EventFlowStepFromRow(r)
 	}
 	return out, nil
 }

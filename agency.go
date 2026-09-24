@@ -6,6 +6,9 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/aosanya/mwanachama-backend-shared/spec"
+	"github.com/aosanya/mwanachama-backend-shared/specstore"
+
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
@@ -255,18 +258,30 @@ type AgencyManager interface {
 	// is no Create/Update/Delete surface; nothing here is ever authored
 	// directly. An error-severity Issue is what PublishAgency refuses on.
 	ListIssues(ctx context.Context, draftID string, filter IssueFilter) ([]models.Issue, error)
+
+	// ImportDocument writes a whole agency document into a draft of its
+	// own — a mined template, or an export from elsewhere.
+	ImportDocument(ctx context.Context, description string, doc models.AgencyDocument) (ImportResult, error)
 }
 
 type agencyManager struct {
 	db     *gorm.DB
+	st     *specstore.Store
 	tables TableNames
 }
 
-// NewAgencyManager builds an [AgencyManager] backed by db, reading and
-// writing the tables named by t.
-func NewAgencyManager(db *gorm.DB, t TableNames) (AgencyManager, error) {
+func NewAgencyManager(db *gorm.DB, s *spec.Spec) (AgencyManager, error) {
 	if db == nil {
 		return nil, fmt.Errorf("NewAgencyManager: db must not be nil")
 	}
-	return &agencyManager{db: db, tables: t}, nil
+	if s == nil {
+		return nil, fmt.Errorf("NewAgencyManager: spec must not be nil")
+	}
+	st, err := newStore(db, s)
+	if err != nil {
+		return nil, fmt.Errorf("NewAgencyManager: %w", err)
+	}
+	return &agencyManager{db: db, st: st, tables: TablesFor(s)}, nil
 }
+
+func ManagerShape() AgencyManager { return (*agencyManager)(nil) }

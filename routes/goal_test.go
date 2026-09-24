@@ -8,16 +8,14 @@ import (
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 func TestCreateGoal(t *testing.T) {
 	mgr, draftID := newTestManagerWithDraft(t)
-	handler := routes.CreateGoal(mgr)
 
 	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(`{"title":"Grow adoption","draft_id":"`+draftID+`"}`))
 	rec := httptest.NewRecorder()
-	handler(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -36,12 +34,11 @@ func TestCreateGoal(t *testing.T) {
 // verbatim by this exact handler.
 func TestCreateGoal_IgnoresForgedFieldsOverHTTP(t *testing.T) {
 	mgr, draftID := newTestManagerWithDraft(t)
-	handler := routes.CreateGoal(mgr)
 
 	body := `{"id":"forged-goal-id","title":"Probe","created_at":"1999-01-01T00:00:00Z","draft_id":"unknown-draft"}`
 	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(body))
 	rec := httptest.NewRecorder()
-	handler(rec, req)
+	serve(mgr, rec, req)
 
 	// An unknown draft_id is refused outright — see TestCreateGoal_UnknownDraftIDIs404.
 	if rec.Code != http.StatusNotFound {
@@ -51,7 +48,7 @@ func TestCreateGoal_IgnoresForgedFieldsOverHTTP(t *testing.T) {
 	body = `{"id":"forged-goal-id","title":"Probe","created_at":"1999-01-01T00:00:00Z","draft_id":"` + draftID + `"}`
 	req = httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(body))
 	rec = httptest.NewRecorder()
-	handler(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -73,11 +70,10 @@ func TestCreateGoal_IgnoresForgedFieldsOverHTTP(t *testing.T) {
 // ErrDraftNotFound.
 func TestCreateGoal_UnknownDraftIDIs404(t *testing.T) {
 	mgr := newTestManager(t)
-	handler := routes.CreateGoal(mgr)
 
 	req := httptest.NewRequest(http.MethodPost, "/goals", strings.NewReader(`{"title":"Probe","draft_id":"unknown-draft"}`))
 	rec := httptest.NewRecorder()
-	handler(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -86,12 +82,11 @@ func TestCreateGoal_UnknownDraftIDIs404(t *testing.T) {
 
 func TestGetGoal_NotFound(t *testing.T) {
 	mgr := newTestManager(t)
-	handler := routes.GetGoal(mgr)
 
 	req := httptest.NewRequest(http.MethodGet, "/goals/unknown", nil)
 	req.SetPathValue("goalID", "unknown")
 	rec := httptest.NewRecorder()
-	handler(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -107,7 +102,7 @@ func TestListAndUpdateGoal(t *testing.T) {
 
 	listReq := httptest.NewRequest(http.MethodGet, "/goals?draft_id="+draftID, nil)
 	listRec := httptest.NewRecorder()
-	routes.ListGoals(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}
@@ -122,7 +117,7 @@ func TestListAndUpdateGoal(t *testing.T) {
 	updateReq := httptest.NewRequest(http.MethodPatch, "/goals/"+g.ID, strings.NewReader(`{"title":"Grow adoption worldwide"}`))
 	updateReq.SetPathValue("goalID", g.ID)
 	updateRec := httptest.NewRecorder()
-	routes.UpdateGoal(mgr)(updateRec, updateReq)
+	serve(mgr, updateRec, updateReq)
 	if updateRec.Code != http.StatusOK {
 		t.Fatalf("update status = %d, body = %s", updateRec.Code, updateRec.Body.String())
 	}

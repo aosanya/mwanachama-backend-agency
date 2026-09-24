@@ -1,0 +1,44 @@
+package mcp
+
+import (
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
+)
+
+var sentinels = map[string]error{
+	"ErrAgencyNotFound":           mwanachamaagency.ErrAgencyNotFound,
+	"ErrCannotEditLive":           mwanachamaagency.ErrCannotEditLive,
+	"ErrDraftNotFound":            mwanachamaagency.ErrDraftNotFound,
+	"ErrDraftNotOpen":             mwanachamaagency.ErrDraftNotOpen,
+	"ErrDraftRequired":            mwanachamaagency.ErrDraftRequired,
+	"ErrDuplicateAccountable":     mwanachamaagency.ErrDuplicateAccountable,
+	"ErrDuplicateAttachment":      mwanachamaagency.ErrDuplicateAttachment,
+	"ErrDuplicateModule":          mwanachamaagency.ErrDuplicateModule,
+	"ErrDuplicateObjectiveModule": mwanachamaagency.ErrDuplicateObjectiveModule,
+	"ErrDuplicateTag":             mwanachamaagency.ErrDuplicateTag,
+	"ErrEventFlowStepNotFound":    mwanachamaagency.ErrEventFlowStepNotFound,
+	"ErrGoalNotFound":             mwanachamaagency.ErrGoalNotFound,
+	"ErrInvalidForkSource":        mwanachamaagency.ErrInvalidForkSource,
+	"ErrInvalidLookup":            mwanachamaagency.ErrInvalidLookup,
+	"ErrInvalidModule":            mwanachamaagency.ErrInvalidModule,
+	"ErrInvalidRACILabel":         mwanachamaagency.ErrInvalidRACILabel,
+	"ErrInvalidRole":              mwanachamaagency.ErrInvalidRole,
+	"ErrInvalidRule":              mwanachamaagency.ErrInvalidRule,
+	"ErrInvalidTargetType":        mwanachamaagency.ErrInvalidTargetType,
+	"ErrInvalidValue":             mwanachamaagency.ErrInvalidValue,
+	"ErrInvalidWorkItem":          mwanachamaagency.ErrInvalidWorkItem,
+	"ErrModuleNotFound":           mwanachamaagency.ErrModuleNotFound,
+	"ErrNoChangesDetected":        mwanachamaagency.ErrNoChangesDetected,
+	"ErrObjectiveModuleNotFound":  mwanachamaagency.ErrObjectiveModuleNotFound,
+	"ErrObjectiveNotFound":        mwanachamaagency.ErrObjectiveNotFound,
+	"ErrPublicationNotFound":      mwanachamaagency.ErrPublicationNotFound,
+	"ErrPublishValidationFailed":  mwanachamaagency.ErrPublishValidationFailed,
+	"ErrRationaleRequired":        mwanachamaagency.ErrRationaleRequired,
+	"ErrRoleAssignmentNotFound":   mwanachamaagency.ErrRoleAssignmentNotFound,
+	"ErrRoleNotFound":             mwanachamaagency.ErrRoleNotFound,
+	"ErrRuleAttachmentNotFound":   mwanachamaagency.ErrRuleAttachmentNotFound,
+	"ErrRuleNotFound":             mwanachamaagency.ErrRuleNotFound,
+	"ErrValueAttachmentNotFound":  mwanachamaagency.ErrValueAttachmentNotFound,
+	"ErrValueNotFound":            mwanachamaagency.ErrValueNotFound,
+	"ErrWorkItemNotFound":         mwanachamaagency.ErrWorkItemNotFound,
+	"ErrWorkflowNotFound":         mwanachamaagency.ErrWorkflowNotFound,
+}

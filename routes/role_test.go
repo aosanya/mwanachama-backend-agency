@@ -8,14 +8,13 @@ import (
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 func TestCreateRole(t *testing.T) {
 	mgr, draftID := newTestManagerWithDraft(t)
 	req := httptest.NewRequest(http.MethodPost, "/roles", strings.NewReader(`{"name":"bug-hunter","draft_id":"`+draftID+`"}`))
 	rec := httptest.NewRecorder()
-	routes.CreateRole(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -33,7 +32,7 @@ func TestCreateRole_Invalid(t *testing.T) {
 	mgr := newTestManager(t)
 	req := httptest.NewRequest(http.MethodPost, "/roles", strings.NewReader(`{}`))
 	rec := httptest.NewRecorder()
-	routes.CreateRole(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -50,7 +49,7 @@ func TestUpdateRole_WithinDraft(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPatch, "/roles/"+role.ID, strings.NewReader(`{"name":"renamed"}`))
 	req.SetPathValue("roleID", role.ID)
 	rec := httptest.NewRecorder()
-	routes.UpdateRole(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -67,7 +66,7 @@ func TestDeleteRole_WithinDraft(t *testing.T) {
 	req := httptest.NewRequest(http.MethodDelete, "/roles/"+role.ID, nil)
 	req.SetPathValue("roleID", role.ID)
 	rec := httptest.NewRecorder()
-	routes.DeleteRole(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
@@ -82,7 +81,7 @@ func TestListRoles(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/roles?draft_id="+draftID, nil)
 	rec := httptest.NewRecorder()
-	routes.ListRoles(mgr)(rec, req)
+	serve(mgr, rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())

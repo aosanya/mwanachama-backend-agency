@@ -2,31 +2,20 @@ package mwanachamaagency
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"gorm.io/gorm"
 
-	"github.com/aosanya/mwanachama-backend-agency/gormstore"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// scopeQuery filters a query to one Draft's rows. Every row always belongs
-// to a real Draft (AGD-006 — there is no live row-scope), so draftID must
-// name one; "" matches nothing rather than any special "live" set.
 func scopeQuery(q *gorm.DB, draftID string) *gorm.DB {
 	return q.Where("draft_id = ?", draftID)
 }
 
-// likeEscaper backslash-escapes the LIKE metacharacters so a caller-supplied
-// value matches literally; the backslash itself is escaped first.
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
-// likeFilter chains a case-insensitive substring match on column onto q,
-// or returns q unchanged if value is "". LOWER(x) LIKE ? rather than
-// Postgres-only ILIKE, matching the existing idiom in roleNotFoundError —
-// portable to the SQLite this repo's tests run against.
 func likeFilter(q *gorm.DB, column, value string) *gorm.DB {
 	if value == "" {
 		return q
@@ -34,9 +23,6 @@ func likeFilter(q *gorm.DB, column, value string) *gorm.DB {
 	return q.Where("LOWER("+column+") LIKE ? ESCAPE '\\'", "%"+likeEscaper.Replace(strings.ToLower(value))+"%")
 }
 
-// eqFilter chains an exact match on column onto q, or returns q unchanged
-// if value is "" — for enum-shaped columns (Status, Label, SourceType)
-// rather than free text.
 func eqFilter(q *gorm.DB, column, value string) *gorm.DB {
 	if value == "" {
 		return q
@@ -44,319 +30,81 @@ func eqFilter(q *gorm.DB, column, value string) *gorm.DB {
 	return q.Where(column+" = ?", value)
 }
 
-func (m *agencyManager) findDraftRow(ctx context.Context, tx *gorm.DB, id string) (gormstore.DraftRow, error) {
-	var row gormstore.DraftRow
-	err := tx.WithContext(ctx).Table(m.tables.Drafts).Where("id = ?", id).First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return gormstore.DraftRow{}, ErrDraftNotFound
+func (m *agencyManager) findDraft(ctx context.Context, tx *gorm.DB, id string) (models.Draft, error) {
+	var d models.Draft
+	if err := m.find(ctx, tx, roleDraft, id, &d, ErrDraftNotFound); err != nil {
+		return models.Draft{}, err
 	}
-	if err != nil {
-		return gormstore.DraftRow{}, fmt.Errorf("findDraftRow: %w", err)
-	}
-	return row, nil
+	return d, nil
 }
 
-// validateOpenDraftID refuses a Create<Type> call's caller-supplied
-// draftID unless it names a real, still-open Draft. AGD-006: every row
-// belongs to a Draft, so "" is no longer a valid shorthand for anything —
-// it returns [ErrDraftRequired] rather than silently passing. Originally
-// closed WK17 (an unvalidated draftID let a caller attach a new write to
-// an arbitrary or already-archived Draft); ErrDraftNotFound for an unknown
-// id, ErrDraftNotOpen for one that is archived.
 func (m *agencyManager) validateOpenDraftID(ctx context.Context, draftID string) error {
 	if draftID == "" {
 		return ErrDraftRequired
 	}
-	row, err := m.findDraftRow(ctx, m.db, draftID)
+	d, err := m.findDraft(ctx, m.db, draftID)
 	if err != nil {
 		return err
 	}
-	if row.Status != string(models.DraftStatusOpen) {
+	if d.Status != models.DraftStatusOpen {
 		return ErrDraftNotOpen
 	}
 	return nil
 }
 
-// CreateDraft forks the sub-graph scoped to forkedFromID — another open
-// Draft's ID when forkedFromType=="draft", or a published Tag when
-// forkedFromType=="publication" — into brand-new Goal/Objective/Workflow/
-// WorkItem/EventFlowStep/Role/RoleAssignment/Module/ObjectiveModule/Value/
-// Rule rows scoped to the new Draft. forkedFromType=="" starts an empty
-// Draft instead (forkedFromID ignored) — there is no "live" source
-// (AGD-006); [ErrInvalidForkSource] for anything else. Objective's GoalID, WorkItem's
-// WorkflowID/ObjectiveID, RoleAssignment's RoleID/ObjectiveID, and
-// ObjectiveModule's ObjectiveID/ModuleID are remapped to the copies' new
-// ids; EventFlowStep needs no remap (it joins Workflow by the
-// WorkflowCode business key, not a row id), and nothing points into
-// Module, so its own copy loop needs no remap either.
-//
-// Agency-wide Value/Rule rows (no [models.ValueAttachment]/
-// [models.RuleAttachment] at all) are deliberately never copied here —
-// AGD-001 confirmed they have no edit path at all, ever, and forking them
-// into a Draft would be exactly that. Only rows carrying at least one
-// attachment fork, same as Goal/WorkItem/Role. Attachments themselves are
-// never forked or remapped here — AGD-003 (2026-09-15) made them
-// live-editable, addressed by Code rather than row id specifically so
-// they need no remap step at fork or promote time.
 func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFromID, forkedFromType string) (models.Draft, error) {
 	var out models.Draft
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findAgencyRow(ctx, tx); err != nil {
+		if _, err := m.findAgency(ctx, tx); err != nil {
 			return err
 		}
 
 		var sourceScope string
-		var publication gormstore.AgencyPublicationRow
+		var source models.AgencyPublication
 		switch forkedFromType {
 		case "":
-			// Start empty — nothing to fork (forkedFromID is ignored).
-			// This is what provisioning a brand-new Instance uses, and
-			// what a seed like SeedSWELab uses before anything exists yet
-			// to fork from.
 		case "draft":
-			srcRow, err := m.findDraftRow(ctx, tx, forkedFromID)
+			src, err := m.findDraft(ctx, tx, forkedFromID)
 			if err != nil {
 				return err
 			}
-			if gormstore.DraftFromRow(srcRow).Status != models.DraftStatusOpen {
+			if src.Status != models.DraftStatusOpen {
 				return ErrDraftNotOpen
 			}
 			sourceScope = forkedFromID
 		case "publication":
-			// forkedFromID is the tag, not a row id — the handle an
-			// operator actually names ("start from release-1").
-			err := tx.WithContext(ctx).Table(m.tables.AgencyPublications).
-				Where("tag = ?", forkedFromID).First(&publication).Error
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrPublicationNotFound
-			}
+			p, err := m.findPublicationBy(ctx, tx, "tag = ?", forkedFromID)
 			if err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
+				return err
 			}
+			source = p
 		default:
-			// AGD-006: there is no working-set row-scope left to fork
-			// from ("live" is gone) — every fork names a real source.
 			return ErrInvalidForkSource
 		}
 
 		now := models.NowRFC3339()
-		draftRow := gormstore.DraftToRow(models.Draft{
+		draft := models.Draft{
+			ID:             newID(),
 			Description:    description,
 			ForkedFromID:   forkedFromID,
 			ForkedFromType: forkedFromType,
 			Status:         models.DraftStatusOpen,
 			CreatedAt:      now,
-		})
-		if err := tx.Table(m.tables.Drafts).Create(&draftRow).Error; err != nil {
+			LastUpdated:    now,
+		}
+		row, err := m.encode(roleDraft, draft)
+		if err != nil {
+			return err
+		}
+		if err := tx.Table(m.table(roleDraft)).Create(row).Error; err != nil {
 			return fmt.Errorf("CreateDraft: %w", err)
 		}
-		newDraftID := draftRow.ID
+		out = draft
 
-		// A publication is a document, not a row scope, so it is
-		// materialized whole rather than walked by the row-copy loops
-		// below (AGD-005 #5).
 		if forkedFromType == "publication" {
-			doc := gormstore.AgencyPublicationFromRow(publication).Document
-			if err := applyDocumentToDraft(ctx, tx, m.tables, newDraftID, doc, now); err != nil {
-				return err
-			}
-			out = gormstore.DraftFromRow(draftRow)
-			return nil
+			return applyDocumentToDraft(ctx, m, tx, draft.ID, source.Document, now)
 		}
-
-		var goalRows []gormstore.GoalRow
-		if err := scopeQuery(tx.Table(m.tables.Goals), sourceScope).Find(&goalRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		goalIDMap := make(map[string]string, len(goalRows))
-		for _, gr := range goalRows {
-			g := gormstore.GoalFromRow(gr)
-			oldID := g.ID
-			g.ID, g.DraftID, g.CreatedAt = "", newDraftID, now
-			newRow := gormstore.GoalToRow(g)
-			if err := tx.Table(m.tables.Goals).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-			goalIDMap[oldID] = newRow.ID
-		}
-
-		var objectiveRows []gormstore.ObjectiveRow
-		if err := scopeQuery(tx.Table(m.tables.Objectives), sourceScope).Find(&objectiveRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		objectiveIDMap := make(map[string]string, len(objectiveRows))
-		for _, or := range objectiveRows {
-			o := gormstore.ObjectiveFromRow(or)
-			oldID := o.ID
-			o.ID, o.DraftID, o.CreatedAt = "", newDraftID, now
-			if mapped, ok := goalIDMap[o.GoalID]; ok {
-				o.GoalID = mapped
-			}
-			newRow := gormstore.ObjectiveToRow(o)
-			if err := tx.Table(m.tables.Objectives).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-			objectiveIDMap[oldID] = newRow.ID
-		}
-
-		var workflowRows []gormstore.WorkflowRow
-		if err := scopeQuery(tx.Table(m.tables.Workflows), sourceScope).Find(&workflowRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		workflowIDMap := make(map[string]string, len(workflowRows))
-		for _, wr := range workflowRows {
-			w := gormstore.WorkflowFromRow(wr)
-			oldID := w.ID
-			w.ID, w.DraftID, w.CreatedAt = "", newDraftID, now
-			newRow := gormstore.WorkflowToRow(w)
-			if err := tx.Table(m.tables.Workflows).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-			workflowIDMap[oldID] = newRow.ID
-		}
-
-		var workItemRows []gormstore.WorkItemRow
-		if err := scopeQuery(tx.Table(m.tables.WorkItems), sourceScope).Find(&workItemRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		workItemIDMap := make(map[string]string, len(workItemRows))
-		for _, wir := range workItemRows {
-			wi := gormstore.WorkItemFromRow(wir)
-			oldID := wi.ID
-			wi.ID, wi.DraftID, wi.CreatedAt = "", newDraftID, now
-			if mapped, ok := workflowIDMap[wi.WorkflowID]; ok {
-				wi.WorkflowID = mapped
-			}
-			if mapped, ok := objectiveIDMap[wi.ObjectiveID]; ok {
-				wi.ObjectiveID = mapped
-			}
-			newRow := gormstore.WorkItemToRow(wi)
-			if err := tx.Table(m.tables.WorkItems).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-			workItemIDMap[oldID] = newRow.ID
-		}
-
-		var stepRows []gormstore.EventFlowStepRow
-		if err := scopeQuery(tx.Table(m.tables.EventFlowSteps), sourceScope).Find(&stepRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		for _, sr := range stepRows {
-			s := gormstore.EventFlowStepFromRow(sr)
-			s.ID, s.DraftID, s.CreatedAt = "", newDraftID, now
-			newRow := gormstore.EventFlowStepToRow(s)
-			if err := tx.Table(m.tables.EventFlowSteps).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-		}
-
-		var roleRows []gormstore.RoleRow
-		if err := scopeQuery(tx.Table(m.tables.Roles), sourceScope).Find(&roleRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		roleIDMap := make(map[string]string, len(roleRows))
-		for _, rr := range roleRows {
-			r := gormstore.RoleFromRow(rr)
-			oldID := r.ID
-			r.ID, r.DraftID, r.CreatedAt = "", newDraftID, now
-			newRow := gormstore.RoleToRow(r)
-			if err := tx.Table(m.tables.Roles).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-			roleIDMap[oldID] = newRow.ID
-		}
-
-		var moduleRows []gormstore.ModuleRow
-		if err := scopeQuery(tx.Table(m.tables.Modules), sourceScope).Find(&moduleRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		moduleIDMap := make(map[string]string, len(moduleRows))
-		for _, modr := range moduleRows {
-			mod := gormstore.ModuleFromRow(modr)
-			oldID := mod.ID
-			mod.ID, mod.DraftID, mod.CreatedAt = "", newDraftID, now
-			newRow := gormstore.ModuleToRow(mod)
-			if err := tx.Table(m.tables.Modules).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-			moduleIDMap[oldID] = newRow.ID
-		}
-
-		var assignmentRows []gormstore.RoleAssignmentRow
-		if err := scopeQuery(tx.Table(m.tables.RoleAssignments), sourceScope).Find(&assignmentRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		for _, ar := range assignmentRows {
-			a := gormstore.RoleAssignmentFromRow(ar)
-			a.ID, a.DraftID, a.CreatedAt = "", newDraftID, now
-			if mapped, ok := roleIDMap[a.RoleID]; ok {
-				a.RoleID = mapped
-			}
-			if mapped, ok := objectiveIDMap[a.ObjectiveID]; ok {
-				a.ObjectiveID = mapped
-			}
-			newRow := gormstore.RoleAssignmentToRow(a)
-			if err := tx.Table(m.tables.RoleAssignments).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-		}
-
-		var objectiveModuleRows []gormstore.ObjectiveModuleRow
-		if err := scopeQuery(tx.Table(m.tables.ObjectiveModules), sourceScope).Find(&objectiveModuleRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		for _, omr := range objectiveModuleRows {
-			om := gormstore.ObjectiveModuleFromRow(omr)
-			om.ID, om.DraftID, om.CreatedAt = "", newDraftID, now
-			if mapped, ok := objectiveIDMap[om.ObjectiveID]; ok {
-				om.ObjectiveID = mapped
-			}
-			if mapped, ok := moduleIDMap[om.ModuleID]; ok {
-				om.ModuleID = mapped
-			}
-			newRow := gormstore.ObjectiveModuleToRow(om)
-			if err := tx.Table(m.tables.ObjectiveModules).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-		}
-
-		// Only Value/Rule rows carrying at least one attachment fork —
-		// Agency-wide ones (no attachment at all) are excluded by this
-		// query and so can never enter a Draft. See this function's doc
-		// comment. No id remap needed — attachments reference Code, not
-		// row id.
-		var valueRows []gormstore.ValueRow
-		if err := scopeQuery(tx.Table(m.tables.Values), sourceScope).
-			Where("code IN (SELECT value_code FROM " + m.tables.ValueAttachments + ")").
-			Find(&valueRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		for _, vr := range valueRows {
-			v := gormstore.ValueFromRow(vr)
-			v.ID, v.DraftID, v.CreatedAt = "", newDraftID, now
-			newRow := gormstore.ValueToRow(v)
-			if err := tx.Table(m.tables.Values).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-		}
-
-		var ruleRows []gormstore.RuleRow
-		if err := scopeQuery(tx.Table(m.tables.Rules), sourceScope).
-			Where("code IN (SELECT rule_code FROM " + m.tables.RuleAttachments + ")").
-			Find(&ruleRows).Error; err != nil {
-			return fmt.Errorf("CreateDraft: %w", err)
-		}
-		for _, rr := range ruleRows {
-			r := gormstore.RuleFromRow(rr)
-			r.ID, r.DraftID, r.CreatedAt = "", newDraftID, now
-			newRow := gormstore.RuleToRow(r)
-			if err := tx.Table(m.tables.Rules).Create(&newRow).Error; err != nil {
-				return fmt.Errorf("CreateDraft: %w", err)
-			}
-		}
-
-		out = gormstore.DraftFromRow(draftRow)
-		return nil
+		return m.forkScope(ctx, tx, sourceScope, draft.ID, now)
 	})
 	if err != nil {
 		return models.Draft{}, err
@@ -364,63 +112,237 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 	return out, nil
 }
 
-func (m *agencyManager) GetDraft(ctx context.Context, id string) (models.Draft, error) {
-	row, err := m.findDraftRow(ctx, m.db, id)
+func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope, newDraftID, now string) error {
+	goals, err := list[models.Goal](m, scopeQuery(tx.Table(m.table(roleGoal)), sourceScope), roleGoal)
 	if err != nil {
-		return models.Draft{}, err
+		return fmt.Errorf("CreateDraft: %w", err)
 	}
-	return gormstore.DraftFromRow(row), nil
+	goalIDs := make(map[string]string, len(goals))
+	for _, g := range goals {
+		old := g.ID
+		g.ID, g.DraftID, g.CreatedAt, g.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleGoal, g); err != nil {
+			return err
+		}
+		goalIDs[old] = g.ID
+	}
+
+	objectives, err := list[models.Objective](m, scopeQuery(tx.Table(m.table(roleObjective)), sourceScope), roleObjective)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	objectiveIDs := make(map[string]string, len(objectives))
+	for _, o := range objectives {
+		old := o.ID
+		o.ID, o.DraftID, o.CreatedAt, o.LastUpdated = newID(), newDraftID, now, now
+		o.GoalID = remap(goalIDs, o.GoalID)
+		if err := m.copyRow(ctx, tx, roleObjective, o); err != nil {
+			return err
+		}
+		objectiveIDs[old] = o.ID
+	}
+
+	workflows, err := list[models.Workflow](m, scopeQuery(tx.Table(m.table(roleWorkflow)), sourceScope), roleWorkflow)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	workflowIDs := make(map[string]string, len(workflows))
+	for _, w := range workflows {
+		old := w.ID
+		w.ID, w.DraftID, w.CreatedAt, w.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleWorkflow, w); err != nil {
+			return err
+		}
+		workflowIDs[old] = w.ID
+	}
+
+	workItems, err := list[models.WorkItem](m, scopeQuery(tx.Table(m.table(roleWorkItem)), sourceScope), roleWorkItem)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, wi := range workItems {
+		wi.ID, wi.DraftID, wi.CreatedAt, wi.LastUpdated = newID(), newDraftID, now, now
+		wi.WorkflowID = remap(workflowIDs, wi.WorkflowID)
+		wi.ObjectiveID = remap(objectiveIDs, wi.ObjectiveID)
+		if err := m.copyRow(ctx, tx, roleWorkItem, wi); err != nil {
+			return err
+		}
+	}
+
+	steps, err := list[models.EventFlowStep](m, scopeQuery(tx.Table(m.table(roleEventFlowStep)), sourceScope), roleEventFlowStep)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, s := range steps {
+		s.ID, s.DraftID, s.CreatedAt, s.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleEventFlowStep, s); err != nil {
+			return err
+		}
+	}
+
+	roles, err := list[models.Role](m, scopeQuery(tx.Table(m.table(roleRole)), sourceScope), roleRole)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	roleIDs := make(map[string]string, len(roles))
+	for _, r := range roles {
+		old := r.ID
+		r.ID, r.DraftID, r.CreatedAt, r.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleRole, r); err != nil {
+			return err
+		}
+		roleIDs[old] = r.ID
+	}
+
+	modules, err := list[models.Module](m, scopeQuery(tx.Table(m.table(roleModule)), sourceScope), roleModule)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	moduleIDs := make(map[string]string, len(modules))
+	for _, mod := range modules {
+		old := mod.ID
+		mod.ID, mod.DraftID, mod.CreatedAt, mod.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleModule, mod); err != nil {
+			return err
+		}
+		moduleIDs[old] = mod.ID
+	}
+
+	assignments, err := list[models.RoleAssignment](m, scopeQuery(tx.Table(m.table(roleRoleAssignment)), sourceScope), roleRoleAssignment)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, a := range assignments {
+		a.ID, a.DraftID, a.CreatedAt, a.LastUpdated = newID(), newDraftID, now, now
+		a.RoleID = remap(roleIDs, a.RoleID)
+		a.ObjectiveID = remap(objectiveIDs, a.ObjectiveID)
+		if err := m.copyRow(ctx, tx, roleRoleAssignment, a); err != nil {
+			return err
+		}
+	}
+
+	objectiveModules, err := list[models.ObjectiveModule](m, scopeQuery(tx.Table(m.table(roleObjectiveModule)), sourceScope), roleObjectiveModule)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, om := range objectiveModules {
+		om.ID, om.DraftID, om.CreatedAt, om.LastUpdated = newID(), newDraftID, now, now
+		om.ObjectiveID = remap(objectiveIDs, om.ObjectiveID)
+		om.ModuleID = remap(moduleIDs, om.ModuleID)
+		if err := m.copyRow(ctx, tx, roleObjectiveModule, om); err != nil {
+			return err
+		}
+	}
+
+	attached := func(role, attachmentRole, codeColumn string) *gorm.DB {
+		return scopeQuery(tx.Table(m.table(role)), sourceScope).
+			Where("code IN (SELECT " + codeColumn + " FROM " + m.table(attachmentRole) + ")")
+	}
+
+	values, err := list[models.Value](m, attached(roleValue, roleValueAttachment, "value_code"), roleValue)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, v := range values {
+		v.ID, v.DraftID, v.CreatedAt, v.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleValue, v); err != nil {
+			return err
+		}
+	}
+
+	rules, err := list[models.Rule](m, attached(roleRule, roleRuleAttachment, "rule_code"), roleRule)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, r := range rules {
+		r.ID, r.DraftID, r.CreatedAt, r.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleRule, r); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *agencyManager) copyRow(ctx context.Context, tx *gorm.DB, role string, v any) error {
+	row, err := m.encode(role, v)
+	if err != nil {
+		return err
+	}
+	if err := tx.WithContext(ctx).Table(m.table(role)).Create(row).Error; err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	return nil
+}
+
+func remap(ids map[string]string, id string) string {
+	if mapped, ok := ids[id]; ok {
+		return mapped
+	}
+	return id
+}
+
+func (m *agencyManager) GetDraft(ctx context.Context, id string) (models.Draft, error) {
+	return m.findDraft(ctx, m.db, id)
 }
 
 func (m *agencyManager) ListDrafts(ctx context.Context, filter DraftFilter) ([]models.Draft, error) {
-	q := m.db.WithContext(ctx).Table(m.tables.Drafts).Order("created_at")
+	q := m.q(ctx, roleDraft).Order("created_at")
 	q = likeFilter(q, "description", filter.Description)
 	q = eqFilter(q, "status", filter.Status)
-	var rows []gormstore.DraftRow
-	if err := q.Find(&rows).Error; err != nil {
+
+	out, err := list[models.Draft](m, q, roleDraft)
+	if err != nil {
 		return nil, fmt.Errorf("ListDrafts: %w", err)
-	}
-	out := make([]models.Draft, len(rows))
-	for i, r := range rows {
-		out[i] = gormstore.DraftFromRow(r)
 	}
 	return out, nil
 }
 
 func (m *agencyManager) UpdateDraftDescription(ctx context.Context, id, description string) (models.Draft, error) {
-	row, err := m.findDraftRow(ctx, m.db, id)
+	var out models.Draft
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		draft, err := m.findDraft(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if draft.Status != models.DraftStatusOpen {
+			return ErrDraftNotOpen
+		}
+		draft.Description = description
+		draft.LastUpdated = models.NowRFC3339()
+
+		if err := m.writeUpdate(ctx, tx, roleDraft, id, draft, ErrDraftNotFound); err != nil {
+			return err
+		}
+		out = draft
+		return nil
+	})
 	if err != nil {
-		return models.Draft{}, err
-	}
-	draft := gormstore.DraftFromRow(row)
-	if draft.Status != models.DraftStatusOpen {
-		return models.Draft{}, ErrDraftNotOpen
-	}
-	now := models.NowRFC3339()
-	cols := map[string]any{"description": description, "updated_at": now}
-	if err := m.db.WithContext(ctx).Table(m.tables.Drafts).Where("id = ?", id).Updates(cols).Error; err != nil {
 		return models.Draft{}, fmt.Errorf("UpdateDraftDescription: %w", err)
 	}
-	draft.Description, draft.LastUpdated = description, now
-	return draft, nil
+	return out, nil
 }
 
-// ArchiveDraft requires the Draft to be open. Its now-orphaned draft-scoped
-// rows are left in place as harmless history, matching source.
 func (m *agencyManager) ArchiveDraft(ctx context.Context, id string) (models.Draft, error) {
-	row, err := m.findDraftRow(ctx, m.db, id)
+	var out models.Draft
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		draft, err := m.findDraft(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if !draft.Status.CanTransitionTo(models.DraftStatusArchived) {
+			return ErrDraftNotOpen
+		}
+		draft.Status = models.DraftStatusArchived
+		draft.LastUpdated = models.NowRFC3339()
+
+		if err := m.writeUpdate(ctx, tx, roleDraft, id, draft, ErrDraftNotFound); err != nil {
+			return err
+		}
+		out = draft
+		return nil
+	})
 	if err != nil {
-		return models.Draft{}, err
-	}
-	draft := gormstore.DraftFromRow(row)
-	if !draft.Status.CanTransitionTo(models.DraftStatusArchived) {
-		return models.Draft{}, ErrDraftNotOpen
-	}
-	now := models.NowRFC3339()
-	cols := map[string]any{"status": string(models.DraftStatusArchived), "updated_at": now}
-	if err := m.db.WithContext(ctx).Table(m.tables.Drafts).Where("id = ?", id).Updates(cols).Error; err != nil {
 		return models.Draft{}, fmt.Errorf("ArchiveDraft: %w", err)
 	}
-	draft.Status, draft.LastUpdated = models.DraftStatusArchived, now
-	return draft, nil
+	return out, nil
 }

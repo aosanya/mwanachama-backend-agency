@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
-	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
 func TestCreateDraftAndLifecycle(t *testing.T) {
@@ -20,7 +19,7 @@ func TestCreateDraftAndLifecycle(t *testing.T) {
 	body := `{"description":"restructure","forked_from_type":""}`
 	req := httptest.NewRequest(http.MethodPost, "/drafts", strings.NewReader(body))
 	rec := httptest.NewRecorder()
-	routes.CreateDraft(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -32,14 +31,14 @@ func TestCreateDraftAndLifecycle(t *testing.T) {
 	getReq := httptest.NewRequest(http.MethodGet, "/drafts/"+draft.ID, nil)
 	getReq.SetPathValue("draftID", draft.ID)
 	getRec := httptest.NewRecorder()
-	routes.GetDraft(mgr)(getRec, getReq)
+	serve(mgr, getRec, getReq)
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("get status = %d, body = %s", getRec.Code, getRec.Body.String())
 	}
 
 	listReq := httptest.NewRequest(http.MethodGet, "/drafts", nil)
 	listRec := httptest.NewRecorder()
-	routes.ListDrafts(mgr)(listRec, listReq)
+	serve(mgr, listRec, listReq)
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
 	}
@@ -47,7 +46,7 @@ func TestCreateDraftAndLifecycle(t *testing.T) {
 	descReq := httptest.NewRequest(http.MethodPatch, "/drafts/"+draft.ID, strings.NewReader(`{"description":"restructure v2"}`))
 	descReq.SetPathValue("draftID", draft.ID)
 	descRec := httptest.NewRecorder()
-	routes.UpdateDraftDescription(mgr)(descRec, descReq)
+	serve(mgr, descRec, descReq)
 	if descRec.Code != http.StatusOK {
 		t.Fatalf("update description status = %d, body = %s", descRec.Code, descRec.Body.String())
 	}
@@ -55,14 +54,14 @@ func TestCreateDraftAndLifecycle(t *testing.T) {
 	archiveReq := httptest.NewRequest(http.MethodPost, "/drafts/"+draft.ID+"/archive", nil)
 	archiveReq.SetPathValue("draftID", draft.ID)
 	archiveRec := httptest.NewRecorder()
-	routes.ArchiveDraft(mgr)(archiveRec, archiveReq)
+	serve(mgr, archiveRec, archiveReq)
 	if archiveRec.Code != http.StatusOK {
 		t.Fatalf("archive status = %d, body = %s", archiveRec.Code, archiveRec.Body.String())
 	}
 
 	// Already archived -> re-archiving is refused.
 	reArchiveRec := httptest.NewRecorder()
-	routes.ArchiveDraft(mgr)(reArchiveRec, archiveReq)
+	serve(mgr, reArchiveRec, archiveReq)
 	if reArchiveRec.Code != http.StatusConflict {
 		t.Fatalf("re-archive status = %d, body = %s", reArchiveRec.Code, reArchiveRec.Body.String())
 	}
@@ -81,7 +80,7 @@ func TestArchiveDraft(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/drafts/"+draft.ID+"/archive", nil)
 	req.SetPathValue("draftID", draft.ID)
 	rec := httptest.NewRecorder()
-	routes.ArchiveDraft(mgr)(rec, req)
+	serve(mgr, rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
