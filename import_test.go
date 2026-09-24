@@ -188,3 +188,39 @@ func listObjectives(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx contex
 	}
 	return out
 }
+
+// An imported row keeps the code it was exported with, so the counter has
+// to move past it: the next goal created in that draft must not be handed a
+// code the import already used.
+func TestImportDocument_NextCodeDoesNotCollide(t *testing.T) {
+	doc := readDocument(t, wakalaDocument)
+	mgr := newTestManager(t)
+	ctx := context.Background()
+
+	out, err := mgr.ImportDocument(ctx, "Mwanachama-Wakala", doc)
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+
+	held := map[string]bool{}
+	for _, g := range listGoals(t, mgr, ctx, out.Draft.ID) {
+		held[g.Code] = true
+	}
+
+	next, err := mgr.CreateGoal(ctx, models.Goal{DraftID: out.Draft.ID, Title: "One more"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	if held[next.Code] {
+		t.Errorf("the new goal was handed %q, which the import already used", next.Code)
+	}
+}
+
+func listGoals(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string) []models.Goal {
+	t.Helper()
+	out, err := mgr.ListGoals(ctx, draftID, mwanachamaagency.GoalFilter{})
+	if err != nil {
+		t.Fatalf("ListGoals: %v", err)
+	}
+	return out
+}

@@ -37,6 +37,9 @@ func seed(db *gorm.DB, s *spec.Spec) error {
 	if err := backfillModules(db, s, draftID); err != nil {
 		return err
 	}
+	if err := raiseSequencesPastExistingCodes(db, s); err != nil {
+		return err
+	}
 	return dropRetired(db, s)
 }
 
@@ -115,6 +118,34 @@ func backfillCodes(db *gorm.DB, s *spec.Spec) error {
 		})
 		if err != nil {
 			return fmt.Errorf("agency: backfill codes in %s: %w", table, err)
+		}
+	}
+	return nil
+}
+
+// raiseSequencesPastExistingCodes moves each counter past every code the
+// tables already hold. A counter behind its own table mints a code that
+// exists — which is what an import does, since an imported row keeps the
+// code it was exported with, and what a database restored from elsewhere
+// would do too.
+func raiseSequencesPastExistingCodes(db *gorm.DB, s *spec.Spec) error {
+	sequences := tableFor(s, roleCodeSequence)
+	for _, c := range codedRoles {
+		var codes []string
+		if err := db.Table(tableFor(s, c.role)).Pluck("code", &codes).Error; err != nil {
+			return fmt.Errorf("agency: read codes in %s: %w", tableFor(s, c.role), err)
+		}
+		highest := 0
+		for _, code := range codes {
+			if n := numberIn(code, c.prefix); n > highest {
+				highest = n
+			}
+		}
+		if highest == 0 {
+			continue
+		}
+		if err := raiseSequence(context.Background(), db, sequences, c.entityType, highest+1); err != nil {
+			return err
 		}
 	}
 	return nil

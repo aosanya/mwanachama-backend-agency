@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -43,6 +45,9 @@ func (m *agencyManager) ImportDocument(ctx context.Context, description string, 
 
 		attached, err := m.applyAttachments(ctx, tx, doc, now)
 		if err != nil {
+			return err
+		}
+		if err := m.advanceCodeSequences(ctx, tx, draft.ID); err != nil {
 			return err
 		}
 		out = ImportResult{Draft: draft, Attachments: attached}
@@ -128,6 +133,71 @@ func (m *agencyManager) applyAttachments(ctx context.Context, tx *gorm.DB, doc m
 	}
 
 	return written, nil
+}
+
+// advanceCodeSequences moves each counter past the codes the document
+// brought with it. An imported row keeps the code it was exported with, so
+// a counter left at zero would mint a G-1 that already exists — and a code
+// is what every attachment resolves through.
+func (m *agencyManager) advanceCodeSequences(ctx context.Context, tx *gorm.DB, draftID string) error {
+	sequences := m.table(roleCodeSequence)
+	for _, c := range codedRoles {
+		var codes []string
+		if err := scopeQuery(tx.WithContext(ctx).Table(m.table(c.role)), draftID).
+			Pluck("code", &codes).Error; err != nil {
+			return fmt.Errorf("advanceCodeSequences: %w", err)
+		}
+		highest := 0
+		for _, code := range codes {
+			if n := numberIn(code, c.prefix); n > highest {
+				highest = n
+			}
+		}
+		if highest == 0 {
+			continue
+		}
+		if err := raiseSequence(ctx, tx, sequences, c.entityType, highest+1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func numberIn(code, prefix string) int {
+	rest, found := strings.CutPrefix(code, prefix+"-")
+	if !found {
+		return 0
+	}
+	n, err := strconv.Atoi(rest)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+func raiseSequence(ctx context.Context, tx *gorm.DB, table, entityType string, next int) error {
+	var held []int
+	if err := tx.WithContext(ctx).Table(table).
+		Where("entity_type = ?", entityType).Pluck("next_number", &held).Error; err != nil {
+		return fmt.Errorf("raiseSequence: %w", err)
+	}
+	if len(held) == 0 {
+		err := tx.WithContext(ctx).Table(table).
+			Create(map[string]any{"entity_type": entityType, "next_number": next}).Error
+		if err != nil {
+			return fmt.Errorf("raiseSequence: %w", err)
+		}
+		return nil
+	}
+	if held[0] >= next {
+		return nil
+	}
+	err := tx.WithContext(ctx).Table(table).
+		Where("entity_type = ?", entityType).Update("next_number", next).Error
+	if err != nil {
+		return fmt.Errorf("raiseSequence: %w", err)
+	}
+	return nil
 }
 
 func (m *agencyManager) attachmentHeld(ctx context.Context, tx *gorm.DB, role, codeColumn, code, targetType, targetCode string) (bool, error) {
