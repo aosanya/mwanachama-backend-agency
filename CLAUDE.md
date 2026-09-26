@@ -6,17 +6,20 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 A standalone Go library, sibling to
 [`mwanachama-backend-actor`](../mwanachama-backend-actor), modeling an
-Agency: departments under one Agency, Goals/Workflows/WorkItems, and a RACI
-matrix (Responsible/Accountable/Consulted/Informed) assigning Roles to
-WorkItems. Module path `github.com/aosanya/mwanachama-backend-agency` (not
-yet scaffolded). Ported from a standalone gRPC microservice —
-see [documentation/1. requirements/requirements.md](documentation/1.%20requirements/requirements.md)
+Agency: Goals/Objectives/Workflows/WorkItems, and a RACI matrix
+(Responsible/Accountable/Consulted/Informed) assigning Roles to Objectives
+(moved from WorkItems by AG12, 2026-09-10). Module path
+`github.com/aosanya/mwanachama-backend-agency`. Ported from a standalone
+gRPC microservice — see
+[documentation/1. requirements/requirements.md](documentation/1.%20requirements/requirements.md)
 for the full decision record from the 2026-09-09 scoping session.
 
-Scoped 2026-09-09. No code yet — this session produced the requirements
-record and the initial task board; the actual port from the standalone service,
-the GORM conversion, and the new RACI/Role work are follow-up work (see
-[documentation/3. implementation/todo.md](documentation/3.%20implementation/todo.md)).
+Scoped 2026-09-09; AG1 onward is real, landed code — see the Porting notes
+below and [documentation/3. implementation/todo_done.md](documentation/3.%20implementation/todo_done.md)
+for the full history and [todo.md](documentation/3.%20implementation/todo.md)
+for what's still open. There is no `Department`/`Level` org-chart surface
+(removed; see the AG31–AG42 note below) and no live/`gormstore` row-struct
+storage (superseded by AGD-006/AGD-007, same note).
 
 ## Porting notes
 
@@ -1028,6 +1031,51 @@ the GORM conversion, and the new RACI/Role work are follow-up work (see
     remain at exactly their prior state (29 uncovered of 373, 1 orphan) —
     AG30 removed 8 routes and their 8 Postman requests together, so
     neither number moved.
+
+- **AG31–AG42 landed 2026-09-19 through 2026-09-24: there is no live, and
+  the objects are declared, not written.** The Porting notes above,
+  through AG30, describe every draft-scoped table as a nullable `DraftID`
+  (`""` = live) reusing one working-table-set, `PromoteDraft` merging a
+  Draft's rows into it, and storage as hand-written `gormstore/` row
+  structs. **None of that is still true.** Confirmed on disk: no
+  `gormstore/` package, no `department`/`level` model or route, no
+  `PromoteDraft`, no `ErrCannotEditLiveRACI`; `errors.go` defines
+  `ErrDraftRequired` and `agency.blueprint.json`/`agency.agency.json`
+  exist.
+  - **AGD-006** (design session 2026-09-19, the user rejecting a
+    `TrunkDraftID` sketch: *"any draft can be edited and published. why do
+    we need a live version"*) — landed as **AG33–35**: every draft-scoped
+    table's `DraftID` became non-nullable (no `""`/`NULL` sentinel,
+    anywhere), `PromoteDraft` was deleted outright (nothing left to
+    promote into), `Draft.Status` collapsed from
+    `open`/`promoted`/`archived` to **`open`/`archived`**, the
+    live-immutability rule (`ErrCannotEditLiveRACI`) was deleted since
+    there is no more live row to protect, and `PublishAgency(ctx, draftID,
+    tag, channel)` now reads a named Draft's own rows directly with no
+    merge step. Cross-repo fallout is tracked as `mwanachama-wakala-api`'s
+    own **WK29** (still 🚀 in progress as of this note — `make self-test`
+    at 98/108, six collections red on `a draft id is required`), not
+    closed here. See
+    [AGD-006](documentation/2.%20design/todo_details/AGD-006.md).
+  - **AGD-007** (2026-09-24) — landed as **AG37–AG42**: `gormstore/`'s 21
+    row structs and their `Migrate`/`TableNames`/`BackfillCodes` are
+    **deleted**. `agency.blueprint.json` declares every object, field and
+    index this module stores (18 roles — `Department`/`Level` are not
+    among them and no longer exist as a surface at all);
+    `agency.agency.json` names what this domain calls them;
+    `mwanachama-backend-shared/spec`+`/specstore` is the engine;
+    `NewAgencyManager(db, spec)` replaces the old constructor. `routes/`
+    (AG40) and `mcp/` (AG41) are each generated from one declaration
+    (`agency.operations.json`) rather than hand-written per entity — see
+    the Conventions entry below, which already reflects this.
+  - Also landed in the same window and still open/tracked, not folded into
+    this note: **AG31** (a Goal/Objective delete cascading into
+    `ObjectiveModule`, fixed), **AG32** (`likeFilter` LIKE-wildcard
+    escaping across all 17 `List*` filters, fixed), **AG34/AG35**
+    (`Create`/`Update` TOCTOU and code-sequence races, closed by AG39's
+    rewrite), **AG36** (`AgencySnapshot` now fully dead code — open on
+    `todo.md`, not this note's to resolve), **AG33** (`agency_design_from_spec`
+    duplicate-`key` silent misattribution — open on `todo.md`).
 
 ## Conventions
 
