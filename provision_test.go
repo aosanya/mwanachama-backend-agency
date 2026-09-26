@@ -227,3 +227,43 @@ func seedLegacyDatabase(t *testing.T, db *gorm.DB) string {
 	}
 	return "draft-1"
 }
+
+// Provisioning runs at every mount, and a mount can be every request: a
+// remote database turns 70-odd statements into ten seconds of page load.
+// A database that is already provisioned must therefore cost a handful of
+// reads and no writes at all.
+func TestProvisionIsCheapWhenThereIsNothingToDo(t *testing.T) {
+	db := openDB(t)
+	s, err := mwanachamaagency.SpecFor("agency")
+	if err != nil {
+		t.Fatalf("SpecFor: %v", err)
+	}
+	if err := mwanachamaagency.Provision(db, s); err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+
+	var statements int
+	db = db.Session(&gorm.Session{})
+	if err := db.Callback().Raw().After("gorm:raw").Register("count_raw", func(*gorm.DB) { statements++ }); err != nil {
+		t.Fatalf("register callback: %v", err)
+	}
+	if err := db.Callback().Query().After("gorm:query").Register("count_query", func(*gorm.DB) { statements++ }); err != nil {
+		t.Fatalf("register callback: %v", err)
+	}
+	for _, name := range []string{"create", "update", "delete"} {
+		writes := name
+		if err := db.Callback().Create().After("gorm:create").Register("no_"+writes, func(tx *gorm.DB) {
+			t.Errorf("a provisioned database was written to by %s", writes)
+		}); err != nil {
+			t.Fatalf("register callback: %v", err)
+		}
+	}
+
+	if err := mwanachamaagency.Provision(db, s); err != nil {
+		t.Fatalf("second Provision: %v", err)
+	}
+	if statements > 5 {
+		t.Errorf("a second Provision ran %d statements, want a handful", statements)
+	}
+	t.Logf("a second Provision ran %d statements", statements)
+}

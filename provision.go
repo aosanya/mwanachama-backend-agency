@@ -14,6 +14,13 @@ import (
 )
 
 func Provision(db *gorm.DB, s *spec.Spec) error {
+	ready, err := upToDate(db, s)
+	if err != nil {
+		return err
+	}
+	if ready {
+		return nil
+	}
 	if err := renameLegacy(db, s); err != nil {
 		return err
 	}
@@ -21,6 +28,65 @@ func Provision(db *gorm.DB, s *spec.Spec) error {
 		return err
 	}
 	return seed(db, s)
+}
+
+func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
+	declared := make([]string, 0, len(s.Objects))
+	legacy := make([]string, 0, len(s.Objects))
+	for _, o := range s.Objects {
+		declared = append(declared, s.TableFor(o))
+		if name := legacyTable(s, o); name != s.TableFor(o) {
+			legacy = append(legacy, name)
+		}
+	}
+
+	held, err := tablesNamed(db, append(append([]string{}, declared...), legacy...))
+	if err != nil {
+		return false, err
+	}
+	for _, name := range declared {
+		if !held[name] {
+			return false, nil
+		}
+	}
+	for _, name := range legacy {
+		if held[name] {
+			return false, nil
+		}
+	}
+
+	var openDrafts int64
+	if err := db.Table(tableFor(s, roleDraft)).
+		Where("status = ?", string(models.DraftStatusOpen)).Count(&openDrafts).Error; err != nil {
+		return false, fmt.Errorf("agency: read the working draft: %w", err)
+	}
+	if openDrafts == 0 {
+		return false, nil
+	}
+
+	var codes int64
+	if err := db.Table(tableFor(s, roleModule)).
+		Distinct("code").Count(&codes).Error; err != nil {
+		return false, fmt.Errorf("agency: read the module catalog: %w", err)
+	}
+	return int(codes) >= len(models.ModuleCatalog), nil
+}
+
+func tablesNamed(db *gorm.DB, names []string) (map[string]bool, error) {
+	query := `select table_name from information_schema.tables
+		where table_schema = current_schema() and table_name in ?`
+	if db.Dialector.Name() != "postgres" {
+		query = `select name from sqlite_master where type = 'table' and name in ?`
+	}
+	var found []string
+	if err := db.Raw(query, names).Scan(&found).Error; err != nil {
+		return nil, fmt.Errorf("agency: read the table set: %w", err)
+	}
+	held := make(map[string]bool, len(found))
+	for _, name := range found {
+		held[name] = true
+	}
+	return held, nil
 }
 
 func seed(db *gorm.DB, s *spec.Spec) error {

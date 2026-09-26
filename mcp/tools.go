@@ -160,9 +160,6 @@ func declaredHandler(name string, resolve ManagerResolver) func(context.Context,
 	}
 }
 
-// structured keeps a listing an object. MCP defines structuredContent as a
-// JSON object, and a bare array fails a spec-strict client while passing a
-// lenient one — the live failure AG13 found.
 func structured(out any) any {
 	if reflect.ValueOf(out).Kind() == reflect.Slice {
 		return map[string]any{"items": out}
@@ -187,10 +184,6 @@ func headline(out any) string {
 	return "Done."
 }
 
-// describe is what a model reads to act on an answer. The go-sdk fills
-// StructuredContent from the returned value either way, but a client that
-// joins the text content and never looks at the structure would otherwise
-// see a count with no id in it — see AG23, which this generalizes.
 func describe(out any) string {
 	v := reflect.ValueOf(out)
 	if v.Kind() != reflect.Slice {
@@ -214,34 +207,79 @@ func line(v reflect.Value) string {
 		return fmt.Sprint(v.Interface())
 	}
 
+	var handle, label string
+	var refs, facts []string
+
+	rt := v.Type()
+	for i := 0; i < rt.NumField(); i++ {
+		name := rt.Field(i).Name
+		if rt.Field(i).PkgPath != "" || skipInLine[name] {
+			continue
+		}
+		value := text(v, name)
+		if value == "" {
+			continue
+		}
+		switch {
+		case handle == "" && (name == "Code" || name == "Tag" || name == "Version"):
+			handle = value
+		case label == "" && labelFields[name]:
+			label = value
+		case name == "ID":
+			refs = append([]string{"id: " + value}, refs...)
+		case strings.HasSuffix(name, "ID") || strings.HasSuffix(name, "Code"):
+			refs = append(refs, reference(name)+": "+value)
+		case factFields[name]:
+			facts = append(facts, reference(name)+": "+value)
+		}
+	}
+
 	var head []string
-	for _, name := range []string{"Code", "Tag", "Version"} {
-		if s := text(v, name); s != "" {
-			head = append(head, s)
-			break
-		}
+	if handle != "" {
+		head = append(head, handle)
 	}
-	for _, name := range []string{"Title", "Name", "Text", "Message", "Label", "Description"} {
-		if s := text(v, name); s != "" {
-			head = append(head, fmt.Sprintf("%q", s))
-			break
-		}
+	if label != "" {
+		head = append(head, fmt.Sprintf("%q", label))
 	}
 
-	var tail []string
-	for _, name := range []string{"ID", "DraftID", "Channel", "Severity", "TargetCode"} {
-		if s := text(v, name); s != "" {
-			tail = append(tail, strings.ToLower(columnish(name))+": "+s)
-		}
-	}
-
-	if len(head) == 0 && len(tail) == 0 {
+	aside := append(facts, refs...)
+	switch {
+	case len(head) == 0 && len(aside) == 0:
 		return "(no identifying fields)"
-	}
-	if len(tail) == 0 {
+	case len(aside) == 0:
 		return strings.Join(head, " ")
+	case len(head) == 0:
+		return strings.Join(aside, ", ")
+	default:
+		return strings.Join(head, " ") + " (" + strings.Join(aside, ", ") + ")"
 	}
-	return strings.TrimSpace(strings.Join(head, " ") + " (" + strings.Join(tail, ", ") + ")")
+}
+
+var skipInLine = map[string]bool{"DraftID": true, "CreatedAt": true, "LastUpdated": true, "PublishedAt": true}
+
+var labelFields = map[string]bool{"Title": true, "Name": true, "Text": true, "Message": true, "Description": true, "Rationale": true}
+
+var factFields = map[string]bool{"Label": true, "Severity": true, "Channel": true, "TargetType": true, "Status": true, "Enabled": true}
+
+func reference(field string) string {
+	var out []rune
+	runes := []rune(field)
+	for i, r := range runes {
+		upper := r >= 'A' && r <= 'Z'
+		if upper && i > 0 {
+			prevLower := runes[i-1] >= 'a' && runes[i-1] <= 'z'
+			nextLower := i+1 < len(runes) && runes[i+1] >= 'a' && runes[i+1] <= 'z'
+			if prevLower || nextLower {
+				out = append(out, ' ')
+			}
+		}
+		if upper {
+			out = append(out, r-'A'+'a')
+			continue
+		}
+		out = append(out, r)
+	}
+	return string(out)
 }
 
 func text(v reflect.Value, name string) string {
@@ -257,11 +295,4 @@ func text(v reflect.Value, name string) string {
 	default:
 		return ""
 	}
-}
-
-func columnish(field string) string {
-	if field == "ID" {
-		return "id"
-	}
-	return strings.ReplaceAll(field, "ID", " id")
 }
