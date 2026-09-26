@@ -659,7 +659,7 @@ storage (superseded by AGD-006/AGD-007, same note).
 - **AG22 landed 2026-09-15: `Value`/`Rule` attach to Role/Goal/Objective/
   Workflow/WorkItem, not just Objective — and to more than one target at
   once.** Implements
-  [AGD-003](../2.%20design/todo_details/AGD-003.md), a design
+  [AGD-003](documentation/2.%20design/todo_details/AGD-003.md), a design
   conversation the same day prompted directly by the user ("I want to
   change Values and Rules to be attachable to Roles, Goals, Objectives,
   Workflows and WorkItems"). `ValueRow`/`RuleRow` lost `ObjectiveID`
