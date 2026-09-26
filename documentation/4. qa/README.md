@@ -7,23 +7,30 @@ they cover; there is no separate test corpus.
 go test ./...        # in-memory SQLite (glebarez/sqlite), no database needed
 ```
 
-As of 2026-09-25: `go test ./...` is fully green across all four packages —
-131 test functions in the root package (across 24 `*_test.go` files:
-`agency.go`'s own lifecycle, `drafts.go`'s fork/promote, RACI, Value/Rule
-attachments, the Issue scan, publication/document, `filters.go`'s per-module
-filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
+As of 2026-09-26: `go test ./...` and `go test -tags=integration ./...` are
+both fully green across all four packages — 132 test functions in the root
+package (across 24 `*_test.go` files: `agency.go`'s own lifecycle,
+`drafts.go`'s fork, RACI, Value/Rule attachments, the Issue scan,
+publication/document, `filters.go`'s per-module filters,
+`security_wk17_test.go`), 19 in `mcp/`, 54 in `routes/`.
 
 ## What is guarded, and how
 
-- **Draft-scoped live immutability** (`ErrCannotEditLiveRACI`,
-  `ErrCannotEditLive`) — a live Role, RoleAssignment, or Agency-wide
-  Value/Rule refuses `Update`/`Delete` outright; only a Draft-scoped copy
-  can be edited, then promoted.
-- **Cross-repo id integrity across a Draft promotion**: Value/Rule
-  attachments resolve by `Code`, not row id, specifically because
-  `PromoteDraft` mints a fresh id for every row it promotes — an id-keyed
-  attachment would go stale on the first promotion. Covered by
-  `value_test.go`/`rule_test.go`'s fork-then-promote-then-resolve cases.
+- **`ErrCannotEditLive` is permanent, Agency-wide-only immutability, not a
+  live/draft split.** AGD-006/AGD-007 (2026-09-19 through 09-24) deleted
+  `PromoteDraft` and the old live-row/`ErrCannotEditLiveRACI` model outright
+  — "any draft can be edited and published," so `Role`/`RoleAssignment` carry
+  no such check any more. What remains: `UpdateValue`/`DeleteValue`/
+  `UpdateRule`/`DeleteRule` refuse with `ErrCannotEditLive`
+  (`value_impl.go`/`rule_impl.go`) when the target has **no attachment** at
+  all (`hasAnyAttachment`) — an Agency-wide Value/Rule is never forked into a
+  Draft the way an attached, target-scoped one can be, so this is permanent,
+  not "until archived."
+- **Value/Rule attachments resolve by `Code`, not row id** — a target's row
+  id is not guaranteed stable across every write path this package offers
+  (e.g. `import.go`'s document import mints fresh rows), so an id-keyed
+  attachment would risk going stale; Code survives. Covered by
+  `value_test.go`/`rule_test.go`.
 - **`security_wk17_test.go`**: every `Create<Type>` clears a caller-supplied
   `id`/`created_at` rather than honouring it, and a non-empty `draft_id`
   naming an unknown, promoted or archived Draft is refused
