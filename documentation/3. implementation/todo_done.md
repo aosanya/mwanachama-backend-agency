@@ -61,3 +61,101 @@ GORM-backed shape as closely as possible, not as a standalone service the
 way the original service runs today.
 | AG31 | 🐞 Deleting an Objective left its ObjectiveModule links dangling, so a Module stayed "enabled" with no Objective behind it and the publish scan never noticed (High) | 2026-09-21 | Fixed at the root rather than in the scan: `DeleteObjective` (`objective_impl.go`) and `DeleteGoal` (`goal_impl.go`, which cascades through Objectives) now delete the Objective's `ObjectiveModule` rows in the same transaction as their existing RoleAssignment/WorkItem cascade, so `linkedModuleIDs` sees no link and the Module derives disabled again. No new Issue-scan check was added — with the cascade a dangling `ObjectiveModule → Objective` reference can no longer be produced through the manager. `agency.go`'s `DeleteObjective` doc comment and `DeleteGoal`'s now name ObjectiveModule. The pinned test was rewritten to assert the fixed behaviour (`TestDeleteObjective_CascadesIntoObjectiveModule`: link gone, Module `Enabled=false`) and `TestDeleteGoal_CascadesIntoObjectiveModule` covers the Goal path. Verified: `go build ./... && go vet ./... && go test ./...` green, `gofmt -l .` clean. |
 | AG32 | 🐞 Every `likeFilter`-based `List*` filter treated a caller-supplied `%`/`_` as a SQL LIKE wildcard (Medium) | 2026-09-21 | `likeFilter` (`draft_impl.go`) now runs the lower-cased value through a `strings.NewReplacer` that backslash-escapes `\`, `%` and `_` (the replacer handles all three in one pass, so the escape character is not double-escaped) and the clause gained `ESCAPE '\'` — the same syntax works on Postgres and the SQLite tests run on, keeping the function's no-ILIKE portability. One fix covers all 17 `List*` methods that share the helper. `ag32_likefilter_wildcard_test.go` now asserts `"_"`, `"%"` and a lone backslash each match exactly the one title containing them, and that a plain substring (`"beta"`) still matches. Verified: `go build ./... && go vet ./... && go test ./...` green, `gofmt -l .` clean; the Postgres-gated `make test-pg` was not run. wakala-api's WK22 is this same bug seen through its `?title=` param and should close once that repo picks up this change — not touched here. |
+
+## Board context moved from todo.md (2026-09-27)
+
+Moved verbatim by the security sweep's board-hygiene pass: `todo.md` is
+pending-only, and these two blocks are cross-repo notes rather than rows on
+this board.
+
+Cross-repo follow-ups from AGD-001/AG12 (not this repo's own board — filed
+here per dev-research.md's "a row for another board is still filed here
+first" convention; the AG20 and Mission/Vision follow-ups that used to be
+listed here are closed — see `todo_done.md`'s `AG20-followup`/
+`AGD-001-followup` rows):
+- `mwanachama-backend-api-kazi`: K6's RACI lookup ("who to notify for a
+  WorkItem") must resolve via the new `WorkItem.ObjectiveID` →
+  `ListRoleAssignmentsForObjective`, not a direct WorkItem-scoped call.
+  ⚠️ **Re-checked 2026-09-22 by `/compile-todos`, the third consecutive
+  compile to do so: neither `ListRoleAssignmentsForObjective` nor
+  `ObjectiveID` appears in any non-test `.go` file in that repo at all.**
+  There is no WorkItem-scoped RACI call there to migrate — so this bullet
+  may describe work that was never built rather than work left undone.
+  That repo's owner should either scope it as a real board row or drop it;
+  it has been carried forward unchanged since AG12.
+- `mwanachama-backend-api-gateway`: this repo's route changes keep landing
+  on that repo's two Postman gates, which have been failing since AG12 and
+  are now failing in **both** directions. Measured there 2026-09-22 by
+  `/compile-todos` (`go test ./internal/api/http/... -run
+  'TestPostmanCollectionCoversEveryRoute|TestPostmanCollectionHasNoOrphanRequests'`),
+  superseding the running "17 → 23 uncovered" tally this bullet used to
+  carry — **do not trust an uncovered-route count in this prose without
+  re-running that command**, it has drifted every compile:
+  - `TestPostmanCollectionCoversEveryRoute`: **29 uncovered of 361
+    registered routes** (597 requests parsed). The uncovered count has not
+    moved since the previous measurement, but the route total fell from
+    373 to 361 — routes were removed without the collection following.
+  - `TestPostmanCollectionHasNoOrphanRequests`: **16 orphan requests**, up
+    from 1. AGD-006/AG33–35 removed the Department/Level surface and
+    `POST /drafts/{draftID}/promote`, so the whole
+    `/v1/agency/departments*`, `/v1/agency/levels*`,
+    `/v1/agency/work-items/{id}/role-assignments` and promote family in
+    `operator-capabilities.postman_collection.json` now points at routes
+    that no longer exist. **These need deleting, not covering** — the
+    opposite remedy from the uncovered half, which is why they are worth
+    separating here.
+  Still not fixed from this repo, same reasoning as AG12's original
+  deferral — but the orphan half is new damage caused by AGD-006, not the
+  pre-existing coverage gap, and is mechanical to clear.
+
+Cross-repo follow-ups from AGD-006 (not this repo's own board — filed here
+per dev-research.md's "a row for another board is still filed here first"
+convention; none of these are closed by AG33–AG35):
+- `mwanachama-wakala-api`: any HTTP handler or MCP tool that calls a
+  `List*`/`Get*`/`Update*`/`Delete*` with a bare `""` `draft_id` expecting
+  "the live scope" needs a real Draft id instead — grep
+  `draft_id.*""`/`DraftID: ""` across `internal/api/http` and any
+  `mcp_tools_*.go` that still exists there. `PromoteDraft`'s REST/MCP
+  surface is gone; anything calling it needs removing, not just updating.
+  **Now filed on that repo's own board as WK29** (2026-09-21, 🚀) with the
+  concrete symptom attached — 7 of its `internal/api/http` tests fail at
+  HEAD with `a draft id is required` — so track it there, not here.
+- `mwanachama-wakala-studio`: this is the actual fix for the "give me an
+  Edit button on the drafts page" ask that led to this design doc —
+  `app/api/agency.ts`'s `getAgency`/`createRole`/`updateRole` read/write
+  the (now-nonexistent) live scope with no `draft_id` parameter at all;
+  `app/routes/agency-canvas.tsx` has no notion of "which draft" in its
+  loader/action; `app/routes/agency-drafts.tsx` has no Edit link per row.
+  Once AG33/AG34 land, there is no "edit live" case left to special-case —
+  every edit is draft-scoped, so this is a straightforward threading job,
+  not a UI decision. ⚠️ **The Publish half of this bullet is out of date**:
+  it says the Studio's Publish button is "still a hardcoded `disabled`
+  placeholder per AGD-004's own note", but WKS37 landed 2026-09-16 and
+  replaced that placeholder with a real `PublishPanel` that publishes end
+  to end (and WKS39 added a Tags panel beside it). The threading job on
+  `agency.ts`/`agency-canvas.tsx`/`agency-drafts.tsx` is the part still
+  open.
+- `mwanachama-backend-api-kazi`/`mwanachama-backend-api-shared`: K6's RACI
+  lookup and the approval-gate `resolveAccountable`
+  (`mcp_tools_approval.go`) both currently resolve against the live scope
+  (`draft_id ""`) at request time. AGD-005 decision #2 already said
+  production should read the published tag's JSON document, not rows —
+  this task makes that the *only* option, since there's no live row-scope
+  left to fall back on. Needs its own design pass per AGD-005's own
+  "consumer cutover... needs its own pass per consumer" note; not
+  mechanical.
+- `mwanachama-backend-api-gateway`: boot-time module gating
+  (`Module.Enabled`, AGD-002) reads rows directly too — same cutover
+  question as api-kazi/api-shared above, and the same "not mechanical"
+  caveat. Separately, AG33–35 removed the top-level `GET /issues` route
+  (`routes/issue.go`) — there was never a real "live" scope left to scan
+  once every row must belong to a Draft, so the route was dead weight.
+  Only the nested `GET /drafts/{draftID}/issues` remains. The gateway's
+  Postman collection has a request for the removed route, which now fails
+  `TestPostmanCollectionHasNoOrphanRequests` — ⚠️ **but "one request" is an
+  understatement**: measured 2026-09-22, that gate reports **16** orphan
+  requests, because AGD-006 also removed the whole Department/Level surface
+  and `POST /drafts/{draftID}/promote`, whose requests are all still in
+  `operator-capabilities.postman_collection.json`. See the AG12 gateway
+  bullet above for the full current numbers. All 16 want deleting rather
+  than covering.
