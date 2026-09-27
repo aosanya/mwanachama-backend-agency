@@ -7,23 +7,33 @@ they cover; there is no separate test corpus.
 go test ./...        # in-memory SQLite (glebarez/sqlite), no database needed
 ```
 
-As of 2026-09-25: `go test ./...` is fully green across all four packages —
-131 test functions in the root package (across 24 `*_test.go` files:
-`agency.go`'s own lifecycle, `drafts.go`'s fork/promote, RACI, Value/Rule
-attachments, the Issue scan, publication/document, `filters.go`'s per-module
-filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
+As of 2026-09-27: `go test ./...` **and** `go test -tags=integration ./...`
+are both fully green across all four packages — 132 test functions in the
+root package (across 24 `*_test.go` files: `agency.go`'s own lifecycle,
+RACI, Value/Rule attachments, the Issue scan, publication/document,
+`filters.go`'s per-module filters, `security_wk17_test.go`), 19 in `mcp/`,
+54 in `routes/`.
 
 ## What is guarded, and how
 
-- **Draft-scoped live immutability** (`ErrCannotEditLiveRACI`,
-  `ErrCannotEditLive`) — a live Role, RoleAssignment, or Agency-wide
-  Value/Rule refuses `Update`/`Delete` outright; only a Draft-scoped copy
-  can be edited, then promoted.
-- **Cross-repo id integrity across a Draft promotion**: Value/Rule
-  attachments resolve by `Code`, not row id, specifically because
-  `PromoteDraft` mints a fresh id for every row it promotes — an id-keyed
-  attachment would go stale on the first promotion. Covered by
-  `value_test.go`/`rule_test.go`'s fork-then-promote-then-resolve cases.
+- **Unattached Value/Rule immutability** (`ErrCannotEditLive`,
+  `errors.go:77`) — `UpdateValue`/`DeleteValue`/`UpdateRule`/`DeleteRule`
+  refuse outright on a Value/Rule with zero attachments (Agency-wide);
+  once it carries at least one `ValueAttachment`/`RuleAttachment` it can be
+  edited directly. There is no equivalent restriction on Role or
+  RoleAssignment — `UpdateRole`/`DeleteRole`/`UpdateRoleAssignment`/
+  `DeleteRoleAssignment` (`role_impl.go`, `roleassignment_impl.go`) carry no
+  `ErrCannotEdit*` check at all, and `ErrCannotEditLiveRACI` (the old
+  pre-AGD-006 name) no longer exists in this codebase — confirmed by
+  `grep`, 2026-09-27. **There is no more "live" row to protect**: AGD-006
+  (CLAUDE.md's AG33–35 note) made every Draft-scoped table's `DraftID`
+  non-nullable and deleted `PromoteDraft` outright, so what this file used
+  to call "live" is simply an ordinary open Draft now.
+- **Value/Rule attachments resolve by `Code`, not row id** — they're
+  never forked or remapped themselves (AGD-003), so a Code that outlives
+  whichever Draft its target currently lives in is what keeps
+  `ListValueAttachments`/`ListRuleAttachments` resolving correctly. Covered
+  by `value_test.go`/`rule_test.go`.
 - **`security_wk17_test.go`**: every `Create<Type>` clears a caller-supplied
   `id`/`created_at` rather than honouring it, and a non-empty `draft_id`
   naming an unknown, promoted or archived Draft is refused
