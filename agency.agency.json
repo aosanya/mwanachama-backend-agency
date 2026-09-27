@@ -1,7 +1,7 @@
 {
   "module": "agency",
   "domain": "agency",
-  "instance": "agency",
+  "instance": "wakala",
   "objects": [
     {
       "role": "agency",
