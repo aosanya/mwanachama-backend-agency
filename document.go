@@ -2,6 +2,7 @@ package mwanachamaagency
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -150,7 +151,9 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	}
 	for _, mod := range modules {
 		mod = withDerivedEnabled(mod, linkedModules[mod.ID])
-		doc.Modules = append(doc.Modules, models.DocumentModule{ID: mod.ID, Code: mod.Code, Enabled: mod.Enabled})
+		doc.Modules = append(doc.Modules, models.DocumentModule{
+			ID: mod.ID, Code: mod.Code, Enabled: mod.Enabled, Spec: json.RawMessage(mod.Spec),
+		})
 	}
 
 	steps, err := list[models.EventFlowStep](m, scoped(roleEventFlowStep).Order("workflow_code, ordinality, step"), roleEventFlowStep)
@@ -266,7 +269,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		row := models.Module{
 			ID: newID(), Code: mod.Code, DraftID: draftID, Name: entry.Name,
 			Description: entry.Description, Enabled: mod.Enabled, Locked: entry.Locked,
-			CreatedAt: now, LastUpdated: now,
+			Spec: string(mod.Spec), CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleModule, row); err != nil {
 			return fail(err)

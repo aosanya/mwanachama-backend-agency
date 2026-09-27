@@ -56,11 +56,12 @@ func TestProvisionCreatesEveryDeclaredTable(t *testing.T) {
 	}
 
 	want := []string{
-		"agency_agency_agencies", "agency_agency_agency_publications",
+		"agency_agency_agencies",
 		"agency_agency_code_sequences", "agency_agency_drafts",
 		"agency_agency_event_flow_steps", "agency_agency_goals",
 		"agency_agency_issues", "agency_agency_modules",
 		"agency_agency_objective_modules", "agency_agency_objectives",
+		"agency_agency_publications",
 		"agency_agency_role_assignments", "agency_agency_roles",
 		"agency_agency_rule_attachments", "agency_agency_rules",
 		"agency_agency_value_attachments", "agency_agency_values",

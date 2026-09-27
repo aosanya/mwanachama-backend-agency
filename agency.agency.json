@@ -102,7 +102,7 @@
     {
       "role": "agency_publication",
       "name": "agency_publication",
-      "table": "agency_publications",
+      "table": "publications",
       "description": "A frozen copy of this organization, and what production runs from."
     },
     {

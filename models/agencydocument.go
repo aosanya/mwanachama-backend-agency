@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 // AgencyDocument is a whole Agency serialized into one value — what an
 // [AgencyPublication] carries, and what production reads to operate
 // (AGD-005). Nothing running resolves the working rows; it resolves the
@@ -111,9 +113,10 @@ type DocumentAttachment struct {
 }
 
 type DocumentModule struct {
-	ID      string `json:"id"`
-	Code    string `json:"code"`
-	Enabled bool   `json:"enabled"`
+	ID      string          `json:"id"`
+	Code    string          `json:"code"`
+	Enabled bool            `json:"enabled"`
+	Spec    json.RawMessage `json:"spec,omitempty"`
 }
 
 type DocumentObjectiveModule struct {

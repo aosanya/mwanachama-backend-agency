@@ -6,29 +6,6 @@ import (
 	"fmt"
 )
 
-// Module is a catalog entry for a capability domain (e.g. "git",
-// "taskmanager") this Agency may enable. Enabled is a real gate on a
-// mounting gateway's route registration, not a passive record: an
-// unselected Module's routes are absent entirely, not just
-// capability-denied (AGD-002 decision #1).
-//
-// Module is fully read-only from the outside — which codes exist, their
-// Name/Description, and each one's Locked state come from [ModuleCatalog],
-// not a create/update/delete API (AGD-002 reversed to this after the
-// mutation surface shipped and was seen live).
-//
-// Enabled is therefore derived, not stored state anyone can set: a Module
-// is enabled exactly when some Objective in its own scope links it through
-// an ObjectiveModule row. Selecting a Module *is* linking it to the
-// Objective that needs it. Locked is the one exception — a locked code
-// keeps the catalog's Enabled and can never be disabled, however few
-// Objectives reference it.
-//
-// Code is the module's stable slug, matching a sibling backend repo's own
-// name. Same lax draft-scoping as Goal, not RoleAssignment's stricter
-// rule: a live Module can be toggled directly (AGD-002 decision #5).
-// DraftID is "" for a live Module, or the owning Draft's id for a
-// draft-scoped copy.
 type Module struct {
 	ID          string `json:"id"`
 	Code        string `json:"code"`
@@ -37,6 +14,7 @@ type Module struct {
 	Description string `json:"description"`
 	Enabled     bool   `json:"enabled"`
 	Locked      bool   `json:"locked"`
+	Spec        string `json:"spec,omitempty"`
 	CreatedAt   string `json:"created_at"`
 	LastUpdated string `json:"last_updated"`
 	Deleted     bool   `json:"deleted"`
