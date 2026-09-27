@@ -7,18 +7,23 @@ they cover; there is no separate test corpus.
 go test ./...        # in-memory SQLite (glebarez/sqlite), no database needed
 ```
 
-As of 2026-09-25: `go test ./...` is fully green across all four packages —
-131 test functions in the root package (across 24 `*_test.go` files:
-`agency.go`'s own lifecycle, `drafts.go`'s fork/promote, RACI, Value/Rule
-attachments, the Issue scan, publication/document, `filters.go`'s per-module
-filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
+As of 2026-09-27: `go test ./...` is green across all four packages bar one
+deliberate red (AG48, below) — 135 test functions in the root package
+(across 26 `*_test.go` files: `agency.go`'s own lifecycle, `drafts.go`'s
+fork/promote, RACI, Value/Rule attachments, the Issue scan,
+publication/document, `filters.go`'s per-module filters,
+`security_wk17_test.go`), 19 in `mcp/`, 54 in `routes/`.
 
 ## What is guarded, and how
 
-- **Draft-scoped live immutability** (`ErrCannotEditLiveRACI`,
-  `ErrCannotEditLive`) — a live Role, RoleAssignment, or Agency-wide
-  Value/Rule refuses `Update`/`Delete` outright; only a Draft-scoped copy
-  can be edited, then promoted.
+- **Agency-wide permanent immutability** (`ErrCannotEditLive`) — an
+  Agency-wide Value/Rule (no attachment at all) refuses `Update`/`Delete`
+  outright, forever; only an attached, Draft-scoped Value/Rule can be
+  edited. There is no more "live" row scope for anything else to protect:
+  AGD-006 (2026-09-19) deleted `PromoteDraft` and `ErrCannotEditLiveRACI`
+  outright, and `Draft.Status` collapsed to `open`/`archived` — a Role or
+  RoleAssignment in any Draft, open or archived, can be updated or deleted
+  directly (`role_impl.go`/`roleassignment_impl.go` carry no such check).
 - **Cross-repo id integrity across a Draft promotion**: Value/Rule
   attachments resolve by `Code`, not row id, specifically because
   `PromoteDraft` mints a fresh id for every row it promotes — an id-keyed
@@ -39,6 +44,15 @@ filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
   `DeleteRole`) clean up every row a delete would otherwise strand —
   `WorkItem`, `RoleAssignment` — closing the exact orphan shapes the Issue
   scan's dangling-reference checks exist to catch.
+
+## Open
+
+- **AG48**: `publication_channel_operation_test.go` is a deliberate red —
+  `agency.operations.json` declares no operation calling
+  `GetPublicationForChannel`, so the "production read" `agency.go`'s own
+  doc comment describes is unreachable from both `routes/` and `mcp/`,
+  which are generated from that one file. See
+  [../3. implementation/todo.md](../3.%20implementation/todo.md)'s AG48.
 
 ## What this package does not cover
 
