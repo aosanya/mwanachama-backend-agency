@@ -132,6 +132,54 @@ func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
 	}
 }
 
+func TestPublishAgency_ModuleSpecOnlyChangeIsAChange(t *testing.T) {
+	mgr, db, s := newTestManagerDB(t)
+	ctx := context.Background()
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
+
+	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "widgets", Name: "Widgets", Enabled: true})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{
+		DraftID: draftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective",
+	}); err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+
+	p1, err := mgr.PublishAgency(ctx, draftID, "", "")
+	if err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+
+	activated := `{"module":"widgets","domain":"agency","objects":[{"role":"widget","name":"widget","table":"widgets"}]}`
+	if err := db.Exec("update "+tableOf(t, s, "module")+" set spec = ? where id = ?", activated, mod.ID).Error; err != nil {
+		t.Fatalf("activating the module's spec: %v", err)
+	}
+
+	p2, err := mgr.PublishAgency(ctx, draftID, "", "")
+	if err != nil {
+		t.Fatalf("expected a module-spec-only change to require republishing, got %v", err)
+	}
+	if p2.Version != p1.Version+1 {
+		t.Fatalf("expected version %d, got %d", p1.Version+1, p2.Version)
+	}
+
+	var published []models.DocumentModule
+	for _, dm := range p2.Document.Modules {
+		if dm.Code == "widgets" {
+			published = append(published, dm)
+		}
+	}
+	if len(published) != 1 {
+		t.Fatalf("expected one widgets module in the published document, got %d", len(published))
+	}
+	if string(published[0].Spec) != activated {
+		t.Fatalf("expected the published document to carry the activated spec, got %q", string(published[0].Spec))
+	}
+}
+
 // TestPublishAgency_UnknownDraftRefused asserts a nonexistent draftID is
 // refused outright — including "" (AGD-006: every publish names a real
 // Draft, there is nothing implicit left to publish).
