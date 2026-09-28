@@ -7,7 +7,8 @@ they cover; there is no separate test corpus.
 go test ./...        # in-memory SQLite (glebarez/sqlite), no database needed
 ```
 
-As of 2026-09-25: `go test ./...` is fully green across all four packages —
+`go test ./...` is green apart from the deliberate red listed under Red by
+design. As of 2026-09-25 there were
 131 test functions in the root package (across 24 `*_test.go` files:
 `agency.go`'s own lifecycle, `drafts.go`'s fork/promote, RACI, Value/Rule
 attachments, the Issue scan, publication/document, `filters.go`'s per-module
@@ -15,18 +16,16 @@ filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
 
 ## What is guarded, and how
 
-- **Draft-scoped live immutability** (`ErrCannotEditLiveRACI`,
-  `ErrCannotEditLive`) — a live Role, RoleAssignment, or Agency-wide
-  Value/Rule refuses `Update`/`Delete` outright; only a Draft-scoped copy
-  can be edited, then promoted.
-- **Cross-repo id integrity across a Draft promotion**: Value/Rule
-  attachments resolve by `Code`, not row id, specifically because
-  `PromoteDraft` mints a fresh id for every row it promotes — an id-keyed
-  attachment would go stale on the first promotion. Covered by
-  `value_test.go`/`rule_test.go`'s fork-then-promote-then-resolve cases.
+- **No live row to protect** (AGD-006) — `ErrCannotEditLiveRACI` and
+  `PromoteDraft` are gone; every row belongs to a Draft and is edited there.
+  The one immutability left is `ErrCannotEditLive`: an Agency-wide
+  Value/Rule (attached to nothing) refuses `Update`/`Delete`.
+- **Attachments resolve by `Code`, not row id**, so a Value/Rule attached
+  in one Draft still resolves in a Draft forked from it, where every row
+  has a fresh id. Covered by `value_test.go`/`rule_test.go`.
 - **`security_wk17_test.go`**: every `Create<Type>` clears a caller-supplied
   `id`/`created_at` rather than honouring it, and a non-empty `draft_id`
-  naming an unknown, promoted or archived Draft is refused
+  naming an unknown or archived Draft is refused
   (`ErrDraftNotFound`/`ErrDraftNotOpen`) rather than silently attached to a
   Draft the write could never reach.
 - **The publish gate** (`AGD-004`): `PublishAgency` runs the Issue scan —
@@ -39,6 +38,20 @@ filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
   `DeleteRole`) clean up every row a delete would otherwise strand —
   `WorkItem`, `RoleAssignment` — closing the exact orphan shapes the Issue
   scan's dangling-reference checks exist to catch.
+- **A row's draft is fixed on update** — pinned for Roles by
+  `routes/draft_scope_security_test.go`'s
+  `TestRoleUpdateIgnoresABodyDraftID`: a body `draft_id` on `PATCH /roles/{id}`
+  is ignored. Goals, Objectives, Workflows and Work Items do not hold it yet —
+  see Red by design.
+
+## Red by design
+
+- `routes/draft_scope_security_test.go`'s
+  `TestAG48_OpenHole_UpdateMovesRowIntoAnotherDraft` (AG48, P1) — left
+  failing on purpose by the 2026-09-28 security sweep: `PATCH` on a Goal,
+  Objective, Workflow or Work Item moves it into whatever draft the body
+  names, archived ones included. It turns green when the four `Update<Type>`
+  methods pin the stored draft, as `UpdateRole` does.
 
 ## What this package does not cover
 
