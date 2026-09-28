@@ -10,7 +10,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG49_OpenHole_DraftStartedFromNothingRecordsACallerChosenForkSource(t *testing.T) {
+func TestAG50_OpenHole_DraftStartedFromNothingRecordsACallerChosenForkSource(t *testing.T) {
 	mgr := newTestManager(t)
 	draftID := seedPublishableAgency(t, mgr)
 
@@ -40,6 +40,6 @@ func TestAG49_OpenHole_DraftStartedFromNothingRecordsACallerChosenForkSource(t *
 		t.Fatalf("GET /drafts/%s answered %d %s", created.ID, get.Code, get.Body.String())
 	}
 	if stored.ForkedFromType == "" && stored.ForkedFromID != "" {
-		t.Errorf("AG49 (P2) open hole: a draft started from nothing reads forked_from_id=%q because the request body said so — got {forked_from_type:%q, forked_from_id:%q}, want forked_from_id \"\" (or the request refused 400)", stored.ForkedFromID, stored.ForkedFromType, stored.ForkedFromID)
+		t.Errorf("AG50 (P2) open hole: a draft started from nothing reads forked_from_id=%q because the request body said so — got {forked_from_type:%q, forked_from_id:%q}, want forked_from_id \"\" (or the request refused 400)", stored.ForkedFromID, stored.ForkedFromType, stored.ForkedFromID)
 	}
 }
