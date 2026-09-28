@@ -7,7 +7,7 @@ they cover; there is no separate test corpus.
 go test ./...        # in-memory SQLite (glebarez/sqlite), no database needed
 ```
 
-`go test ./...` is green apart from the deliberate red listed under Red by
+`go test ./...` is green apart from the deliberate reds listed under Red by
 design. As of 2026-09-25 there were
 131 test functions in the root package (across 24 `*_test.go` files:
 `agency.go`'s own lifecycle, `drafts.go`'s fork/promote, RACI, Value/Rule
@@ -52,6 +52,13 @@ filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
   Objective, Workflow or Work Item moves it into whatever draft the body
   names, archived ones included. It turns green when the four `Update<Type>`
   methods pin the stored draft, as `UpdateRole` does.
+- `routes/draft_lineage_security_test.go`'s
+  `TestAG49_OpenHole_DraftStartedFromNothingRecordsACallerChosenForkSource`
+  (AG49, P2) — left failing on purpose by the 2026-09-28 security sweep:
+  `POST /drafts` with an empty `forked_from_type` stores whatever
+  `forked_from_id` the body names, so a blank draft reads as a fork of a
+  published tag. A named source (`draft`/`publication`) is checked; the empty
+  one is not. It turns green when `CreateDraft` clears or refuses the id.
 
 ## What this package does not cover
 
