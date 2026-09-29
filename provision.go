@@ -35,8 +35,10 @@ func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
 	legacy := make([]string, 0, len(s.Objects))
 	for _, o := range s.Objects {
 		declared = append(declared, s.TableFor(o))
-		if name := legacyTable(s, o); name != s.TableFor(o) {
-			legacy = append(legacy, name)
+		for _, name := range legacyTables(s, o) {
+			if name != s.TableFor(o) {
+				legacy = append(legacy, name)
+			}
 		}
 	}
 
@@ -256,11 +258,15 @@ func backfillModules(db *gorm.DB, s *spec.Spec, draftID string) error {
 
 func dropRetired(db *gorm.DB, s *spec.Spec) error {
 	for _, suffix := range retiredTableSuffixes {
-		if err := db.Migrator().DropTable(s.Instance + "_" + s.Module + suffix); err != nil {
-			return fmt.Errorf("agency: drop retired table: %w", err)
+		retired := []string{
+			s.Instance + "_" + s.Module + "_" + s.MountName() + suffix,
+			s.Instance + "_" + s.Module + suffix,
+			s.Instance + suffix,
 		}
-		if err := db.Migrator().DropTable(s.Instance + suffix); err != nil {
-			return fmt.Errorf("agency: drop retired table: %w", err)
+		for _, name := range retired {
+			if err := db.Migrator().DropTable(name); err != nil {
+				return fmt.Errorf("agency: drop retired table: %w", err)
+			}
 		}
 	}
 
@@ -311,8 +317,18 @@ var retiredTableSuffixes = []string{"_work_plans", "_context_sources"}
 
 const retiredPublicationColumn = "status"
 
-func legacyTable(s *spec.Spec, o spec.Object) string {
-	return strings.TrimPrefix(s.TableFor(o), s.Module+"_")
+func objectTable(o spec.Object) string {
+	if o.Table != "" {
+		return o.Table
+	}
+	return o.Name
+}
+
+func legacyTables(s *spec.Spec, o spec.Object) []string {
+	if s.MountName() != spec.DefaultMount {
+		return nil
+	}
+	return []string{s.Instance + "_" + objectTable(o)}
 }
 
 const legacyTimestampColumn = "updated_at"
@@ -323,9 +339,11 @@ func renameLegacy(db *gorm.DB, s *spec.Spec) error {
 	m := db.Migrator()
 	for _, o := range s.Objects {
 		declared := s.TableFor(o)
-		legacy := legacyTable(s, o)
 
-		if legacy != declared && m.HasTable(legacy) {
+		for _, legacy := range legacyTables(s, o) {
+			if legacy == declared || !m.HasTable(legacy) {
+				continue
+			}
 			switch {
 			case !m.HasTable(declared):
 				if err := db.Exec(fmt.Sprintf("alter table %s rename to %s", legacy, declared)).Error; err != nil {

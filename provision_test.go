@@ -268,3 +268,54 @@ func TestProvisionIsCheapWhenThereIsNothingToDo(t *testing.T) {
 	}
 	t.Logf("a second Provision ran %d statements", statements)
 }
+
+func TestASecondMountDoesNotAdoptTheDefaultMountsTables(t *testing.T) {
+	db := openDB(t)
+
+	main, err := mwanachamaagency.SpecFor("agency")
+	if err != nil {
+		t.Fatalf("SpecFor: %v", err)
+	}
+	if err := mwanachamaagency.Provision(db, main); err != nil {
+		t.Fatalf("provision the default mount: %v", err)
+	}
+	if err := db.Exec(`insert into agency_agency_goals
+		(id, code, draft_id, title, description, ordinality, created_at, last_updated, deleted)
+		values ('goal-1', 'G-1', 'draft-1', 'Belongs to the default mount', '', 1,
+		        '2026-09-29T00:00:00.000000000Z', '2026-09-29T00:00:00.000000000Z', 0)`).Error; err != nil {
+		t.Fatalf("seed the default mount: %v", err)
+	}
+
+	second, err := mwanachamaagency.SpecForMount("agency", "supplier")
+	if err != nil {
+		t.Fatalf("SpecForMount: %v", err)
+	}
+	if err := mwanachamaagency.Provision(db, second); err != nil {
+		t.Fatalf("provision the second mount: %v", err)
+	}
+
+	tables := liveTables(t, db)
+	if !contains(tables, "agency_agency_goals") {
+		t.Fatal("the default mount's table is gone — the second mount adopted it")
+	}
+	if !contains(tables, "agency_agency_supplier_goals") {
+		t.Fatalf("tables = %v, want the second mount's own table", tables)
+	}
+
+	var n int64
+	if err := db.Table("agency_agency_supplier_goals").Count(&n).Error; err != nil {
+		t.Fatalf("count the second mount: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("the second mount holds %d row(s), want an empty table of its own", n)
+	}
+
+	var title string
+	if err := db.Table("agency_agency_goals").
+		Select("title").Where("id = ?", "goal-1").Scan(&title).Error; err != nil {
+		t.Fatalf("read the default mount: %v", err)
+	}
+	if title != "Belongs to the default mount" {
+		t.Errorf("title = %q, want the default mount's row untouched", title)
+	}
+}
