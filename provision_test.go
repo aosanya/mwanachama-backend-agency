@@ -1,6 +1,7 @@
 package mwanachamaagency_test
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"testing"
@@ -267,6 +268,46 @@ func TestProvisionIsCheapWhenThereIsNothingToDo(t *testing.T) {
 		t.Errorf("a second Provision ran %d statements, want a handful", statements)
 	}
 	t.Logf("a second Provision ran %d statements", statements)
+}
+
+func TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived(t *testing.T) {
+	db := openDB(t)
+	s, err := mwanachamaagency.SpecFor("agency")
+	if err != nil {
+		t.Fatalf("SpecFor: %v", err)
+	}
+	if err := mwanachamaagency.Provision(db, s); err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+
+	mgr, err := mwanachamaagency.NewAgencyManager(db, s)
+	if err != nil {
+		t.Fatalf("NewAgencyManager: %v", err)
+	}
+	ctx := context.Background()
+
+	drafts, err := mgr.ListDrafts(ctx, mwanachamaagency.DraftFilter{})
+	if err != nil {
+		t.Fatalf("ListDrafts: %v", err)
+	}
+	if len(drafts) != 1 {
+		t.Fatalf("drafts after the first Provision = %d, want exactly the one bootstrap draft", len(drafts))
+	}
+	if _, err := mgr.ArchiveDraft(ctx, drafts[0].ID); err != nil {
+		t.Fatalf("ArchiveDraft: %v", err)
+	}
+
+	if err := mwanachamaagency.Provision(db, s); err != nil {
+		t.Fatalf("second Provision: %v", err)
+	}
+
+	after, err := mgr.ListDrafts(ctx, mwanachamaagency.DraftFilter{})
+	if err != nil {
+		t.Fatalf("ListDrafts after: %v", err)
+	}
+	if len(after) != 1 {
+		t.Fatalf("AG51 open bug: an operator who archives their only Draft (a legitimate move under AGD-006 — any draft may be archived) and whose process later restarts sees Provision mint a second, spurious \"Initial draft\" — drafts after = %d, want the archived one left alone with no new draft created", len(after))
+	}
 }
 
 func TestASecondMountDoesNotAdoptTheDefaultMountsTables(t *testing.T) {
