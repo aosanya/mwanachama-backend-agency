@@ -55,6 +55,17 @@ filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
   `raci` entry naming another draft's Role or Objective by id is refused
   (`role not found` / `objective not found`) and nothing is stored in either
   draft. Mutation-checked against `validateRoleAssignment`'s draft scope.
+- **A publication is the server's, and only its channel moves** — pinned by
+  `routes/publication_forged_fields_security_test.go` (2026-09-29,
+  twenty-third sweep): `POST /publications` carrying `version: 99`,
+  `content_hash`, a `document`, `id` and `created_at` stores version 1, the
+  draft's own hash and document, and a server id and clock; `PATCH
+  /publications/1` carrying `tag`/`content_hash`/`document` changes only the
+  channel; a version or fork tag that does not exist answers 404. Not a
+  bounded door: `GET /publications` returns every publication's whole
+  document and drops `limit` — 200 publications answered 4,960,632 bytes in
+  127 ms with or without `?limit=1` (the uncapped-list class tracked as
+  wakala-api's WK36).
 
 ## Red by design
 
