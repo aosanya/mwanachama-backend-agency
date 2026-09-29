@@ -8,11 +8,12 @@ go test ./...        # in-memory SQLite (glebarez/sqlite), no database needed
 ```
 
 `go test ./...` is green apart from the deliberate red listed under Red by
-design. As of 2026-09-25 there were
-131 test functions in the root package (across 24 `*_test.go` files:
+design. As of 2026-09-29 (confirmed by the integration sweep with `grep -rc
+"^func Test" *.go mcp/*.go routes/*.go`) there were
+135 test functions in the root package (across 25 `*_test.go` files:
 `agency.go`'s own lifecycle, `drafts.go`'s fork/promote, RACI, Value/Rule
 attachments, the Issue scan, publication/document, `filters.go`'s per-module
-filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
+filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
 
 ## What is guarded, and how
 
