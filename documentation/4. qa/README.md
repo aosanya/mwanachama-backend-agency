@@ -52,6 +52,13 @@ filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
   Objective, Workflow or Work Item moves it into whatever draft the body
   names, archived ones included. It turns green when the four `Update<Type>`
   methods pin the stored draft, as `UpdateRole` does.
+- `routes/issue_draft_security_test.go`'s
+  `TestAG50_OpenHole_IssueScanWritesUnderADraftThatDoesNotExist` (AG50, P2) —
+  left failing on purpose by the 2026-09-29 security sweep:
+  `GET /drafts/{id}/issues` answers `200` for an id no draft carries and stores
+  the scan's findings under it, where `GET /drafts/{id}` and every create
+  answer `404`. It turns green when `ListIssues` refuses an unknown draft
+  before `rescanIssues` writes.
 
 ## What this package does not cover
 
