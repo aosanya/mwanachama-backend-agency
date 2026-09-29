@@ -43,6 +43,13 @@ filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
   `TestRoleUpdateIgnoresABodyDraftID`: a body `draft_id` on `PATCH /roles/{id}`
   is ignored. Goals, Objectives, Workflows and Work Items do not hold it yet —
   see Red by design.
+- **Every draft door refuses a draft that does not exist, and a draft's own
+  id, status and clock are the server's** — pinned by
+  `routes/draft_doors_security_test.go`: publish, fork, update, archive and a
+  draft-scoped create each answer `404` for an unknown draft id, and a body
+  `id`/`status`/`created_at` on `POST /drafts` or `PATCH /drafts/{id}` is
+  ignored. The issue scan is the one door that does not hold yet — see Red by
+  design (AG50).
 
 ## Red by design
 
