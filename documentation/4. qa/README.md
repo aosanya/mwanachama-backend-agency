@@ -50,6 +50,11 @@ filters, `security_wk17_test.go`), 15 in `mcp/`, 54 in `routes/`.
   `id`/`status`/`created_at` on `POST /drafts` or `PATCH /drafts/{id}` is
   ignored. The issue scan is the one door that does not hold yet — see Red by
   design (AG50).
+- **The composite tool never reaches across drafts** — pinned by
+  `mcp/composite_draft_scope_security_test.go`: an `agency_design_from_spec`
+  `raci` entry naming another draft's Role or Objective by id is refused
+  (`role not found` / `objective not found`) and nothing is stored in either
+  draft. Mutation-checked against `validateRoleAssignment`'s draft scope.
 
 ## Red by design
 
