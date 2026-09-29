@@ -1089,12 +1089,17 @@ storage (superseded by AGD-006/AGD-007, same note).
   dropping a value on every write. The format's reference is
   [declared-domains.md](../mwanachama-backend-shared/documentation/2.%20design/declared-domains.md);
   do not reintroduce the `mwanachama-backend-actor` row-struct shape here.
-- **A table is `<instance>_agency_<table>`** — `agency_agency_goals`. A
-  mount chooses only the instance, through `SpecFor(instance)`, and
+- **A table is `<instance>_agency_<table>`** — `agency_agency_goals` — and
+  `<instance>_agency_<mount>_<table>` for a second mount of this module in
+  one instance, through `SpecForMount(instance, mount)`. `SpecFor(instance)`
+  is the default mount, whose segment is elided, so its names are unchanged.
   `Provision(db, spec)` moves a pre-spec database onto the declared names
-  before creating what is missing. An instance segment carries no
-  underscore and has to leave room for a 63-byte identifier, so a long one
-  is refused at startup rather than truncated by Postgres.
+  before creating what is missing — and `legacyTables` returns nothing for a
+  non-default mount **on purpose**: without that guard a second mount renames
+  the default mount's tables into itself and silently adopts its data
+  (`TestASecondMountDoesNotAdoptTheDefaultMountsTables`). An instance segment
+  carries no underscore and has to leave room for a 63-byte identifier, so a
+  long one is refused at startup rather than truncated by Postgres.
 - The column every model calls `LastUpdated` is `last_updated`, not
   `updated_at` — the store joins a declared column to a Go field by name.
 - `mcp/` no longer hand-writes a tool per manager method (AG41): the
