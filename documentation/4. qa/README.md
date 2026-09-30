@@ -100,6 +100,13 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   publishes. SQLite serialises the writers, so the test writes the racing
   row directly and turns green once the store refuses it or the publish
   gate refuses an Objective with more than one Accountable.
+- `routes/draft_fork_cost_security_test.go`'s
+  `TestAG54_OpenHole_OneForkRequestCopiesEveryRowWithoutLimit` (AG54, P2) —
+  left failing on purpose by the 2026-09-30 security sweep (fortieth run):
+  a ~100-byte `POST /drafts` forking a draft copies every row it holds, and
+  nothing caps how many drafts an agency keeps — fifty fork-then-archive
+  cycles of a 200-goal draft are all accepted. It turns green once a fork
+  past a per-agency cap answers a 4xx.
 
 ## What this package does not cover
 
