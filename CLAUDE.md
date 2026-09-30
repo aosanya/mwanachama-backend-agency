@@ -1089,17 +1089,17 @@ storage (superseded by AGD-006/AGD-007, same note).
   dropping a value on every write. The format's reference is
   [declared-domains.md](../mwanachama-backend-shared/documentation/2.%20design/declared-domains.md);
   do not reintroduce the `mwanachama-backend-actor` row-struct shape here.
-- **A table is `<instance>_agency_<table>`** — `agency_agency_goals` — and
-  `<instance>_agency_<mount>_<table>` for a second mount of this module in
-  one instance, through `SpecForMount(instance, mount)`. `SpecFor(instance)`
-  is the default mount, whose segment is elided, so its names are unchanged.
-  `Provision(db, spec)` moves a pre-spec database onto the declared names
-  before creating what is missing — and `legacyTables` returns nothing for a
-  non-default mount **on purpose**: without that guard a second mount renames
-  the default mount's tables into itself and silently adopts its data
-  (`TestASecondMountDoesNotAdoptTheDefaultMountsTables`). An instance segment
-  carries no underscore and has to leave room for a 63-byte identifier, so a
-  long one is refused at startup rather than truncated by Postgres.
+- **A table is `<instance>_hashOf(agency_<mount>_<object>)`** — only the
+  instance stays readable (`agy1f2e3d4c_8766f69928a18f58`), the rest is 16 hex
+  of SHA-256 over the raw name `spec.RawNameFor` builds, recorded in the
+  `spec_table_names` registry. `SpecFor(instance)` is the default mount;
+  `SpecForMount(instance, mount)` gives an instance a second board of the same
+  module, and the two cannot collide by construction because they hash
+  differently. **There is no forward-migration path any more** — `renameLegacy`,
+  `legacyTables`, `dropRetired` and the `updated_at`→`last_updated` rename were
+  deleted 2026-09-30 on the owner's "not launched, no backward compatibility"
+  call. Assert on `RawNameFor`, never on a physical-name literal, and exclude
+  `spec.NameRegistryTable` from anything counting tables.
 - The column every model calls `LastUpdated` is `last_updated`, not
   `updated_at` — the store joins a declared column to a Go field by name.
 - `mcp/` no longer hand-writes a tool per manager method (AG41): the

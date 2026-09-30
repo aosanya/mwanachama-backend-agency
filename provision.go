@@ -3,7 +3,6 @@ package mwanachamaagency
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"gorm.io/gorm"
 
@@ -21,9 +20,6 @@ func Provision(db *gorm.DB, s *spec.Spec) error {
 	if ready {
 		return nil
 	}
-	if err := renameLegacy(db, s); err != nil {
-		return err
-	}
 	if err := spec.Migrate(db, s); err != nil {
 		return err
 	}
@@ -32,27 +28,16 @@ func Provision(db *gorm.DB, s *spec.Spec) error {
 
 func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
 	declared := make([]string, 0, len(s.Objects))
-	legacy := make([]string, 0, len(s.Objects))
 	for _, o := range s.Objects {
 		declared = append(declared, s.TableFor(o))
-		for _, name := range legacyTables(s, o) {
-			if name != s.TableFor(o) {
-				legacy = append(legacy, name)
-			}
-		}
 	}
 
-	held, err := tablesNamed(db, append(append([]string{}, declared...), legacy...))
+	held, err := tablesNamed(db, declared)
 	if err != nil {
 		return false, err
 	}
 	for _, name := range declared {
 		if !held[name] {
-			return false, nil
-		}
-	}
-	for _, name := range legacy {
-		if held[name] {
 			return false, nil
 		}
 	}
@@ -105,10 +90,7 @@ func seed(db *gorm.DB, s *spec.Spec) error {
 	if err := backfillModules(db, s, draftID); err != nil {
 		return err
 	}
-	if err := raiseSequencesPastExistingCodes(db, s); err != nil {
-		return err
-	}
-	return dropRetired(db, s)
+	return raiseSequencesPastExistingCodes(db, s)
 }
 
 func tableFor(s *spec.Spec, role string) string {
@@ -256,35 +238,6 @@ func backfillModules(db *gorm.DB, s *spec.Spec, draftID string) error {
 	})
 }
 
-func dropRetired(db *gorm.DB, s *spec.Spec) error {
-	for _, suffix := range retiredTableSuffixes {
-		retired := []string{
-			s.Instance + "_" + s.Module + "_" + s.MountName() + suffix,
-			s.Instance + "_" + s.Module + suffix,
-			s.Instance + suffix,
-		}
-		for _, name := range retired {
-			if err := db.Migrator().DropTable(name); err != nil {
-				return fmt.Errorf("agency: drop retired table: %w", err)
-			}
-		}
-	}
-
-	publications := tableFor(s, rolePublication)
-	has, err := hasColumn(db, publications, retiredPublicationColumn)
-	if err != nil {
-		return err
-	}
-	if !has {
-		return nil
-	}
-	stmt := fmt.Sprintf("alter table %s drop column %s", publications, retiredPublicationColumn)
-	if err := db.Exec(stmt).Error; err != nil {
-		return fmt.Errorf("agency: drop %s.%s: %w", publications, retiredPublicationColumn, err)
-	}
-	return nil
-}
-
 func mustObject(s *spec.Spec, role string) spec.Object {
 	o, ok := s.ByRole(role)
 	if !ok {
@@ -313,113 +266,9 @@ var codedRoles = []struct {
 	{roleRule, "rule", "RU"},
 }
 
-var retiredTableSuffixes = []string{"_work_plans", "_context_sources"}
-
 const retiredPublicationColumn = "status"
 
-func objectTable(o spec.Object) string {
-	if o.Table != "" {
-		return o.Table
-	}
-	return o.Name
-}
-
-func legacyTables(s *spec.Spec, o spec.Object) []string {
-	if s.MountName() != spec.DefaultMount {
-		return nil
-	}
-	return []string{s.Instance + "_" + objectTable(o)}
-}
-
-const legacyTimestampColumn = "updated_at"
-
 const timestampColumn = "last_updated"
-
-func renameLegacy(db *gorm.DB, s *spec.Spec) error {
-	m := db.Migrator()
-	for _, o := range s.Objects {
-		declared := s.TableFor(o)
-
-		for _, legacy := range legacyTables(s, o) {
-			if legacy == declared || !m.HasTable(legacy) {
-				continue
-			}
-			switch {
-			case !m.HasTable(declared):
-				if err := db.Exec(fmt.Sprintf("alter table %s rename to %s", legacy, declared)).Error; err != nil {
-					return fmt.Errorf("agency: rename %s to %s: %w", legacy, declared, err)
-				}
-				if err := dropLegacyIndexes(db, declared); err != nil {
-					return err
-				}
-			default:
-				stranded, err := rowCount(db, legacy)
-				if err != nil {
-					return err
-				}
-				if stranded > 0 {
-					return fmt.Errorf("agency: %s and %s both exist and %s still holds %d row(s), which no read would ever reach again",
-						legacy, declared, legacy, stranded)
-				}
-			}
-		}
-
-		if !m.HasTable(declared) || !declaresColumn(o, timestampColumn) {
-			continue
-		}
-		legacyColumn, err := hasColumn(db, declared, legacyTimestampColumn)
-		if err != nil {
-			return err
-		}
-		declaredColumn, err := hasColumn(db, declared, timestampColumn)
-		if err != nil {
-			return err
-		}
-		if !legacyColumn || declaredColumn {
-			continue
-		}
-		stmt := fmt.Sprintf("alter table %s rename column %s to %s",
-			declared, legacyTimestampColumn, timestampColumn)
-		if err := db.Exec(stmt).Error; err != nil {
-			return fmt.Errorf("agency: rename %s.%s: %w", declared, legacyTimestampColumn, err)
-		}
-	}
-	return nil
-}
-
-func dropLegacyIndexes(db *gorm.DB, table string) error {
-	var names []string
-	switch db.Dialector.Name() {
-	case "postgres":
-		if err := db.Raw(`select indexname from pg_indexes where tablename = ?`, table).
-			Scan(&names).Error; err != nil {
-			return fmt.Errorf("agency: read indexes of %s: %w", table, err)
-		}
-	default:
-		if err := db.Raw(`select name from sqlite_master where type = 'index' and tbl_name = ?`, table).
-			Scan(&names).Error; err != nil {
-			return fmt.Errorf("agency: read indexes of %s: %w", table, err)
-		}
-	}
-
-	for _, name := range names {
-		if !strings.HasPrefix(name, "idx_") {
-			continue
-		}
-		if err := db.Exec("drop index if exists " + name).Error; err != nil {
-			return fmt.Errorf("agency: drop index %s: %w", name, err)
-		}
-	}
-	return nil
-}
-
-func rowCount(db *gorm.DB, table string) (int64, error) {
-	var n int64
-	if err := db.Table(table).Count(&n).Error; err != nil {
-		return 0, fmt.Errorf("agency: count %s: %w", table, err)
-	}
-	return n, nil
-}
 
 func hasColumn(db *gorm.DB, table, column string) (bool, error) {
 	var found []int
