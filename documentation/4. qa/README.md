@@ -91,6 +91,15 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   version 3 and two publications left on `production`). SQLite serialises the
   writers, so the test writes the losing writer's row directly and turns green
   once the store refuses a second publication at one version.
+- `roleassignment_race_security_test.go`'s
+  `TestAG53_OpenHole_TwoAccountablesHoldOneObjective` (AG53, P2) — left
+  failing on purpose by the 2026-09-30 security sweep (thirty-eighth run):
+  eight concurrent `CreateRoleAssignment(label: accountable)` calls on one
+  Objective over Postgres stored two, three or four Accountables in three of
+  twenty-five rounds, the Issue scan reported nothing and the draft still
+  publishes. SQLite serialises the writers, so the test writes the racing
+  row directly and turns green once the store refuses it or the publish
+  gate refuses an Objective with more than one Accountable.
 
 ## What this package does not cover
 
