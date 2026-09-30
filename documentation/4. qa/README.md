@@ -83,6 +83,14 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   the scan's findings under it, where `GET /drafts/{id}` and every create
   answer `404`. It turns green when `ListIssues` refuses an unknown draft
   before `rescanIssues` writes.
+- `publication_race_security_test.go`'s
+  `TestAG52_OpenHole_TwoPublicationsHoldOneVersionAndOneChannel` (AG52, P2) —
+  left failing on purpose by the 2026-09-30 security sweep: concurrent
+  `PublishAgency` calls on Postgres each take `max(version)+1` and each hold
+  the channel (through `mwanachama-wakala-api`'s mount, three `201`s at
+  version 3 and two publications left on `production`). SQLite serialises the
+  writers, so the test writes the losing writer's row directly and turns green
+  once the store refuses a second publication at one version.
 
 ## What this package does not cover
 
