@@ -56,6 +56,16 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   `raci` entry naming another draft's Role or Objective by id is refused
   (`role not found` / `objective not found`) and nothing is stored in either
   draft. Mutation-checked against `validateRoleAssignment`'s draft scope.
+  The REST half is pinned by `routes/roleassignment_draft_scope_security_test.go`
+  (2026-09-30): `POST /role-assignments` and `PATCH /role-assignments/{id}`
+  naming another draft's Role or Objective each answer `404`, store nothing,
+  and leave the existing assignment as it was — mutation-checked the same way
+  (4 of 4 red with the scope dropped). Other references are not held at
+  create: `POST /objectives` with another draft's `goal_id` and `POST
+  /work-items` with another draft's (or a nonexistent) `workflow_id`/
+  `objective_id` answer `201`; the issue scan flags the Work Item as a
+  dangling Objective, but has no Objective→Goal check (AG27's open "Create
+  still accepts a nonexistent reference" class — correctness, not a boundary).
 - **A publication is the server's, and only its channel moves** — pinned by
   `routes/publication_forged_fields_security_test.go` (2026-09-29,
   twenty-third sweep): `POST /publications` carrying `version: 99`,
