@@ -117,6 +117,12 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   nothing caps how many drafts an agency keeps — fifty fork-then-archive
   cycles of a 200-goal draft are all accepted. It turns green once a fork
   past a per-agency cap answers a 4xx.
+- `routes/create_deleted_security_test.go`'s
+  `TestAG57_OpenHole_CreateStoresABodySetDeletedFlag` (AG57, P2) — left
+  failing on purpose by the 2026-10-01 security sweep (forty-eighth run):
+  `POST /goals`, `/roles` and `/workflows` store a body `"deleted": true`
+  while minting their own id, code and created_at over the body's. It turns
+  green once `Create<Type>` pins `Deleted` to false.
 
 ## What this package does not cover
 
