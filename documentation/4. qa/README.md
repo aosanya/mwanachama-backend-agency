@@ -130,6 +130,16 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   goals was applied whole in 29.6 s through `mwanachama-wakala-api`'s
   `/mcp`, bounded only by that host's 1 MiB body cap. It turns green once
   the tool refuses a spec past a per-call entity cap.
+- `mcp/tool_text_reference_security_test.go`'s
+  `TestAG59_OpenHole_ReferenceFieldForgesLinesInAnotherCallersToolText`
+  (AG59, P2) — left failing on purpose by the 2026-10-01 security sweep
+  (fifty-first run): a Work Item's `objective_id` carrying newlines is
+  written verbatim into `agency_list_work_items`' text, forging a second
+  Work Item line and a free-text instruction in the reading model's
+  context. It turns green once every reference in a tool line is quoted
+  the way labels are, or the dangling `objective_id` is refused. The
+  labels' quoting is pinned green beside it in
+  `mcp/tool_text_label_security_test.go`.
 
 ## What this package does not cover
 
