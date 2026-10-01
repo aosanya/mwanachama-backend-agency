@@ -80,6 +80,21 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
 
 ## Red by design
 
+- `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`
+  (AG51, bug) — left failing on purpose by the 2026-10-01 integration-test
+  sweep: `Provision`'s `upToDate` treats "zero open Drafts" as "never
+  seeded", so archiving an agency's only Draft (an ordinary, legitimate
+  operation under AGD-006) makes the next `Provision` call mint a second,
+  spurious "Initial draft" beside the archived one. It turns green once
+  `upToDate` uses a signal other than the open-Draft count.
+- `routes/role_hint_wildcard_test.go`'s
+  `TestAG56_OpenBug_RoleHintTreatsUnderscoreAndPercentAsWildcards` (AG56,
+  bug) — left failing on purpose by the 2026-10-01 integration-test sweep:
+  `GET /roles/{id}`'s "did you mean" hint builds its `LIKE` pattern from the
+  unknown id with no escaping, so a bare `_` or `%` id discloses every
+  Role's code, name and id in the Instance. It turns green once
+  `roleNotFoundError` escapes both characters the way CAT22/PM7 need to for
+  their own unescaped filters.
 - `routes/draft_scope_security_test.go`'s
   `TestAG48_OpenHole_UpdateMovesRowIntoAnotherDraft` (AG48, P1) — left
   failing on purpose by the 2026-09-28 security sweep: `PATCH` on a Goal,
