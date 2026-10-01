@@ -117,6 +117,14 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   nothing caps how many drafts an agency keeps — fifty fork-then-archive
   cycles of a 200-goal draft are all accepted. It turns green once a fork
   past a per-agency cap answers a 4xx.
+- `routes/nested_parent_security_test.go`'s
+  `TestAG55_OpenHole_NestedRouteActsOnAChildOfAnotherParent` (AG55, P2) —
+  left failing on purpose by the 2026-10-01 security sweep (forty-seventh
+  run): `DELETE /values/{id}/attachments/{attachment}`,
+  `DELETE /rules/{id}/attachments/{attachment}` and
+  `PATCH`/`DELETE /objectives/{id}/modules/{link}` act on the named child
+  whatever parent the path names, a nonexistent one included. It turns green
+  once each refuses a child of another parent with `404`.
 
 ## What this package does not cover
 
