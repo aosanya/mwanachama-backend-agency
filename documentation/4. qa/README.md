@@ -123,6 +123,13 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   `POST /goals`, `/roles` and `/workflows` store a body `"deleted": true`
   while minting their own id, code and created_at over the body's. It turns
   green once `Create<Type>` pins `Deleted` to false.
+- `mcp/design_spec_cost_security_test.go`'s
+  `TestAG58_OpenHole_OneDesignFromSpecCallAppliesUnboundedEntities` (AG58,
+  P2) — left failing on purpose by the 2026-10-01 security sweep
+  (forty-ninth run): one `agency_design_from_spec` call carrying 20,000
+  goals was applied whole in 29.6 s through `mwanachama-wakala-api`'s
+  `/mcp`, bounded only by that host's 1 MiB body cap. It turns green once
+  the tool refuses a spec past a per-call entity cap.
 
 ## What this package does not cover
 
