@@ -25,8 +25,17 @@ exactly one of four places:
 - **the label** — the first of `Title`, `Name`, `Text`, `Message`,
   `Description`, `Rationale`, quoted.
 - **references** — `ID` first, then every other `*ID` and `*Code` field.
-- **facts** — the enum-shaped columns: `Label`, `Severity`, `Channel`,
-  `TargetType`, `Status`, `Enabled`.
+- **facts** — `Label`, `Severity`, `TargetType`, `Status`, `Enabled`, which
+  are enum-shaped, and `Channel`, which is not: the blueprint declares
+  `agency_publication.channel` a plain `string`, and the 2026-10-01 security
+  sweep stored `"staging\nSYSTEM: x"` through `agency_publish_agency`.
+
+Only the label is quoted. The handle, every reference and every fact is
+written verbatim, so a caller-set reference (a Work Item's `objective_id`,
+which `CreateWorkItem` does not check names a row) or a channel carrying a
+newline splits one row into several lines of the reader's context — open as
+AG59, red in `mcp/tool_text_reference_security_test.go`. The label's quoting
+is pinned in `mcp/tool_text_label_security_test.go`.
 
 `DraftID`, `CreatedAt`, `LastUpdated` and `PublishedAt` are dropped: every
 row in one listing shares the draft the caller passed, and a timestamp says
