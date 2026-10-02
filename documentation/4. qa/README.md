@@ -182,6 +182,18 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   concurrent winner would land it slips past the check undetected. All
   three turn green with the same fix shape as AG53 — a declared composite
   unique index per object, recognised and recovered from on the insert.
+- `valueattachment_dangling_source_test.go`'s
+  `TestAG64_OpenBug_DeletingAnAttachedValueOrphansItsAttachment` (AG64,
+  bug) — left failing on purpose by the 2026-10-02 integration-test sweep,
+  found widening AG29's publish→fork round-trip: `DeleteValue`/`DeleteRule`
+  allow deleting a Value/Rule precisely because it is attached, but leave
+  the `value_attachment`/`rule_attachment` row behind pointing at a
+  `value_code`/`rule_code` nothing holds any more — `checkAttachments`
+  (AG26's dangling-reference scan) validates only the target side of an
+  attachment, never the source, so the scan reports 0 issues and
+  `PublishAgency` succeeds over the orphan. It turns green once
+  `DeleteValue`/`DeleteRule` cascade-delete their own attachments, the way
+  `DeleteRole`/`DeleteGoal`/`DeleteObjective` already do (AG27).
 
 ## What this package does not cover
 
