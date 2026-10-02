@@ -167,6 +167,21 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   the way labels are, or the dangling `objective_id` is refused. The
   labels' quoting is pinned green beside it in
   `mcp/tool_text_label_security_test.go`.
+- `objectivemodule_race_test.go`'s
+  `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
+  bug), `module_code_race_test.go`'s
+  `TestAG62_OpenBug_TwoModulesShareTheSameCodeInOneDraft` (AG62, bug) and
+  `valueattachment_race_test.go`'s
+  `TestAG63_OpenBug_TwoValueAttachmentsLinkTheSameValueAndTarget` (AG63,
+  bug) — left failing on purpose by the 2026-10-02 integration-test sweep,
+  widening AG52/AG53's shape (a pre-check-then-insert duplicate rule with no
+  backing unique index) to every other `ErrDuplicate*` rule in the package:
+  none of `CreateObjectiveModule`, `CreateModule` or
+  `CreateValueAttachment`/`CreateRuleAttachment` has a composite unique
+  index behind its own duplicate check, so a direct insert placed where a
+  concurrent winner would land it slips past the check undetected. All
+  three turn green with the same fix shape as AG53 — a declared composite
+  unique index per object, recognised and recovered from on the insert.
 
 ## What this package does not cover
 
