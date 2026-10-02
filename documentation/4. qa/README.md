@@ -77,6 +77,18 @@ filters, `security_wk17_test.go`), 20 in `mcp/`, 60 in `routes/`.
   document and drops `limit` — 200 publications answered 4,960,632 bytes in
   127 ms with or without `?limit=1` (the uncapped-list class tracked as
   wakala-api's WK36).
+- **A domain that widens an enum opens no gate** — pinned by
+  `widened_vocabulary_security_test.go` (2026-10-02, fifty-ninth security
+  sweep). Shared's S37 lets a domain add `values` to a field the module
+  declares; this loads `agency.agency.json` with draft `status` widened by
+  `locked`, RACI `label` by `lead` and value-attachment `target_type` by
+  `department`, and asserts each widened value is refused where a gate reads
+  it: `CreateRoleAssignment` → `ErrInvalidRACILabel`, `CreateValueAttachment`
+  → `ErrInvalidTargetType`, and a draft stored in `locked` refuses a create,
+  a fork and an archive with `ErrDraftNotOpen`. Every gate is an allow-list
+  (`== DraftStatusOpen`, `RACILabel.Valid`, `targetRole`'s `switch`).
+  Mutation-checked: `validateOpenDraftID` rewritten as `== archived` turns it
+  red.
 
 ## Red by design
 
