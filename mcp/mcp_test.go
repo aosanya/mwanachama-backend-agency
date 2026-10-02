@@ -280,7 +280,7 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 }
 
 // TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference pins a
-// known defect — board row AG33 (documentation/3. implementation/todo.md):
+// known defect — board row AG60 (documentation/3. implementation/todo.md):
 // composite.go's per-section key maps (out.Roles/out.Goals/out.Objectives/
 // out.Workflows/out.WorkItems, each keyed by the spec author's own `key`
 // string) have no duplicate check, so a second spec entry reusing an
@@ -302,7 +302,7 @@ func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T)
 
 	if _, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name:      "agency_create_agency",
-		Arguments: map[string]any{"instance_id": "any", "name": "AG33 pin"},
+		Arguments: map[string]any{"instance_id": "any", "name": "AG60 pin"},
 	}); err != nil {
 		t.Fatalf("CallTool agency_create_agency: %v", err)
 	}
@@ -310,7 +310,7 @@ func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T)
 	// AGD-006 (AG33-35) made DraftID non-nullable everywhere — there is no
 	// more "live" scope a Draft-scoped entity can be created against, so
 	// this spec (which creates Goals/Objectives) now needs a real draft_id.
-	draft, err := mgr.CreateDraft(ctxT(t), "AG33 pin", "", "")
+	draft, err := mgr.CreateDraft(ctxT(t), "AG60 pin", "", "")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
@@ -339,7 +339,7 @@ func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T)
 
 	// pin: current behaviour reports no error for the duplicate key.
 	if errs, _ := got["errors"].([]any); len(errs) != 0 {
-		t.Fatalf("pin: current behaviour reports no error for a duplicate spec key, got %+v — if this now fails, AG33 is fixed and should report a duplicate-key error instead", errs)
+		t.Fatalf("pin: current behaviour reports no error for a duplicate spec key, got %+v — if this now fails, AG60 is fixed and should report a duplicate-key error instead", errs)
 	}
 
 	goals, err := mgr.ListGoals(ctxT(t), draft.ID, mwanachamaagency.GoalFilter{})
@@ -367,10 +367,10 @@ func TestDesignFromSpec_DuplicateKeySilentlyMisattributesReference(t *testing.T)
 		t.Fatalf("want 1 objective, got %d", len(objectives))
 	}
 	// pin: the Objective silently resolves to whichever Goal was created
-	// LAST ("Goal Two"), never "Goal One" — if this now fails, AG33 is
+	// LAST ("Goal Two"), never "Goal One" — if this now fails, AG60 is
 	// fixed.
 	if objectives[0].GoalID != goalTwoID {
-		t.Fatalf("pin: objective.GoalID = %q, want it silently misattributed to Goal Two (%q) — if this now fails, AG33 is fixed", objectives[0].GoalID, goalTwoID)
+		t.Fatalf("pin: objective.GoalID = %q, want it silently misattributed to Goal Two (%q) — if this now fails, AG60 is fixed", objectives[0].GoalID, goalTwoID)
 	}
 }
 
