@@ -195,6 +195,18 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `PublishAgency` succeeds over the orphan. It turns green once
   `DeleteValue`/`DeleteRule` cascade-delete their own attachments, the way
   `DeleteRole`/`DeleteGoal`/`DeleteObjective` already do (AG27).
+- `eventflowstep_handlercode_ambiguous_test.go`'s
+  `TestAG65_OpenBug_LookupFlowStepByHandlerCodePicksAnArbitraryStepWhenSeveralShareIt`
+  (AG65, bug) — left failing on purpose by the 2026-10-03 integration-test
+  sweep, found walking `agency.operations.json`'s `lookup_event_flow_step`
+  against its own blueprint (catalogue entry 1): `handler_code`'s own
+  index is declared non-unique and documented as "which **steps** a given
+  handler runs," yet `LookupFlowStep`'s `HandlerCode` branch resolves
+  through `specstore.Store.Take`'s `Limit(1)`, answering whichever step
+  was inserted first with no signal that a second one also matches. It
+  turns green once `LookupFlowStep` counts matches on the `HandlerCode`
+  (and `TriggerTopic`+`Consumer`) branches and refuses an ambiguous one
+  rather than resolving it silently.
 
 ## What this package does not cover
 
