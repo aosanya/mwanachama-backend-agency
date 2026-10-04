@@ -101,6 +101,16 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `ID`, `Created_At`, `CreatedAt`, `Draft_ID`, `DraftID`, `Code`), storing no
   goal in either draft. Not mutation-checked — the refusal lives in the
   go-sdk, not in this module.
+- **A fork names a publication by its exact tag** — pinned by
+  `routes/publication_fork_tag_security_test.go` (2026-10-04, eighty-fourth
+  security sweep). With one publication tagged `release-one`, `POST /drafts`
+  forking `forked_from_type: "publication"` from `%`, `release%`,
+  `release_one`, `RELEASE-ONE`, `release`, ` release-one`, `x' OR '1'='1`
+  and `release-one' --` each answer `404 publication not found`, and a
+  miscased `forked_from_type` (`PUBLICATION`, `Publication`,
+  `publications`) answers `400`. The lookup is `tag = ?`, bound. Mutation-
+  checked: rewriting it as `LOWER(tag) LIKE LOWER(?)` turns the first four
+  red, each materializing the whole published document into a new draft.
 
 ## Red by design
 
