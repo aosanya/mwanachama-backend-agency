@@ -90,6 +90,17 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   (`== DraftStatusOpen`, `RACILabel.Valid`, `targetRole`'s `switch`).
   Mutation-checked: `validateOpenDraftID` rewritten as `== archived` turns it
   red.
+- **An MCP create refuses a server-owned field in any spelling** — pinned by
+  `mcp/case_variant_args_security_test.go` (2026-10-04, eighty-third
+  security sweep). `encoding/json` matches struct fields case-insensitively,
+  so a whole-body decode would take `Deleted`, `ID`, `Draft_ID` or `Code` as
+  if they were the lower-case field; the REST half of that is AG57. On the
+  MCP plane the go-sdk validates arguments against the declared schema by
+  exact name first, and `agency_create_goal` answered every variant with
+  `unexpected additional properties ["Deleted"]` (and the same for `DELETED`,
+  `ID`, `Created_At`, `CreatedAt`, `Draft_ID`, `DraftID`, `Code`), storing no
+  goal in either draft. Not mutation-checked — the refusal lives in the
+  go-sdk, not in this module.
 
 ## Red by design
 
