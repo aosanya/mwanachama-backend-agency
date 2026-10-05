@@ -123,6 +123,18 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   Mutation-checked: pointing `DeleteValueAttachment` at the rule-attachment
   table deletes the Rule's attachment through the Value door (`204`).
 
+- **An update never seats a second Accountable** — pinned by
+  `routes/raci_update_accountable_security_test.go` (2026-10-05, ninety-
+  fourth security sweep). With one Accountable already on an objective,
+  `PATCH /role-assignments/{id}` relabelling a Consulted seat to
+  `accountable`, re-pointing another objective's Accountable onto it, or
+  doing either while claiming `draft_id`/`id`/`created_at` in the body each
+  answer `409`, and the objective keeps exactly its original Accountable.
+  The create half was already covered by `TestCreateRoleAssignment_DuplicateAccountable`;
+  the concurrent half is AG53. Mutation-checked: skipping
+  `validateRoleAssignment` in `UpdateRoleAssignment` turns all four
+  assertions red.
+
 ## Red by design
 
 - `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`
