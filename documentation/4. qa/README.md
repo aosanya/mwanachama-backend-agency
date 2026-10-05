@@ -209,6 +209,15 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   objective lines and a bare `SYSTEM:` line. It turns green once those
   values are quoted the way `tools.go`'s `line` quotes every generated
   tool's labels.
+- `routes/publication_list_cost_security_test.go`'s
+  `TestAG67_OpenHole_PublicationListingCarriesEveryWholeDocument` (AG67,
+  P2) — left failing on purpose by the 2026-10-05 security sweep (ninetieth
+  run): `GET /publications` (and `agency_list_publications`) answers every
+  publication with its whole frozen document and no page, so the answer
+  grows with the square of the publish count — 40 publications of
+  200,000-byte Values answered 164,106,934 bytes. It turns green once a
+  listing names each publication without its document, leaving
+  `get_publication` as the document read.
 - `objectivemodule_race_test.go`'s
   `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
   bug), `module_code_race_test.go`'s
