@@ -218,6 +218,15 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   200,000-byte Values answered 164,106,934 bytes. It turns green once a
   listing names each publication without its document, leaving
   `get_publication` as the document read.
+- `mcp/publish_refusal_text_security_test.go`'s
+  `TestAG68_OpenHole_PublishRefusalForgesLinesFromAStoredReference` (AG68,
+  P2) — left failing on purpose by the 2026-10-05 security sweep
+  (ninety-second run): the same dangling `objective_id` AG59 plants reaches
+  `agency_publish_agency`'s refusal unquoted, because `issue_impl.go`
+  formats it with `%s` and the refusal never passes through `tools.go`'s
+  `line` — one refusal reads as three lines, a forged work item and a bare
+  `SYSTEM:` line. It turns green once issue messages quote every
+  caller-written reference, or the dangling `objective_id` is refused.
 - `objectivemodule_race_test.go`'s
   `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
   bug), `module_code_race_test.go`'s
