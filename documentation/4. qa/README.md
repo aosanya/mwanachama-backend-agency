@@ -200,6 +200,15 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   the way labels are, or the dangling `objective_id` is refused. The
   labels' quoting is pinned green beside it in
   `mcp/tool_text_label_security_test.go`.
+- `mcp/module_objectives_text_security_test.go`'s
+  `TestAG66_OpenHole_ModuleObjectivesToolTextForgesLinesFromStoredTitles`
+  (AG66, P2) — left failing on purpose by the 2026-10-05 security sweep
+  (eighty-eighth run): the hand-written `agency_list_module_objectives`
+  writes an Objective title, its Goal's title and the link's rationale into
+  its text unquoted, so one stored link carrying newlines lists as several
+  objective lines and a bare `SYSTEM:` line. It turns green once those
+  values are quoted the way `tools.go`'s `line` quotes every generated
+  tool's labels.
 - `objectivemodule_race_test.go`'s
   `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
   bug), `module_code_race_test.go`'s
