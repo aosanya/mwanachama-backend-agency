@@ -112,6 +112,17 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   checked: rewriting it as `LOWER(tag) LIKE LOWER(?)` turns the first four
   red, each materializing the whole published document into a new draft.
 
+- **Detaching reaches only its own attachment table** — pinned by
+  `routes/attachment_table_confusion_security_test.go` (2026-10-05, eighty-
+  seventh security sweep). With one Value and one Rule each attached to the
+  same Role, `DELETE /values/{value}/attachments/{rule attachment id}` and
+  `DELETE /rules/{rule}/attachments/{value attachment id}` each answer `404`
+  and both attachments survive. The parent id in those two paths is declared
+  `ignored` in `agency.operations.json` — a Value's door reaches any of the
+  Value attachments in the instance, which is the declared shape, not a hole.
+  Mutation-checked: pointing `DeleteValueAttachment` at the rule-attachment
+  table deletes the Rule's attachment through the Value door (`204`).
+
 ## Red by design
 
 - `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`
