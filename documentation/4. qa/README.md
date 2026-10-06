@@ -135,6 +135,18 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `validateRoleAssignment` in `UpdateRoleAssignment` turns all four
   assertions red.
 
+- **No draft-scoped create lands outside an open draft** — pinned by
+  `routes/create_draft_gate_security_test.go` (2026-10-06, hundred-and-third
+  security sweep). `POST` to `/goals`, `/objectives`, `/workflows`,
+  `/work-items`, `/roles`, `/role-assignments`, `/values` and `/rules`
+  naming an archived draft answers `409`, an unknown one `404`, none at all
+  `400`, and listing either scope afterwards returns `[]`. The manager-level
+  Goal case was already in `security_wk17_test.go`; this covers every type
+  through the route table. Updates are not covered here — moving a row into
+  another draft by `PATCH` is AG48. Mutation-checked: letting
+  `validateOpenDraftID` pass an archived draft turns all eight archived
+  cases red.
+
 ## Red by design
 
 - `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`
