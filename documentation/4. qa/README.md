@@ -261,6 +261,14 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `line` — one refusal reads as three lines, a forged work item and a bare
   `SYSTEM:` line. It turns green once issue messages quote every
   caller-written reference, or the dangling `objective_id` is refused.
+- `mcp/fork_tag_text_security_test.go`'s
+  `TestAG69_OpenHole_PublicationTagForgesLinesInEveryDraftListingThroughAFork`
+  (AG69, P2) — left failing on purpose by the 2026-10-06 security sweep
+  (hundred-and-eighth run): a publication tag carrying newlines is stored,
+  a fork names it, and the fork's `forked from id` reaches every caller's
+  `agency_list_drafts` text unquoted — three drafts read as five lines, a
+  forged draft and a bare `SYSTEM:` line. It turns green once `tools.go`'s
+  `line` quotes references, or a tag with control characters is refused.
 - `objectivemodule_race_test.go`'s
   `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
   bug), `module_code_race_test.go`'s
