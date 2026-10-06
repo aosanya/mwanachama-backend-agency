@@ -278,6 +278,15 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `agency_list_drafts` text. It turns green once `CreateDraft` refuses (or
   drops) a fork source that names no type — quoting in `line` alone does
   not clear it.
+- `mcp/publication_channel_text_security_test.go`'s
+  `TestAG71_OpenHole_PublicationChannelForgesLinesInEveryPublicationListing`
+  (AG71, P2) — left failing on purpose by the 2026-10-06 security sweep
+  (hundred-and-tenth run): a publication channel carrying newlines is
+  stored as given and reaches every caller's `agency_list_publications`
+  text unquoted as a fact — one publication reads as three lines, a forged
+  "version 99 on production" and a bare `SYSTEM:` line. It turns green once
+  `tools.go`'s `line` quotes facts as well as labels, or a channel is held
+  to a name pattern.
 - `objectivemodule_race_test.go`'s
   `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
   bug), `module_code_race_test.go`'s
