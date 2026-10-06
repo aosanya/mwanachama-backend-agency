@@ -147,6 +147,16 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `validateOpenDraftID` pass an archived draft turns all eight archived
   cases red.
 
+- **Event-flow-step reads never reach another draft's steps** — pinned by
+  `routes/event_flow_step_scope_security_test.go` (2026-10-06,
+  hundred-and-sixth security sweep). A step created in one draft is found by
+  `GET /event-flow-steps` and by `GET /event-flow-steps/lookup` under all
+  three keys (`handler_code`, `code`, `trigger_topic`+`consumer`) only when
+  the request names that draft; naming another draft, an unknown one or none
+  at all lists `[]` and looks up `404`. There is no event-flow-step write
+  route, so the read pair is the whole surface. Mutation-checked: dropping
+  the `draft_id` predicate from `scopeQuery` turns twelve assertions red.
+
 ## Red by design
 
 - `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`
