@@ -269,6 +269,15 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `agency_list_drafts` text unquoted — three drafts read as five lines, a
   forged draft and a bare `SYSTEM:` line. It turns green once `tools.go`'s
   `line` quotes references, or a tag with control characters is refused.
+- `mcp/fork_untyped_source_security_test.go`'s
+  `TestAG70_OpenHole_UntypedForkSourceIsStoredUncheckedAndForgesDraftListings`
+  (AG70, P2) — left failing on purpose by the 2026-10-06 security sweep
+  (hundred-and-ninth run): `agency_create_draft` with a `forked_from_id`
+  and no `forked_from_type` stores the id without looking it up, so one
+  call puts a forged draft and a bare `SYSTEM:` line in every caller's
+  `agency_list_drafts` text. It turns green once `CreateDraft` refuses (or
+  drops) a fork source that names no type — quoting in `line` alone does
+  not clear it.
 - `objectivemodule_race_test.go`'s
   `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
   bug), `module_code_race_test.go`'s
