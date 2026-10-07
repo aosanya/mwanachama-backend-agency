@@ -143,7 +143,9 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `400`, and listing either scope afterwards returns `[]`. The manager-level
   Goal case was already in `security_wk17_test.go`; this covers every type
   through the route table. Updates are not covered here — moving a row into
-  another draft by `PATCH` is AG48. Mutation-checked: letting
+  another draft by `PATCH` is AG48, and editing or deleting a row in place
+  inside an archived draft (`200`/`204`, where create answers `409`) is
+  AG72, red in `routes/archived_draft_edit_security_test.go`. Mutation-checked: letting
   `validateOpenDraftID` pass an archived draft turns all eight archived
   cases red.
 
