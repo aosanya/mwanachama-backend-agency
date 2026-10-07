@@ -304,6 +304,25 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   "version 99 on production" and a bare `SYSTEM:` line. It turns green once
   `tools.go`'s `line` quotes facts as well as labels, or a channel is held
   to a name pattern.
+- `routes/archived_draft_edit_security_test.go`'s
+  `TestAG72_OpenHole_RowsInAnArchivedDraftStillTakeUpdatesAndDeletes` (AG72,
+  P2) — left failing on purpose by the 2026-10-07 security sweep
+  (hundred-and-thirteenth run): after `ArchiveDraft`, `PATCH /roles/{id}`
+  still answers `200` and `DELETE` of a RACI link, work item, role and
+  goal in the archived draft still answers `204` — `validateOpenDraftID`
+  runs on every `Create<Type>` but no `Update`/`Delete`. It turns green
+  once the same archived-draft refusal `POST` already gets is applied to
+  `Update`/`Delete` too, or the owner confirms archived rows are meant to
+  stay mutable.
+- `routes/second_agency_security_test.go`'s
+  `TestAG73_OpenHole_ASecondCreateAgencyStoresAnOrganizationNothingCanReadOrDelete`
+  (AG73, P2) — left failing on purpose by the 2026-10-07 security sweep
+  (hundred-and-fourteenth run): a second `POST /agency` on an Instance that
+  already has its agency answers `201` and stores another organization
+  that `GET /agency` never serves and no operation can read or delete —
+  5,000 such rows took `GET /agency`'s own lookup from 0.83 ms to 52.9 ms.
+  It turns green once `CreateAgency` refuses a second row for an Instance
+  that already has one.
 - `objectivemodule_race_test.go`'s
   `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
   bug), `module_code_race_test.go`'s
