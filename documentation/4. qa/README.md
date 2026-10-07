@@ -149,6 +149,21 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `validateOpenDraftID` pass an archived draft turns all eight archived
   cases red.
 
+- **A later create or a rename never moves the served agency** — pinned by
+  `routes/agency_singleton_security_test.go` (2026-10-07, hundred-and-
+  fourteenth security sweep). A second `POST /agency` carrying `id`,
+  `created_at`, `enabled` and `deleted` keeps none of the body's id or
+  clock and never becomes what `GET /agency` serves; `PATCH /agency`
+  carrying every setting changes only `name` and `description`, and the
+  served row's `id`, `created_at`, `enabled`, `deleted`,
+  `inactivity_timeout_seconds`, `default_failure_pipeline_budget` and
+  `event_flows` read back unchanged. That the second create is stored at
+  all is AG73, red in `routes/second_agency_security_test.go`.
+  Mutation-checked: ordering `findAgency` newest-first turns the
+  displacement assertion red; copying the whole body onto the stored row
+  *and* dropping `UpdateAgency`'s skipped columns turns the settings
+  assertion red (either alone does not: the two are independent guards).
+
 - **Event-flow-step reads never reach another draft's steps** — pinned by
   `routes/event_flow_step_scope_security_test.go` (2026-10-06,
   hundred-and-sixth security sweep). A step created in one draft is found by
