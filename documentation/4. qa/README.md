@@ -74,6 +74,14 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `objective_id` answer `201`; the issue scan flags the Work Item as a
   dangling Objective, but has no Objective→Goal check (AG27's open "Create
   still accepts a nonexistent reference" class — correctness, not a boundary).
+- **An objective's nested listings answer only the draft they name** — pinned
+  by `routes/nested_listing_draft_scope_security_test.go` (2026-10-08):
+  with an Accountable assignment and a capability link on an objective in
+  draft A, `GET /objectives/{id}/role-assignments` and
+  `GET /objectives/{id}/modules` return draft A's one row for `?draft_id=<A>`
+  and `[]` for another open draft, for no `draft_id` at all, and for a draft
+  that does not exist. Mutation-checked: dropping `scopeQuery` from
+  `ListRoleAssignmentsForObjective` turns all three RACI cases red.
 - **A publication is the server's, and only its channel moves** — pinned by
   `routes/publication_forged_fields_security_test.go` (2026-09-29,
   twenty-third sweep): `POST /publications` carrying `version: 99`,
