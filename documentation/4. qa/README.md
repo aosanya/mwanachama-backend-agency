@@ -189,6 +189,16 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   route, so the read pair is the whole surface. Mutation-checked: dropping
   the `draft_id` predicate from `scopeQuery` turns twelve assertions red.
 
+- **Event-flow-step reads match the exact spelling only** — pinned by
+  `routes/event_flow_step_exact_match_security_test.go` (2026-10-08,
+  hundred-and-twenty-ninth security sweep). Inside the owning draft, the
+  lookup under each of its three keys and the listing's `workflow_code`
+  filter find nothing for `%`, `_`, a case variant or a trailing space:
+  `code=%25` looks up `404`, and `workflow_code=%25` lists `[]`. The scope
+  pin above held the draft boundary but not the spelling. Mutation-checked:
+  turning the lookup's `code = ?` into `LIKE` and folding the listing's
+  `workflow_code` to lower case turns four assertions red.
+
 ## Red by design
 
 - `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`
