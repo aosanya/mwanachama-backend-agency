@@ -52,6 +52,13 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `id`/`status`/`created_at` on `POST /drafts` or `PATCH /drafts/{id}` is
   ignored. The issue scan is the one door that does not hold yet — see Red by
   design (AG50).
+- **An archived draft's own description is closed, and a body cannot reopen
+  it** — pinned by `routes/archived_draft_describe_security_test.go`:
+  `PATCH /drafts/{id}` on an archived draft answers `409` for a new
+  description, for `{"status":"open"}` and for `{}`, and the draft reads back
+  archived with the description it was archived with. Mutation-checked:
+  dropping `UpdateDraftDescription`'s open-status guard turns all three red.
+  The rows inside an archived draft do not hold yet — see Red by design (AG72).
 - **The composite tool never reaches across drafts** — pinned by
   `mcp/composite_draft_scope_security_test.go`: an `agency_design_from_spec`
   `raci` entry naming another draft's Role or Objective by id is refused
