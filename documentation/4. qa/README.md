@@ -199,6 +199,17 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   turning the lookup's `code = ?` into `LIKE` and folding the listing's
   `workflow_code` to lower case turns four assertions red.
 
+- **No stored row reaches a tool's name, description or schema** — pinned by
+  `mcp/tool_list_stored_text_security_test.go` (security sweep, 2026-10-09,
+  OWASP MCP03 tool poisoning). It lists `tools/list` on a fresh session,
+  stores a Goal, Role, Workflow, Value and Rule whose text carries a marker
+  and an injected instruction through the tools themselves, then lists again
+  on a second session: the marker is absent and the listing is byte-identical.
+  The control is `registerDeclaredTools` building every tool once from the
+  embedded blueprint over `ManagerShape()`, never from an Instance's rows.
+  Mutation-checked: a handler that registers a tool described by its own
+  arguments turns it red.
+
 ## Red by design
 
 - `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`
