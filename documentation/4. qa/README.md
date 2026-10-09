@@ -210,6 +210,19 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   Mutation-checked: a handler that registers a tool described by its own
   arguments turns it red.
 
+- **`agency_design_from_spec` plants nothing in a closed, unknown or unnamed
+  Draft** — pinned by `mcp/design_spec_closed_draft_security_test.go`
+  (security sweep, 2026-10-09). One spec carrying a Role, Goal, Objective,
+  Workflow, Work Item and a RACI entry by real id is sent naming an archived
+  Draft, `no-such-draft` and no Draft at all. All six entries come back in
+  `errors` (`draft is not open`, `draft not found`, `a draft id is
+  required`, or an unresolved key), nothing is reported created, and none of
+  the three scopes holds a planted row afterwards. The control is
+  `validateOpenDraftID`, which every `Create<Type>` the composite calls runs
+  first; this pins it through the composite, where AG72's archived-draft
+  update/delete gap does not reach. Mutation-checked: letting an archived
+  Draft pass `validateOpenDraftID` turns five assertions red.
+
 ## Red by design
 
 - `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`

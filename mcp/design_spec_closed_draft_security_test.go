@@ -1,0 +1,106 @@
+package mcp_test
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	gosdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
+	"github.com/aosanya/mwanachama-backend-agency/models"
+)
+
+func TestDesignFromSpec_StoresNothingInAnArchivedUnknownOrUnnamedDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := ctxT(t)
+	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"}); err != nil {
+		t.Fatalf("CreateAgency: %v", err)
+	}
+	archived, err := mgr.CreateDraft(ctx, "archived", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	goal, err := mgr.CreateGoal(ctx, models.Goal{DraftID: archived.ID, Title: "kept"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	objective, err := mgr.CreateObjective(ctx, models.Objective{DraftID: archived.ID, GoalID: goal.ID, Title: "kept"})
+	if err != nil {
+		t.Fatalf("CreateObjective: %v", err)
+	}
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: archived.ID, Name: "kept"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	if _, err := mgr.ArchiveDraft(ctx, archived.ID); err != nil {
+		t.Fatalf("ArchiveDraft: %v", err)
+	}
+
+	server := newTestServer(mgr)
+	mux := http.NewServeMux()
+	mux.Handle("/mcp", gosdkmcp.NewStreamableHTTPHandler(func(*http.Request) *gosdkmcp.Server { return server }, nil))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	cs := mcpConnect(t, srv.URL)
+
+	cases := map[string]string{"archived": archived.ID, "unknown": "no-such-draft", "unnamed": ""}
+	for name, draftID := range cases {
+		result, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{
+			Name: "agency_design_from_spec",
+			Arguments: map[string]any{
+				"instance_id": "test",
+				"draft_id":    draftID,
+				"roles":       []any{map[string]any{"key": "r", "name": "planted role"}},
+				"goals":       []any{map[string]any{"key": "g", "title": "planted goal"}},
+				"objectives":  []any{map[string]any{"key": "o", "goal_key": "g", "title": "planted objective"}},
+				"workflows":   []any{map[string]any{"key": "w", "name": "planted workflow"}},
+				"work_items":  []any{map[string]any{"key": "wi", "workflow_key": "w", "objective_key": "o", "title": "planted item"}},
+				"raci":        []any{map[string]any{"role_id": role.ID, "objective_id": objective.ID, "label": "accountable"}},
+			},
+		})
+		if err != nil {
+			t.Fatalf("%s: CallTool agency_design_from_spec: %v", name, err)
+		}
+		sc, ok := result.StructuredContent.(map[string]any)
+		if !ok {
+			t.Fatalf("%s: structuredContent is %T, want map[string]any", name, result.StructuredContent)
+		}
+		errs, _ := sc["errors"].([]any)
+		if len(errs) != 6 {
+			t.Errorf("%s draft: want every one of the six spec entries refused, got errors %+v", name, errs)
+		}
+		for _, section := range []string{"roles", "goals", "objectives", "workflows", "work_items"} {
+			if created, _ := sc[section].(map[string]any); len(created) != 0 {
+				t.Errorf("%s draft: the spec's %s were reported created: %+v", name, section, created)
+			}
+		}
+		if assigned, _ := sc["role_assignments"].([]any); len(assigned) != 0 {
+			t.Errorf("%s draft: a RACI assignment was reported created: %+v", name, assigned)
+		}
+	}
+
+	for _, draftID := range []string{archived.ID, "no-such-draft", ""} {
+		goals, _ := mgr.ListGoals(ctx, draftID, mwanachamaagency.GoalFilter{})
+		roles, _ := mgr.ListRoles(ctx, draftID, mwanachamaagency.RoleFilter{})
+		workflows, _ := mgr.ListWorkflows(ctx, draftID, mwanachamaagency.WorkflowFilter{})
+		assigned, _ := mgr.ListRoleAssignments(ctx, draftID, mwanachamaagency.RoleAssignmentFilter{})
+		for _, g := range goals {
+			if strings.HasPrefix(g.Title, "planted") {
+				t.Errorf("draft %q holds a goal the spec planted: %+v", draftID, g)
+			}
+		}
+		for _, r := range roles {
+			if strings.HasPrefix(r.Name, "planted") {
+				t.Errorf("draft %q holds a role the spec planted: %+v", draftID, r)
+			}
+		}
+		if len(workflows) != 0 {
+			t.Errorf("draft %q holds %d workflows after the refused spec", draftID, len(workflows))
+		}
+		if len(assigned) != 0 {
+			t.Errorf("draft %q holds %d RACI assignments after the refused spec", draftID, len(assigned))
+		}
+	}
+}
