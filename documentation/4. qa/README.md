@@ -368,6 +368,41 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   turns green once `LookupFlowStep` counts matches on the `HandlerCode`
   (and `TriggerTopic`+`Consumer`) branches and refuses an ambiguous one
   rather than resolving it silently.
+- `routes/archived_draft_edit_security_test.go`'s
+  `TestAG72_OpenHole_RowsInAnArchivedDraftStillTakeUpdatesAndDeletes` (AG72,
+  P2) — left failing on purpose by the 2026-10-07 security sweep: the open-draft
+  fence `validateOpenDraftID` runs in every `Create<Type>` but no
+  `Update<Type>`/`Delete<Type>`, so a role, work item, goal or RACI link inside
+  an archived draft still takes a rename or a delete (`200`/`204`) where the
+  same draft's create already answers `409`. It turns green once
+  `Update<Type>`/`Delete<Type>` run the same open-draft check against the
+  row's existing `draft_id` before writing.
+- `routes/second_agency_security_test.go`'s
+  `TestAG73_OpenHole_ASecondCreateAgencyStoresAnOrganizationNothingCanReadOrDelete`
+  (AG73, P2) — left failing on purpose by the 2026-10-07 security sweep:
+  `POST /agency` on an instance that already has its one agency answers `201`
+  and stores another organization that no route lists, serves or deletes —
+  `findAgency` keeps serving the oldest row, so the extra rows are invisible,
+  permanent, and `GET /agency` slows as they pile up (0.83 ms → 52.9 ms over
+  5,000 of them). It turns green once `CreateAgency` refuses with a new
+  `ErrAgencyExists` when `findAgency` already finds one.
+- `routes/agency_wide_attach_detach_security_test.go`'s
+  `TestAG74_OpenHole_AttachEditDetachRewritesAnAgencyWideValue` (AG74, P2) —
+  left failing on purpose by the 2026-10-08 security sweep: an agency-wide
+  Value or Rule, declared permanently immutable by `update_value`/
+  `delete_value`/`update_rule`/`delete_rule`, can still be rewritten or
+  deleted by attaching it to any Role first and detaching it afterwards,
+  because `ErrCannotEditLive` reads only whether the row holds an attachment
+  at the moment of the write and attach/detach is itself unrestricted
+  (AGD-003). The same sweep's later evidence shows the detour does not even
+  need the target row: because `hasAnyAttachment` matches by Code across
+  every draft and a fork from a publication carries each agency-wide Value's
+  Code verbatim, attaching in a second draft forked from the same publication
+  unlocks the first — reproduced for both the Value and the Rule half. It
+  turns green once `CreateValueAttachment`/`CreateRuleAttachment` refuse an
+  unattached Value/Rule's first attach, or agency-wide is recorded as a
+  stored property set at create rather than derived from the current
+  attachment count.
 
 ## What this package does not cover
 
