@@ -252,6 +252,15 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   Role's code, name and id in the Instance. It turns green once
   `roleNotFoundError` escapes both characters the way CAT22/PM7 need to for
   their own unescaped filters.
+- `goal_delete_cross_draft_test.go`'s
+  `TestAG75_OpenBug_DeleteGoalCascadesIntoAnotherDraftsWorkItem` (AG75,
+  bug) — left failing on purpose by the 2026-10-10 integration-test sweep:
+  `DeleteGoal`'s Work Item cascade matches `objective_id` with no
+  `draft_id` predicate, so deleting a Goal in one Draft can delete a Work
+  Item that lives in an unrelated Draft (`DeleteObjective` shares the same
+  shape). It turns green once the cascade is scoped to the owning Draft,
+  or `CreateWorkItem` refuses a cross-draft `objective_id` so the
+  dangerous state can never exist.
 - `routes/draft_scope_security_test.go`'s
   `TestAG48_OpenHole_UpdateMovesRowIntoAnotherDraft` (AG48, P1) — left
   failing on purpose by the 2026-09-28 security sweep: `PATCH` on a Goal,
