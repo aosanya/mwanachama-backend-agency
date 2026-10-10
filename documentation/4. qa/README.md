@@ -223,6 +223,18 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   update/delete gap does not reach. Mutation-checked: letting an archived
   Draft pass `validateOpenDraftID` turns five assertions red.
 
+- **A listing filter is a literal, never SQL** — pinned by
+  `mcp/list_filter_sql_metachar_security_test.go` (security sweep,
+  2026-10-10, OWASP MCP05 command injection). Two Goals are stored, then
+  `agency_list_goals` is called with `' or '1'='1`, `x') or 1=1 --`,
+  `x'; delete from goals; --` and two quote variants in each of `code`,
+  `title` and `description`: every call lists none, and an unfiltered
+  listing afterwards still holds both. The control is `likeFilter` binding
+  the escaped value as a parameter; every raw `deleteWhere` clause in the
+  package is a constant with bound arguments. Mutation-checked: splicing the
+  value into the `LIKE` text turns it red, the first payload listing both
+  Goals.
+
 ## Red by design
 
 - `provision_test.go`'s `TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived`
