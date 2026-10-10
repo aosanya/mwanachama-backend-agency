@@ -451,6 +451,15 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   stored property set at create rather than derived from the current
   attachment count.
 
+- `routes/goal_delete_bound_params_security_test.go`'s
+  `TestAG76_OpenHole_AGoalWithMoreObjectivesThanOneStatementCanBindCanNeverBeDeleted`
+  (AG76, P3, ≈6.5 s) — left failing on purpose by the 2026-10-10 security
+  sweep: `DeleteGoal` binds every Objective id under the Goal into one
+  `objective_id in ?`, so a Goal holding 32,767 Objectives answers
+  `DELETE /goals/{id}` with `500` on every attempt and survives (sqlite's
+  32,766-parameter ceiling; 65,535 under pgx). It turns green once the
+  cascade deletes by subquery or in bounded batches.
+
 ## What this package does not cover
 
 This library has no server and no session of its own (see CLAUDE.md's "no
