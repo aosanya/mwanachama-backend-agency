@@ -257,10 +257,12 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   bug) — left failing on purpose by the 2026-10-10 integration-test sweep:
   `DeleteGoal`'s Work Item cascade matches `objective_id` with no
   `draft_id` predicate, so deleting a Goal in one Draft can delete a Work
-  Item that lives in an unrelated Draft (`DeleteObjective` shares the same
-  shape). It turns green once the cascade is scoped to the owning Draft,
-  or `CreateWorkItem` refuses a cross-draft `objective_id` so the
-  dangerous state can never exist.
+  Item that lives in an unrelated Draft (`DeleteObjective`'s and
+  `DeleteWorkflow`'s own Work Item cascades share the identical shape,
+  confirmed by probe, not just by reading). It turns green once each
+  cascade is scoped to the owning Draft, or `CreateWorkItem` refuses a
+  cross-draft `objective_id`/`workflow_id` so the dangerous state can
+  never exist.
 - `routes/draft_scope_security_test.go`'s
   `TestAG48_OpenHole_UpdateMovesRowIntoAnotherDraft` (AG48, P1) — left
   failing on purpose by the 2026-09-28 security sweep: `PATCH` on a Goal,
