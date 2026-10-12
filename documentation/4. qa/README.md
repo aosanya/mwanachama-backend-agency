@@ -246,6 +246,21 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   mutation-checked: the run's mutation of `draft_impl.go` was refused by the
   environment, and the sweep does not touch product code to get one.
 
+- **No hand-written tool shares a name with a declared one** — pinned by
+  `mcp/tool_name_shadowing_security_test.go` (security sweep, 2026-10-12,
+  OWASP MCP03/MCP07). The go-sdk's `AddTool` keeps whichever registration of
+  a name lands last and drops the other without a word, and `RegisterTools`
+  registers the 68 declared tools first and the three hand-written ones
+  (`agency_list_module_objectives`, `agency_design_from_spec`,
+  `agency_list_types`) after. A declared operation later naming one of those
+  would be silently replaced, and a hand-written tool registered first would
+  be silently replaced by a declared one gated differently. The test lists
+  the hand-written tools on their own, asserts none is declared, and asserts
+  `RegisterTools` publishes exactly declared + hand-written. Shared's S63
+  covers the same collision between two declared operations; this is the
+  seam S63 cannot see. Mutation-checked: renaming `agency_list_types` to
+  `agency_list_goals` turns both assertions red (70 published, want 71).
+
 - **`agency_design_from_spec` plants nothing in a closed, unknown or unnamed
   Draft** — pinned by `mcp/design_spec_closed_draft_security_test.go`
   (security sweep, 2026-10-09). One spec carrying a Role, Goal, Objective,
