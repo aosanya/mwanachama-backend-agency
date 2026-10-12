@@ -138,6 +138,19 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   Mutation-checked: pointing `DeleteValueAttachment` at the rule-attachment
   table deletes the Rule's attachment through the Value door (`204`).
 
+- **Two Instances on one database never reach each other's rows** — pinned
+  by `routes/instance_table_set_isolation_security_test.go` (2026-10-12,
+  hundred-and-sixty-sixth security sweep). Two managers built from
+  `SpecFor("isoalice")` and `SpecFor("isobob")` over one sqlite file, each
+  behind its own route table: through alice's routes, detaching bob's rule
+  attachment (under her own rule's path and under his), detaching his value
+  attachment, reading, patching and attaching to his rule, and reading and
+  deleting his value all answer `404`; bob's rows, text and both attachments
+  survive, and bob's own detach of the same attachment then answers `204`.
+  The separation is the hashed table set alone — no `instance` column is
+  consulted. Mutation-checked: making `SpecForMount` ignore its instance
+  argument turns eight of the nine doors red.
+
 - **An update never seats a second Accountable** — pinned by
   `routes/raci_update_accountable_security_test.go` (2026-10-05, ninety-
   fourth security sweep). With one Accountable already on an objective,
@@ -463,8 +476,10 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
 ## What this package does not cover
 
 This library has no server and no session of its own (see CLAUDE.md's "no
-auth model" note) — reachability, cross-Instance scope, and every other
-caller-identity concern are `mwanachama-wakala-api`'s to test, against its
-own real router. That repo's own `documentation/4. qa/` and
+auth model" note) — reachability, which caller may reach which Instance
+(membership), and every other caller-identity concern are
+`mwanachama-wakala-api`'s to test, against its own real router. The one
+half of cross-Instance scope this package does own — that two Instances'
+table sets on one database never reach each other — is pinned above. That repo's own `documentation/4. qa/` and
 `cmd/server/selftest/security/` are where those checks live; this folder is
 about correctness of the domain logic alone.
