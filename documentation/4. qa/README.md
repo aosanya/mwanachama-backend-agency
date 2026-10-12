@@ -138,6 +138,19 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   Mutation-checked: pointing `DeleteValueAttachment` at the rule-attachment
   table deletes the Rule's attachment through the Value door (`204`).
 
+- **A capability is switched on only by a link in its own draft** — pinned
+  by `routes/module_enabled_scope_security_test.go` (2026-10-12,
+  hundred-and-sixty-ninth security sweep), the first pin on the catalog doors
+  `GET /modules` and `GET /modules/{id}`. With the bootstrap draft A and a
+  fork B (each holding its own `git` row): linking A's objective to B's `git`
+  answers `404` and switches nothing on; linking it to A's `git` answers `201`
+  and `GET /modules?draft_id=<A>&enabled=true` lists `git`, while B's listing
+  and `GetModule` on B's `git` still read it off. `POST /modules`,
+  `PATCH`/`DELETE /modules/{id}` answer `405` — `enabled` is derived, never
+  written. Mutation-checked: dropping the draft scope from
+  `validateObjectiveModule`'s module lookup turns the cross-draft link `201`.
+  Also probed, not pinned: `enabled=1`/`TRUE`/`yes` → `400`, `code=%` → `[]`.
+
 - **Two Instances on one database never reach each other's rows** — pinned
   by `routes/instance_table_set_isolation_security_test.go` (2026-10-12,
   hundred-and-sixty-sixth security sweep). Two managers built from
