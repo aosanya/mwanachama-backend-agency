@@ -236,6 +236,16 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   Mutation-checked: a handler that registers a tool described by its own
   arguments turns it red.
 
+- **A tool given `null` for every required argument refuses** — pinned by
+  `mcp/tool_null_required_security_test.go` (security sweep, 2026-10-12).
+  `dispatch`'s required check tests presence only, so `{"draft_id": null}`
+  passes it and binds `""`; every tool with a required argument besides
+  `instance_id` (over forty) is called that way and each must answer
+  `IsError`. The control is the manager's own refusals —
+  `ErrDraftRequired`, the not-found sentinels — not the binder. Not
+  mutation-checked: the run's mutation of `draft_impl.go` was refused by the
+  environment, and the sweep does not touch product code to get one.
+
 - **`agency_design_from_spec` plants nothing in a closed, unknown or unnamed
   Draft** — pinned by `mcp/design_spec_closed_draft_security_test.go`
   (security sweep, 2026-10-09). One spec carrying a Role, Goal, Objective,
