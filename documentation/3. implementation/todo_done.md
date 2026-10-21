@@ -153,3 +153,4 @@ convention; none of these are closed by AG33–AG35):
   `operator-capabilities.postman_collection.json`. See the AG12 gateway
   bullet above for the full current numbers. All 16 want deleting rather
   than covering.
+| AG80 | **Enabling forms enables catalog and git.** | 2026-10-21 | 3a8f2fc. `modules_catalog.json` gives `forms` `requires: [catalog, git]`; `deriveEnabled` adds required modules (transitively) to the directly enabled ones in `ListModules`, `GetModule` and the publication document, before filters apply; removing forms' last link turns both back off. `module_requires_test.go`, `module-requires.md`. Open: a template naming forms but carrying no catalog/git Module rows gets none created. Verified: `go build`, `go vet`, module tests ok; full suite's only reds are `_OpenBug_`/`_OpenHole_`; wakala-api builds against it. |
