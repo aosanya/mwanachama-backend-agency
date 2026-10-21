@@ -6,7 +6,7 @@
   {"code": "actor", "name": "actor", "description": "", "enabled": false, "locked": false},
   {"code": "comm", "name": "comm", "description": "", "enabled": false, "locked": false},
   {"code": "custody", "name": "custody", "description": "", "enabled": false, "locked": false},
-  {"code": "forms", "name": "forms", "description": "", "enabled": false, "locked": false},
+  {"code": "forms", "name": "forms", "description": "", "enabled": false, "locked": false, "requires": ["catalog", "git"]},
   {"code": "digitaltwin", "name": "digitaltwin", "description": "", "enabled": false, "locked": false},
   {"code": "accounting", "name": "accounting", "description": "", "enabled": false, "locked": false},
   {"code": "catalog", "name": "catalog", "description": "", "enabled": false, "locked": false}

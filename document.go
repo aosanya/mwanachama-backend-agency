@@ -149,8 +149,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	if err != nil {
 		return fail(err)
 	}
-	for _, mod := range modules {
-		mod = withDerivedEnabled(mod, linkedModules[mod.ID])
+	for _, mod := range deriveEnabled(modules, linkedModules) {
 		doc.Modules = append(doc.Modules, models.DocumentModule{
 			ID: mod.ID, Code: mod.Code, Enabled: mod.Enabled, Spec: json.RawMessage(mod.Spec),
 		})

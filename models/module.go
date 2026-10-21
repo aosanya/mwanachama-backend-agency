@@ -20,23 +20,18 @@ type Module struct {
 	Deleted     bool   `json:"deleted"`
 }
 
-// ModuleCatalogEntry is one row of the embedded module catalog — the
-// single source of truth for which Module codes exist, and what a fresh
-// instance backfills for each.
 type ModuleCatalogEntry struct {
-	Code        string `json:"code"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Enabled     bool   `json:"enabled"`
-	Locked      bool   `json:"locked"`
+	Code        string   `json:"code"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Enabled     bool     `json:"enabled"`
+	Locked      bool     `json:"locked"`
+	Requires    []string `json:"requires,omitempty"`
 }
 
 //go:embed modules_catalog.json
 var modulesCatalogJSON []byte
 
-// ModuleCatalog is every known Module code, parsed once from
-// modules_catalog.json at package init. Reused by [gormstore.BackfillModules]
-// and [SeedSWELab] so both stay in sync with this one file.
 var ModuleCatalog = mustParseModuleCatalog(modulesCatalogJSON)
 
 func mustParseModuleCatalog(raw []byte) []ModuleCatalogEntry {
@@ -54,5 +49,41 @@ func mustParseModuleCatalog(raw []byte) []ModuleCatalogEntry {
 		}
 		seen[entry.Code] = true
 	}
+	for _, entry := range catalog {
+		for _, required := range entry.Requires {
+			if !seen[required] {
+				panic(fmt.Sprintf("models: modules_catalog.json: %q requires unknown code %q", entry.Code, required))
+			}
+		}
+	}
 	return catalog
+}
+
+func ModuleRequires(code string) []string {
+	for _, entry := range ModuleCatalog {
+		if entry.Code == code {
+			return entry.Requires
+		}
+	}
+	return nil
+}
+
+func WithRequiredModules(enabled map[string]bool) map[string]bool {
+	out := make(map[string]bool, len(enabled))
+	pending := make([]string, 0, len(enabled))
+	for code, on := range enabled {
+		if on {
+			pending = append(pending, code)
+		}
+	}
+	for len(pending) > 0 {
+		code := pending[len(pending)-1]
+		pending = pending[:len(pending)-1]
+		if out[code] {
+			continue
+		}
+		out[code] = true
+		pending = append(pending, ModuleRequires(code)...)
+	}
+	return out
 }

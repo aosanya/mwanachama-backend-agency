@@ -42,9 +42,18 @@ func (m *agencyManager) GetModule(ctx context.Context, id string) (models.Module
 	if err != nil {
 		return models.Module{}, err
 	}
+	siblings, err := list[models.Module](m, scopeQuery(m.q(ctx, roleModule), mod.DraftID), roleModule)
+	if err != nil {
+		return models.Module{}, fmt.Errorf("GetModule: %w", err)
+	}
 	linked, err := m.linkedModuleIDs(ctx, mod.DraftID)
 	if err != nil {
 		return models.Module{}, fmt.Errorf("GetModule: %w", err)
+	}
+	for _, derived := range deriveEnabled(siblings, linked) {
+		if derived.ID == mod.ID {
+			return derived, nil
+		}
 	}
 	return withDerivedEnabled(mod, linked[mod.ID]), nil
 }
@@ -64,9 +73,18 @@ func (m *agencyManager) ListModules(ctx context.Context, draftID string, filter 
 		return nil, fmt.Errorf("ListModules: %w", err)
 	}
 
+	inScope, err := list[models.Module](m, scopeQuery(m.q(ctx, roleModule), draftID), roleModule)
+	if err != nil {
+		return nil, fmt.Errorf("ListModules: %w", err)
+	}
+	derived := make(map[string]bool, len(inScope))
+	for _, mod := range deriveEnabled(inScope, linked) {
+		derived[mod.ID] = mod.Enabled
+	}
+
 	out := make([]models.Module, 0, len(modules))
 	for _, mod := range modules {
-		mod = withDerivedEnabled(mod, linked[mod.ID])
+		mod.Enabled = derived[mod.ID]
 		if filter.Enabled != nil && mod.Enabled != *filter.Enabled {
 			continue
 		}
@@ -86,6 +104,22 @@ func (m *agencyManager) linkedModuleIDs(ctx context.Context, draftID string) (ma
 		linked[id] = true
 	}
 	return linked, nil
+}
+
+func deriveEnabled(modules []models.Module, linked map[string]bool) []models.Module {
+	direct := make(map[string]bool, len(modules))
+	for _, mod := range modules {
+		direct[mod.Code] = withDerivedEnabled(mod, linked[mod.ID]).Enabled
+	}
+	enabled := models.WithRequiredModules(direct)
+	out := make([]models.Module, 0, len(modules))
+	for _, mod := range modules {
+		if !mod.Locked {
+			mod.Enabled = enabled[mod.Code]
+		}
+		out = append(out, mod)
+	}
+	return out
 }
 
 func withDerivedEnabled(mod models.Module, linked bool) models.Module {
