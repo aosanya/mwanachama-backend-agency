@@ -113,10 +113,11 @@ type DocumentAttachment struct {
 }
 
 type DocumentModule struct {
-	ID      string          `json:"id"`
-	Code    string          `json:"code"`
-	Enabled bool            `json:"enabled"`
-	Spec    json.RawMessage `json:"spec,omitempty"`
+	ID       string          `json:"id"`
+	Code     string          `json:"code"`
+	Enabled  bool            `json:"enabled"`
+	Spec     json.RawMessage `json:"spec,omitempty"`
+	Settings json.RawMessage `json:"settings,omitempty"`
 }
 
 type DocumentObjectiveModule struct {

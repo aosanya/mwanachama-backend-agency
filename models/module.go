@@ -15,6 +15,7 @@ type Module struct {
 	Enabled     bool   `json:"enabled"`
 	Locked      bool   `json:"locked"`
 	Spec        string `json:"spec,omitempty"`
+	Settings    string `json:"settings,omitempty"`
 	CreatedAt   string `json:"created_at"`
 	LastUpdated string `json:"last_updated"`
 	Deleted     bool   `json:"deleted"`

@@ -26,6 +26,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkWorkItems,
 		s.checkEventFlowSteps,
 		s.checkAttachments,
+		s.checkModuleSettings,
 	} {
 		if err := check(); err != nil {
 			return nil, fmt.Errorf("scanIssues: %w", err)

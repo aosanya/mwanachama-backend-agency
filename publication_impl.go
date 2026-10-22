@@ -134,7 +134,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 	for _, r := range modules {
 		records = append(records, hashRecord("Module", map[string]any{
 			"id": r.ID, "code": r.Code, "name": r.Name, "description": r.Description,
-			"enabled": r.Enabled, "spec": r.Spec, "deleted": r.Deleted,
+			"enabled": r.Enabled, "spec": r.Spec, "settings": r.Settings, "deleted": r.Deleted,
 		}))
 	}
 

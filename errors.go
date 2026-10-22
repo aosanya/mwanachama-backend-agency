@@ -106,6 +106,8 @@ var (
 	// ErrModuleNotFound is returned when a Module id has no match in the
 	// expected scope.
 	ErrModuleNotFound = errors.New("mwanachamaagency: module not found")
+
+	ErrInvalidModuleSettings = errors.New("mwanachamaagency: module settings must be a JSON object")
 	// ErrDuplicateObjectiveModule is returned by CreateObjectiveModule when
 	// the same (Objective, Module) pair is already linked in that scope.
 	ErrDuplicateObjectiveModule = errors.New("mwanachamaagency: objective already linked to this module")

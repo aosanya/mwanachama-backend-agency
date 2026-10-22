@@ -2,6 +2,7 @@ package mwanachamaagency
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -180,6 +181,7 @@ type AgencyManager interface {
 	CreateModule(ctx context.Context, mod models.Module) (models.Module, error)
 	GetModule(ctx context.Context, id string) (models.Module, error)
 	ListModules(ctx context.Context, draftID string, filter ModuleFilter) ([]models.Module, error)
+	SetModuleSettings(ctx context.Context, id string, settings json.RawMessage) (models.Module, error)
 
 	// ObjectiveModule. Links an Objective to a Module — many-to-many,
 	// Draft-scoped, enforcing the same same-scope rule as RoleAssignment: a
@@ -265,12 +267,13 @@ type AgencyManager interface {
 }
 
 type agencyManager struct {
-	db     *gorm.DB
-	st     *specstore.Store
-	tables TableNames
+	db       *gorm.DB
+	st       *specstore.Store
+	tables   TableNames
+	settings SettingsChecker
 }
 
-func NewAgencyManager(db *gorm.DB, s *spec.Spec) (AgencyManager, error) {
+func NewAgencyManager(db *gorm.DB, s *spec.Spec, opts ...Option) (AgencyManager, error) {
 	if db == nil {
 		return nil, fmt.Errorf("NewAgencyManager: db must not be nil")
 	}
@@ -281,7 +284,11 @@ func NewAgencyManager(db *gorm.DB, s *spec.Spec) (AgencyManager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("NewAgencyManager: %w", err)
 	}
-	return &agencyManager{db: db, st: st, tables: TablesFor(s)}, nil
+	m := &agencyManager{db: db, st: st, tables: TablesFor(s)}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m, nil
 }
 
 func ManagerShape() AgencyManager { return (*agencyManager)(nil) }

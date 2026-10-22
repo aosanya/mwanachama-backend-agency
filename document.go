@@ -152,6 +152,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	for _, mod := range deriveEnabled(modules, linkedModules) {
 		doc.Modules = append(doc.Modules, models.DocumentModule{
 			ID: mod.ID, Code: mod.Code, Enabled: mod.Enabled, Spec: json.RawMessage(mod.Spec),
+			Settings: json.RawMessage(mod.Settings),
 		})
 	}
 
@@ -268,7 +269,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		row := models.Module{
 			ID: newID(), Code: mod.Code, DraftID: draftID, Name: entry.Name,
 			Description: entry.Description, Enabled: mod.Enabled, Locked: entry.Locked,
-			Spec: string(mod.Spec), CreatedAt: now, LastUpdated: now,
+			Spec: string(mod.Spec), Settings: string(mod.Settings), CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleModule, row); err != nil {
 			return fail(err)
