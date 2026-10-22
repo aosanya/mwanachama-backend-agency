@@ -157,6 +157,7 @@
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
         {"name": "name", "type": "string", "description": "What the seat is called.", "required": true},
         {"name": "description", "type": "text", "description": "What whoever holds this seat is there to do."},
+        {"name": "powers", "type": "json", "description": "The named powers whoever holds this seat may use, each a code from the platform's power vocabulary. Empty declares none, and an organization whose seats declare none keeps the platform's default behaviour."},
         {"name": "created_at", "type": "timestamp", "description": "When the seat was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}

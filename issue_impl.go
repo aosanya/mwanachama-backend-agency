@@ -27,6 +27,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkEventFlowSteps,
 		s.checkAttachments,
 		s.checkModuleSettings,
+		s.checkPowers,
 	} {
 		if err := check(); err != nil {
 			return nil, fmt.Errorf("scanIssues: %w", err)
@@ -267,4 +268,23 @@ func (m *agencyManager) rescanIssues(ctx context.Context, tx *gorm.DB, draftID s
 		}
 	}
 	return found, nil
+}
+
+func (s *issueScan) checkPowers() error {
+	roles, err := list[models.Role](s.m, s.scoped(roleRole), roleRole)
+	if err != nil {
+		return err
+	}
+	for _, r := range roles {
+		for _, code := range r.Powers {
+			power, known := models.LookupPower(code)
+			switch {
+			case !known:
+				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q declares unknown power %q", r.Code, r.Name, code)
+			case power.Locked:
+				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q declares power %q, which is locked to owners", r.Code, r.Name, code)
+			}
+		}
+	}
+	return nil
 }
