@@ -4,6 +4,7 @@
   {"code": "join_request.decide", "name": "Decide join requests", "locked": false},
   {"code": "member.invite", "name": "Invite", "locked": false},
   {"code": "promise.record_outcome", "name": "Record a promise's outcome", "locked": false},
+  {"code": "poll.run", "name": "Run a poll", "locked": false},
   {"code": "agent.manage", "name": "Add or remove agents", "locked": true},
   {"code": "api_key.manage", "name": "Manage API keys", "locked": true},
   {"code": "agency.go_live", "name": "Go live", "locked": true},

@@ -9,5 +9,6 @@
   {"code": "forms", "name": "forms", "description": "", "enabled": false, "locked": false, "requires": ["catalog", "git"]},
   {"code": "digitaltwin", "name": "digitaltwin", "description": "", "enabled": false, "locked": false},
   {"code": "accounting", "name": "accounting", "description": "", "enabled": false, "locked": false},
-  {"code": "catalog", "name": "catalog", "description": "", "enabled": false, "locked": false}
+  {"code": "catalog", "name": "catalog", "description": "", "enabled": false, "locked": false},
+  {"code": "voting", "name": "voting", "description": "Polls put to chosen groups, answered inside a window, counted and published.", "enabled": false, "locked": false}
 ]
