@@ -17,10 +17,6 @@ type ImportResult struct {
 	Attachments int          `json:"attachments"`
 }
 
-// ImportDocument writes a whole agency document into a draft of its own. It
-// is the way a document that was never published here lands — a mined
-// template, or an export from somewhere else — where CreateDraft's
-// "publication" fork is the way one that was published here comes back.
 func (m *agencyManager) ImportDocument(ctx context.Context, description string, doc models.AgencyDocument) (ImportResult, error) {
 	var out ImportResult
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -42,6 +38,9 @@ func (m *agencyManager) ImportDocument(ctx context.Context, description string, 
 		if err := applyDocumentToDraft(ctx, m, tx, draft.ID, doc, now); err != nil {
 			return err
 		}
+		if err := m.addRequiredModules(ctx, tx, draft.ID, now); err != nil {
+			return err
+		}
 
 		attached, err := m.applyAttachments(ctx, tx, doc, now)
 		if err != nil {
@@ -57,6 +56,44 @@ func (m *agencyManager) ImportDocument(ctx context.Context, description string, 
 		return ImportResult{}, fmt.Errorf("ImportDocument: %w", err)
 	}
 	return out, nil
+}
+
+func (m *agencyManager) addRequiredModules(ctx context.Context, tx *gorm.DB, draftID, now string) error {
+	held, err := list[models.Module](m, scopeQuery(tx.WithContext(ctx).Table(m.table(roleModule)), draftID), roleModule)
+	if err != nil {
+		return fmt.Errorf("addRequiredModules: %w", err)
+	}
+	var linkedIDs []string
+	if err := scopeQuery(tx.WithContext(ctx).Table(m.table(roleObjectiveModule)), draftID).
+		Pluck("module_id", &linkedIDs).Error; err != nil {
+		return fmt.Errorf("addRequiredModules: %w", err)
+	}
+	linked := make(map[string]bool, len(linkedIDs))
+	for _, id := range linkedIDs {
+		linked[id] = true
+	}
+
+	present := make(map[string]bool, len(held))
+	switchedOn := make(map[string]bool, len(held))
+	for _, mod := range held {
+		present[mod.Code] = true
+		switchedOn[mod.Code] = mod.Enabled || linked[mod.ID]
+	}
+
+	for _, entry := range models.ModuleCatalog {
+		if present[entry.Code] || !models.WithRequiredModules(switchedOn)[entry.Code] {
+			continue
+		}
+		row := models.Module{
+			ID: newID(), Code: entry.Code, DraftID: draftID, Name: entry.Name,
+			Description: entry.Description, Enabled: true, Locked: entry.Locked,
+			CreatedAt: now, LastUpdated: now,
+		}
+		if err := m.copyRow(ctx, tx, roleModule, row); err != nil {
+			return fmt.Errorf("addRequiredModules: %w", err)
+		}
+	}
+	return nil
 }
 
 func (m *agencyManager) ensureAgency(ctx context.Context, tx *gorm.DB, from models.DocumentAgency) error {

@@ -39,3 +39,24 @@ the same `Enabled` an unfiltered one does.
 
 Turning `forms` off (its last link removed) turns `catalog` and `git` back
 off unless something else enables them.
+
+## Import creates what forms requires (AG81)
+
+Member app decision 250 (owner, 2026-10-22): importing an agency or template
+that switches on `forms` creates any forms catalog or report store it lacks.
+The derivation above can only report a Module row that exists, so a document
+carrying a `forms` Module but no `catalog` or `git` row would otherwise land
+with forms on and nothing to hold its answers or its report.
+
+`ImportDocument` (`import.go`) therefore runs `addRequiredModules` after the
+document is written into its draft. A Module counts as switched on when the
+document marks it `enabled` or an Objective links it; the switched-on codes
+are closed over `requires`, and every code in that closure the draft has no
+Module row for is created from its catalog entry, enabled, in the same
+transaction. A row the document already carries is left as it is, and a
+document that switches on nothing that requires anything gains no rows.
+
+`mwanachama-wakala-api`'s `POST /instances/import` does not go through
+`ImportDocument`: it seeds the whole module catalog into the new draft before
+applying the document, so `catalog` and `git` are already present there and
+read as enabled through the derivation as soon as `forms` is linked.
