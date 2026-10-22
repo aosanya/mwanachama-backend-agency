@@ -10,6 +10,7 @@ type Power struct {
 	Code   string `json:"code"`
 	Name   string `json:"name"`
 	Locked bool   `json:"locked"`
+	Module string `json:"module,omitempty"`
 }
 
 //go:embed powers_catalog.json
