@@ -1673,10 +1673,8 @@
           "body": true
         }
       ]
-    }
-  }
-}
-    {
+    },
+    "list_powers": {
       "method": "GET",
       "path": "/powers",
       "call": "ListPowers",
@@ -1689,4 +1687,6 @@
         }
       ],
       "tool": "agency_list_powers"
-    },
+    }
+  }
+}

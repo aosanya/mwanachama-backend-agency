@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestAG90_OpenBug_ThePowerListIsDeclaredAndServed(t *testing.T) {
+func TestThePowerListIsDeclaredAndServed(t *testing.T) {
 	raw, err := os.ReadFile("../agency.operations.json")
 	if err != nil {
 		t.Fatalf("read agency.operations.json: %v", err)
