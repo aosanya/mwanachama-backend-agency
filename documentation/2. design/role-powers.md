@@ -73,3 +73,62 @@ unknown or locked code at publish.
 document and carried through a fork. Whoever holds a staff role counts as
 staff beside owners and agents, for tasks and for board replies; the check
 itself is the host's (wakala-api WK218).
+
+## The older powers list their actions (AG89, decisions 439–441, 451)
+
+Powers are added as a feature needs them (decision 439). The nine older
+powers now list the actions the sibling modules declare today, read from
+their `*.operations.json`:
+
+| Power | Actions |
+| --- | --- |
+| `member.invite` Invite | `actor.invitation.create`, `actor.invitation.check_batch`, `actor.invitation.send_batch` |
+| `join_request.decide` Decide join requests | `actor.join_request.approve`, `actor.join_request.decline` |
+| `form.approve` Approve forms | `forms.approval.approve`, `forms.approval.approve_slot`, `forms.approval.refuse` |
+| `report.publish` Publish a report | `forms.results.publish` |
+| `poll.run` Run a poll | `voting.poll.create`, `voting.choice.create` |
+| `notice.post` Post a notice | `engage.post.create` |
+| `event.post` Post an event or meeting | `engage.post.create` |
+| `volunteer_call.post` Post a volunteer call | `engage.post.create` |
+| `promise.record_outcome` Record a promise's outcome | none yet |
+
+Why these and not fewer:
+
+- The bulk invite is two actions: `check_batch` writes nothing and is the
+  step before `send_batch`, so a holder who may send may check.
+- `approve_slot` is the approval of a form whose round declares slots;
+  without it a holder could approve only single-approver forms.
+- A poll is made by `voting.poll.create` and then given its choices with
+  `voting.choice.create`; one without the other is not a poll.
+- engage declares one posting action for all three kinds. The kind is in
+  the body, so the host checks that the caller holds the power for the kind
+  posted (engage's own rule, decision 348); the action list alone does not
+  tell a notice from an event.
+
+The powers other than these keep the lists AG88 gave them, with two
+changes:
+
+- `board_item.hide` also allows `catalog.raised_item.remove`: removing a
+  raised item with a ground goes with hiding (decision 441).
+- `catalog_entry.publish` is now `service.publish`, "Publish services"
+  (decision 440). Nothing in this repo or the studio carried the old code; a
+  stored definition that still does is refused at publish as an unknown
+  power.
+
+Not listed, because nothing declares the action yet:
+
+- voting has no close or publish operation; `poll.run` gains them when
+  voting declares them.
+- engage's `engage.pick.create` and `engage.post.fill` are the poster's own
+  steps on a volunteer call and are left to the host's poster check rather
+  than granted by the power.
+- Recording a promise's outcome is wakala-api WK178's, not declared.
+- Acknowledging a raised item goes with Reply to board items once catalog
+  CAT56 declares it (decision 441).
+- Assigning, unassigning and closing a board item go with Manage the board
+  once catalog CAT134 declares them (decision 451).
+- Edit the register, Edit services and Manage appointments gain theirs in
+  the rows that declare them (CAT50, CAT124, WK198).
+
+A power with no actions grants nothing; owners and agents act (decision
+439).
