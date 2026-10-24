@@ -28,12 +28,21 @@ type SettingsChecker func(ctx context.Context, module string, settings json.RawM
 mgr, err := NewAgencyManager(db, spec, WithSettingsChecker(check))
 ```
 
-The issue scan calls the checker once for every **enabled** module in the
-scanned draft, with the module's catalog code and its settings (possibly
-empty, so a module can report a required value that is missing). Each string
-it returns becomes one `error`-severity issue on that module
-(`entity_type: "module"`), which blocks publishing like any other error. A
-module that is switched off is not asked: nothing will run it.
+The issue scan calls the checker once for every module in the scanned draft,
+with the module's catalog code and its settings (possibly empty, so a module
+can report a required value that is missing). Each string it returns becomes
+one issue on that module (`entity_type: "module"`):
+
+- an **enabled** module's problem is `error` severity and blocks publishing
+  like any other error;
+- a **switched-off** module's problem is `warning` severity and does not
+  block (member app decision 408, AG87). Nothing will run the module, but a
+  bad value left in the definition would block the day the module is switched
+  on, so the owner hears about it now. Linking the module to an Objective
+  switches it on, and the next scan reports the same problem as an error.
+
+Handing settings only to modules that are on is the host's side (wakala-api
+WK185).
 
 No checker means no check. A host that has not wired S64 yet publishes
 exactly as before.
@@ -44,3 +53,14 @@ exactly as before.
   the surface, for the host (wakala-api WK185) to expose.
 - The override layer (S64's per-launch values over the definition's) is not
   this library's: only the definition layer is stored here.
+
+## People are never switched off (AG87)
+
+Member app decision 406: the `actor` module (members, groups, roles, join
+requests) is marked `locked` and `enabled` in `models/modules_catalog.json`,
+as `auth` is, so a new draft's catalog seed can never leave an owner unable to
+sign in and reach the people who switch modules back on. A locked module keeps
+its stored `enabled` rather than deriving it from Objective links. Existing
+module rows keep whatever they already hold: the seed only inserts a missing
+code. The agency definition itself has no module row to lock; wakala-api never
+gates `actor` or `agency` regardless (WK186).

@@ -75,11 +75,12 @@ func (s *issueScan) checkModuleSettings() error {
 		linked[id] = true
 	}
 	for _, mod := range deriveEnabled(modules, linked) {
+		severity := models.IssueSeverityError
 		if !mod.Enabled {
-			continue
+			severity = models.IssueSeverityWarning
 		}
 		for _, problem := range s.m.settings(s.ctx, mod.Code, json.RawMessage(mod.Settings)) {
-			s.add(models.IssueSeverityError, "module", mod.ID, "Module %s settings: %s", mod.Code, problem)
+			s.add(severity, "module", mod.ID, "Module %s settings: %s", mod.Code, problem)
 		}
 	}
 	return nil

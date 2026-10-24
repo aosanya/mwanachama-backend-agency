@@ -64,9 +64,6 @@ func TestListAndGetModule(t *testing.T) {
 	}
 }
 
-// TestListModules_DefaultCatalogState asserts the HTTP list reflects
-// AGD-002's reversed defaults on a fresh instance: only "auth" enabled,
-// every other known code disabled.
 func TestListModules_DefaultCatalogState(t *testing.T) {
 	mgr := newTestManager(t)
 	draftID := bootstrapDraftID(t, mgr)
@@ -85,7 +82,7 @@ func TestListModules_DefaultCatalogState(t *testing.T) {
 		t.Fatalf("expected %d modules, got %d", len(models.ModuleCatalog), len(list))
 	}
 	for _, mod := range list {
-		wantEnabled := mod.Code == "auth"
+		wantEnabled := mod.Code == "auth" || mod.Code == "actor"
 		if mod.Enabled != wantEnabled {
 			t.Fatalf("expected module %q Enabled=%v, got %+v", mod.Code, wantEnabled, mod)
 		}

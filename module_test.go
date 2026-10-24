@@ -95,14 +95,6 @@ func TestCreateModule_DuplicateCode(t *testing.T) {
 	}
 }
 
-// TestBackfillModules_SeedsCatalogDefaults asserts every Migrate call
-// (newTestManager's included) leaves every models.ModuleCatalog entry
-// present in the bootstrap Draft, with "auth" backfilled Enabled+Locked and
-// every other known code backfilled disabled and unlocked — the
-// correctness property AGD-002's reversal exists for: a fresh instance
-// starts with only auth enabled, but an already-migrated instance's
-// existing rows (not exercised by this fresh-table test) are never touched
-// by a later Migrate.
 func TestBackfillModules_SeedsCatalogDefaults(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -132,21 +124,24 @@ func TestBackfillModules_SeedsCatalogDefaults(t *testing.T) {
 		}
 	}
 
-	authMod, ok := byCode["auth"]
-	if !ok {
-		t.Fatal("expected a backfilled auth module")
-	}
-	if !authMod.Enabled || !authMod.Locked {
-		t.Fatalf("expected auth to backfill Enabled: true, Locked: true, got %+v", authMod)
+	neverOff := map[string]bool{"auth": true, "actor": true}
+	for code := range neverOff {
+		mod, ok := byCode[code]
+		if !ok {
+			t.Fatalf("expected a backfilled %s module", code)
+		}
+		if !mod.Enabled || !mod.Locked {
+			t.Fatalf("expected %s to backfill Enabled: true, Locked: true, got %+v", code, mod)
+		}
 	}
 
 	for _, entry := range models.ModuleCatalog {
-		if entry.Code == "auth" {
+		if neverOff[entry.Code] {
 			continue
 		}
 		mod := byCode[entry.Code]
 		if mod.Enabled || mod.Locked {
-			t.Fatalf("expected non-auth module %q to backfill Enabled: false, Locked: false, got %+v", entry.Code, mod)
+			t.Fatalf("expected module %q to backfill Enabled: false, Locked: false, got %+v", entry.Code, mod)
 		}
 	}
 }

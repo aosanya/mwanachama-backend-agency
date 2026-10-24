@@ -160,3 +160,47 @@ func TestNoSettingsCheckerMeansNoSettingsCheck(t *testing.T) {
 		t.Fatalf("expected publish with no checker to pass, got %v", err)
 	}
 }
+
+func TestASwitchedOffModulesBadSettingsWarnAndSwitchingItOnBlocks(t *testing.T) {
+	mgr := newSettingsCheckedManager(t, requireWindow)
+	ctx := context.Background()
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+
+	forms, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "forms", Name: "forms"})
+	if err != nil {
+		t.Fatalf("CreateModule: %v", err)
+	}
+	if _, err := mgr.SetModuleSettings(ctx, forms.ID, json.RawMessage(`{"window_days": 0}`)); err != nil {
+		t.Fatalf("SetModuleSettings: %v", err)
+	}
+
+	issues, err := mgr.ListIssues(ctx, o.DraftID, mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues: %v", err)
+	}
+	warned := false
+	for _, issue := range issues {
+		if issue.EntityType != "module" || issue.EntityID != forms.ID {
+			continue
+		}
+		if issue.Severity != models.IssueSeverityWarning {
+			t.Fatalf("a switched-off module's bad settings must warn, not block: %+v", issue)
+		}
+		if strings.Contains(issue.Message, "window_days must be positive") {
+			warned = true
+		}
+	}
+	if !warned {
+		t.Fatalf("expected a warning for the switched-off module's settings, got %+v", issues)
+	}
+	if _, err := mgr.PublishAgency(ctx, o.DraftID, "", ""); err != nil {
+		t.Fatalf("a warning must not block publish, got %v", err)
+	}
+
+	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: forms.ID, Rationale: "residents answer forms"}); err != nil {
+		t.Fatalf("CreateObjectiveModule: %v", err)
+	}
+	if _, err := mgr.PublishAgency(ctx, o.DraftID, "", ""); !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {
+		t.Fatalf("switching the module on must check its settings again and block, got %v", err)
+	}
+}
