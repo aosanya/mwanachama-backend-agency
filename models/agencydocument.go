@@ -50,6 +50,7 @@ type DocumentRole struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Powers      []string `json:"powers,omitempty"`
+	Staff       bool     `json:"staff,omitempty"`
 }
 
 type DocumentGoal struct {

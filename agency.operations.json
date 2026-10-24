@@ -1676,3 +1676,17 @@
     }
   }
 }
+    {
+      "method": "GET",
+      "path": "/powers",
+      "call": "ListPowers",
+      "action": "agency.power.list",
+      "title": "List powers",
+      "description": "List the power vocabulary a role may tick, each with the actions it allows and whether it is locked to owners.",
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_powers"
+    },

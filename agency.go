@@ -181,6 +181,7 @@ type AgencyManager interface {
 	CreateModule(ctx context.Context, mod models.Module) (models.Module, error)
 	GetModule(ctx context.Context, id string) (models.Module, error)
 	ListModules(ctx context.Context, draftID string, filter ModuleFilter) ([]models.Module, error)
+	ListPowers(ctx context.Context) ([]models.Power, error)
 	SetModuleSettings(ctx context.Context, id string, settings json.RawMessage) (models.Module, error)
 
 	// ObjectiveModule. Links an Objective to a Module — many-to-many,

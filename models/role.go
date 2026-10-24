@@ -7,6 +7,7 @@ type Role struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Powers      []string `json:"powers,omitempty"`
+	Staff       bool     `json:"staff"`
 	CreatedAt   string   `json:"created_at"`
 	LastUpdated string   `json:"last_updated"`
 	Deleted     bool     `json:"deleted"`

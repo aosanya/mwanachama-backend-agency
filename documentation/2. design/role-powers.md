@@ -52,3 +52,24 @@ Open: the full list (the "…" in decision 263) and whether these codes match
 what permissions PM21 and wakala-api WK179 will enforce. The catalog is the
 one file to change when that is settled. The owner, agent and member columns
 of decision 264 are not agency roles and are not modelled here.
+
+## Powers map to actions, and a role can be staff (AG88, decisions 410, 411)
+
+Each power in `models/powers_catalog.json` lists the declared action ids it
+allows (`actions`), so the permission check and the studio read one list.
+`GET /powers` (`agency.power.list`, tool `agency_list_powers`) serves the
+catalog. A power whose module has no matching declared action yet carries an
+empty list: `register.edit`, `service.edit` and `appointment.manage`.
+`board.manage` maps to catalog's grouping (`catalog.raised_item.group`,
+`ungroup`) and `catalog.board_item.set_outcome`; `task.assign` to
+taskmanager's `task.assign`, `task.assign_holder` and `task.unassign`.
+`poll.run` names `"module": "voting"`, as the engage powers name `engage`.
+
+A duplicate tick is dropped on save: `CreateRole` and `UpdateRole` keep the
+first occurrence of each code, in order. `checkPowers` still refuses an
+unknown or locked code at publish.
+
+`role.staff` is one tick per definition role. It is published in the
+document and carried through a fork. Whoever holds a staff role counts as
+staff beside owners and agents, for tasks and for board replies; the check
+itself is the host's (wakala-api WK218).
