@@ -132,3 +132,21 @@ Not listed, because nothing declares the action yet:
 
 A power with no actions grants nothing; owners and agents act (decision
 439).
+
+## Edit the map (AG93, decision 498)
+
+`map.edit`, "Edit the map", is unlocked and names `"module": "digitaltwin"`.
+It lists every write the twin declares in `digitaltwin.operations.json`:
+
+| Object | Actions |
+| --- | --- |
+| node | `digitaltwin.node.create`, `digitaltwin.node.update`, `digitaltwin.node.set_status` |
+| link | `digitaltwin.link.create`, `digitaltwin.link.delete` |
+| metric | `digitaltwin.metric.upsert` |
+| observation | `digitaltwin.observation.record`, `digitaltwin.observation.record_batch` |
+| retention | `digitaltwin.retention.set` |
+
+The reads (`node.read`, `node.list`, `link.list`, `metric.list`,
+`retention.list`, `observation.query`, `observation.latest`) are not in the
+power: staff read the twin without it (decision 498), and that check is the
+host's.

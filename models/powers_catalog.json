@@ -15,6 +15,7 @@
   {"code": "board_item.hide", "name": "Hide board items", "locked": false, "actions": ["catalog.board_item.set_hidden", "catalog.raised_item.remove"]},
   {"code": "board.manage", "name": "Manage the board", "locked": false, "actions": ["catalog.raised_item.group", "catalog.raised_item.ungroup", "catalog.board_item.set_outcome"]},
   {"code": "register.edit", "name": "Edit the register", "locked": false},
+  {"code": "map.edit", "name": "Edit the map", "locked": false, "module": "digitaltwin", "actions": ["digitaltwin.node.create", "digitaltwin.node.update", "digitaltwin.node.set_status", "digitaltwin.link.create", "digitaltwin.link.delete", "digitaltwin.metric.upsert", "digitaltwin.observation.record", "digitaltwin.observation.record_batch", "digitaltwin.retention.set"]},
   {"code": "task.assign", "name": "Assign tasks", "locked": false, "actions": ["taskmanager.task.assign", "taskmanager.task.assign_holder", "taskmanager.task.unassign"]},
   {"code": "service.edit", "name": "Edit services", "locked": false},
   {"code": "service.publish", "name": "Publish services", "locked": false, "actions": ["catalog.entry.set_visibility"]},
