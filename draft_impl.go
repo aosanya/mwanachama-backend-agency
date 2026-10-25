@@ -104,6 +104,9 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 		if forkedFromType == "publication" {
 			return applyDocumentToDraft(ctx, m, tx, draft.ID, source.Document, now)
 		}
+		if forkedFromType == "" {
+			return seedModuleCatalog(tx, m.st.Spec(), draft.ID)
+		}
 		return m.forkScope(ctx, tx, sourceScope, draft.ID, now)
 	})
 	if err != nil {

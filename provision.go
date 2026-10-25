@@ -202,40 +202,43 @@ func raiseSequencesPastExistingCodes(db *gorm.DB, s *spec.Spec) error {
 }
 
 func backfillModules(db *gorm.DB, s *spec.Spec, draftID string) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		return seedModuleCatalog(tx, s, draftID)
+	})
+}
+
+func seedModuleCatalog(tx *gorm.DB, s *spec.Spec, draftID string) error {
 	table := tableFor(s, roleModule)
 	object := mustObject(s, roleModule)
-
-	return db.Transaction(func(tx *gorm.DB) error {
-		for _, entry := range models.ModuleCatalog {
-			var count int64
-			if err := tx.Table(table).Where("code = ? AND draft_id = ?", entry.Code, draftID).
-				Count(&count).Error; err != nil {
-				return fmt.Errorf("agency: seed the module catalog: %w", err)
-			}
-			if count > 0 {
-				continue
-			}
-			now := models.NowRFC3339()
-			row, err := specstore.Encode(object, models.Module{
-				ID:          specstore.NewID(),
-				Code:        entry.Code,
-				DraftID:     draftID,
-				Name:        entry.Name,
-				Description: entry.Description,
-				Enabled:     entry.Enabled,
-				Locked:      entry.Locked,
-				CreatedAt:   now,
-				LastUpdated: now,
-			})
-			if err != nil {
-				return fmt.Errorf("agency: seed the module catalog: %w", err)
-			}
-			if err := tx.Table(table).Create(row).Error; err != nil {
-				return fmt.Errorf("agency: seed the module catalog: %w", err)
-			}
+	for _, entry := range models.ModuleCatalog {
+		var count int64
+		if err := tx.Table(table).Where("code = ? AND draft_id = ?", entry.Code, draftID).
+			Count(&count).Error; err != nil {
+			return fmt.Errorf("agency: seed the module catalog: %w", err)
 		}
-		return nil
-	})
+		if count > 0 {
+			continue
+		}
+		now := models.NowRFC3339()
+		row, err := specstore.Encode(object, models.Module{
+			ID:          specstore.NewID(),
+			Code:        entry.Code,
+			DraftID:     draftID,
+			Name:        entry.Name,
+			Description: entry.Description,
+			Enabled:     entry.Enabled,
+			Locked:      entry.Locked,
+			CreatedAt:   now,
+			LastUpdated: now,
+		})
+		if err != nil {
+			return fmt.Errorf("agency: seed the module catalog: %w", err)
+		}
+		if err := tx.Table(table).Create(row).Error; err != nil {
+			return fmt.Errorf("agency: seed the module catalog: %w", err)
+		}
+	}
+	return nil
 }
 
 func mustObject(s *spec.Spec, role string) spec.Object {

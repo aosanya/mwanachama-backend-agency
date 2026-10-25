@@ -43,10 +43,7 @@ type SWELabSeed struct {
 // separate Goal/Objective pairs, one per illustrative WorkItem — RACI
 // moved to Objective-scoped 2026-09-10 (AGD-001), so three distinct RACI
 // sets need three distinct Objectives, not three WorkItems sharing one.
-// Also creates every models.ModuleCatalog entry fresh, inside the same
-// Draft — Module carries the same nullable-turned-required DraftID every
-// other type does (AGD-006), so there is no shared "live" catalog to read
-// back any more; each seed gets its own Module rows. Everything is created
+// Everything is created
 // inside one Draft this function opens itself ([CreateDraft] with
 // forkedFromType ""); publishing that Draft is left to the caller.
 func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
@@ -76,16 +73,13 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 		seed.Roles[name] = role
 	}
 
-	seed.Modules = make(map[string]models.Module, len(models.ModuleCatalog))
-	for _, entry := range models.ModuleCatalog {
-		mod, err := m.CreateModule(ctx, models.Module{
-			DraftID: draftID, Code: entry.Code, Name: entry.Name, Description: entry.Description,
-			Enabled: entry.Enabled, Locked: entry.Locked,
-		})
-		if err != nil {
-			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create module %q: %w", entry.Code, err)
-		}
-		seed.Modules[entry.Code] = mod
+	modules, err := m.ListModules(ctx, draftID, ModuleFilter{})
+	if err != nil {
+		return SWELabSeed{}, fmt.Errorf("SeedSWELab: list modules: %w", err)
+	}
+	seed.Modules = make(map[string]models.Module, len(modules))
+	for _, mod := range modules {
+		seed.Modules[mod.Code] = mod
 	}
 
 	workflow, err := m.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Code Review Process"})

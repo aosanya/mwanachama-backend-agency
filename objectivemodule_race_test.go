@@ -13,7 +13,7 @@ func TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule(t *testin
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "auth"})
+	mod, err := seededModule(mgr, ctx, o.DraftID, "auth")
 	if err != nil {
 		t.Fatalf("precondition: CreateModule: %v", err)
 	}

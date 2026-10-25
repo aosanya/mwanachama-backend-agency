@@ -53,7 +53,7 @@ func TestModuleSettingsFailingTheModulesCheckBlockPublishThenPublishWithTheDraft
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
 
-	forms, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "forms", Name: "forms"})
+	forms, err := seededModule(mgr, ctx, o.DraftID, "forms")
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestSetModuleSettingsRefusesAnythingButAnObject(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	draftID := newDraftAgency(t, mgr, ctx)
-	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "forms", Name: "forms"})
+	mod, err := seededModule(mgr, ctx, draftID, "forms")
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestNoSettingsCheckerMeansNoSettingsCheck(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
-	forms, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "forms", Name: "forms"})
+	forms, err := seededModule(mgr, ctx, o.DraftID, "forms")
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestASwitchedOffModulesBadSettingsWarnAndSwitchingItOnBlocks(t *testing.T) 
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
 
-	forms, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "forms", Name: "forms"})
+	forms, err := seededModule(mgr, ctx, o.DraftID, "forms")
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}

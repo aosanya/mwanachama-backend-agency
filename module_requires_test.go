@@ -15,7 +15,7 @@ func TestModuleRequires_EnablingFormsEnablesCatalogAndGit(t *testing.T) {
 
 	created := map[string]models.Module{}
 	for _, code := range []string{"forms", "catalog", "git", "comm"} {
-		mod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: code, Name: code})
+		mod, err := seededModule(mgr, ctx, draftID, code)
 		if err != nil {
 			t.Fatalf("CreateModule %s: %v", code, err)
 		}

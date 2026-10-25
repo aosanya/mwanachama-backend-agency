@@ -27,11 +27,11 @@ func TestModuleObjectivesToolNeverAnswersOutsideItsDraft(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft b: %v", err)
 	}
-	moduleA, err := mgr.CreateModule(ctx, models.Module{Code: "git", Name: "Git", DraftID: draftA.ID, Enabled: true})
+	moduleA, err := seededModule(mgr, ctx, draftA.ID, "git")
 	if err != nil {
 		t.Fatalf("CreateModule a: %v", err)
 	}
-	moduleB, err := mgr.CreateModule(ctx, models.Module{Code: "git", Name: "Git", DraftID: draftB.ID, Enabled: true})
+	moduleB, err := seededModule(mgr, ctx, draftB.ID, "git")
 	if err != nil {
 		t.Fatalf("CreateModule b: %v", err)
 	}

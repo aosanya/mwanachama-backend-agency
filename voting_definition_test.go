@@ -50,7 +50,7 @@ func TestVotingDefinition_SettingsAndRunAPollPublishAndForkTogether(t *testing.T
 	ctx := context.Background()
 	_, o, role := seedPublishableAgency(t, mgr, ctx)
 
-	voting, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "voting", Name: "voting"})
+	voting, err := seededModule(mgr, ctx, o.DraftID, "voting")
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}

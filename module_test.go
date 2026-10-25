@@ -172,12 +172,21 @@ func TestListModules_Filter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListModules(enabled filter): %v", err)
 	}
-	// "widgets" is enabled because the seeded Objective links it. Nothing
-	// else forked into this draft is linked at all — "auth" isn't forked
-	// here since this draft came from seedLiveAgency's own from-scratch
-	// Draft, not the bootstrap one BackfillModules seeds.
-	if len(enabled) != 1 || enabled[0].Code != "widgets" {
-		t.Fatalf("expected exactly widgets to be enabled, got %d: %+v", len(enabled), enabled)
+	want := map[string]bool{"widgets": true}
+	for _, entry := range models.ModuleCatalog {
+		if entry.Locked {
+			want[entry.Code] = true
+		}
+	}
+	got := map[string]bool{}
+	for _, mod := range enabled {
+		if !want[mod.Code] {
+			t.Fatalf("did not expect %q to be enabled: %+v", mod.Code, enabled)
+		}
+		got[mod.Code] = true
+	}
+	if len(got) != len(want) || len(enabled) != len(want) {
+		t.Fatalf("expected widgets and the locked catalog modules to be enabled, got %d: %+v", len(enabled), enabled)
 	}
 }
 
@@ -190,7 +199,7 @@ func TestModuleEnabled_DerivedFromObjectiveLinks(t *testing.T) {
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 	draftID := o.DraftID
 
-	gitMod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "git", Name: "Git"})
+	gitMod, err := seededModule(mgr, ctx, draftID, "git")
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
@@ -242,7 +251,7 @@ func TestModuleEnabled_ScopedToItsOwnDraft(t *testing.T) {
 	_, seedGoal, _, _, _ := seedLiveAgency(t, mgr, ctx)
 	seedDraftID := seedGoal.DraftID
 
-	seedGit, err := mgr.CreateModule(ctx, models.Module{DraftID: seedDraftID, Code: "git", Name: "Git"})
+	seedGit, err := seededModule(mgr, ctx, seedDraftID, "git")
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}

@@ -22,7 +22,7 @@ func TestAG66_OpenHole_ModuleObjectivesToolTextForgesLinesFromStoredTitles(t *te
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	module, err := mgr.CreateModule(ctx, models.Module{Code: "git", Name: "Git", DraftID: draft.ID, Enabled: true})
+	module, err := seededModule(mgr, ctx, draft.ID, "git")
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
