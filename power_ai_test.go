@@ -36,30 +36,30 @@ func TestCatalogueNamesAIAccountManage(t *testing.T) {
 
 func TestCatalogueNamesAIRoleManage(t *testing.T) {
 	have := powerActions(t, "ai.role.manage")
-	for _, a := range []string{"ai.limits.set", "ai.role.create", "ai.role.update", "ai.role.delete", "ai.account.test"} {
+	for _, a := range []string{"ai.limits.set", "ai.role.create", "ai.role.update", "ai.role.delete", "ai.revision.list", "ai.revision.restore", "ai.role.map", "ai.role.resolve", "ai.account.test"} {
 		if !have[a] {
 			t.Fatalf("ai.role.manage missing %s", a)
 		}
 	}
-	if have["ai.account.key_set"] || have["ai.account.create"] {
+	if have["ai.account.key_set"] || have["ai.account.create"] || have["ai.role.revision_list"] || have["ai.role.restore"] {
 		t.Fatalf("ai.role.manage grants account management: %v", have)
 	}
 }
 
 func TestCatalogueNamesAIUseWithoutTest(t *testing.T) {
 	have := powerActions(t, "ai.use")
-	for _, a := range []string{"ai.account.read", "ai.account.list", "ai.usage.record", "ai.limits.check"} {
+	for _, a := range []string{"ai.account.list", "ai.usage.list", "ai.usage.record", "ai.limits.check"} {
 		if !have[a] {
 			t.Fatalf("ai.use missing %s", a)
 		}
 	}
-	if have["ai.account.test"] || have["ai.account.key_set"] || have["ai.limits.set"] {
+	if have["ai.account.read"] || have["ai.account.test"] || have["ai.account.key_set"] || have["ai.limits.set"] {
 		t.Fatalf("ai.use grants too much: %v", have)
 	}
 }
 
 func TestSeatWithoutAIPowerIsRefused(t *testing.T) {
-	for _, code := range []string{"ai.account.manage", "ai.role.manage", "ai.use"} {
+	for _, code := range []string{"ai.account.manage", "ai.role.manage", "ai.use", "ai.account.read"} {
 		if _, ok := models.LookupPower(code); !ok {
 			t.Fatalf("power %s missing, so no seat can hold it", code)
 		}
