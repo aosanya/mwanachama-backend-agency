@@ -801,6 +801,27 @@
       ],
       "tool": "agency_get_role"
     },
+    "get_role_brief": {
+      "method": "GET",
+      "path": "/roles/{role_id}/brief",
+      "call": "GetRoleBrief",
+      "action": "agency.role.brief",
+      "title": "Read seat brief",
+      "description": "Gather what one seat needs from the production publication: its name and description, the objectives it is answerable for through RACI with their goals, the values and rules attached to it, to those objectives or goals or to the whole organization, and the prompt of each work item serving those objectives. Returns plain text and its named parts.",
+      "args": [
+        {
+          "from": "path",
+          "as": "role_id",
+          "description": "The seat to brief, by id or code."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_role_brief"
+    },
     "update_role": {
       "method": "PATCH",
       "path": "/roles/{role_id}",

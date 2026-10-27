@@ -142,6 +142,7 @@ type AgencyManager interface {
 	// WorkItem.
 	CreateRole(ctx context.Context, r models.Role) (models.Role, error)
 	GetRole(ctx context.Context, id string) (models.Role, error)
+	GetRoleBrief(ctx context.Context, roleID string) (models.RoleBrief, error)
 	ListRoles(ctx context.Context, draftID string, filter RoleFilter) ([]models.Role, error)
 	// DeleteRole cascades into every RoleAssignment naming the Role, the
 	// mirror of DeleteObjective's cascade from the other side of the same
