@@ -154,3 +154,7 @@ host's.
 ## asset.manage (HS89, decision 39)
 
 `asset.manage` lets an Assets Keeper register assets (`assetmanager.asset.create`, `.update`, `.list`, `.read`, `.balance`), look at locations, and allocate stock to a holder with `assetmanager.movement.post`. Accounting is deliberately not a power. No power exists yet for holding a seat or proposing a draft: `assetmanager.hold.create` reserves a quantity at a place until a time, which is not a seat, and `workspace.layout.propose` only previews a patch, so neither was invented into one.
+
+## ai.account.manage, ai.role.manage, ai.use (HS128, decision 48)
+
+`ai.account.manage` adds, changes and removes AI accounts, sets their keys and tests them (`ai.account.create`, `.update`, `.delete`, `.key_set`, `.test`). It is held by owners; no role definition claims it by default. `ai.role.manage` covers AI roles, their fine-tuning and history, and the limits on accounts and roles (`ai.limits.set`, `ai.role.create`, `.update`, `.delete`, `.list`, `.read`, `.revision_list`, `.restore`, and `ai.account.test`); owners and staff seats hold it. `ai.use` lets an agent call through the AI gateway (`ai.account.read`, `ai.account.list`, `ai.usage.record`, `ai.limits.check`); agents hold it. `ai.account.test` is deliberately not in `ai.use`. The `ai.role.*` ids are listed explicitly because a power never carries a wildcard; they must be reconciled with the ai module's operations file when it declares its role addresses.
