@@ -20,6 +20,8 @@
   {"code": "service.edit", "name": "Edit services", "locked": false},
   {"code": "service.publish", "name": "Publish services", "locked": false, "actions": ["catalog.entry.set_visibility"]},
   {"code": "appointment.manage", "name": "Manage appointments", "locked": false},
+  {"code": "chat.post", "name": "Post in chat", "locked": false, "module": "comm", "actions": ["comm.chat_message.post", "comm.chat_message.list", "comm.chat_message.read"]},
+  {"code": "document.search", "name": "Search documents", "locked": false, "module": "sources", "actions": ["sources.chunk.search", "sources.source.list", "sources.source.read"]},
   {"code": "agent.manage", "name": "Add or remove agents", "locked": true},
   {"code": "api_key.manage", "name": "Manage API keys", "locked": true},
   {"code": "agency.go_live", "name": "Go live", "locked": true},
