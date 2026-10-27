@@ -150,3 +150,7 @@ The reads (`node.read`, `node.list`, `link.list`, `metric.list`,
 `retention.list`, `observation.query`, `observation.latest`) are not in the
 power: staff read the twin without it (decision 498), and that check is the
 host's.
+
+## asset.manage (HS89, decision 39)
+
+`asset.manage` lets an Assets Keeper register assets (`assetmanager.asset.create`, `.update`, `.list`, `.read`, `.balance`), look at locations, and allocate stock to a holder with `assetmanager.movement.post`. Accounting is deliberately not a power. No power exists yet for holding a seat or proposing a draft: `assetmanager.hold.create` reserves a quantity at a place until a time, which is not a seat, and `workspace.layout.propose` only previews a patch, so neither was invented into one.

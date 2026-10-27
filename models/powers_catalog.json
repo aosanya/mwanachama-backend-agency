@@ -22,6 +22,7 @@
   {"code": "appointment.manage", "name": "Manage appointments", "locked": false},
   {"code": "chat.post", "name": "Post in chat", "locked": false, "module": "comm", "actions": ["comm.chat_message.post", "comm.chat_message.list", "comm.chat_message.read"]},
   {"code": "document.search", "name": "Search documents", "locked": false, "module": "sources", "actions": ["sources.chunk.search", "sources.source.list", "sources.source.read"]},
+  {"code": "asset.manage", "name": "Register and allocate assets", "locked": false, "module": "assetmanager", "actions": ["assetmanager.asset.create", "assetmanager.asset.list", "assetmanager.asset.read", "assetmanager.asset.update", "assetmanager.asset.balance", "assetmanager.location.list", "assetmanager.location.read", "assetmanager.movement.post", "assetmanager.movement.list", "assetmanager.movement.read"]},
   {"code": "agent.manage", "name": "Add or remove agents", "locked": true},
   {"code": "api_key.manage", "name": "Manage API keys", "locked": true},
   {"code": "agency.go_live", "name": "Go live", "locked": true},
