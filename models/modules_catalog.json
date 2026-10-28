@@ -11,5 +11,6 @@
   {"code": "accounting", "name": "accounting", "description": "", "enabled": false, "locked": false},
   {"code": "catalog", "name": "catalog", "description": "", "enabled": false, "locked": false},
   {"code": "voting", "name": "voting", "description": "Polls put to chosen groups, answered inside a window, counted and published.", "enabled": false, "locked": false},
-  {"code": "engage", "name": "engage", "description": "", "enabled": false, "locked": false}
+  {"code": "engage", "name": "engage", "description": "", "enabled": false, "locked": false},
+  {"code": "market", "name": "market", "description": "Offers posted by approved posters, asks put to one poster, orders and group orders that wait for a named person's yes.", "enabled": false, "locked": false}
 ]
