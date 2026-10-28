@@ -157,4 +157,71 @@ host's.
 
 ## ai.account.manage, ai.role.manage, ai.use (HS128, decision 48)
 
-`ai.account.manage` adds, changes and removes AI accounts, sets their keys and tests them (`ai.account.create`, `.update`, `.delete`, `.key_set`, `.test`). It is held by owners; no role definition claims it by default. `ai.role.manage` covers AI roles, their fine-tuning and history, and the limits on accounts and roles (`ai.limits.set`, `ai.role.create`, `.update`, `.delete`, `.list`, `.read`, `.revision_list`, `.restore`, and `ai.account.test`); owners and staff seats hold it. `ai.use` lets an agent call through the AI gateway (`ai.account.read`, `ai.account.list`, `ai.usage.record`, `ai.limits.check`); agents hold it. `ai.account.test` is deliberately not in `ai.use`. The `ai.role.*` ids are listed explicitly because a power never carries a wildcard; they must be reconciled with the ai module's operations file when it declares its role addresses.
+`ai.account.manage` adds, changes and removes AI accounts, sets their keys and tests them (`ai.account.create`, `.update`, `.delete`, `.key_set`, `.test`). It is held by owners; no role definition claims it by default. `ai.role.manage` covers AI roles, their fine-tuning and history, and the limits on accounts and roles (`ai.limits.set`, `ai.role.create`, `.update`, `.delete`, `.list`, `.read`, `.revision_list`, `.restore`, and `ai.account.test`); owners and staff seats hold it. `ai.use` lets an agent call through the AI gateway (`ai.account.list`, `ai.usage.list`, `ai.usage.record`, `ai.limits.check`, and `ai.role.resolve_agency_role`, HS176 step 2); agents hold it. `ai.account.test` is deliberately not in `ai.use`. The `ai.role.*` ids are listed explicitly because a power never carries a wildcard; they must be reconciled with the ai module's operations file when it declares its role addresses.
+
+## The powers a Hub Steward agent needs when it is linked to a role (HS176 step 2, W7)
+
+A hub's agents (dispatcher, farmers' coordinator, network watcher, the answers
+desk) reach the hub as one service identity that the owner links to one agency
+role. From then on wakala-api lets the agent call only the actions that role's
+powers list (`agentPowered`), on every actor, comm, forms, sources and ai route
+and tool. Before this change the catalog named none of the chat-thread, forms
+authoring, answers, group-listing or role-resolve calls the agents make, so a
+linked agent was refused all of them. The new powers are read from what the
+agents call (`submission/code` of the Hub Steward repo) against the
+`*.operations.json` of the modules; a tool is its action id with the dots turned
+into underscores, except the actor tools, which declare their own name.
+
+| Power | Name | Module | Actions | Agent tools |
+| --- | --- | --- | --- | --- |
+| `chat.thread` | Open and keep up with chat threads | `comm` | `comm.chat_thread.list`, `comm.chat_thread.create`, `comm.chat_thread.mark_read` | `comm_chat_thread_list`, `comm_chat_thread_create`, `comm_chat_thread_mark_read` |
+| `form.compose` | Compose forms | `forms` | `forms.form.create`, `forms.question.create`, `forms.question.list` | `forms_form_create`, `forms_question_create`, `forms_question_list` |
+| `form.answers.read` | Read the answers to a form | `forms` | `forms.answer.list_all`, `forms.question.list` | `forms_answer_list_all`, `forms_question_list` |
+| `document.read` | Read documents | `sources` | `sources.source.list`, `sources.source.read`, `sources.chunk.list` | `sources_source_list`, `sources_chunk_list` |
+| `group.read` | See the hub's rooms | none | `actor.group.list` | `actor_list_groups` |
+| `member.read` | See who is in the hub | none | `actor.actor.list` | `actor_list_actors` |
+
+The agent role also holds powers that already existed: `chat.post` (the chat
+messages: `comm_chat_message_list`, `comm_chat_message_post`), `form.send`
+(`forms_form_publish`), `document.search` and `ai.use`.
+
+Why they are shaped this way:
+
+- Existing power ids and the actions of `chat.post`, `document.search` and
+  `form.send` do not change, so a stored definition that names them keeps the
+  same meaning. Widening `chat.post` or `document.search` would have given
+  every current holder more without anyone choosing it; the new calls are new
+  powers a role takes on purpose.
+- Reading a form's answers is its own power, apart from composing a form,
+  because the answers are what members typed. `forms.question.list` sits in
+  both: a composer needs it to see the form it is building, and a reader needs
+  it to know what each answer answers.
+- `document.read` repeats `sources.source.list` and `sources.source.read` from
+  `document.search` so that a role that only reads documents (the answers desk
+  lists the documents and walks their passages itself) does not also need
+  search. A power is a set of actions, so holding both is no wider than either.
+- `member.read` is separate from `group.read` because listing every person in a
+  hub is wider than listing its rooms. No agent code calls `actor_list_actors`
+  today; the power exists because the service's allowed tool list names it, and
+  a template that does not need it can leave it out.
+- `ai.use` gains `ai.role.resolve_agency_role` because every agent reads its
+  role's instructions from `GET /instances/{id}/ai/agency-roles/{id}/resolve`
+  before it asks the model. It does not gain `ai.role.resolve` (by AI role id),
+  `ai.role.map` or any role writing action: those stay with `ai.role.manage`,
+  which already held the resolve action.
+
+Calls no power gates, so no power is in the catalog for them. wakala-api checks
+that the caller is a member of the hub, not a power, before `agency_propose_write`,
+`agency_list_approvals` and `agency_amend_approval` (and their REST routes under
+`/instances/{id}/approvals`); they have no action id, and amending is limited by
+the approvals store to the proposer or an owner. `agency_list_instances` and
+`GET /me` are also ungated. A catalog entry for them would promise a gate that
+does not exist. `TestNoPowerClaimsToGateTheApprovalToolsBecauseNoActionGatesThem`
+fails if one is added before the host gates them.
+
+Checked by `power_hub_agent_test.go`: every call the agents make is carried by an
+unlocked power; each new power lists exactly the actions above and nothing
+nearby (no archive, no target, no create beyond the agents' own); the earlier
+codes are all still present; a role may declare every one and still publish; and,
+when the sibling repos are checked out beside this one, every action is declared
+by its module under the tool name the agents call.

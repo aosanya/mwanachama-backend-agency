@@ -48,7 +48,7 @@ func TestCatalogueNamesAIRoleManage(t *testing.T) {
 
 func TestCatalogueNamesAIUseWithoutTest(t *testing.T) {
 	have := powerActions(t, "ai.use")
-	for _, a := range []string{"ai.account.list", "ai.usage.list", "ai.usage.record", "ai.limits.check"} {
+	for _, a := range []string{"ai.account.list", "ai.usage.list", "ai.usage.record", "ai.limits.check", "ai.role.resolve_agency_role"} {
 		if !have[a] {
 			t.Fatalf("ai.use missing %s", a)
 		}
