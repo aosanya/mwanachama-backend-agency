@@ -114,5 +114,5 @@ None of the deletes cascade into the steps that point at what they remove.
 
 The Test pages' blocks over a record's rows are not settled (decision 89). The
 SQL mirror for the gateway's active migrations is not written: that repo hand
-maintains it, and the two new tables (`records`, `record_rows`) and the five new
-columns of `work_items` still need to be mirrored there.
+maintains it, and the two new tables (`records`, `record_rows`) and the four new
+columns of `work_items`, on top of the five HS288 added, still need to be mirrored there.
