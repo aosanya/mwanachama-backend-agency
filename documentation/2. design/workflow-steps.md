@@ -25,9 +25,10 @@ supplier's answer", "Notifies with the order", "Routes the answers" and
 model and filled by every create, get, list and update.
 
 A question is `models.StepQuestion`: a `prompt`, an `answer_type` (`yes_no`,
-`single_choice`, `free_text`, `date`, `number` or `currency`, the Forms
-module's names), whether it is `required`, a `helper` line, the typed `options`
-or the named list they come from (`options_from`) for a pick-one question, and
+`single_choice`, `multi_select`, `free_text`, `date`, `time`, `number`,
+`currency`, `photo` or `file`, the Forms module's ten names), whether it is
+`required`, a `helper` line, the typed `options` or the named list they come
+from (`options_from`) for a `single_choice` or `multi_select` question, and
 a `fixed` value for a question the step always answers the same way, which is
 how a notify step holds its message.
 
@@ -46,8 +47,8 @@ All with `ErrInvalidWorkItem` (400) unless noted:
   or a step that runs the workflow that owns it;
 - a form on a `route` or `run_workflow` step; a form with no name or no
   question on the other four kinds; a question with no prompt, an unknown
-  answer type, a pick-one with neither options nor a list, or options on any
-  other answer type;
+  answer type, a `single_choice` or `multi_select` with neither options nor a list, or
+  options on any other answer type;
 - a role that is not in the step's draft: `ErrRoleNotFound` (404);
 - a workflow to run that is not in the step's draft: `ErrWorkflowNotFound`
   (404).
@@ -63,6 +64,20 @@ Update keeps the step in its draft whatever `draft_id` the body carries.
 - The Issue scan raises an `error` for a step whose role or run workflow no
   longer exists in the draft, which is what deleting a role or a workflow now
   leaves behind. Neither delete cascades into the steps.
+
+## The pickers (HS299)
+
+`agency_list_pickers` (`GET /pickers?draft_id=`, action `agency.picker.list`)
+is the one list the workflow editor's Who does it, Who is told, Who adds rows
+and Picks from pickers read (decision 94), and the Test page's actors and the
+app's role chips read it too. It returns `actors`, each `{id, name, kind}` with
+`kind` one of `agency`, `role` or `group`, and `answer_types`, the ten above.
+The agency comes first, named "The agency", with the agency's id (empty when
+none is written yet). Roles are the asked draft's. Groups belong to the Actor
+module, so the manager reads them through `WithGroupLister`, which the host
+sets; a host that sets none lists no groups, and a source that fails fails the
+call. Step kinds, operators and attachments stay a fixed vocabulary of the
+framework and are not in this list. Who holds a role stays Q72.
 
 ## Not here
 

@@ -1747,6 +1747,27 @@
       ],
       "tool": "agency_list_powers"
     },
+    "list_pickers": {
+      "method": "GET",
+      "path": "/pickers",
+      "call": "ListPickers",
+      "action": "agency.picker.list",
+      "title": "List pickers",
+      "description": "List what the workflow editor's pickers offer for one draft: the agency itself, its roles and its groups as the actors a step, a notice or a record can name, and the forms module's answer types for a question.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose roles to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_pickers"
+    },
     "create_record": {
       "method": "POST",
       "path": "/records",

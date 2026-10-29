@@ -42,16 +42,25 @@ type AnswerType string
 const (
 	AnswerYesNo        AnswerType = "yes_no"
 	AnswerSingleChoice AnswerType = "single_choice"
+	AnswerMultiSelect  AnswerType = "multi_select"
 	AnswerFreeText     AnswerType = "free_text"
 	AnswerDate         AnswerType = "date"
+	AnswerTime         AnswerType = "time"
 	AnswerNumber       AnswerType = "number"
 	AnswerCurrency     AnswerType = "currency"
+	AnswerPhoto        AnswerType = "photo"
+	AnswerFile         AnswerType = "file"
 )
 
 var answerTypes = []AnswerType{
-	AnswerYesNo, AnswerSingleChoice, AnswerFreeText,
-	AnswerDate, AnswerNumber, AnswerCurrency,
+	AnswerYesNo, AnswerSingleChoice, AnswerMultiSelect, AnswerFreeText,
+	AnswerDate, AnswerTime, AnswerNumber, AnswerCurrency,
+	AnswerPhoto, AnswerFile,
 }
+
+func AnswerTypes() []AnswerType { return append([]AnswerType(nil), answerTypes...) }
+
+func (a AnswerType) HasOptions() bool { return a == AnswerSingleChoice || a == AnswerMultiSelect }
 
 func (a AnswerType) Valid() bool {
 	for _, known := range answerTypes {

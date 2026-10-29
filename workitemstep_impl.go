@@ -78,14 +78,14 @@ func validateFormQuestion(invalid func(string, ...any) error, number int, q mode
 		return invalid("question %d has no prompt", number)
 	}
 	if !q.AnswerType.Valid() {
-		return invalid("question %d: answer type %q is not one of yes_no, single_choice, free_text, date, number, currency", number, q.AnswerType)
+		return invalid("question %d: answer type %q is not one of %s", number, q.AnswerType, answerTypeList())
 	}
-	pickOne := q.AnswerType == models.AnswerSingleChoice
-	if pickOne && len(q.Options) == 0 && q.OptionsFrom == "" {
-		return invalid("question %d is pick-one and names neither its options nor the list they come from", number)
+	picks := q.AnswerType.HasOptions()
+	if picks && len(q.Options) == 0 && q.OptionsFrom == "" {
+		return invalid("question %d is a pick question and names neither its options nor the list they come from", number)
 	}
-	if !pickOne && (len(q.Options) > 0 || q.OptionsFrom != "") {
-		return invalid("question %d has options but is not pick-one", number)
+	if !picks && (len(q.Options) > 0 || q.OptionsFrom != "") {
+		return invalid("question %d has options but is not a pick question", number)
 	}
 	return nil
 }
@@ -168,4 +168,12 @@ func (m *agencyManager) withAction(ctx context.Context, wi models.WorkItem) (mod
 		return models.WorkItem{}, err
 	}
 	return out[0], nil
+}
+
+func answerTypeList() string {
+	names := make([]string, 0, len(models.AnswerTypes()))
+	for _, t := range models.AnswerTypes() {
+		names = append(names, string(t))
+	}
+	return strings.Join(names, ", ")
 }
