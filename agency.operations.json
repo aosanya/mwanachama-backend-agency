@@ -15,6 +15,7 @@
     "ErrInvalidForkSource": 400,
     "ErrInvalidLookup": 400,
     "ErrInvalidModule": 400,
+    "ErrInvalidModuleMounts": 400,
     "ErrInvalidRACILabel": 400,
     "ErrInvalidRole": 400,
     "ErrInvalidRule": 400,
@@ -1041,6 +1042,32 @@
         }
       ],
       "tool": "agency_get_module"
+    },
+    "set_module_mounts": {
+      "method": "PUT",
+      "path": "/modules/{module_id}/mounts",
+      "call": "SetModuleMounts",
+      "action": "agency.module.set_mounts",
+      "title": "Name the mounts of a capability",
+      "description": "Give a capability the names this organization runs it under, such as two markets called Inputs and Harvest. Send the whole list; a name is unique within the capability, one line, at most 60 characters. An entry keeps its mount by carrying the key it was listed with; a new entry has no key and gets one. The first new entry takes the mount the capability has always run under, so nothing already recorded moves. A capability that cannot be run by name accepts one name or none. An empty list returns to the one default mount. Only in an open draft.",
+      "args": [
+        {
+          "from": "path",
+          "as": "module_id",
+          "description": "The capability to name."
+        },
+        {
+          "from": "body",
+          "as": "mounts",
+          "description": "Each mount: name, optional key (copy it from the list you read), optional icon from the shipped set."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_set_module_mounts"
     },
     "create_value": {
       "method": "POST",

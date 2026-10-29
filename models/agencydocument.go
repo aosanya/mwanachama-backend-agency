@@ -133,6 +133,7 @@ type DocumentModule struct {
 	Enabled  bool            `json:"enabled"`
 	Spec     json.RawMessage `json:"spec,omitempty"`
 	Settings json.RawMessage `json:"settings,omitempty"`
+	Mounts   json.RawMessage `json:"mounts,omitempty"`
 }
 
 type DocumentObjectiveModule struct {

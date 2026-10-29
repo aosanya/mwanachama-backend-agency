@@ -52,10 +52,10 @@ func (m *agencyManager) GetModule(ctx context.Context, id string) (models.Module
 	}
 	for _, derived := range deriveEnabled(siblings, linked) {
 		if derived.ID == mod.ID {
-			return derived, nil
+			return withEffectiveMounts(derived), nil
 		}
 	}
-	return withDerivedEnabled(mod, linked[mod.ID]), nil
+	return withEffectiveMounts(withDerivedEnabled(mod, linked[mod.ID])), nil
 }
 
 func (m *agencyManager) ListModules(ctx context.Context, draftID string, filter ModuleFilter) ([]models.Module, error) {
@@ -88,7 +88,7 @@ func (m *agencyManager) ListModules(ctx context.Context, draftID string, filter 
 		if filter.Enabled != nil && mod.Enabled != *filter.Enabled {
 			continue
 		}
-		out = append(out, mod)
+		out = append(out, withEffectiveMounts(mod))
 	}
 	return out, nil
 }

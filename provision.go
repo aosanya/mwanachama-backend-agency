@@ -228,6 +228,7 @@ func seedModuleCatalog(tx *gorm.DB, s *spec.Spec, draftID string) error {
 			Description: entry.Description,
 			Enabled:     entry.Enabled,
 			Locked:      entry.Locked,
+			Icon:        entry.Icon,
 			CreatedAt:   now,
 			LastUpdated: now,
 		})

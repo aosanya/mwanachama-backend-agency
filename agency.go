@@ -193,6 +193,7 @@ type AgencyManager interface {
 	ListModules(ctx context.Context, draftID string, filter ModuleFilter) ([]models.Module, error)
 	ListPowers(ctx context.Context) ([]models.Power, error)
 	SetModuleSettings(ctx context.Context, id string, settings json.RawMessage) (models.Module, error)
+	SetModuleMounts(ctx context.Context, id string, mounts []models.ModuleMount) (models.Module, error)
 
 	// ObjectiveModule. Links an Objective to a Module — many-to-many,
 	// Draft-scoped, enforcing the same same-scope rule as RoleAssignment: a

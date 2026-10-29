@@ -9,6 +9,7 @@
   {"code": "market.offer", "name": "Post offers and keep stock", "locked": false, "module": "market", "actions": ["market.offer.create", "market.offer.update", "market.stock.set", "market.stock.read"]},
   {"code": "market.notice", "name": "Post a market notice", "locked": false, "module": "market", "actions": ["market.notice.create"]},
   {"code": "market.ask", "name": "Ask a poster a question", "locked": false, "module": "market", "actions": ["market.ask.create", "market.ask.list", "market.yes.list"]},
+  {"code": "market.advise", "name": "Advise a farmer on the quotes to a notice", "locked": false, "module": "market", "actions": ["market.quote.list", "market.draft.create", "market.draft.list"]},
   {"code": "market.group_order", "name": "Start and revise a group order", "locked": false, "module": "market", "actions": ["market.group_order.start", "market.group_order.ask_revision"]},
   {"code": "notice.post", "name": "Post a notice", "locked": false, "module": "engage", "actions": ["engage.post.create"]},
   {"code": "event.post", "name": "Post an event or meeting", "locked": false, "module": "engage", "actions": ["engage.post.create"]},

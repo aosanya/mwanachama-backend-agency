@@ -150,10 +150,14 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		return "", fmt.Errorf("contentHashFor: %w", err)
 	}
 	for _, r := range modules {
-		records = append(records, hashRecord("Module", map[string]any{
+		fields := map[string]any{
 			"id": r.ID, "code": r.Code, "name": r.Name, "description": r.Description,
 			"enabled": r.Enabled, "spec": r.Spec, "settings": r.Settings, "deleted": r.Deleted,
-		}))
+		}
+		if r.Mounts != "" {
+			fields["mounts"] = r.Mounts
+		}
+		records = append(records, hashRecord("Module", fields))
 	}
 
 	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment), roleRoleAssignment)

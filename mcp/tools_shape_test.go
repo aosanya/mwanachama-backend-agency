@@ -49,7 +49,7 @@ func TestPublishedToolNamesSurvive(t *testing.T) {
 	for _, name := range []string{
 		"agency_create_goal", "agency_list_goals", "agency_update_goal", "agency_delete_goal",
 		"agency_set_raci", "agency_list_role_assignments_for_objective",
-		"agency_attach_module", "agency_update_module_rationale", "agency_detach_module",
+		"agency_attach_module", "agency_update_module_rationale", "agency_detach_module", "agency_set_module_mounts",
 		"agency_publish_agency", "agency_set_publication_channel",
 		"agency_lookup_event_flow_step", "agency_list_issues",
 		"agency_attach_value", "agency_detach_rule",

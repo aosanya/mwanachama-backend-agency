@@ -167,7 +167,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	for _, mod := range deriveEnabled(modules, linkedModules) {
 		doc.Modules = append(doc.Modules, models.DocumentModule{
 			ID: mod.ID, Code: mod.Code, Enabled: mod.Enabled, Spec: json.RawMessage(mod.Spec),
-			Settings: json.RawMessage(mod.Settings),
+			Settings: json.RawMessage(mod.Settings), Mounts: json.RawMessage(mod.Mounts),
 		})
 	}
 
@@ -305,11 +305,19 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	}
 	moduleIDs := make(map[string]string, len(doc.Modules))
 	for _, mod := range doc.Modules {
+		mounts, err := models.ParseModuleMounts(string(mod.Mounts))
+		if err == nil {
+			err = models.ValidateModuleMounts(mod.Code, mounts)
+		}
+		if err != nil {
+			return fail(ErrInvalidModuleMounts)
+		}
 		entry := catalog[mod.Code]
 		row := models.Module{
 			ID: newID(), Code: mod.Code, DraftID: draftID, Name: entry.Name,
-			Description: entry.Description, Enabled: mod.Enabled, Locked: entry.Locked,
-			Spec: string(mod.Spec), Settings: string(mod.Settings), CreatedAt: now, LastUpdated: now,
+			Description: entry.Description, Enabled: mod.Enabled, Locked: entry.Locked, Icon: entry.Icon,
+			Spec: string(mod.Spec), Settings: string(mod.Settings), Mounts: string(mod.Mounts),
+			CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleModule, row); err != nil {
 			return fail(err)

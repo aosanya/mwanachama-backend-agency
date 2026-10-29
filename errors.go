@@ -1,6 +1,10 @@
 package mwanachamaagency
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/aosanya/mwanachama-backend-agency/models"
+)
 
 var (
 	// ErrAgencyNotFound is returned when no Agency row exists.
@@ -108,6 +112,7 @@ var (
 	ErrModuleNotFound = errors.New("mwanachamaagency: module not found")
 
 	ErrInvalidModuleSettings = errors.New("mwanachamaagency: module settings must be a JSON object")
+	ErrInvalidModuleMounts   = models.ErrInvalidMounts
 	// ErrDuplicateObjectiveModule is returned by CreateObjectiveModule when
 	// the same (Objective, Module) pair is already linked in that scope.
 	ErrDuplicateObjectiveModule = errors.New("mwanachamaagency: objective already linked to this module")
