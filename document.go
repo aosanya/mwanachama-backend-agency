@@ -86,6 +86,19 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 			Title: wi.Title, Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
 			Kind: wi.Kind, RoleID: wi.RoleID, RunWorkflowID: wi.RunWorkflowID,
 			FormName: wi.FormName, Questions: wi.Questions,
+			RecipientRoleID: wi.RecipientRoleID, SentStepID: wi.SentStepID,
+			Routes: wi.Routes, OtherwiseStepID: wi.OtherwiseStepID,
+		})
+	}
+
+	records, err := list[models.Record](m, scoped(roleRecord).Order("created_at"), roleRecord)
+	if err != nil {
+		return fail(err)
+	}
+	for _, r := range records {
+		doc.Records = append(doc.Records, models.DocumentRecord{
+			ID: r.ID, Code: r.Code, WorkflowID: r.WorkflowID, Name: r.Name,
+			RoleID: r.RoleID, FormName: r.FormName, Questions: r.Questions,
 		})
 	}
 
@@ -218,16 +231,33 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		roleIDs[r.ID] = row.ID
 	}
 
+	stepIDs := make(map[string]string, len(doc.WorkItems))
+	for _, wi := range doc.WorkItems {
+		stepIDs[wi.ID] = newID()
+	}
 	for _, wi := range doc.WorkItems {
 		row := models.WorkItem{
-			ID: newID(), Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
+			ID: stepIDs[wi.ID], Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
 			ObjectiveID: objectiveIDs[wi.ObjectiveID], Title: wi.Title,
 			Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
 			Kind: wi.Kind, RoleID: roleIDs[wi.RoleID], RunWorkflowID: workflowIDs[wi.RunWorkflowID],
 			FormName: wi.FormName, Questions: wi.Questions,
+			RecipientRoleID: remap(roleIDs, wi.RecipientRoleID), SentStepID: remap(stepIDs, wi.SentStepID),
+			Routes: remapRoutes(stepIDs, wi.Routes), OtherwiseStepID: remap(stepIDs, wi.OtherwiseStepID),
 			CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {
+			return fail(err)
+		}
+	}
+
+	for _, r := range doc.Records {
+		row := models.Record{
+			ID: newID(), Code: r.Code, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
+			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), FormName: r.FormName, Questions: r.Questions,
+			CreatedAt: now, LastUpdated: now,
+		}
+		if err := m.copyRow(ctx, tx, roleRecord, row); err != nil {
 			return fail(err)
 		}
 	}

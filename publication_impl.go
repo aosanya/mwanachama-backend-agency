@@ -100,6 +100,24 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 			"title": r.Title, "description": r.Description, "ordinality": r.Ordinality,
 			"prompt": r.Prompt, "deleted": r.Deleted,
 		}))
+		if r.Kind != "" || r.HasLinks() {
+			records = append(records, hashRecord("WorkItemStep", map[string]any{
+				"id": r.ID, "kind": r.Kind, "role_id": r.RoleID, "run_workflow_id": r.RunWorkflowID,
+				"form_name": r.FormName, "questions": r.Questions, "recipient_role_id": r.RecipientRoleID,
+				"sent_step_id": r.SentStepID, "routes": r.Routes, "otherwise_step_id": r.OtherwiseStepID,
+			}))
+		}
+	}
+
+	draftRecords, err := list[models.Record](m, scoped(roleRecord), roleRecord)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	for _, r := range draftRecords {
+		records = append(records, hashRecord("Record", map[string]any{
+			"id": r.ID, "workflow_id": r.WorkflowID, "name": r.Name, "role_id": r.RoleID,
+			"form_name": r.FormName, "questions": r.Questions, "deleted": r.Deleted,
+		}))
 	}
 
 	steps, err := list[models.EventFlowStep](m, scoped(roleEventFlowStep), roleEventFlowStep)

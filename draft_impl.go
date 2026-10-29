@@ -177,13 +177,36 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 	if err != nil {
 		return fmt.Errorf("CreateDraft: %w", err)
 	}
+	stepIDs := make(map[string]string, len(workItems))
+	for i := range workItems {
+		old := workItems[i].ID
+		workItems[i].ID = newID()
+		stepIDs[old] = workItems[i].ID
+	}
 	for _, wi := range workItems {
-		wi.ID, wi.DraftID, wi.CreatedAt, wi.LastUpdated = newID(), newDraftID, now, now
+		wi.DraftID, wi.CreatedAt, wi.LastUpdated = newDraftID, now, now
 		wi.WorkflowID = remap(workflowIDs, wi.WorkflowID)
 		wi.ObjectiveID = remap(objectiveIDs, wi.ObjectiveID)
 		wi.RoleID = remap(roleIDs, wi.RoleID)
 		wi.RunWorkflowID = remap(workflowIDs, wi.RunWorkflowID)
+		wi.RecipientRoleID = remap(roleIDs, wi.RecipientRoleID)
+		wi.SentStepID = remap(stepIDs, wi.SentStepID)
+		wi.OtherwiseStepID = remap(stepIDs, wi.OtherwiseStepID)
+		wi.Routes = remapRoutes(stepIDs, wi.Routes)
 		if err := m.copyRow(ctx, tx, roleWorkItem, wi); err != nil {
+			return err
+		}
+	}
+
+	records, err := list[models.Record](m, scopeQuery(tx.Table(m.table(roleRecord)), sourceScope), roleRecord)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, r := range records {
+		r.ID, r.DraftID, r.CreatedAt, r.LastUpdated = newID(), newDraftID, now, now
+		r.WorkflowID = remap(workflowIDs, r.WorkflowID)
+		r.RoleID = remap(roleIDs, r.RoleID)
+		if err := m.copyRow(ctx, tx, roleRecord, r); err != nil {
 			return err
 		}
 	}
@@ -277,6 +300,17 @@ func (m *agencyManager) copyRow(ctx context.Context, tx *gorm.DB, role string, v
 		return fmt.Errorf("CreateDraft: %w", err)
 	}
 	return nil
+}
+
+func remapRoutes(stepIDs map[string]string, routes []models.StepRoute) []models.StepRoute {
+	if len(routes) == 0 {
+		return nil
+	}
+	out := make([]models.StepRoute, len(routes))
+	for i, r := range routes {
+		out[i] = models.StepRoute{Match: r.Match, Rules: append([]models.RouteRule(nil), r.Rules...), GoToStep: remap(stepIDs, r.GoToStep)}
+	}
+	return out
 }
 
 func remap(ids map[string]string, id string) string {
