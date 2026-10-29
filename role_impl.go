@@ -70,7 +70,7 @@ func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.R
 			return err
 		}
 		out = r
-		return nil
+		return m.sendBack(ctx, tx, existing.DraftID, usageKey("role", existing.Code))
 	})
 	if err != nil {
 		return models.Role{}, fmt.Errorf("UpdateRole: %w", err)
@@ -80,7 +80,11 @@ func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.R
 
 func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findRole(ctx, tx, id); err != nil {
+		existing, err := m.findRole(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if err := m.sendBack(ctx, tx, existing.DraftID, usageKey("role", existing.Code)); err != nil {
 			return err
 		}
 		if err := m.deleteWhere(ctx, tx, roleRoleAssignment, "role_id = ?", id); err != nil {

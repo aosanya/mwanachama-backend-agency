@@ -387,6 +387,83 @@
         {"name": "record", "description": "Reads the rows of one record.", "fields": ["record_id"]},
         {"name": "record_code", "description": "Reads the rows of one record across versions.", "fields": ["record_code"]}
       ]
+    },
+    {
+      "role": "scenario",
+      "description": "One path through one workflow that the Test agent plays out, and whether it has passed on this draft.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this scenario is written against. Every scenario belongs to one.", "required": true},
+        {"name": "name", "type": "string", "description": "What the designer calls it.", "required": true},
+        {"name": "summary", "type": "text", "description": "What it tries, in a sentence or two."},
+        {"name": "workflow_id", "type": "string", "description": "The workflow it mirrors, in the same draft. Its steps are the scenario's blocks and the rules it shows are the ones attached to that workflow.", "required": true},
+        {"name": "result", "type": "enum", "description": "Where the scenario stands on this draft: not run yet, or the result of its last run. Anything but passed blocks publishing, and a change to what it uses sends it back to not run yet.", "default": "not_run", "values": ["not_run", "running", "passed", "failed", "stopped"]},
+        {"name": "last_run_id", "type": "string", "description": "The test run that set the result. Empty while the scenario has not run on this draft."},
+        {"name": "created_at", "type": "timestamp", "description": "When the scenario was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "workflow", "description": "Reads the scenarios that mirror one workflow.", "fields": ["workflow_id"]}
+      ]
+    },
+    {
+      "role": "scenario_actor",
+      "description": "Someone the Test agent plays in one scenario: a name, unique within the scenario, and the agency role they hold.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "scenario_id", "type": "string", "description": "The scenario this actor plays in.", "required": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to.", "required": true},
+        {"name": "name", "type": "string", "description": "What the script calls them, such as Farmer 1. Unique within the scenario.", "required": true},
+        {"name": "kind", "type": "enum", "description": "A person holding an agency role, one of the agency's agents, or the System. Only role actors are written by a caller; the agents and the System are always present and read only.", "default": "role", "values": ["role", "agent", "system"]},
+        {"name": "role_id", "type": "string", "description": "The agency role they hold, in the same draft."},
+        {"name": "ordinality", "type": "int", "description": "The order the actors were added in; the first actor holding a role plays the steps of that role."},
+        {"name": "created_at", "type": "timestamp", "description": "When the actor was added.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."}
+      ],
+      "indexes": [
+        {"name": "scenario", "description": "Reads the actors of one scenario.", "fields": ["scenario_id"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "role", "description": "Answers which scenarios have an actor of one role.", "fields": ["role_id"]}
+      ]
+    },
+    {
+      "role": "scenario_input",
+      "description": "A value fixed for one field of one step in one scenario. A field with no row is Free and the Test agent chooses.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "scenario_id", "type": "string", "description": "The scenario this value is fixed in.", "required": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to.", "required": true},
+        {"name": "step_id", "type": "string", "description": "The step of the scenario's workflow it is fixed on.", "required": true},
+        {"name": "field", "type": "string", "description": "The prompt of the question on that step's form.", "required": true},
+        {"name": "value", "type": "text", "description": "What the Test agent answers."},
+        {"name": "created_at", "type": "timestamp", "description": "When it was fixed.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."}
+      ],
+      "indexes": [
+        {"name": "scenario", "description": "Reads the fixed values of one scenario.", "fields": ["scenario_id"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "test_run",
+      "description": "One run of one scenario: when it ran, on which version of the draft, how it ended, what transpired step by step and the tokens it used. Kept until removed and never carried into a publication.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "scenario_id", "type": "string", "description": "The scenario that ran.", "required": true},
+        {"name": "draft_id", "type": "string", "description": "The draft it ran on.", "required": true},
+        {"name": "draft_version", "type": "string", "description": "A hash of the draft's content when the run began, so a report names the version it tested."},
+        {"name": "result", "type": "enum", "description": "How the run stands: running, or how it ended.", "default": "running", "values": ["running", "passed", "failed", "stopped"]},
+        {"name": "stop_reason", "type": "string", "description": "Why a stopped run stopped, such as Budget reached."},
+        {"name": "tokens", "type": "int", "description": "The tokens the whole run used."},
+        {"name": "steps", "type": "json", "description": "What transpired, in order: for each step who acted, what they did, what the agency recorded, the step, the rules checked and whether they held, the tokens used, and for a failure what was expected and what was found."},
+        {"name": "started_at", "type": "timestamp", "description": "When the run began.", "immutable": true},
+        {"name": "finished_at", "type": "timestamp", "description": "When it ended. Empty while it runs."}
+      ],
+      "indexes": [
+        {"name": "scenario", "description": "Reads the runs of one scenario.", "fields": ["scenario_id"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
     }
   ]
 }

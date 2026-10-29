@@ -123,3 +123,12 @@ var (
 	ErrInvalidRecordRow = errors.New("mwanachamaagency: invalid record row")
 	ErrRecordRowRefused = errors.New("mwanachamaagency: this role does not add rows to the record")
 )
+
+var (
+	ErrScenarioNotFound       = errors.New("mwanachamaagency: scenario not found")
+	ErrInvalidScenario        = errors.New("mwanachamaagency: invalid scenario")
+	ErrScenarioActorNotFound  = errors.New("mwanachamaagency: scenario actor not found")
+	ErrDuplicateScenarioActor = errors.New("mwanachamaagency: scenario actor name already used")
+	ErrScenarioRunning        = errors.New("mwanachamaagency: scenario is already running")
+	ErrTestRunNotFound        = errors.New("mwanachamaagency: test run not found")
+)

@@ -39,7 +39,13 @@
     "ErrInvalidRecord": 400,
     "ErrInvalidRecordRow": 400,
     "ErrRecordNotFound": 404,
-    "ErrRecordRowRefused": 403
+    "ErrRecordRowRefused": 403,
+    "ErrScenarioNotFound": 404,
+    "ErrInvalidScenario": 400,
+    "ErrScenarioActorNotFound": 404,
+    "ErrDuplicateScenarioActor": 409,
+    "ErrScenarioRunning": 409,
+    "ErrTestRunNotFound": 404
   },
   "operations": {
     "create_agency": {
@@ -1873,6 +1879,327 @@
         }
       ],
       "tool": "agency_list_record_rows"
+    },
+    "create_scenario": {
+      "method": "POST",
+      "path": "/scenarios",
+      "call": "CreateScenario",
+      "action": "agency.scenario.create",
+      "status": 201,
+      "title": "Create scenario",
+      "description": "Write a test scenario: one path through one workflow of the draft, which the Test agent plays out. Its blocks are that workflow's steps and it starts Not run yet. Add the people it plays with add scenario actor and fix what a step is given with set scenario input. A workflow of another draft is refused.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_scenario"
+    },
+    "list_scenarios": {
+      "method": "GET",
+      "path": "/scenarios",
+      "call": "ListScenarios",
+      "action": "agency.scenario.list",
+      "title": "List scenarios",
+      "description": "List one draft's scenarios in the order they were written, each with its result, the rules its workflow shows, its actors, the fixed inputs and its blocks. The filter narrows by name or result.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose scenarios to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_scenarios"
+    },
+    "get_scenario": {
+      "method": "GET",
+      "path": "/scenarios/{scenario_id}",
+      "call": "GetScenario",
+      "action": "agency.scenario.read",
+      "title": "Read scenario",
+      "description": "Read one scenario with its result, the workflow it mirrors, the rules that workflow shows, its actors including the built-in agents and System, the fixed inputs and one block for each step.",
+      "args": [
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "description": "The scenario to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_scenario"
+    },
+    "update_scenario": {
+      "method": "PATCH",
+      "path": "/scenarios/{scenario_id}",
+      "call": "UpdateScenario",
+      "action": "agency.scenario.update",
+      "title": "Update scenario",
+      "description": "Change a scenario's name and what it tries. It goes back to Not run yet and its old runs stay. The workflow it mirrors cannot change; write a new scenario for another one.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "into": "ID",
+          "description": "The scenario to update."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_scenario"
+    },
+    "delete_scenario": {
+      "method": "DELETE",
+      "path": "/scenarios/{scenario_id}",
+      "call": "DeleteScenario",
+      "action": "agency.scenario.delete",
+      "status": 204,
+      "title": "Delete scenario",
+      "description": "Remove a scenario with its actors, its fixed inputs and every run it has.",
+      "args": [
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "description": "The scenario to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_scenario"
+    },
+    "run_scenario": {
+      "method": "POST",
+      "path": "/scenarios/{scenario_id}/runs",
+      "call": "RunScenario",
+      "action": "agency.scenario.run",
+      "status": 201,
+      "title": "Run scenario",
+      "description": "Run one scenario on its draft and keep the run. The answer is the finished run: Passed, Failed or Stopped, with what transpired step by step and the tokens used. A scenario already running refuses a second run.",
+      "args": [
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "description": "The scenario to run."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_run_scenario"
+    },
+    "run_scenarios": {
+      "method": "POST",
+      "path": "/scenario-runs",
+      "call": "RunScenarios",
+      "action": "agency.scenario.run_many",
+      "status": 201,
+      "title": "Run scenarios",
+      "description": "Run the named scenarios of a draft one after the other, or every scenario of the draft when none are named, and keep each run. A name that is not a scenario of the draft refuses the whole batch before anything runs.",
+      "args": [
+        {
+          "from": "body",
+          "as": "draft_id",
+          "required": true,
+          "description": "The draft whose scenarios to run."
+        },
+        {
+          "from": "body",
+          "as": "scenario_ids",
+          "description": "The scenarios to run. Leave empty to run all of them."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_run_scenarios"
+    },
+    "add_scenario_actor": {
+      "method": "POST",
+      "path": "/scenarios/{scenario_id}/actors",
+      "call": "AddScenarioActor",
+      "action": "agency.scenario_actor.create",
+      "status": 201,
+      "title": "Add scenario actor",
+      "description": "Add someone the Test agent plays in a scenario: a name, unique within the scenario, and the agency role they hold. The agents and the System are always there and cannot be added. The scenario goes back to Not run yet.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "into": "ScenarioID",
+          "description": "The scenario."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_add_scenario_actor"
+    },
+    "rename_scenario_actor": {
+      "method": "PATCH",
+      "path": "/scenarios/{scenario_id}/actors/{actor_id}",
+      "call": "RenameScenarioActor",
+      "action": "agency.scenario_actor.rename",
+      "title": "Rename scenario actor",
+      "description": "Give a scenario's actor a new name. Names stay unique within the scenario, counting the agents and the System. The scenario goes back to Not run yet.",
+      "args": [
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "ignored": true,
+          "description": "The scenario the actor plays in. Part of the address, not of the call."
+        },
+        {
+          "from": "path",
+          "as": "actor_id",
+          "description": "The actor to rename."
+        },
+        {
+          "from": "body",
+          "as": "name",
+          "required": true,
+          "description": "The new name."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_rename_scenario_actor"
+    },
+    "remove_scenario_actor": {
+      "method": "DELETE",
+      "path": "/scenarios/{scenario_id}/actors/{actor_id}",
+      "call": "RemoveScenarioActor",
+      "action": "agency.scenario_actor.delete",
+      "status": 204,
+      "title": "Remove scenario actor",
+      "description": "Take an actor out of a scenario. The built-in agents and the System cannot be removed. The scenario goes back to Not run yet.",
+      "args": [
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "ignored": true,
+          "description": "The scenario the actor plays in. Part of the address, not of the call."
+        },
+        {
+          "from": "path",
+          "as": "actor_id",
+          "description": "The actor to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_remove_scenario_actor"
+    },
+    "set_scenario_input": {
+      "method": "PUT",
+      "path": "/scenarios/{scenario_id}/inputs",
+      "call": "SetScenarioInput",
+      "action": "agency.scenario_input.set",
+      "title": "Set scenario input",
+      "description": "Fix what one question of one step's form is answered with in a scenario. An empty value frees the field again and the Test agent chooses. The step must belong to the scenario's workflow and ask that question. The scenario goes back to Not run yet.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "into": "ScenarioID",
+          "description": "The scenario."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_set_scenario_input"
+    },
+    "get_test_run": {
+      "method": "GET",
+      "path": "/test-runs/{test_run_id}",
+      "call": "GetTestRun",
+      "action": "agency.test_run.read",
+      "title": "Read test run",
+      "description": "Read one test run: how it ended, the draft version it ran on, what transpired step by step with who acted, what was recorded, the rules checked and the tokens used.",
+      "args": [
+        {
+          "from": "path",
+          "as": "test_run_id",
+          "description": "The run to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_test_run"
+    },
+    "list_test_runs": {
+      "method": "GET",
+      "path": "/scenarios/{scenario_id}/runs",
+      "call": "ListTestRuns",
+      "action": "agency.test_run.list",
+      "title": "List test runs",
+      "description": "List every run of one scenario, newest first.",
+      "args": [
+        {
+          "from": "path",
+          "as": "scenario_id",
+          "description": "The scenario whose runs to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_test_runs"
     }
   }
 }

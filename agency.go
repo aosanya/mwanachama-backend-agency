@@ -275,6 +275,20 @@ type AgencyManager interface {
 	// ImportDocument writes a whole agency document into a draft of its
 	// own — a mined template, or an export from elsewhere.
 	ImportDocument(ctx context.Context, description string, doc models.AgencyDocument) (ImportResult, error)
+
+	CreateScenario(ctx context.Context, s models.Scenario) (models.Scenario, error)
+	GetScenario(ctx context.Context, id string) (models.Scenario, error)
+	ListScenarios(ctx context.Context, draftID string, filter ScenarioFilter) ([]models.Scenario, error)
+	UpdateScenario(ctx context.Context, s models.Scenario) (models.Scenario, error)
+	DeleteScenario(ctx context.Context, id string) error
+	AddScenarioActor(ctx context.Context, a models.ScenarioActor) (models.ScenarioActor, error)
+	RenameScenarioActor(ctx context.Context, id, name string) (models.ScenarioActor, error)
+	RemoveScenarioActor(ctx context.Context, id string) error
+	SetScenarioInput(ctx context.Context, in models.ScenarioInput) (models.ScenarioInput, error)
+	RunScenario(ctx context.Context, id string) (models.TestRun, error)
+	RunScenarios(ctx context.Context, draftID string, scenarioIDs []string) ([]models.TestRun, error)
+	GetTestRun(ctx context.Context, id string) (models.TestRun, error)
+	ListTestRuns(ctx context.Context, scenarioID string) ([]models.TestRun, error)
 }
 
 type agencyManager struct {
@@ -282,6 +296,7 @@ type agencyManager struct {
 	st       *specstore.Store
 	tables   TableNames
 	settings SettingsChecker
+	runner   ScenarioRunner
 }
 
 func NewAgencyManager(db *gorm.DB, s *spec.Spec, opts ...Option) (AgencyManager, error) {

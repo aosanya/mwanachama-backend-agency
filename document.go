@@ -177,6 +177,11 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	}
 	doc.EventFlowSteps = append(doc.EventFlowSteps, steps...)
 
+	doc.Scenarios, err = m.scenarioDocuments(ctx, tx, draftID)
+	if err != nil {
+		return fail(err)
+	}
+
 	return doc, nil
 }
 
@@ -249,6 +254,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {
 			return fail(err)
 		}
+		stepIDs[wi.ID] = row.ID
 	}
 
 	for _, r := range doc.Records {
@@ -328,5 +334,6 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			return fail(err)
 		}
 	}
-	return nil
+	remap := scenarioRemap{workflows: workflowIDs, roles: roleIDs, steps: stepIDs}
+	return m.applyScenarioDocuments(ctx, tx, draftID, doc.Scenarios, now, remap)
 }

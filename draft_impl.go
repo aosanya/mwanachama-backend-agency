@@ -288,7 +288,7 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 			return err
 		}
 	}
-	return nil
+	return m.forkScenarios(ctx, tx, sourceScope, newDraftID, now, scenarioRemap{workflows: workflowIDs, roles: roleIDs, steps: stepIDs})
 }
 
 func (m *agencyManager) copyRow(ctx context.Context, tx *gorm.DB, role string, v any) error {

@@ -30,6 +30,9 @@ func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) 
 	if err != nil {
 		return models.WorkItem{}, fmt.Errorf("CreateWorkItem: %w", err)
 	}
+	if err := m.sendBack(ctx, m.db, wi.DraftID, m.stepKeys(ctx, m.db, wi)...); err != nil {
+		return models.WorkItem{}, fmt.Errorf("CreateWorkItem: %w", err)
+	}
 	return m.withAction(ctx, wi)
 }
 
@@ -81,7 +84,7 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 			return err
 		}
 		out = wi
-		return nil
+		return m.sendBack(ctx, tx, wi.DraftID, m.stepKeys(ctx, tx, wi, existing.WorkflowID)...)
 	})
 	if err != nil {
 		return models.WorkItem{}, fmt.Errorf("UpdateWorkItem: %w", err)
@@ -91,7 +94,14 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 
 func (m *agencyManager) DeleteWorkItem(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findWorkItem(ctx, tx, id); err != nil {
+		existing, err := m.findWorkItem(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if err := m.sendBack(ctx, tx, existing.DraftID, m.stepKeys(ctx, tx, existing)...); err != nil {
+			return err
+		}
+		if err := m.deleteWhere(ctx, tx, roleScenarioInput, "step_id = ?", id); err != nil {
 			return err
 		}
 		return m.deleteWhere(ctx, tx, roleWorkItem, "id = ?", id)

@@ -27,6 +27,9 @@ kind, its one role, its form and questions, and its derived action.
 its steps: records and their rows, a Send form step's recipient, the step that
 answers a sent form, and the Route step.
 
+[test-scenarios.md](test-scenarios.md) covers test scenarios, their actors and
+inputs, test runs, the send-back rule and the publish gate (HS260).
+
 [generated-tool-text.md](generated-tool-text.md) covers what a generated MCP
 tool's answer says. It is the design behind every `agency_*` tool's text,
 which a client that never reads `structuredContent` sees as the whole answer.

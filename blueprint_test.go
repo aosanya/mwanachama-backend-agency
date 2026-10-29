@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const declaredRoles = 20
+const declaredRoles = 24
 
 func TestBlueprintParses(t *testing.T) {
 	b, err := Blueprint()
@@ -47,6 +47,10 @@ func TestEveryDeclaredColumnHasACarrierField(t *testing.T) {
 		"rule":             models.Rule{},
 		"rule_attachment":  models.RuleAttachment{},
 		"issue":            models.Issue{},
+		"scenario":         models.Scenario{},
+		"scenario_actor":   models.ScenarioActor{},
+		"scenario_input":   models.ScenarioInput{},
+		"test_run":         models.TestRun{},
 	}
 
 	for role, carrier := range carriers {
@@ -111,6 +115,17 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 			string(models.StepKindYesNo),
 			string(models.StepKindRoute),
 			string(models.StepKindRunWorkflow),
+		},
+		"scenario.result": {
+			string(models.ScenarioNotRun), string(models.ScenarioRunning), string(models.ScenarioPassed),
+			string(models.ScenarioFailed), string(models.ScenarioStopped),
+		},
+		"scenario_actor.kind": {
+			string(models.ActorKindRole), string(models.ActorKindAgent), string(models.ActorKindSystem),
+		},
+		"test_run.result": {
+			string(models.TestRunRunning), string(models.TestRunPassed),
+			string(models.TestRunFailed), string(models.TestRunStopped),
 		},
 		"issue.severity": {
 			string(models.IssueSeverityInfo),
