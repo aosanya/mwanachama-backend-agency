@@ -104,6 +104,14 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 			string(models.RACILabelConsulted),
 			string(models.RACILabelInformed),
 		},
+		"work_item.kind": {
+			string(models.StepKindFillForm),
+			string(models.StepKindSendForm),
+			string(models.StepKindNotify),
+			string(models.StepKindYesNo),
+			string(models.StepKindRoute),
+			string(models.StepKindRunWorkflow),
+		},
 		"issue.severity": {
 			string(models.IssueSeverityInfo),
 			string(models.IssueSeverityWarning),

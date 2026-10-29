@@ -149,6 +149,19 @@ func (s *issueScan) checkWorkItems() error {
 		return err
 	}
 
+	roles, err := list[models.Role](s.m, s.scoped(roleRole), roleRole)
+	if err != nil {
+		return err
+	}
+	roleIDs := make(map[string]bool, len(roles))
+	for _, r := range roles {
+		roleIDs[r.ID] = true
+	}
+	workflowIDs := make(map[string]bool, len(workflows))
+	for _, w := range workflows {
+		workflowIDs[w.ID] = true
+	}
+
 	objectiveIDs := make(map[string]bool, len(objectives))
 	for _, o := range objectives {
 		objectiveIDs[o.ID] = true
@@ -159,6 +172,14 @@ func (s *issueScan) checkWorkItems() error {
 		if !objectiveIDs[w.ObjectiveID] {
 			s.add(models.IssueSeverityError, "work_item", w.ID,
 				"Work item %s %q refers to Objective %s, which does not exist", w.Code, w.Title, w.ObjectiveID)
+		}
+		if w.RoleID != "" && !roleIDs[w.RoleID] {
+			s.add(models.IssueSeverityError, "work_item", w.ID,
+				"Work item %s %q is acted on by Role %s, which does not exist", w.Code, w.Title, w.RoleID)
+		}
+		if w.RunWorkflowID != "" && !workflowIDs[w.RunWorkflowID] {
+			s.add(models.IssueSeverityError, "work_item", w.ID,
+				"Work item %s %q runs Workflow %s, which does not exist", w.Code, w.Title, w.RunWorkflowID)
 		}
 	}
 	for _, w := range workflows {

@@ -84,6 +84,8 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		doc.WorkItems = append(doc.WorkItems, models.DocumentWorkItem{
 			ID: wi.ID, Code: wi.Code, WorkflowID: wi.WorkflowID, ObjectiveID: wi.ObjectiveID,
 			Title: wi.Title, Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
+			Kind: wi.Kind, RoleID: wi.RoleID, RunWorkflowID: wi.RunWorkflowID,
+			FormName: wi.FormName, Questions: wi.Questions,
 		})
 	}
 
@@ -204,18 +206,6 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		workflowIDs[w.ID] = row.ID
 	}
 
-	for _, wi := range doc.WorkItems {
-		row := models.WorkItem{
-			ID: newID(), Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
-			ObjectiveID: objectiveIDs[wi.ObjectiveID], Title: wi.Title,
-			Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
-			CreatedAt: now, LastUpdated: now,
-		}
-		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {
-			return fail(err)
-		}
-	}
-
 	roleIDs := make(map[string]string, len(doc.Roles))
 	for _, r := range doc.Roles {
 		row := models.Role{
@@ -226,6 +216,20 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			return fail(err)
 		}
 		roleIDs[r.ID] = row.ID
+	}
+
+	for _, wi := range doc.WorkItems {
+		row := models.WorkItem{
+			ID: newID(), Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
+			ObjectiveID: objectiveIDs[wi.ObjectiveID], Title: wi.Title,
+			Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
+			Kind: wi.Kind, RoleID: roleIDs[wi.RoleID], RunWorkflowID: workflowIDs[wi.RunWorkflowID],
+			FormName: wi.FormName, Questions: wi.Questions,
+			CreatedAt: now, LastUpdated: now,
+		}
+		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {
+			return fail(err)
+		}
 	}
 
 	for _, ra := range doc.RoleAssignments {

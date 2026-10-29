@@ -88,6 +88,12 @@ type DocumentWorkItem struct {
 	Description string `json:"description"`
 	Ordinality  int    `json:"ordinality"`
 	Prompt      string `json:"prompt"`
+
+	Kind          StepKind       `json:"kind,omitempty"`
+	RoleID        string         `json:"role_id,omitempty"`
+	RunWorkflowID string         `json:"run_workflow_id,omitempty"`
+	FormName      string         `json:"form_name,omitempty"`
+	Questions     []StepQuestion `json:"questions,omitempty"`
 }
 
 type DocumentRoleAssignment struct {

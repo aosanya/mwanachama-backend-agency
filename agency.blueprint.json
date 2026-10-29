@@ -107,6 +107,11 @@
         {"name": "description", "type": "text", "description": "What doing it involves."},
         {"name": "ordinality", "type": "int", "description": "Where it sits within its workflow."},
         {"name": "prompt", "type": "text", "description": "The instruction handed to whoever or whatever performs this step."},
+        {"name": "kind", "type": "enum", "description": "What the step is: fill a form, send a form, notify, say yes or no, route the answers of a form that was sent, or run another workflow. Empty for a step that is only an instruction.", "values": ["fill_form", "send_form", "notify", "yes_no", "route", "run_workflow"]},
+        {"name": "role_id", "type": "string", "description": "The one role that acts on this step, in the same draft. Empty when the agency itself takes the step; a send-form or route step is always the agency's."},
+        {"name": "run_workflow_id", "type": "string", "description": "The workflow a run-workflow step starts, in the same draft. Empty for every other kind."},
+        {"name": "form_name", "type": "string", "description": "What the form this step takes is called. Empty for a route or run-workflow step, which take none."},
+        {"name": "questions", "type": "json", "description": "The questions of the step's form, in the order they are asked: each a prompt, an answer type of yes_no, single_choice, free_text, date, number or currency, whether it is required, a helper line, the typed options or the named list they come from, and a fixed value for a question the step always answers the same way."},
         {"name": "created_at", "type": "timestamp", "description": "When the step was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}

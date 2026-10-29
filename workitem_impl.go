@@ -16,6 +16,9 @@ func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) 
 	if err := m.validateOpenDraftID(ctx, wi.DraftID); err != nil {
 		return models.WorkItem{}, err
 	}
+	if err := m.validateStep(ctx, m.db, wi); err != nil {
+		return models.WorkItem{}, fmt.Errorf("CreateWorkItem: %w", err)
+	}
 	wi.ID = newID()
 	wi.CreatedAt = models.NowRFC3339()
 	wi.LastUpdated = wi.CreatedAt
@@ -27,11 +30,15 @@ func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) 
 	if err != nil {
 		return models.WorkItem{}, fmt.Errorf("CreateWorkItem: %w", err)
 	}
-	return wi, nil
+	return m.withAction(ctx, wi)
 }
 
 func (m *agencyManager) GetWorkItem(ctx context.Context, id string) (models.WorkItem, error) {
-	return m.findWorkItem(ctx, m.db, id)
+	wi, err := m.findWorkItem(ctx, m.db, id)
+	if err != nil {
+		return models.WorkItem{}, err
+	}
+	return m.withAction(ctx, wi)
 }
 
 func (m *agencyManager) ListWorkItems(ctx context.Context, draftID string, filter WorkItemFilter) ([]models.WorkItem, error) {
@@ -40,7 +47,11 @@ func (m *agencyManager) ListWorkItems(ctx context.Context, draftID string, filte
 	q = likeFilter(q, "title", filter.Title)
 	q = likeFilter(q, "description", filter.Description)
 
-	out, err := list[models.WorkItem](m, q, roleWorkItem)
+	found, err := list[models.WorkItem](m, q, roleWorkItem)
+	if err != nil {
+		return nil, fmt.Errorf("ListWorkItems: %w", err)
+	}
+	out, err := m.withActions(ctx, found...)
 	if err != nil {
 		return nil, fmt.Errorf("ListWorkItems: %w", err)
 	}
@@ -58,8 +69,13 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 			return err
 		}
 		wi.Code = existing.Code
+		wi.DraftID = existing.DraftID
 		wi.CreatedAt = existing.CreatedAt
 		wi.LastUpdated = models.NowRFC3339()
+
+		if err := m.validateStep(ctx, tx, wi); err != nil {
+			return err
+		}
 
 		if err := m.writeUpdate(ctx, tx, roleWorkItem, wi.ID, wi, ErrWorkItemNotFound); err != nil {
 			return err
@@ -70,7 +86,7 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 	if err != nil {
 		return models.WorkItem{}, fmt.Errorf("UpdateWorkItem: %w", err)
 	}
-	return out, nil
+	return m.withAction(ctx, out)
 }
 
 func (m *agencyManager) DeleteWorkItem(ctx context.Context, id string) error {
