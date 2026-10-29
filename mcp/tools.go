@@ -40,6 +40,10 @@ var carriers = map[string]string{
 	"rule_attachment":    "RuleAttachment",
 	"issue":              "Issue",
 	"agency_publication": "AgencyPublication",
+	"scenario":           "Scenario",
+	"scenario_actor":     "ScenarioActor",
+	"scenario_input":     "ScenarioInput",
+	"test_run":           "TestRun",
 }
 
 var storeOwned = map[string]bool{

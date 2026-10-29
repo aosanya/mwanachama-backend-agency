@@ -41,4 +41,10 @@ var sentinels = map[string]error{
 	"ErrValueNotFound":            mwanachamaagency.ErrValueNotFound,
 	"ErrWorkItemNotFound":         mwanachamaagency.ErrWorkItemNotFound,
 	"ErrWorkflowNotFound":         mwanachamaagency.ErrWorkflowNotFound,
+	"ErrScenarioNotFound":         mwanachamaagency.ErrScenarioNotFound,
+	"ErrInvalidScenario":          mwanachamaagency.ErrInvalidScenario,
+	"ErrScenarioActorNotFound":    mwanachamaagency.ErrScenarioActorNotFound,
+	"ErrDuplicateScenarioActor":   mwanachamaagency.ErrDuplicateScenarioActor,
+	"ErrScenarioRunning":          mwanachamaagency.ErrScenarioRunning,
+	"ErrTestRunNotFound":          mwanachamaagency.ErrTestRunNotFound,
 }
