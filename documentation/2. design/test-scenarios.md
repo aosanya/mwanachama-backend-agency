@@ -88,8 +88,25 @@ in every draft, since an attachment names a code and no draft). A rename of a
 role sends its scenarios back too: the row asks for a change to a role, not a
 change in behaviour, to send them back.
 
-`DeleteRole` and `DeleteWorkflow` still delete without asking; refusing them
-while a scenario uses them is HS289.
+## Deleting a role or a workflow a scenario uses
+
+`DeleteRole` refuses while a stored actor of any scenario holds the role, and
+`DeleteWorkflow` refuses while any scenario mirrors the workflow. Both answer
+`ErrUsedByScenario` (409), and the message names every scenario that holds it,
+by name and in alphabetical order, so the designer knows which to remove or
+change first. Nothing is deleted by a refused call: the role keeps its
+assignments and the workflow keeps its steps. Once the scenarios are deleted
+(or the actor is removed from them) the delete goes through.
+
+The built-in agent actors are not stored, so a role that only an agent actor
+stands for, or that only a step names, is not refused; deleting it still sends
+back the scenarios whose steps name it. A workflow that a scenario only reaches
+through a `run_workflow` step is likewise not refused and sends that scenario
+back.
+
+A rename is never refused. A scenario holds the role's and the workflow's ids,
+so reading it afterwards shows the new names: `Workflow` on the scenario and
+`RoleName` on each actor.
 
 ## Running
 

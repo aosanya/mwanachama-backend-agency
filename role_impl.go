@@ -84,6 +84,9 @@ func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
 		if err != nil {
 			return err
 		}
+		if err := m.refuseRoleHeldByScenario(ctx, tx, existing); err != nil {
+			return err
+		}
 		if err := m.sendBack(ctx, tx, existing.DraftID, usageKey("role", existing.Code)); err != nil {
 			return err
 		}

@@ -64,6 +64,7 @@ var sentinels = map[string]error{
 	"ErrDuplicateScenarioActor":   mwanachamaagency.ErrDuplicateScenarioActor,
 	"ErrScenarioRunning":          mwanachamaagency.ErrScenarioRunning,
 	"ErrTestRunNotFound":          mwanachamaagency.ErrTestRunNotFound,
+	"ErrUsedByScenario":           mwanachamaagency.ErrUsedByScenario,
 }
 
 func Build(m mwanachamaagency.AgencyManager) ([]Route, error) {

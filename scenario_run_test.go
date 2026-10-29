@@ -241,9 +241,7 @@ func TestRunScenario_AWorkflowThatIsGoneStopsTheRunWithoutCallingTheRunner(t *te
 	w := newScenarioWorld(t)
 	ctx := context.Background()
 	s := w.scenario(t, "Shop says yes", w.buyNow)
-	if err := w.mgr.DeleteWorkflow(ctx, w.buyNow.ID); err != nil {
-		t.Fatal(err)
-	}
+	w.removeWorkflowRow(t, w.buyNow.ID)
 	if _, err := w.mgr.RunScenario(ctx, s.ID); !errors.Is(err, mwanachamaagency.ErrWorkflowNotFound) {
 		t.Errorf("run of a scenario whose workflow is gone: %v, want ErrWorkflowNotFound", err)
 	}
@@ -417,9 +415,7 @@ func TestPublish_AScenarioWhoseWorkflowIsGoneBlocksOnce(t *testing.T) {
 	ctx := context.Background()
 	s := w.scenario(t, "Shop says yes", w.buyNow)
 	w.pass(t, s.ID)
-	if err := w.mgr.DeleteWorkflow(ctx, w.buyNow.ID); err != nil {
-		t.Fatal(err)
-	}
+	w.removeWorkflowRow(t, w.buyNow.ID)
 	issues, err := w.mgr.ListIssues(ctx, w.draftID, mwanachamaagency.IssueFilter{EntityType: "scenario"})
 	if err != nil {
 		t.Fatal(err)

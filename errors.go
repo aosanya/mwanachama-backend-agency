@@ -131,4 +131,5 @@ var (
 	ErrDuplicateScenarioActor = errors.New("mwanachamaagency: scenario actor name already used")
 	ErrScenarioRunning        = errors.New("mwanachamaagency: scenario is already running")
 	ErrTestRunNotFound        = errors.New("mwanachamaagency: test run not found")
+	ErrUsedByScenario         = errors.New("mwanachamaagency: used by a scenario")
 )

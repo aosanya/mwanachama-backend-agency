@@ -135,8 +135,15 @@ func TestAChange_SendsBackOnlyTheScenariosThatUseIt(t *testing.T) {
 				t.Fatal(err)
 			}
 		}, []string{"Group"}},
-		{"a workflow is removed", func(t *testing.T, w sendBackWorld) {
-			if err := w.mgr.DeleteWorkflow(ctx, w.groupOrd.ID); err != nil {
+		{"a workflow a step of the scenario starts is removed", func(t *testing.T, w sendBackWorld) {
+			starter := stepSpec{"Start the onboarding", models.StepKindRunWorkflow, theAgency, "", nil, ""}
+			item := w.item(w.groupOrd, 9, starter)
+			item.RunWorkflowID = w.onboard.ID
+			if _, err := w.mgr.CreateWorkItem(ctx, item); err != nil {
+				t.Fatal(err)
+			}
+			w.runAll(t)
+			if err := w.mgr.DeleteWorkflow(ctx, w.onboard.ID); err != nil {
 				t.Fatal(err)
 			}
 		}, []string{"Group"}},
@@ -204,8 +211,18 @@ func TestAChange_SendsBackOnlyTheScenariosThatUseIt(t *testing.T) {
 				t.Fatal(err)
 			}
 		}, nil},
-		{"a role is removed", func(t *testing.T, w sendBackWorld) {
-			if err := w.mgr.DeleteRole(ctx, w.roles[coordinator].ID); err != nil {
+		{"a role only a step names is removed", func(t *testing.T, w sendBackWorld) {
+			clerk, err := w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Clerk"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			item := w.item(w.groupOrd, 9, stepSpec{"File it", models.StepKindNotify, theAgency, "Filing", []models.StepQuestion{ask("Write the message", models.AnswerFreeText)}, ""})
+			item.RoleID = clerk.ID
+			if _, err := w.mgr.CreateWorkItem(ctx, item); err != nil {
+				t.Fatal(err)
+			}
+			w.runAll(t)
+			if err := w.mgr.DeleteRole(ctx, clerk.ID); err != nil {
 				t.Fatal(err)
 			}
 		}, []string{"Group"}},

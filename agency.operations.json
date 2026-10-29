@@ -45,7 +45,8 @@
     "ErrScenarioActorNotFound": 404,
     "ErrDuplicateScenarioActor": 409,
     "ErrScenarioRunning": 409,
-    "ErrTestRunNotFound": 404
+    "ErrTestRunNotFound": 404,
+    "ErrUsedByScenario": 409
   },
   "operations": {
     "create_agency": {
@@ -865,7 +866,7 @@
       "action": "agency.role.delete",
       "status": 204,
       "title": "Delete role",
-      "description": "Remove a seat and every RACI link that named it.",
+      "description": "Remove a seat and every RACI link that named it. Refused with 409 while an actor of a scenario holds the seat.",
       "args": [
         {
           "from": "path",
@@ -1669,7 +1670,7 @@
       "tool": "agency_delete_workflow",
       "status": 204,
       "title": "Delete workflow",
-      "description": "Remove a workflow and every work item it owns.",
+      "description": "Remove a workflow and every work item it owns. Refused with 409 while a scenario mirrors it.",
       "args": [
         {
           "from": "path",

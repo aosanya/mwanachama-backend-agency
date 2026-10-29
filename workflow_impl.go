@@ -73,6 +73,9 @@ func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
 		if err != nil {
 			return err
 		}
+		if err := m.refuseWorkflowMirroredByScenario(ctx, tx, existing); err != nil {
+			return err
+		}
 		if err := m.sendBack(ctx, tx, existing.DraftID, usageKey("workflow", existing.Code)); err != nil {
 			return err
 		}
