@@ -18,6 +18,9 @@ func validateStepShape(wi models.WorkItem) error {
 	if strings.ContainsAny(wi.RoleID, ", \t\r\n;") {
 		return invalidStep("a step has one role, got %q", wi.RoleID)
 	}
+	if err := validateStepLimit(wi); err != nil {
+		return err
+	}
 	if wi.Kind == "" {
 		if wi.RoleID != "" || wi.RunWorkflowID != "" || wi.FormName != "" || len(wi.Questions) > 0 || wi.HasLinks() {
 			return invalidStep("a step with a role, a form, a workflow to run or a link to another step needs a kind")
@@ -40,6 +43,22 @@ func validateStepShape(wi models.WorkItem) error {
 		return err
 	}
 	return validateStepForm(wi)
+}
+
+func validateStepLimit(wi models.WorkItem) error {
+	switch {
+	case wi.TimeLimitMinutes < 0:
+		return invalidStep("a time limit is a number of minutes, not %d", wi.TimeLimitMinutes)
+	case wi.TimeLimitMinutes == 0 && wi.CancelWorkflowID == "":
+		return nil
+	case wi.TimeLimitMinutes == 0:
+		return invalidStep("a cancel workflow needs a time limit to wait for")
+	case wi.CancelWorkflowID == "":
+		return invalidStep("a step with a time limit names the cancel workflow that runs when it passes")
+	case !wi.WaitsOnPerson():
+		return invalidStep("only a fill_form or yes_no step that a role acts on waits on a person, so only it can carry a time limit")
+	}
+	return nil
 }
 
 func validateStepForm(wi models.WorkItem) error {
@@ -109,6 +128,16 @@ func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB,
 		}
 		if wi.RunWorkflowID == wi.WorkflowID {
 			return invalidStep("a step cannot run the workflow that owns it")
+		}
+	}
+	if wi.CancelWorkflowID != "" {
+		var w models.Workflow
+		q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), wi.DraftID).Where("id = ?", wi.CancelWorkflowID)
+		if err := m.take(q, roleWorkflow, &w, ErrWorkflowNotFound); err != nil {
+			return err
+		}
+		if wi.CancelWorkflowID == wi.WorkflowID {
+			return invalidStep("a step cannot cancel with the workflow that owns it")
 		}
 	}
 	return nil

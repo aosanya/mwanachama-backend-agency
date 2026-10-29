@@ -184,6 +184,10 @@ func (s *issueScan) checkWorkItems() error {
 			s.add(models.IssueSeverityError, "work_item", w.ID,
 				"Work item %s %q runs Workflow %s, which does not exist", w.Code, w.Title, w.RunWorkflowID)
 		}
+		if w.CancelWorkflowID != "" && !workflowIDs[w.CancelWorkflowID] {
+			s.add(models.IssueSeverityError, "work_item", w.ID,
+				"Work item %s %q cancels with Workflow %s, which does not exist", w.Code, w.Title, w.CancelWorkflowID)
+		}
 	}
 	for _, w := range workflows {
 		if !workflowsWithItem[w.ID] {

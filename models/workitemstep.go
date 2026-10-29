@@ -131,6 +131,10 @@ func (wi WorkItem) HasLinks() bool {
 	return wi.RecipientRoleID != "" || wi.SentStepID != "" || len(wi.Routes) > 0 || wi.OtherwiseStepID != ""
 }
 
+func (wi WorkItem) WaitsOnPerson() bool {
+	return wi.RoleID != "" && (wi.Kind == StepKindFillForm || wi.Kind == StepKindYesNo)
+}
+
 func (wi WorkItem) AnswersSentForm() bool {
 	return wi.Kind == StepKindYesNo && wi.SentStepID != ""
 }

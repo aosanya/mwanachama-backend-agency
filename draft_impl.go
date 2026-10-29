@@ -189,6 +189,7 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		wi.ObjectiveID = remap(objectiveIDs, wi.ObjectiveID)
 		wi.RoleID = remap(roleIDs, wi.RoleID)
 		wi.RunWorkflowID = remap(workflowIDs, wi.RunWorkflowID)
+		wi.CancelWorkflowID = remap(workflowIDs, wi.CancelWorkflowID)
 		wi.RecipientRoleID = remap(roleIDs, wi.RecipientRoleID)
 		wi.SentStepID = remap(stepIDs, wi.SentStepID)
 		wi.OtherwiseStepID = remap(stepIDs, wi.OtherwiseStepID)

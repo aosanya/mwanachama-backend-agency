@@ -133,6 +133,9 @@ func (m *agencyManager) scenarioUses(ctx context.Context, tx *gorm.DB, draftID s
 				if st.RunWorkflowID != "" {
 					queue = append(queue, st.RunWorkflowID)
 				}
+				if st.CancelWorkflowID != "" {
+					queue = append(queue, st.CancelWorkflowID)
+				}
 			}
 		}
 		for _, roleID := range actorRoles[s.ID] {

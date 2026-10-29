@@ -116,6 +116,8 @@
         {"name": "sent_step_id", "type": "string", "description": "The send-form step, in the same workflow, whose form a yes-or-no step answers or whose answers a route step sorts."},
         {"name": "routes", "type": "json", "description": "A route step's rules: each route says whether all or any of its rules must match, the rules (a question of the sent form, an operator and a value), and the step in the same workflow it goes to."},
         {"name": "otherwise_step_id", "type": "string", "description": "The step in the same workflow a route step goes to when no route matches. Empty means the next step."},
+        {"name": "time_limit_minutes", "type": "int", "description": "How many minutes the person this step waits on has to answer. Zero means the step waits as long as it takes. Only a fill-form or yes-or-no step that a role acts on can carry one."},
+        {"name": "cancel_workflow_id", "type": "string", "description": "The workflow, in the same draft, that runs when the time limit passes with no answer; its notify step tells the person. Required with a time limit, empty without one."},
         {"name": "created_at", "type": "timestamp", "description": "When the step was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}

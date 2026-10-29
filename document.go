@@ -88,6 +88,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 			FormName: wi.FormName, Questions: wi.Questions,
 			RecipientRoleID: wi.RecipientRoleID, SentStepID: wi.SentStepID,
 			Routes: wi.Routes, OtherwiseStepID: wi.OtherwiseStepID,
+			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: wi.CancelWorkflowID,
 		})
 	}
 
@@ -249,6 +250,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			FormName: wi.FormName, Questions: wi.Questions,
 			RecipientRoleID: remap(roleIDs, wi.RecipientRoleID), SentStepID: remap(stepIDs, wi.SentStepID),
 			Routes: remapRoutes(stepIDs, wi.Routes), OtherwiseStepID: remap(stepIDs, wi.OtherwiseStepID),
+			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: workflowIDs[wi.CancelWorkflowID],
 			CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {

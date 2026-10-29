@@ -101,6 +101,9 @@ type DocumentWorkItem struct {
 	SentStepID      string      `json:"sent_step_id,omitempty"`
 	Routes          []StepRoute `json:"routes,omitempty"`
 	OtherwiseStepID string      `json:"otherwise_step_id,omitempty"`
+
+	TimeLimitMinutes int    `json:"time_limit_minutes,omitempty"`
+	CancelWorkflowID string `json:"cancel_workflow_id,omitempty"`
 }
 
 type DocumentRoleAssignment struct {

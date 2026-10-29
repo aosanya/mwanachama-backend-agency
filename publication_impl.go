@@ -107,6 +107,11 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 				"sent_step_id": r.SentStepID, "routes": r.Routes, "otherwise_step_id": r.OtherwiseStepID,
 			}))
 		}
+		if r.TimeLimitMinutes != 0 || r.CancelWorkflowID != "" {
+			records = append(records, hashRecord("WorkItemLimit", map[string]any{
+				"id": r.ID, "time_limit_minutes": r.TimeLimitMinutes, "cancel_workflow_id": r.CancelWorkflowID,
+			}))
+		}
 	}
 
 	draftRecords, err := list[models.Record](m, scoped(roleRecord), roleRecord)
