@@ -33,6 +33,7 @@ type AgencyDocument struct {
 	Modules          []DocumentModule          `json:"modules"`
 	ObjectiveModules []DocumentObjectiveModule `json:"objective_modules"`
 	EventFlowSteps   []EventFlowStep           `json:"event_flow_steps"`
+	Scenarios        []DocumentScenario        `json:"scenarios,omitempty"`
 }
 
 type DocumentAgency struct {

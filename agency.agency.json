@@ -110,6 +110,30 @@
       "name": "code_sequence",
       "table": "code_sequences",
       "description": "The counter behind each kind of stable handle."
+    },
+    {
+      "role": "scenario",
+      "name": "scenario",
+      "table": "scenarios",
+      "description": "A path through one workflow that the Test agent plays out."
+    },
+    {
+      "role": "scenario_actor",
+      "name": "scenario_actor",
+      "table": "scenario_actors",
+      "description": "Someone the Test agent plays in one scenario."
+    },
+    {
+      "role": "scenario_input",
+      "name": "scenario_input",
+      "table": "scenario_inputs",
+      "description": "A value fixed for one field of one step in one scenario."
+    },
+    {
+      "role": "test_run",
+      "name": "test_run",
+      "table": "test_runs",
+      "description": "One run of one scenario, kept with what transpired in it."
     }
   ]
 }

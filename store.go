@@ -31,6 +31,10 @@ const (
 	roleIssue           = "issue"
 	rolePublication     = "agency_publication"
 	roleCodeSequence    = "code_sequence"
+	roleScenario        = "scenario"
+	roleScenarioActor   = "scenario_actor"
+	roleScenarioInput   = "scenario_input"
+	roleTestRun         = "test_run"
 )
 
 type publication struct {
@@ -70,6 +74,10 @@ func carriers() map[string]any {
 		roleIssue:           models.Issue{},
 		rolePublication:     publication{},
 		roleCodeSequence:    codeSequence{},
+		roleScenario:        models.Scenario{},
+		roleScenarioActor:   models.ScenarioActor{},
+		roleScenarioInput:   models.ScenarioInput{},
+		roleTestRun:         models.TestRun{},
 	}
 }
 
