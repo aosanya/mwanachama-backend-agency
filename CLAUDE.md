@@ -1092,14 +1092,19 @@ storage (superseded by AGD-006/AGD-007, same note).
 - **A table is `<instance>_hashOf(agency_<mount>_<object>)`** — only the
   instance stays readable (`agy1f2e3d4c_8766f69928a18f58`), the rest is 16 hex
   of SHA-256 over the raw name `spec.RawNameFor` builds, recorded in the
-  `spec_table_names` registry. `SpecFor(instance)` is the default mount;
+  `spec_table_names` registry. Every such table has a test copy named like it
+  with `_test` added (`agy1f2e3d4c_8766f69928a18f58_test`) and a `run_id`
+  column the live table lacks, created by the same `spec.Migrate` (decision 85,
+  HS292): a second readable piece at the end of the name, never recorded in the
+  registry; see the shared repo's `declared-domains.md`. `SpecFor(instance)` is the default mount;
   `SpecForMount(instance, mount)` gives an instance a second board of the same
   module, and the two cannot collide by construction because they hash
   differently. **There is no forward-migration path any more** — `renameLegacy`,
   `legacyTables`, `dropRetired` and the `updated_at`→`last_updated` rename were
   deleted 2026-09-30 on the owner's "not launched, no backward compatibility"
   call. Assert on `RawNameFor`, never on a physical-name literal, and exclude
-  `spec.NameRegistryTable` from anything counting tables.
+  `spec.NameRegistryTable` and the `spec.TestSuffix` tables from anything
+  counting tables.
 - The column every model calls `LastUpdated` is `last_updated`, not
   `updated_at` — the store joins a declared column to a Go field by name.
 - `mcp/` no longer hand-writes a tool per manager method (AG41): the
