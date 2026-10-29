@@ -177,8 +177,11 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 	if err != nil {
 		return fmt.Errorf("CreateDraft: %w", err)
 	}
+	stepIDs := make(map[string]string, len(workItems))
 	for _, wi := range workItems {
+		oldStep := wi.ID
 		wi.ID, wi.DraftID, wi.CreatedAt, wi.LastUpdated = newID(), newDraftID, now, now
+		stepIDs[oldStep] = wi.ID
 		wi.WorkflowID = remap(workflowIDs, wi.WorkflowID)
 		wi.ObjectiveID = remap(objectiveIDs, wi.ObjectiveID)
 		wi.RoleID = remap(roleIDs, wi.RoleID)
@@ -265,7 +268,7 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 			return err
 		}
 	}
-	return nil
+	return m.forkScenarios(ctx, tx, sourceScope, newDraftID, now, scenarioRemap{workflows: workflowIDs, roles: roleIDs, steps: stepIDs})
 }
 
 func (m *agencyManager) copyRow(ctx context.Context, tx *gorm.DB, role string, v any) error {

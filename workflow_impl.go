@@ -59,7 +59,7 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 			return err
 		}
 		out = w
-		return nil
+		return m.sendBack(ctx, tx, existing.DraftID, usageKey("workflow", existing.Code))
 	})
 	if err != nil {
 		return models.Workflow{}, fmt.Errorf("UpdateWorkflow: %w", err)
@@ -69,7 +69,11 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 
 func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findWorkflow(ctx, tx, id); err != nil {
+		existing, err := m.findWorkflow(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if err := m.sendBack(ctx, tx, existing.DraftID, usageKey("workflow", existing.Code)); err != nil {
 			return err
 		}
 		if err := m.deleteWhere(ctx, tx, roleWorkItem, "workflow_id = ?", id); err != nil {

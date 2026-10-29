@@ -118,3 +118,12 @@ var (
 	// no match.
 	ErrObjectiveModuleNotFound = errors.New("mwanachamaagency: objective module not found")
 )
+
+var (
+	ErrScenarioNotFound       = errors.New("mwanachamaagency: scenario not found")
+	ErrInvalidScenario        = errors.New("mwanachamaagency: invalid scenario")
+	ErrScenarioActorNotFound  = errors.New("mwanachamaagency: scenario actor not found")
+	ErrDuplicateScenarioActor = errors.New("mwanachamaagency: scenario actor name already used")
+	ErrScenarioRunning        = errors.New("mwanachamaagency: scenario is already running")
+	ErrTestRunNotFound        = errors.New("mwanachamaagency: test run not found")
+)

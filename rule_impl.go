@@ -83,7 +83,7 @@ func (m *agencyManager) UpdateRule(ctx context.Context, v models.Rule) (models.R
 			return err
 		}
 		out = v
-		return nil
+		return m.sendBack(ctx, tx, existing.DraftID, usageKey("rule", existing.Code))
 	})
 	if err != nil {
 		return models.Rule{}, fmt.Errorf("UpdateRule: %w", err)
@@ -104,7 +104,10 @@ func (m *agencyManager) DeleteRule(ctx context.Context, id string) error {
 		if !attached {
 			return ErrCannotEditLive
 		}
-		return m.deleteWhere(ctx, tx, roleRule, "id = ?", id)
+		if err := m.deleteWhere(ctx, tx, roleRule, "id = ?", id); err != nil {
+			return err
+		}
+		return m.sendBack(ctx, tx, existing.DraftID, usageKey("rule", existing.Code))
 	})
 	if err != nil {
 		return fmt.Errorf("DeleteRule: %w", err)
@@ -153,7 +156,7 @@ func (m *agencyManager) CreateRuleAttachment(ctx context.Context, ruleID string,
 			return fmt.Errorf("CreateRuleAttachment: %w", err)
 		}
 		out = a
-		return nil
+		return m.sendBack(ctx, tx, "", usageKey(string(targetType), targetCode))
 	})
 	if err != nil {
 		return models.RuleAttachment{}, err
@@ -176,12 +179,18 @@ func (m *agencyManager) ListRuleAttachments(ctx context.Context, ruleID string) 
 }
 
 func (m *agencyManager) DeleteRuleAttachment(ctx context.Context, id string) error {
-	res := m.db.WithContext(ctx).Exec("delete from "+m.table(roleRuleAttachment)+" where id = ?", id)
-	if res.Error != nil {
-		return fmt.Errorf("DeleteRuleAttachment: %w", res.Error)
-	}
-	if res.RowsAffected == 0 {
-		return ErrRuleAttachmentNotFound
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var held models.RuleAttachment
+		if err := m.find(ctx, tx, roleRuleAttachment, id, &held, ErrRuleAttachmentNotFound); err != nil {
+			return err
+		}
+		if err := m.deleteWhere(ctx, tx, roleRuleAttachment, "id = ?", id); err != nil {
+			return err
+		}
+		return m.sendBack(ctx, tx, "", usageKey(string(held.TargetType), held.TargetCode))
+	})
+	if err != nil {
+		return fmt.Errorf("DeleteRuleAttachment: %w", err)
 	}
 	return nil
 }
