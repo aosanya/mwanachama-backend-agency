@@ -23,6 +23,9 @@ set and `gormstore/`. None of those exist any more.
 [workflow-steps.md](workflow-steps.md) covers what a workflow step carries: its
 kind, its one role, its form and questions, and its derived action.
 
+[test-scenarios.md](test-scenarios.md) covers test scenarios, their actors and
+inputs, test runs, the send-back rule and the publish gate (HS260).
+
 [generated-tool-text.md](generated-tool-text.md) covers what a generated MCP
 tool's answer says. It is the design behind every `agency_*` tool's text,
 which a client that never reads `structuredContent` sees as the whole answer.

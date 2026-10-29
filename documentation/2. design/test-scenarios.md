@@ -1,0 +1,166 @@
+# Test scenarios, their actors and inputs, and test runs (HS260)
+
+Hub Steward decisions 82, 84, 85, 87, 89, 95 and 96 (2026-10-29): a scenario is
+one path through one workflow, played out by a Test agent, and a draft cannot
+be published until every scenario on it has passed. This page is the backend
+half; the executor that really plays a run, with its `_test` tables, is HS280.
+
+## The four objects
+
+Declared in `agency.blueprint.json`, named in `agency.agency.json`, carried by
+`models/scenario.go`:
+
+| Object | Holds |
+|---|---|
+| `scenario` | `name`, `summary` (what it tries), `workflow_id` (the workflow it mirrors, in the same draft), `result`, `last_run_id`, the draft. |
+| `scenario_actor` | `name` (unique in the scenario, ignoring case and outer spaces), `role_id` (an agency role of the same draft), `kind`, `ordinality`. |
+| `scenario_input` | `step_id`, `field` (the prompt of a question on that step's form) and `value`. No row means the field is Free. |
+| `test_run` | `scenario_id`, `draft_version`, `result`, `stop_reason`, `tokens`, `steps`, `started_at`, `finished_at`. |
+
+A scenario has no code (`SC-n`): nothing quotes one by handle, so it is
+identified by its id and its name.
+
+`result` is `not_run` (Not run yet), `running`, `passed`, `failed` or
+`stopped`. A run's `result` is `running`, `passed`, `failed` or `stopped`.
+
+There is no block object. A scenario's blocks are the steps of its workflow,
+one actor each, and are derived on every read (`scenario.blocks`): the step,
+its kind, its action, the actor, and for each question of its form the field
+with `free` or the fixed `value`.
+
+### Actors
+
+Only actors that hold a role are stored. The agents and the System are always
+present and read only, so they are added on every read and never stored:
+
+- the System, id `system`, plays every step nobody takes (the agency's own
+  steps: `send_form`, `route`, and any step with no role);
+- an agent is any role of the draft that holds the power `ai.use`, which is the
+  power a hub's agents are given (`role-powers.md`). Its id is the role's id.
+
+A name may not repeat a stored actor, the System or an agent. A step is played
+by the first stored actor (in the order they were added) that holds the step's
+role; failing that by the agent holding it; failing that the role's name.
+Removing, renaming or adding built-in actors answers
+`ErrScenarioActorNotFound`.
+
+### Inputs
+
+`SetScenarioInput` fixes a field of a step of the scenario's workflow. It
+refuses a step of another workflow, a step that does not exist and a field the
+step's form does not ask, all with `ErrInvalidScenario`. Setting an empty value
+frees the field and deletes the row. Deleting a step deletes the inputs fixed
+on it.
+
+## What each write does
+
+- `CreateScenario` needs an open draft, a name and a workflow of that draft
+  (`ErrWorkflowNotFound` otherwise); it may carry `actors` and `inputs`, and
+  all of it lands or none of it does. It starts `not_run`.
+- `UpdateScenario` changes the name and the summary. The result in the body is
+  ignored, the workflow cannot change (a scenario mirrors one workflow;
+  write a new one), and the actors and inputs in the body are ignored because
+  they have their own operations. The scenario goes back to `not_run`; its old
+  runs and `last_run_id` stay.
+- Adding, renaming and removing an actor, and setting an input, each send the
+  scenario back to `not_run`.
+- `DeleteScenario` removes its actors, inputs and runs with it.
+- Every write to a scenario needs its draft to be open (`ErrDraftNotOpen`).
+
+## Sending scenarios back
+
+A change to a rule, a workflow, a step or a role sends back to `not_run` only
+the scenarios that use it, whatever result they held. A scenario uses:
+
+- the workflow it mirrors, and every workflow its steps start (a
+  `run_workflow` step), followed transitively;
+- every step of those workflows, and the role of each step;
+- the role of each of its actors;
+- every rule attached to any of those.
+
+Written as keys of `kind:code` (`workflow:W-1`, `work_item:WI-4`, `role:R-2`,
+`rule:RU-1`), computed by `scenarioUses`. The writes that send back:
+`UpdateWorkflow`, `DeleteWorkflow`; `CreateWorkItem`, `UpdateWorkItem` and
+`DeleteWorkItem` (the step and the workflow it sits in, and the workflow it
+left); `UpdateRole`, `DeleteRole`; `UpdateRule`, `DeleteRule`;
+`CreateRuleAttachment` and `DeleteRuleAttachment` (the thing it attaches to,
+in every draft, since an attachment names a code and no draft). A rename of a
+role sends its scenarios back too: the row asks for a change to a role, not a
+change in behaviour, to send them back.
+
+`DeleteRole` and `DeleteWorkflow` still delete without asking; refusing them
+while a scenario uses them is HS289.
+
+## Running
+
+`RunScenario(id)` writes a `running` test run and marks the scenario
+`running`, calls the runner, then writes the outcome to the run and the
+scenario. `RunScenarios(draft, ids)` runs the named scenarios, or every one of
+the draft when none are named, one after the other, and refuses the whole batch
+before running any if a name is not a scenario of that draft.
+
+The runner is an interface, handed the run id, the scenario as the designer
+sees it (blocks, actors, inputs), the workflow, the rules it shows and the
+draft version (a hash of the draft's content), and answering a `RunOutcome`:
+
+```go
+type ScenarioRunner interface {
+	Run(ctx context.Context, req RunRequest) (RunOutcome, error)
+}
+```
+
+`WithScenarioRunner(r)` installs it. With none installed, the default stops
+every run with the reason "No test executor is installed" so nothing can be
+published by accident; HS280 replaces it. An error from the runner, or an
+outcome that is not `passed`, `failed` or `stopped`, becomes a stopped run
+with a reason, so a scenario is never left `running`.
+
+A scenario already `running` refuses a second run (`ErrScenarioRunning`). The
+run is synchronous here; keeping a run going when the page closes, and how
+many run at once, belong to the executor.
+
+The scenario takes the run's result only if it is still `running` on this run.
+Editing a scenario, or changing what it uses, while it runs sends it to
+`not_run`, and the finished run is kept as it ended but does not pass the
+scenario: the pass would be for something that no longer exists.
+
+Runs are listed newest first (`ListTestRuns`) and read with `GetTestRun`.
+There is no operation to remove a run yet.
+
+## The publish gate
+
+`scanIssues` raises one error-severity issue per scenario of the draft that is
+not `passed`, with entity type `scenario` and the scenario's id. The message
+names the scenario and its result ("Scenario "Buy now: the shop says yes" has
+not passed on this draft (Not run yet)"), or says its workflow no longer
+exists. `PublishAgency` already refuses on any error issue, so it answers
+`ErrPublishValidationFailed` naming them. A draft with no scenarios publishes
+as before. Scenarios are not part of the content hash.
+
+## Travelling
+
+- A draft fork copies scenarios, actors and inputs onto the new draft's
+  workflows, roles and steps. The copy is `not_run`, has no `last_run_id` and
+  no runs.
+- A publication document carries `scenarios`: name, summary, workflow, actors
+  (name, role) and inputs (step, field, value). It never carries a result, a
+  run, tokens or a draft version. Forking a draft from a publication and
+  importing a document write them back, `not_run`. A scenario naming a workflow
+  the document lacks refuses the import with `ErrInvalidScenario`.
+
+## Operations
+
+All under `agency.scenario.*` and `agency.test_run.*` in
+`agency.operations.json`; the tools are `agency_create_scenario`,
+`agency_list_scenarios`, `agency_get_scenario`, `agency_update_scenario`,
+`agency_delete_scenario`, `agency_run_scenario`, `agency_run_scenarios`,
+`agency_add_scenario_actor`, `agency_rename_scenario_actor`,
+`agency_remove_scenario_actor`, `agency_set_scenario_input`,
+`agency_get_test_run` and `agency_list_test_runs`.
+
+## Not here
+
+The SQL mirror in the gateway's active migrations (another repo's), the
+executor and the `_test` tables (HS280, decision 85), the token budget (HS281),
+refusing the removal of a role or workflow a scenario uses (HS289), and
+removing a single run.

@@ -557,3 +557,20 @@ func (w scenarioWorld) tableName(t *testing.T, table string) string {
 		"scenario_actors": tables.ScenarioActors, "scenario_inputs": tables.ScenarioInputs, "test_runs": tables.TestRuns,
 	}[table]
 }
+
+func TestDeleteWorkItem_DropsTheInputsFixedOnIt(t *testing.T) {
+	w := newScenarioWorld(t)
+	ctx := context.Background()
+	s := w.scenario(t, "Shop says yes", w.buyNow)
+	ask := s.Blocks[0].StepID
+	if _, err := w.mgr.SetScenarioInput(ctx, models.ScenarioInput{ScenarioID: s.ID, StepID: ask, Field: "Enter the product", Value: "urea"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.mgr.DeleteWorkItem(ctx, ask); err != nil {
+		t.Fatalf("DeleteWorkItem: %v", err)
+	}
+	got := w.get(t, s.ID)
+	if len(got.Inputs) != 0 || len(got.Blocks) != 2 {
+		t.Errorf("after deleting the step: %d inputs, %d blocks, want none and 2", len(got.Inputs), len(got.Blocks))
+	}
+}

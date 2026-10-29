@@ -135,6 +135,11 @@ func TestAChange_SendsBackOnlyTheScenariosThatUseIt(t *testing.T) {
 				t.Fatal(err)
 			}
 		}, []string{"Group"}},
+		{"a workflow is removed", func(t *testing.T, w sendBackWorld) {
+			if err := w.mgr.DeleteWorkflow(ctx, w.groupOrd.ID); err != nil {
+				t.Fatal(err)
+			}
+		}, []string{"Group"}},
 		{"another workflow is edited", func(t *testing.T, w sendBackWorld) {
 			wf := w.onboard
 			wf.Description = "changed"
