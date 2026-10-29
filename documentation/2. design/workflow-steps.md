@@ -66,8 +66,7 @@ Update keeps the step in its draft whatever `draft_id` the body carries.
 
 ## Not here
 
-The recipient of a `send_form` or `notify` step, the step that answers a sent
-form, the Route step's rules and a workflow's records are HS295. Scenarios,
-their actors and their test runs are HS260. The SQL mirror for the gateway's
-migrations is that repo's: this repo creates and alters its tables from the
-blueprint.
+Scenarios, their actors and their test runs are HS260. The SQL mirror for the
+gateway's migrations is that repo's: this repo creates and alters its tables
+from the blueprint. The links between steps (recipient, sent form, routes) and
+a workflow's records are in [workflow-records.md](workflow-records.md).

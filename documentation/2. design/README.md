@@ -23,6 +23,10 @@ set and `gormstore/`. None of those exist any more.
 [workflow-steps.md](workflow-steps.md) covers what a workflow step carries: its
 kind, its one role, its form and questions, and its derived action.
 
+[workflow-records.md](workflow-records.md) covers what a workflow keeps beside
+its steps: records and their rows, a Send form step's recipient, the step that
+answers a sent form, and the Route step.
+
 [generated-tool-text.md](generated-tool-text.md) covers what a generated MCP
 tool's answer says. It is the design behind every `agency_*` tool's text,
 which a client that never reads `structuredContent` sees as the whole answer.
