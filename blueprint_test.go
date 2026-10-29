@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const declaredRoles = 18
+const declaredRoles = 20
 
 func TestBlueprintParses(t *testing.T) {
 	b, err := Blueprint()

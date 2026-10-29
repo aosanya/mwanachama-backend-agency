@@ -117,4 +117,9 @@ var (
 	// ErrObjectiveModuleNotFound is returned when an ObjectiveModule id has
 	// no match.
 	ErrObjectiveModuleNotFound = errors.New("mwanachamaagency: objective module not found")
+
+	ErrInvalidRecord    = errors.New("mwanachamaagency: invalid record")
+	ErrRecordNotFound   = errors.New("mwanachamaagency: record not found")
+	ErrInvalidRecordRow = errors.New("mwanachamaagency: invalid record row")
+	ErrRecordRowRefused = errors.New("mwanachamaagency: this role does not add rows to the record")
 )

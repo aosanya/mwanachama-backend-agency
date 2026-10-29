@@ -54,6 +54,10 @@ var sentinels = map[string]error{
 	"ErrValueNotFound":            mwanachamaagency.ErrValueNotFound,
 	"ErrWorkItemNotFound":         mwanachamaagency.ErrWorkItemNotFound,
 	"ErrWorkflowNotFound":         mwanachamaagency.ErrWorkflowNotFound,
+	"ErrInvalidRecord":            mwanachamaagency.ErrInvalidRecord,
+	"ErrInvalidRecordRow":         mwanachamaagency.ErrInvalidRecordRow,
+	"ErrRecordNotFound":           mwanachamaagency.ErrRecordNotFound,
+	"ErrRecordRowRefused":         mwanachamaagency.ErrRecordRowRefused,
 }
 
 func Build(m mwanachamaagency.AgencyManager) ([]Route, error) {

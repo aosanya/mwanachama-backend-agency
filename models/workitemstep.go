@@ -72,6 +72,64 @@ type StepQuestion struct {
 	Fixed       string     `json:"fixed,omitempty"`
 }
 
+type RouteMatch string
+
+const (
+	RouteMatchAll RouteMatch = "all"
+	RouteMatchAny RouteMatch = "any"
+)
+
+func (m RouteMatch) Valid() bool { return m == RouteMatchAll || m == RouteMatchAny }
+
+type RouteOperator string
+
+const (
+	RouteIs       RouteOperator = "is"
+	RouteIsNot    RouteOperator = "is_not"
+	RouteContains RouteOperator = "contains"
+	RouteMoreThan RouteOperator = "more_than"
+	RouteLessThan RouteOperator = "less_than"
+)
+
+var routeOperators = []RouteOperator{RouteIs, RouteIsNot, RouteContains, RouteMoreThan, RouteLessThan}
+
+func RouteOperators() []RouteOperator { return append([]RouteOperator(nil), routeOperators...) }
+
+func (o RouteOperator) Valid() bool {
+	for _, known := range routeOperators {
+		if o == known {
+			return true
+		}
+	}
+	return false
+}
+
+func (o RouteOperator) Numeric() bool { return o == RouteMoreThan || o == RouteLessThan }
+
+type RouteRule struct {
+	Question string        `json:"question"`
+	Operator RouteOperator `json:"operator"`
+	Value    string        `json:"value"`
+}
+
+type StepRoute struct {
+	Match    RouteMatch  `json:"match"`
+	Rules    []RouteRule `json:"rules"`
+	GoToStep string      `json:"go_to_step_id"`
+}
+
+func (wi WorkItem) HasLinks() bool {
+	return wi.RecipientRoleID != "" || wi.SentStepID != "" || len(wi.Routes) > 0 || wi.OtherwiseStepID != ""
+}
+
+func (wi WorkItem) AnswersSentForm() bool {
+	return wi.Kind == StepKindYesNo && wi.SentStepID != ""
+}
+
+func AnswerActionOf(sentFormName string) string {
+	return "Answers the " + lowerFirst(sentFormName)
+}
+
 func lowerFirst(text string) string {
 	if text == "" {
 		return text

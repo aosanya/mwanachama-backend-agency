@@ -45,6 +45,17 @@ type PublicationFilter struct {
 	Channel string `query:"channel"`
 }
 
+type RecordFilter struct {
+	Code       string `query:"code"`
+	Name       string `query:"name"`
+	WorkflowID string `query:"workflow_id"`
+}
+
+type RecordRowFilter struct {
+	RecordID   string `query:"record_id"`
+	RecordCode string `query:"record_code"`
+}
+
 type EventFlowStepFilter struct {
 	Code        string `query:"code"`
 	Name        string `query:"name"`

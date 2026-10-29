@@ -35,7 +35,11 @@
     "ErrValueAttachmentNotFound": 404,
     "ErrValueNotFound": 404,
     "ErrWorkItemNotFound": 404,
-    "ErrWorkflowNotFound": 404
+    "ErrWorkflowNotFound": 404,
+    "ErrInvalidRecord": 400,
+    "ErrInvalidRecordRow": 400,
+    "ErrRecordNotFound": 404,
+    "ErrRecordRowRefused": 403
   },
   "operations": {
     "create_agency": {
@@ -1708,6 +1712,167 @@
         }
       ],
       "tool": "agency_list_powers"
+    },
+    "create_record": {
+      "method": "POST",
+      "path": "/records",
+      "call": "CreateRecord",
+      "action": "agency.record.create",
+      "title": "Create record",
+      "description": "Add a record to a workflow: a named list the workflow keeps beside its steps, the one role that adds rows, and the form each row is added with. The role and the workflow must be in the draft.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_record",
+      "status": 201
+    },
+    "list_records": {
+      "method": "GET",
+      "path": "/records",
+      "call": "ListRecords",
+      "action": "agency.record.list",
+      "title": "List records",
+      "description": "List one draft's records, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose records to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_records"
+    },
+    "get_record": {
+      "method": "GET",
+      "path": "/records/{record_id}",
+      "call": "GetRecord",
+      "action": "agency.record.read",
+      "title": "Read record",
+      "description": "Read one record by its id, with its role and its form.",
+      "args": [
+        {
+          "from": "path",
+          "as": "record_id",
+          "description": "The record to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_record"
+    },
+    "update_record": {
+      "method": "PATCH",
+      "path": "/records/{record_id}",
+      "call": "UpdateRecord",
+      "action": "agency.record.update",
+      "title": "Update record",
+      "description": "Replace a record's name, workflow, role and form. The same refusals as creating one apply.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "record_id",
+          "into": "ID",
+          "description": "The record to update."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_record"
+    },
+    "delete_record": {
+      "method": "DELETE",
+      "path": "/records/{record_id}",
+      "call": "DeleteRecord",
+      "action": "agency.record.delete",
+      "title": "Delete record",
+      "description": "Remove a record and every row that was added to it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "record_id",
+          "description": "The record to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_record",
+      "status": 204
+    },
+    "create_record_row": {
+      "method": "POST",
+      "path": "/record-rows",
+      "call": "CreateRecordRow",
+      "action": "agency.record_row.create",
+      "title": "Add record row",
+      "description": "Add one row to a record, as the member app does. The row is refused unless role_id is the role that adds rows to the record, and its answers must fit the record's form. Rows are kept in the agency and are never copied into a new version.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_record_row",
+      "status": 201
+    },
+    "list_record_rows": {
+      "method": "GET",
+      "path": "/record-rows",
+      "call": "ListRecordRows",
+      "action": "agency.record_row.list",
+      "title": "List record rows",
+      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose rows to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_record_rows"
     }
   }
 }

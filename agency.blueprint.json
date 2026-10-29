@@ -112,6 +112,10 @@
         {"name": "run_workflow_id", "type": "string", "description": "The workflow a run-workflow step starts, in the same draft. Empty for every other kind."},
         {"name": "form_name", "type": "string", "description": "What the form this step takes is called. Empty for a route or run-workflow step, which take none."},
         {"name": "questions", "type": "json", "description": "The questions of the step's form, in the order they are asked: each a prompt, an answer type of yes_no, single_choice, free_text, date, number or currency, whether it is required, a helper line, the typed options or the named list they come from, and a fixed value for a question the step always answers the same way."},
+        {"name": "recipient_role_id", "type": "string", "description": "The role a send-form or notify step goes to, in the same draft. Empty means everyone in the order's group."},
+        {"name": "sent_step_id", "type": "string", "description": "The send-form step, in the same workflow, whose form a yes-or-no step answers or whose answers a route step sorts."},
+        {"name": "routes", "type": "json", "description": "A route step's rules: each route says whether all or any of its rules must match, the rules (a question of the sent form, an operator and a value), and the step in the same workflow it goes to."},
+        {"name": "otherwise_step_id", "type": "string", "description": "The step in the same workflow a route step goes to when no route matches. Empty means the next step."},
         {"name": "created_at", "type": "timestamp", "description": "When the step was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
@@ -341,6 +345,47 @@
       "fields": [
         {"name": "entity_type", "type": "string", "description": "Which kind of thing this counter mints handles for.", "primary": true},
         {"name": "next_number", "type": "int", "description": "The number the next handle of this kind will take."}
+      ]
+    },
+    {
+      "role": "record",
+      "description": "A named list a workflow keeps beside its steps: who adds rows to it and the form each row is added with.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as RC-1, minted once and never edited. Rows quote it so they survive a new version.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "workflow_id", "type": "string", "description": "The workflow that keeps this record, in the same draft.", "required": true},
+        {"name": "name", "type": "string", "description": "What the record is called, such as Payments.", "required": true},
+        {"name": "role_id", "type": "string", "description": "The one role that adds rows, in the same draft.", "required": true},
+        {"name": "form_name", "type": "string", "description": "What the form each row is added with is called.", "required": true},
+        {"name": "questions", "type": "json", "description": "The questions of the form each row is added with, in the order they are asked."},
+        {"name": "created_at", "type": "timestamp", "description": "When the record was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds a record by the handle its rows quote.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "record_row",
+      "description": "One row added to a record from the member app, kept in the agency and never copied into a new version.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft whose record this row was added to.", "required": true},
+        {"name": "record_id", "type": "string", "description": "The record the row belongs to.", "required": true},
+        {"name": "record_code", "type": "string", "description": "That record's handle, which stays the same in every later version.", "required": true},
+        {"name": "role_id", "type": "string", "description": "The role the person adding the row acted as."},
+        {"name": "added_by", "type": "string", "description": "Who added the row, as the app names them."},
+        {"name": "answers", "type": "json", "description": "The answer to each question of the record's form, by the question's prompt."},
+        {"name": "created_at", "type": "timestamp", "description": "When the row was added.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "record", "description": "Reads the rows of one record.", "fields": ["record_id"]},
+        {"name": "record_code", "description": "Reads the rows of one record across versions.", "fields": ["record_code"]}
       ]
     }
   ]

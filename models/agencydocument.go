@@ -33,6 +33,7 @@ type AgencyDocument struct {
 	Modules          []DocumentModule          `json:"modules"`
 	ObjectiveModules []DocumentObjectiveModule `json:"objective_modules"`
 	EventFlowSteps   []EventFlowStep           `json:"event_flow_steps"`
+	Records          []DocumentRecord          `json:"records,omitempty"`
 }
 
 type DocumentAgency struct {
@@ -94,6 +95,11 @@ type DocumentWorkItem struct {
 	RunWorkflowID string         `json:"run_workflow_id,omitempty"`
 	FormName      string         `json:"form_name,omitempty"`
 	Questions     []StepQuestion `json:"questions,omitempty"`
+
+	RecipientRoleID string      `json:"recipient_role_id,omitempty"`
+	SentStepID      string      `json:"sent_step_id,omitempty"`
+	Routes          []StepRoute `json:"routes,omitempty"`
+	OtherwiseStepID string      `json:"otherwise_step_id,omitempty"`
 }
 
 type DocumentRoleAssignment struct {

@@ -252,7 +252,7 @@ func mustObject(s *spec.Spec, role string) spec.Object {
 var draftScopedRoles = []string{
 	roleGoal, roleObjective, roleWorkflow, roleWorkItem, roleEventFlowStep,
 	roleRole, roleRoleAssignment, roleModule, roleObjectiveModule,
-	roleValue, roleRule, roleIssue,
+	roleValue, roleRule, roleIssue, roleRecord,
 }
 
 var codedRoles = []struct {
@@ -267,6 +267,7 @@ var codedRoles = []struct {
 	{roleWorkItem, "workitem", "WI"},
 	{roleValue, "value", "V"},
 	{roleRule, "rule", "RU"},
+	{roleRecord, "record", "RC"},
 }
 
 const retiredPublicationColumn = "status"

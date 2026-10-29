@@ -110,6 +110,18 @@
       "name": "code_sequence",
       "table": "code_sequences",
       "description": "The counter behind each kind of stable handle."
+    },
+    {
+      "role": "record",
+      "name": "record",
+      "table": "records",
+      "description": "A named list a workflow keeps beside its steps."
+    },
+    {
+      "role": "record_row",
+      "name": "record_row",
+      "table": "record_rows",
+      "description": "One row added to a record from the member app."
     }
   ]
 }

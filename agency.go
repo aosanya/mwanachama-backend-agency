@@ -63,6 +63,15 @@ type AgencyManager interface {
 	// Objective-scoped, AG12), so there is nothing further to cascade to.
 	DeleteWorkflow(ctx context.Context, id string) error
 
+	CreateRecord(ctx context.Context, r models.Record) (models.Record, error)
+	GetRecord(ctx context.Context, id string) (models.Record, error)
+	ListRecords(ctx context.Context, draftID string, filter RecordFilter) ([]models.Record, error)
+	UpdateRecord(ctx context.Context, r models.Record) (models.Record, error)
+	DeleteRecord(ctx context.Context, id string) error
+
+	CreateRecordRow(ctx context.Context, row models.RecordRow) (models.RecordRow, error)
+	ListRecordRows(ctx context.Context, draftID string, filter RecordRowFilter) ([]models.RecordRow, error)
+
 	// WorkItem. Belongs to exactly one Objective — CreateWorkItem/
 	// UpdateWorkItem return [ErrInvalidWorkItem] if ObjectiveID is empty.
 	CreateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error)

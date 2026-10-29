@@ -31,6 +31,8 @@ const (
 	roleIssue           = "issue"
 	rolePublication     = "agency_publication"
 	roleCodeSequence    = "code_sequence"
+	roleRecord          = "record"
+	roleRecordRow       = "record_row"
 )
 
 type publication struct {
@@ -70,6 +72,8 @@ func carriers() map[string]any {
 		roleIssue:           models.Issue{},
 		rolePublication:     publication{},
 		roleCodeSequence:    codeSequence{},
+		roleRecord:          models.Record{},
+		roleRecordRow:       models.RecordRow{},
 	}
 }
 
