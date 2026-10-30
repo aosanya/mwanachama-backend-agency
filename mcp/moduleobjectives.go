@@ -48,11 +48,11 @@ func mcpListModuleObjectives(resolve ManagerResolver) func(context.Context, *mcp
 		for _, l := range links {
 			o, err := m.GetObjective(ctx, l.ObjectiveID)
 			if err != nil {
-				continue // a deleted Objective leaves its link dangling; skip it
+				continue
 			}
 			g, _ := m.GetGoal(ctx, o.GoalID)
 			out = append(out, ModuleObjective{LinkID: l.ID, ObjectiveID: o.ID, ObjectiveTitle: o.Title, GoalID: g.ID, GoalTitle: g.Title, Rationale: l.Rationale})
-			lines = append(lines, fmt.Sprintf("- %s (goal: %s): %s", o.Title, g.Title, l.Rationale))
+			lines = append(lines, fmt.Sprintf("- %s (goal: %s): %s", mwanachamaagency.QuoteIfUnsafe(o.Title), mwanachamaagency.QuoteIfUnsafe(g.Title), mwanachamaagency.QuoteIfUnsafe(l.Rationale)))
 		}
 		text := "This module backs no objectives."
 		if len(lines) > 0 {

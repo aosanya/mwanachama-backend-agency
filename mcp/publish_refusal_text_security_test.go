@@ -11,7 +11,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG68_OpenHole_PublishRefusalForgesLinesFromAStoredReference(t *testing.T) {
+func TestAG68_PublishRefusalForgesLinesFromAStoredReference(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
 	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "AG68"}); err != nil {

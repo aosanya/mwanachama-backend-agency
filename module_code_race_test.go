@@ -8,14 +8,14 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG62_OpenBug_TwoModulesShareTheSameCodeInOneDraft(t *testing.T) {
+func TestAG62_TwoModulesShareTheSameCodeInOneDraft(t *testing.T) {
 	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 
-	first, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "auth", Name: "Auth"})
+	first, err := seededModule(mgr, ctx, o.DraftID, "auth")
 	if err != nil {
-		t.Fatalf("precondition: CreateModule: %v", err)
+		t.Fatalf("precondition: seeded module: %v", err)
 	}
 	if _, err := mgr.CreateModule(ctx, models.Module{DraftID: o.DraftID, Code: "auth", Name: "Auth again"}); err == nil {
 		t.Fatalf("precondition: a sequential second Module with code %q should be refused with ErrDuplicateModule", first.Code)
@@ -44,6 +44,6 @@ func TestAG62_OpenBug_TwoModulesShareTheSameCodeInOneDraft(t *testing.T) {
 	}
 
 	if insertErr == nil && count > 1 {
-		t.Errorf("AG62 open bug: a second Module row with code %q, written as a concurrent CreateModule writes it after both counted zero, was accepted by the store (insert error %v) and the draft now holds %d Modules with that code; want the store to refuse the second row, the same way CreateModule's own pre-check means to", first.Code, insertErr, count)
+		t.Errorf("AG62: a second Module row with code %q, written as a concurrent CreateModule writes it after both counted zero, was accepted by the store (insert error %v) and the draft now holds %d Modules with that code; want the store to refuse the second row, the same way CreateModule's own pre-check means to", first.Code, insertErr, count)
 	}
 }

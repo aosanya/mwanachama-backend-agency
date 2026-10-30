@@ -8,7 +8,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG52_OpenHole_TwoPublicationsHoldOneVersionAndOneChannel(t *testing.T) {
+func TestAG52_TwoPublicationsHoldOneVersionAndOneChannel(t *testing.T) {
 	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
@@ -38,6 +38,6 @@ func TestAG52_OpenHole_TwoPublicationsHoldOneVersionAndOneChannel(t *testing.T) 
 		t.Fatalf("ListPublications: %v", err)
 	}
 	if insertErr == nil || len(onChannel) != 1 {
-		t.Errorf("AG52 (P2) open hole: a second publication row carrying version %d on channel production, written as a concurrent PublishAgency writes it after reading the table before the first committed, was accepted by the store (insert error %v) and production now holds %d publications; want the store to refuse it so one version and one channel name exactly one publication", first.Version, insertErr, len(onChannel))
+		t.Errorf("AG52: a second publication row carrying version %d on channel production, written as a concurrent PublishAgency writes it after reading the table before the first committed, was accepted by the store (insert error %v) and production now holds %d publications; want the store to refuse it so one version and one channel name exactly one publication", first.Version, insertErr, len(onChannel))
 	}
 }

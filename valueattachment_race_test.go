@@ -7,7 +7,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG63_OpenBug_TwoValueAttachmentsLinkTheSameValueAndTarget(t *testing.T) {
+func TestAG63_TwoValueAttachmentsLinkTheSameValueAndTarget(t *testing.T) {
 	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
 	draftID := newDraftAgency(t, mgr, ctx)
@@ -38,6 +38,6 @@ func TestAG63_OpenBug_TwoValueAttachmentsLinkTheSameValueAndTarget(t *testing.T)
 	}
 
 	if insertErr == nil && len(list) > 1 {
-		t.Errorf("AG63 open bug: a second value_attachment row linking value %s to role %s, written as a concurrent CreateValueAttachment writes it after both counted zero, was accepted by the store (insert error %v) and the value now holds %d attachments to the same target; want the store to refuse the second row, the same way CreateValueAttachment's own pre-check means to", v.Code, role.Code, insertErr, len(list))
+		t.Errorf("AG63: a second value_attachment row linking value %s to role %s, written as a concurrent CreateValueAttachment writes it after both counted zero, was accepted by the store (insert error %v) and the value now holds %d attachments to the same target; want the store to refuse the second row, the same way CreateValueAttachment's own pre-check means to", v.Code, role.Code, insertErr, len(list))
 	}
 }

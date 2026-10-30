@@ -219,6 +219,7 @@
       ],
       "indexes": [
         {"name": "code", "description": "Finds a capability by the name the catalog uses.", "fields": ["code"]},
+        {"name": "draft_code_unique", "description": "Refuses a second capability with the same name in one draft, so two writers racing cannot both add it.", "fields": ["draft_id", "code"], "unique": true, "not_deleted": true},
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
       ]
     },
@@ -238,7 +239,8 @@
       "indexes": [
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
         {"name": "objective", "description": "Reads what one objective needs.", "fields": ["objective_id"]},
-        {"name": "module", "description": "Reads what needs one capability, which is what decides whether it is on.", "fields": ["module_id"]}
+        {"name": "module", "description": "Reads what needs one capability, which is what decides whether it is on.", "fields": ["module_id"]},
+        {"name": "link_unique", "description": "Refuses a second link between one objective and one capability in a draft, so two writers racing cannot both add it.", "fields": ["draft_id", "objective_id", "module_id"], "unique": true, "not_deleted": true}
       ]
     },
     {
@@ -270,7 +272,8 @@
       ],
       "indexes": [
         {"name": "value_code", "description": "Reads everywhere one belief applies.", "fields": ["value_code"]},
-        {"name": "target", "description": "Reads every belief that applies to one thing.", "fields": ["target_type", "target_code"]}
+        {"name": "target", "description": "Reads every belief that applies to one thing.", "fields": ["target_type", "target_code"]},
+        {"name": "value_target_unique", "description": "Refuses a second link between one belief and one thing, so two writers racing cannot both add it.", "fields": ["value_code", "target_type", "target_code"], "unique": true}
       ]
     },
     {
@@ -302,7 +305,8 @@
       ],
       "indexes": [
         {"name": "rule_code", "description": "Reads everywhere one requirement applies.", "fields": ["rule_code"]},
-        {"name": "target", "description": "Reads every requirement that applies to one thing.", "fields": ["target_type", "target_code"]}
+        {"name": "target", "description": "Reads every requirement that applies to one thing.", "fields": ["target_type", "target_code"]},
+        {"name": "rule_target_unique", "description": "Refuses a second link between one requirement and one thing, so two writers racing cannot both add it.", "fields": ["rule_code", "target_type", "target_code"], "unique": true}
       ]
     },
     {
@@ -340,6 +344,7 @@
         {"name": "draft", "description": "Reads what one draft has published.", "fields": ["draft_id"]},
         {"name": "content_hash", "description": "Answers whether this exact content has been published before.", "fields": ["content_hash"]},
         {"name": "version", "description": "Reads the publications in order, and finds the one a caller named.", "fields": ["version"]},
+        {"name": "version_unique", "description": "Refuses a second publication at one version, so two operators publishing together cannot both take it.", "fields": ["version"], "unique": true},
         {"name": "channel", "description": "The production read: which publication serves this channel.", "fields": ["channel"]}
       ]
     },

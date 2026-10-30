@@ -11,7 +11,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG70_OpenHole_UntypedForkSourceIsStoredUncheckedAndForgesDraftListings(t *testing.T) {
+func TestAG70_UntypedForkSourceIsStoredUncheckedAndForgesDraftListings(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
 	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "AG70"}); err != nil {

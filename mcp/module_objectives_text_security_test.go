@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG66_OpenHole_ModuleObjectivesToolTextForgesLinesFromStoredTitles(t *testing.T) {
+func TestAG66_ModuleObjectivesToolTextForgesLinesFromStoredTitles(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
 	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "AG66"}); err != nil {

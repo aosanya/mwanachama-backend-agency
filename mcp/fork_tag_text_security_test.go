@@ -11,7 +11,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG69_OpenHole_PublicationTagForgesLinesInEveryDraftListingThroughAFork(t *testing.T) {
+func TestAG69_PublicationTagForgesLinesInEveryDraftListingThroughAFork(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
 	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "AG69"}); err != nil {

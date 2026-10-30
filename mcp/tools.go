@@ -238,15 +238,15 @@ func line(v reflect.Value) string {
 		}
 		switch {
 		case handle == "" && (name == "Code" || name == "Tag" || name == "Version"):
-			handle = value
+			handle = mwanachamaagency.QuoteIfUnsafe(value)
 		case label == "" && labelFields[name]:
 			label = value
 		case name == "ID":
-			refs = append([]string{"id: " + value}, refs...)
+			refs = append([]string{"id: " + mwanachamaagency.QuoteIfUnsafe(value)}, refs...)
 		case strings.HasSuffix(name, "ID") || strings.HasSuffix(name, "Code"):
-			refs = append(refs, reference(name)+": "+value)
+			refs = append(refs, reference(name)+": "+mwanachamaagency.QuoteIfUnsafe(value))
 		case factFields[name]:
-			facts = append(facts, reference(name)+": "+value)
+			facts = append(facts, reference(name)+": "+mwanachamaagency.QuoteIfUnsafe(value))
 		}
 	}
 

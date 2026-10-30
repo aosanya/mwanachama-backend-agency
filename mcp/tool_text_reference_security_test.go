@@ -11,7 +11,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG59_OpenHole_ReferenceFieldForgesLinesInAnotherCallersToolText(t *testing.T) {
+func TestAG59_ReferenceFieldForgesLinesInAnotherCallersToolText(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
 	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "AG59"}); err != nil {

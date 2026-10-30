@@ -63,6 +63,9 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 		var source models.AgencyPublication
 		switch forkedFromType {
 		case "":
+			if forkedFromID != "" {
+				return ErrInvalidForkSource
+			}
 		case "draft":
 			src, err := m.findDraft(ctx, tx, forkedFromID)
 			if err != nil {

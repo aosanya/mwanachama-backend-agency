@@ -8,7 +8,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule(t *testing.T) {
+func TestAG61_TwoObjectiveModulesHoldTheSameObjectiveAndModule(t *testing.T) {
 	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
@@ -39,6 +39,6 @@ func TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule(t *testin
 	}
 
 	if insertErr == nil && len(held) > 1 {
-		t.Errorf("AG61 open bug: a second objective_module row linking objective %s to module %s, written as a concurrent CreateObjectiveModule writes it after both counted zero, was accepted by the store (insert error %v) and the objective now holds %d links to the same module; want the store to refuse the second row, the same way CreateObjectiveModule's own pre-check means to", o.ID, mod.ID, insertErr, len(held))
+		t.Errorf("AG61: a second objective_module row linking objective %s to module %s, written as a concurrent CreateObjectiveModule writes it after both counted zero, was accepted by the store (insert error %v) and the objective now holds %d links to the same module; want the store to refuse the second row, the same way CreateObjectiveModule's own pre-check means to", o.ID, mod.ID, insertErr, len(held))
 	}
 }
