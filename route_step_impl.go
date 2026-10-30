@@ -89,9 +89,7 @@ func (m *agencyManager) siblingStep(ctx context.Context, tx *gorm.DB, wi models.
 
 func (m *agencyManager) validateStepLinkReferences(ctx context.Context, tx *gorm.DB, wi models.WorkItem) error {
 	if wi.RecipientRoleID != "" {
-		var r models.Role
-		q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRole)), wi.DraftID).Where("id = ?", wi.RecipientRoleID)
-		if err := m.take(q, roleRole, &r, ErrRoleNotFound); err != nil {
+		if err := m.actorOfDraft(ctx, tx, wi.DraftID, wi.RecipientRoleID); err != nil {
 			return err
 		}
 	}

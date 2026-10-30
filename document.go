@@ -257,7 +257,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			ID: stepIDs[wi.ID], Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
 			ObjectiveID: objectiveIDs[wi.ObjectiveID], Title: wi.Title,
 			Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
-			Kind: wi.Kind, RoleID: roleIDs[wi.RoleID], RunWorkflowID: workflowIDs[wi.RunWorkflowID],
+			Kind: wi.Kind, RoleID: remap(roleIDs, wi.RoleID), RunWorkflowID: workflowIDs[wi.RunWorkflowID],
 			FormName: wi.FormName, Questions: wi.Questions,
 			RecipientRoleID: remap(roleIDs, wi.RecipientRoleID), SentStepID: remap(stepIDs, wi.SentStepID),
 			Routes: remapRoutes(stepIDs, wi.Routes), OtherwiseStepID: remap(stepIDs, wi.OtherwiseStepID),

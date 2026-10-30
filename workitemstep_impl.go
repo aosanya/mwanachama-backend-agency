@@ -114,9 +114,7 @@ func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB,
 		return err
 	}
 	if wi.RoleID != "" {
-		var r models.Role
-		q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRole)), wi.DraftID).Where("id = ?", wi.RoleID)
-		if err := m.take(q, roleRole, &r, ErrRoleNotFound); err != nil {
+		if err := m.actorOfDraft(ctx, tx, wi.DraftID, wi.RoleID); err != nil {
 			return err
 		}
 	}

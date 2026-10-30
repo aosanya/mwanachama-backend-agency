@@ -79,6 +79,19 @@ sets; a host that sets none lists no groups, and a source that fails fails the
 call. Step kinds, operators and attachments stay a fixed vocabulary of the
 framework and are not in this list. Who holds a role stays Q72.
 
+### Groups as actors (HS364)
+
+A step's `role_id` and `recipient_role_id` and a record's `role_id` accept a
+role of the step's draft or a group the same `WithGroupLister` offers, so
+create and update agree with the picker. A role is looked up first; only an id
+that is no role of the draft asks the group source. An id that is neither is
+`ErrRoleNotFound`, a host with no group source accepts roles only, and a source
+that fails fails the write with its own error rather than reading as not found.
+The draft scan and the document import treat an offered group the same way: the
+scan does not flag it as a role that does not exist, and an imported step keeps
+the group id as it is, since groups belong to the agency and not to a draft. The
+agency in the picker is not an actor id here: an agency-only step names no role.
+
 ## Not here
 
 Scenarios, their actors and their test runs are HS260. The SQL mirror for the

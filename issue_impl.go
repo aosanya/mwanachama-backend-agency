@@ -160,6 +160,9 @@ func (s *issueScan) checkWorkItems() error {
 	for _, r := range roles {
 		roleIDs[r.ID] = true
 	}
+	if err := s.addGroupIDs(roleIDs); err != nil {
+		return err
+	}
 	workflowIDs := make(map[string]bool, len(workflows))
 	for _, w := range workflows {
 		workflowIDs[w.ID] = true

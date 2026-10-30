@@ -41,9 +41,7 @@ func (m *agencyManager) validateRecord(ctx context.Context, tx *gorm.DB, r model
 	if err := validateRecordShape(r); err != nil {
 		return err
 	}
-	var role models.Role
-	roleQuery := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRole)), r.DraftID).Where("id = ?", r.RoleID)
-	if err := m.take(roleQuery, roleRole, &role, ErrRoleNotFound); err != nil {
+	if err := m.actorOfDraft(ctx, tx, r.DraftID, r.RoleID); err != nil {
 		return err
 	}
 	var workflow models.Workflow

@@ -13,6 +13,9 @@ func (s *issueScan) checkStepLinks() error {
 	if err != nil {
 		return err
 	}
+	if err := s.addGroupIDs(roleIDs); err != nil {
+		return err
+	}
 	stepWorkflow := make(map[string]string, len(steps))
 	for _, w := range steps {
 		stepWorkflow[w.ID] = w.WorkflowID
@@ -63,6 +66,9 @@ func (s *issueScan) checkRecords() error {
 	}
 	roleIDs, err := s.idSet(roleRole)
 	if err != nil {
+		return err
+	}
+	if err := s.addGroupIDs(roleIDs); err != nil {
 		return err
 	}
 	workflowIDs, err := s.idSet(roleWorkflow)
