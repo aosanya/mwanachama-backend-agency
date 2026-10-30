@@ -39,6 +39,7 @@ var (
 	// ErrEventFlowStepNotFound is returned when LookupFlowStep finds no
 	// matching live EventFlowStep.
 	ErrEventFlowStepNotFound = errors.New("mwanachamaagency: event flow step not found")
+	ErrAmbiguousLookup = errors.New("mwanachamaagency: event flow step lookup matches more than one step")
 	// ErrInvalidLookup is returned by LookupFlowStep when no lookup key is
 	// set (or TriggerTopic is set without Consumer).
 	ErrInvalidLookup = errors.New("mwanachamaagency: invalid event flow step lookup")

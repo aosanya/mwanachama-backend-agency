@@ -3,6 +3,7 @@ package mwanachamaagency
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
@@ -23,22 +24,43 @@ func (m *agencyManager) CreateEventFlowStep(ctx context.Context, s models.EventF
 
 func (m *agencyManager) LookupFlowStep(ctx context.Context, draftID string, lookup models.EventFlowStepLookup) (models.EventFlowStep, error) {
 	q := scopeQuery(m.q(ctx, roleEventFlowStep), draftID)
+	var key string
 	switch {
 	case lookup.HandlerCode != "":
+		key = fmt.Sprintf("handler_code %q", lookup.HandlerCode)
 		q = q.Where("handler_code = ?", lookup.HandlerCode)
 	case lookup.TriggerTopic != "" && lookup.Consumer != "":
+		key = fmt.Sprintf("trigger_topic %q and consumer %q", lookup.TriggerTopic, lookup.Consumer)
 		q = q.Where("trigger_topic = ? AND consumer = ?", lookup.TriggerTopic, lookup.Consumer)
 	case lookup.Code != "":
-		q = q.Where("code = ?", lookup.Code)
+		var step models.EventFlowStep
+		if err := m.take(q.Where("code = ?", lookup.Code), roleEventFlowStep, &step, ErrEventFlowStepNotFound); err != nil {
+			return models.EventFlowStep{}, err
+		}
+		return step, nil
 	default:
 		return models.EventFlowStep{}, ErrInvalidLookup
 	}
 
-	var step models.EventFlowStep
-	if err := m.take(q, roleEventFlowStep, &step, ErrEventFlowStepNotFound); err != nil {
-		return models.EventFlowStep{}, err
+	matches, err := list[models.EventFlowStep](m, q.Order("workflow_code, ordinality, step"), roleEventFlowStep)
+	if err != nil {
+		return models.EventFlowStep{}, fmt.Errorf("LookupFlowStep: %w", err)
 	}
-	return step, nil
+	switch len(matches) {
+	case 0:
+		return models.EventFlowStep{}, ErrEventFlowStepNotFound
+	case 1:
+		return matches[0], nil
+	}
+	return models.EventFlowStep{}, fmt.Errorf("%w: %s matches %d steps (%s); look one up by code", ErrAmbiguousLookup, key, len(matches), describeSteps(matches))
+}
+
+func describeSteps(steps []models.EventFlowStep) string {
+	parts := make([]string, len(steps))
+	for i, s := range steps {
+		parts[i] = fmt.Sprintf("%s %q", s.ID, s.Name)
+	}
+	return strings.Join(parts, ", ")
 }
 
 func (m *agencyManager) ListEventFlowSteps(ctx context.Context, draftID, workflowCode string, filter EventFlowStepFilter) ([]models.EventFlowStep, error) {

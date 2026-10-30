@@ -2,6 +2,7 @@
   "errors": {
     "ErrAgencyNotFound": 404,
     "ErrCannotEditLive": 409,
+    "ErrAmbiguousLookup": 409,
     "ErrDraftNotFound": 404,
     "ErrDraftNotOpen": 409,
     "ErrDraftRequired": 400,
@@ -1617,7 +1618,7 @@
       "call": "LookupFlowStep",
       "action": "agency.event_flow_step.lookup",
       "title": "Find an event flow step",
-      "description": "Find one step by its handler, by its trigger topic and consumer together, or by its own code — whichever is given, in that order.",
+      "description": "Find one step by its handler, by its trigger topic and consumer together, or by its own code — whichever is given, in that order. A handler or topic and consumer shared by several steps is refused with a conflict naming them; look one up by code.",
       "args": [
         {
           "from": "query",

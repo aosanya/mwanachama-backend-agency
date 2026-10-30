@@ -6,6 +6,7 @@ import (
 
 var sentinels = map[string]error{
 	"ErrAgencyNotFound":           mwanachamaagency.ErrAgencyNotFound,
+	"ErrAmbiguousLookup":          mwanachamaagency.ErrAmbiguousLookup,
 	"ErrCannotEditLive":           mwanachamaagency.ErrCannotEditLive,
 	"ErrDraftNotFound":            mwanachamaagency.ErrDraftNotFound,
 	"ErrDraftNotOpen":             mwanachamaagency.ErrDraftNotOpen,
