@@ -15,7 +15,6 @@ func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (
 	}
 	w.ID = newID()
 	w.Deleted = false
-	w.Deleted = false
 	w.CreatedAt = models.NowRFC3339()
 	w.LastUpdated = w.CreatedAt
 
@@ -64,9 +63,9 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 		existing, err := m.findWorkflow(ctx, tx, w.ID)
 		if err != nil {
 			return err
+		}
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
-		}
 		}
 		w.Code = existing.Code
 		w.DraftID = existing.DraftID
@@ -90,9 +89,9 @@ func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
 		existing, err := m.findWorkflow(ctx, tx, id)
 		if err != nil {
 			return err
+		}
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
-		}
 		}
 		if err := m.refuseWorkflowMirroredByScenario(ctx, tx, existing); err != nil {
 			return err
