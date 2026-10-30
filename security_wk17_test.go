@@ -10,11 +10,6 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// TestCreate_IgnoresCallerSuppliedID_AndCreatedAt covers WK17: a caller
-// used to be able to set id/created_at directly on a Create<Type> call and
-// have the server write them verbatim. Spot-checks one Draft-scoped type
-// (Goal) and the one non-Draft-scoped type left (Agency) — every other
-// Create<Type> shares the identical fix.
 func TestCreate_IgnoresCallerSuppliedID_AndCreatedAt(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -36,7 +31,7 @@ func TestCreate_IgnoresCallerSuppliedID_AndCreatedAt(t *testing.T) {
 		t.Fatalf("CreateGoal's stamped created_at %q does not parse as RFC3339: %v", g.CreatedAt, err)
 	}
 
-	ag, err := mgr.CreateAgency(ctx, models.Agency{ID: "forged-agency-id", Name: "Probe Co 2", CreatedAt: forgedCreatedAt})
+	ag, err := newTestManager(t).CreateAgency(ctx, models.Agency{ID: "forged-agency-id", Name: "Probe Co 2", CreatedAt: forgedCreatedAt})
 	if err != nil {
 		t.Fatalf("CreateAgency: %v", err)
 	}

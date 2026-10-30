@@ -2,6 +2,7 @@ package mwanachamaagency
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -14,7 +15,17 @@ func (m *agencyManager) CreateAgency(ctx context.Context, a models.Agency) (mode
 	a.Deleted = false
 	a.CreatedAt = models.NowRFC3339()
 	a.LastUpdated = a.CreatedAt
-	if err := m.insert(ctx, roleAgency, a); err != nil {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		_, err := m.findAgency(ctx, tx)
+		if err == nil {
+			return ErrAgencyExists
+		}
+		if !errors.Is(err, ErrAgencyNotFound) {
+			return err
+		}
+		return m.insertRow(ctx, tx, roleAgency, a)
+	})
+	if err != nil {
 		return models.Agency{}, fmt.Errorf("CreateAgency: %w", err)
 	}
 	return a, nil

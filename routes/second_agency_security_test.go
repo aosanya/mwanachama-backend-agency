@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestAG73_OpenHole_ASecondCreateAgencyStoresAnOrganizationNothingCanReadOrDelete(t *testing.T) {
+func TestAG73_ASecondCreateAgencyIsRefusedAndStoresNothing(t *testing.T) {
 	mgr, _ := newTestManagerWithDraft(t)
 
 	call := func(method, body string) (int, map[string]any) {
@@ -37,5 +37,16 @@ func TestAG73_OpenHole_ASecondCreateAgencyStoresAnOrganizationNothingCanReadOrDe
 	code, after := call(http.MethodGet, "")
 	if code != http.StatusOK || after["id"] != served["id"] {
 		t.Fatalf("precondition: GET /agency should still serve %v, got %d %v", served["id"], code, after)
+	}
+}
+
+func TestAG73_ASecondCreateAgencyAnswersConflict(t *testing.T) {
+	mgr, _ := newTestManagerWithDraft(t)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/agency", strings.NewReader(`{"name":"Another organization"}`))
+	r.Header.Set("Content-Type", "application/json")
+	serve(mgr, w, r)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("POST /agency on an instance with its agency: %d %s, want 409", w.Code, w.Body.String())
 	}
 }
