@@ -286,6 +286,7 @@
         {
           "from": "path",
           "as": "goal_id",
+          "refers": "agency.goal",
           "description": "The goal to read."
         }
       ],
@@ -311,6 +312,7 @@
         {
           "from": "path",
           "as": "goal_id",
+          "refers": "agency.goal",
           "into": "ID",
           "description": "The goal to update."
         }
@@ -379,6 +381,7 @@
         {
           "from": "path",
           "as": "objective_id",
+          "refers": "agency.objective",
           "description": "The objective to read."
         }
       ],
@@ -404,6 +407,7 @@
         {
           "from": "path",
           "as": "objective_id",
+          "refers": "agency.objective",
           "into": "ID",
           "description": "The objective to update."
         }
@@ -426,6 +430,7 @@
         {
           "from": "path",
           "as": "objective_id",
+          "refers": "agency.objective",
           "description": "The objective whose seats to read."
         },
         {
@@ -461,6 +466,7 @@
         {
           "from": "path",
           "as": "objective_id",
+          "refers": "agency.objective",
           "into": "ObjectiveID",
           "description": "The objective doing the needing."
         }
@@ -483,6 +489,7 @@
         {
           "from": "path",
           "as": "objective_id",
+          "refers": "agency.objective",
           "description": "The objective whose needs to read."
         },
         {
@@ -635,6 +642,7 @@
         {
           "from": "path",
           "as": "workflow_id",
+          "refers": "agency.workflow",
           "description": "The workflow to read."
         }
       ],
@@ -660,6 +668,7 @@
         {
           "from": "path",
           "as": "workflow_id",
+          "refers": "agency.workflow",
           "into": "ID",
           "description": "The workflow to update."
         }
@@ -728,6 +737,7 @@
         {
           "from": "path",
           "as": "work_item_id",
+          "refers": "agency.work_item",
           "description": "The work item to read."
         }
       ],
@@ -753,6 +763,7 @@
         {
           "from": "path",
           "as": "work_item_id",
+          "refers": "agency.work_item",
           "into": "ID",
           "description": "The work item to update."
         }
@@ -821,6 +832,7 @@
         {
           "from": "path",
           "as": "role_id",
+          "refers": "agency.role",
           "description": "The seat to read."
         }
       ],
@@ -842,6 +854,7 @@
         {
           "from": "path",
           "as": "role_id",
+          "refers": "agency.role",
           "description": "The seat to brief, by id or code."
         }
       ],
@@ -867,6 +880,7 @@
         {
           "from": "path",
           "as": "role_id",
+          "refers": "agency.role",
           "into": "ID",
           "description": "The seat to update."
         }
@@ -890,6 +904,7 @@
         {
           "from": "path",
           "as": "role_id",
+          "refers": "agency.role",
           "description": "The seat to remove."
         }
       ],
@@ -1144,6 +1159,7 @@
         {
           "from": "path",
           "as": "value_id",
+          "refers": "agency.value",
           "description": "The belief to read."
         }
       ],
@@ -1169,6 +1185,7 @@
         {
           "from": "path",
           "as": "value_id",
+          "refers": "agency.value",
           "into": "ID",
           "description": "The belief to rewrite."
         }
@@ -1192,6 +1209,7 @@
         {
           "from": "path",
           "as": "value_id",
+          "refers": "agency.value",
           "description": "The belief to remove."
         }
       ],
@@ -1214,6 +1232,7 @@
         {
           "from": "path",
           "as": "value_id",
+          "refers": "agency.value",
           "description": "The belief being attached."
         },
         {
@@ -1247,6 +1266,7 @@
         {
           "from": "path",
           "as": "value_id",
+          "refers": "agency.value",
           "description": "The belief whose attachments to read."
         }
       ],
@@ -1342,6 +1362,7 @@
         {
           "from": "path",
           "as": "rule_id",
+          "refers": "agency.rule",
           "description": "The requirement to read."
         }
       ],
@@ -1367,6 +1388,7 @@
         {
           "from": "path",
           "as": "rule_id",
+          "refers": "agency.rule",
           "into": "ID",
           "description": "The requirement to rewrite."
         }
@@ -1390,6 +1412,7 @@
         {
           "from": "path",
           "as": "rule_id",
+          "refers": "agency.rule",
           "description": "The requirement to remove."
         }
       ],
@@ -1412,6 +1435,7 @@
         {
           "from": "path",
           "as": "rule_id",
+          "refers": "agency.rule",
           "description": "The requirement being attached."
         },
         {
@@ -1445,6 +1469,7 @@
         {
           "from": "path",
           "as": "rule_id",
+          "refers": "agency.rule",
           "description": "The requirement whose attachments to read."
         }
       ],
@@ -1676,6 +1701,7 @@
         {
           "from": "path",
           "as": "goal_id",
+          "refers": "agency.goal",
           "description": "The goal to remove."
         }
       ],
@@ -1698,6 +1724,7 @@
         {
           "from": "path",
           "as": "objective_id",
+          "refers": "agency.objective",
           "description": "The objective to remove."
         }
       ],
@@ -1720,6 +1747,7 @@
         {
           "from": "path",
           "as": "workflow_id",
+          "refers": "agency.workflow",
           "description": "The workflow to remove."
         }
       ],
@@ -1742,6 +1770,7 @@
         {
           "from": "path",
           "as": "work_item_id",
+          "refers": "agency.work_item",
           "description": "The work item to remove."
         }
       ],
