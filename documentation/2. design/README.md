@@ -30,6 +30,10 @@ answers a sent form, and the Route step.
 [test-scenarios.md](test-scenarios.md) covers test scenarios, their actors and
 inputs, test runs, the send-back rule and the publish gate (HS260).
 
+[background-runs.md](background-runs.md) covers how a test run is started in the
+background, held Waiting under the hub's Scenarios at once setting, stopped by
+the designer and picked up after a restart (HS330).
+
 [module-mounts.md](module-mounts.md) covers the names an agency gives each mount
 of a module (HS271), their rules, and which modules can be mounted by name.
 

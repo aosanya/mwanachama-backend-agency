@@ -117,14 +117,14 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 			string(models.StepKindRunWorkflow),
 		},
 		"scenario.result": {
-			string(models.ScenarioNotRun), string(models.ScenarioRunning), string(models.ScenarioPassed),
+			string(models.ScenarioNotRun), string(models.ScenarioWaiting), string(models.ScenarioRunning), string(models.ScenarioPassed),
 			string(models.ScenarioFailed), string(models.ScenarioStopped),
 		},
 		"scenario_actor.kind": {
 			string(models.ActorKindRole), string(models.ActorKindAgent), string(models.ActorKindSystem),
 		},
 		"test_run.result": {
-			string(models.TestRunRunning), string(models.TestRunPassed),
+			string(models.TestRunWaiting), string(models.TestRunRunning), string(models.TestRunPassed),
 			string(models.TestRunFailed), string(models.TestRunStopped),
 		},
 		"issue.severity": {

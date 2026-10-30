@@ -70,6 +70,7 @@ var sentinels = map[string]error{
 	"ErrDuplicateScenarioActor":   mwanachamaagency.ErrDuplicateScenarioActor,
 	"ErrScenarioRunning":          mwanachamaagency.ErrScenarioRunning,
 	"ErrTestRunNotFound":          mwanachamaagency.ErrTestRunNotFound,
+	"ErrTestRunFinished":          mwanachamaagency.ErrTestRunFinished,
 	"ErrUsedByScenario":           mwanachamaagency.ErrUsedByScenario,
 }
 

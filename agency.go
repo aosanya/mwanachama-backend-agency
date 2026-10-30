@@ -298,6 +298,9 @@ type AgencyManager interface {
 	RunScenarios(ctx context.Context, draftID string, scenarioIDs []string) ([]models.TestRun, error)
 	GetTestRun(ctx context.Context, id string) (models.TestRun, error)
 	ListTestRuns(ctx context.Context, scenarioID string) ([]models.TestRun, error)
+	StopRun(ctx context.Context, runID string) (models.TestRun, error)
+	ResumeRuns(ctx context.Context) ([]models.TestRun, error)
+	AwaitRun(ctx context.Context, runID string) (models.TestRun, error)
 }
 
 type agencyManager struct {
@@ -306,6 +309,8 @@ type agencyManager struct {
 	tables   TableNames
 	settings SettingsChecker
 	runner   ScenarioRunner
+	atOnce   func(ctx context.Context) int
+	board    *runBoard
 	groups   GroupLister
 	runs     RunLister
 }
@@ -321,7 +326,7 @@ func NewAgencyManager(db *gorm.DB, s *spec.Spec, opts ...Option) (AgencyManager,
 	if err != nil {
 		return nil, fmt.Errorf("NewAgencyManager: %w", err)
 	}
-	m := &agencyManager{db: db, st: st, tables: TablesFor(s)}
+	m := &agencyManager{db: db, st: st, tables: TablesFor(s), board: newRunBoard()}
 	for _, opt := range opts {
 		opt(m)
 	}

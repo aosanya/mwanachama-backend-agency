@@ -21,6 +21,12 @@ func newTestManager(t *testing.T) mwanachamaagency.AgencyManager {
 		t.Fatalf("gorm.Open: %v", err)
 	}
 
+	pool, err := db.DB()
+	if err != nil {
+		t.Fatalf("db.DB: %v", err)
+	}
+	pool.SetMaxOpenConns(1)
+
 	s, err := mwanachamaagency.SpecFor("routestest")
 	if err != nil {
 		t.Fatalf("SpecFor: %v", err)

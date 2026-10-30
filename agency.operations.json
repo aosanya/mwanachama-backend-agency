@@ -51,6 +51,7 @@
     "ErrScenarioActorNotFound": 404,
     "ErrDuplicateScenarioActor": 409,
     "ErrScenarioRunning": 409,
+    "ErrTestRunFinished": 409,
     "ErrTestRunNotFound": 404,
     "ErrUsedByScenario": 409
   },
@@ -2100,7 +2101,7 @@
       "action": "agency.scenario.run",
       "status": 201,
       "title": "Run scenario",
-      "description": "Run one scenario on its draft and keep the run. The answer is the finished run: Passed, Failed or Stopped, with what transpired step by step and the tokens used. A scenario already running refuses a second run.",
+      "description": "Run one scenario on its draft and keep the run. The answer comes at once with the run Running, or Waiting when the hub's Scenarios at once setting is full; the run goes on in the background, writes each step as it finishes and ends Passed, Failed or Stopped. Read it with agency_get_test_run. A scenario already running or waiting refuses a second run.",
       "args": [
         {
           "from": "path",
@@ -2122,7 +2123,7 @@
       "action": "agency.scenario.run_many",
       "status": 201,
       "title": "Run scenarios",
-      "description": "Run the named scenarios of a draft one after the other, or every scenario of the draft when none are named, and keep each run. A name that is not a scenario of the draft refuses the whole batch before anything runs.",
+      "description": "Run the named scenarios of a draft, or every scenario of the draft when none are named, and keep each run. The answer comes at once with each run Running or Waiting, in the order pressed; runs past the hub's Scenarios at once setting wait and start as others end. A name that is not a scenario of the draft refuses the whole batch before anything runs.",
       "args": [
         {
           "from": "body",
@@ -2142,6 +2143,27 @@
         }
       ],
       "tool": "agency_run_scenarios"
+    },
+    "stop_test_run": {
+      "method": "POST",
+      "path": "/test-runs/{test_run_id}/stop",
+      "call": "StopRun",
+      "action": "agency.test_run.stop",
+      "title": "Stop test run",
+      "description": "Stop a run that is Running or Waiting. A waiting run ends at once; a running run ends after its current step. It ends Stopped with the reason Stopped by the designer, keeps the steps and tokens it has and sends the scenario back to Not run yet. A run that has finished is refused with 409.",
+      "args": [
+        {
+          "from": "path",
+          "as": "test_run_id",
+          "description": "The run to stop."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_stop_test_run"
     },
     "add_scenario_actor": {
       "method": "POST",

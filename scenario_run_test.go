@@ -19,7 +19,7 @@ func TestRunScenario_APassingRunIsKeptAndPassesTheScenario(t *testing.T) {
 	ctx := context.Background()
 	s := w.scenario(t, "Shop says yes", w.buyNow, w.actor("Farmer 1", farmer))
 
-	run, err := w.mgr.RunScenario(ctx, s.ID)
+	run, err := w.runToEnd(ctx, s.ID)
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestRunScenario_AFailedRunKeepsWhatWasExpectedAndFound(t *testing.T) {
 			},
 		}, nil
 	}
-	run, err := w.mgr.RunScenario(ctx, s.ID)
+	run, err := w.runToEnd(ctx, s.ID)
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestRunScenario_AStoppedRunKeepsTheStepsDone(t *testing.T) {
 			Steps: []models.RunStep{{StepID: req.Scenario.Blocks[0].StepID, Step: "Ask", Tokens: 30000}},
 		}, nil
 	}
-	run, err := w.mgr.RunScenario(ctx, s.ID)
+	run, err := w.runToEnd(ctx, s.ID)
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestRunScenario_ARunnerThatCannotFinishStopsTheRun(t *testing.T) {
 			w := newScenarioWorld(t)
 			w.runner.outcome = outcome
 			s := w.scenario(t, "Shop says yes", w.buyNow)
-			run, err := w.mgr.RunScenario(context.Background(), s.ID)
+			run, err := w.runToEnd(context.Background(), s.ID)
 			if err != nil {
 				t.Fatalf("RunScenario: %v", err)
 			}
@@ -158,6 +158,11 @@ func TestRunScenario_WithoutAnExecutorTheRunIsStoppedAndSaysSo(t *testing.T) {
 	if err := mwanachamaagency.Provision(db, sp); err != nil {
 		t.Fatal(err)
 	}
+	pool, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool.SetMaxOpenConns(1)
 	mgr, err := mwanachamaagency.NewAgencyManager(db, sp)
 	if err != nil {
 		t.Fatal(err)
@@ -168,9 +173,13 @@ func TestRunScenario_WithoutAnExecutorTheRunIsStoppedAndSaysSo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	run, err := mgr.RunScenario(ctx, s.ID)
+	pressed, err := mgr.RunScenario(ctx, s.ID)
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
+	}
+	run, err := mgr.AwaitRun(ctx, pressed.ID)
+	if err != nil {
+		t.Fatalf("AwaitRun: %v", err)
 	}
 	if run.Result != models.TestRunStopped || !strings.Contains(run.StopReason, "executor") {
 		t.Errorf("run = %+v, want stopped because no executor is installed", run)
@@ -183,7 +192,7 @@ func TestRunScenario_AScenarioAlreadyRunningRefusesASecondRun(t *testing.T) {
 	s := w.scenario(t, "Shop says yes", w.buyNow)
 	var inner error
 	w.runner.outcome = func(req mwanachamaagency.RunRequest) (mwanachamaagency.RunOutcome, error) {
-		_, inner = w.mgr.RunScenario(ctx, s.ID)
+		_, inner = w.runToEnd(ctx, s.ID)
 		return passing(req)
 	}
 	w.pass(t, s.ID)
@@ -207,7 +216,7 @@ func TestRunScenario_AnEditDuringTheRunKeepsTheScenarioNotRun(t *testing.T) {
 		}
 		return passing(req)
 	}
-	run, err := w.mgr.RunScenario(ctx, s.ID)
+	run, err := w.runToEnd(ctx, s.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,14 +231,14 @@ func TestRunScenario_AnEditDuringTheRunKeepsTheScenarioNotRun(t *testing.T) {
 func TestRunScenario_Refusals(t *testing.T) {
 	w := newScenarioWorld(t)
 	ctx := context.Background()
-	if _, err := w.mgr.RunScenario(ctx, "no-such-scenario"); !errors.Is(err, mwanachamaagency.ErrScenarioNotFound) {
+	if _, err := w.runToEnd(ctx, "no-such-scenario"); !errors.Is(err, mwanachamaagency.ErrScenarioNotFound) {
 		t.Errorf("an unknown scenario: %v", err)
 	}
 	s := w.scenario(t, "Shop says yes", w.buyNow)
 	if _, err := w.mgr.ArchiveDraft(ctx, w.draftID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := w.mgr.RunScenario(ctx, s.ID); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
+	if _, err := w.runToEnd(ctx, s.ID); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
 		t.Errorf("a scenario of an archived draft: %v, want ErrDraftNotOpen", err)
 	}
 	if len(w.runner.seen) != 0 {
@@ -242,7 +251,7 @@ func TestRunScenario_AWorkflowThatIsGoneStopsTheRunWithoutCallingTheRunner(t *te
 	ctx := context.Background()
 	s := w.scenario(t, "Shop says yes", w.buyNow)
 	w.removeWorkflowRow(t, w.buyNow.ID)
-	if _, err := w.mgr.RunScenario(ctx, s.ID); !errors.Is(err, mwanachamaagency.ErrWorkflowNotFound) {
+	if _, err := w.runToEnd(ctx, s.ID); !errors.Is(err, mwanachamaagency.ErrWorkflowNotFound) {
 		t.Errorf("run of a scenario whose workflow is gone: %v, want ErrWorkflowNotFound", err)
 	}
 	if len(w.runner.seen) != 0 {
@@ -264,6 +273,7 @@ func TestRunScenarios_RunsTheNamedOnesOrEveryOneInTheDraft(t *testing.T) {
 	if len(runs) != 2 || runs[0].ScenarioID != c.ID || runs[1].ScenarioID != a.ID {
 		t.Errorf("runs = %+v, want C then A", runs)
 	}
+	w.awaitAll(t, runs)
 	if got := w.results(t); got["A"] != models.ScenarioPassed || got["C"] != models.ScenarioPassed || got["B"] != models.ScenarioNotRun {
 		t.Errorf("results = %v, want only A and C passed", got)
 	}
@@ -272,6 +282,7 @@ func TestRunScenarios_RunsTheNamedOnesOrEveryOneInTheDraft(t *testing.T) {
 	if err != nil || len(all) != 3 {
 		t.Fatalf("run all: %v %d runs, want 3", err, len(all))
 	}
+	w.awaitAll(t, all)
 	_ = b
 
 	before := len(w.runner.seen)
@@ -292,9 +303,9 @@ func TestListTestRuns_NewestFirstAndOnlyThisScenarios(t *testing.T) {
 	ctx := context.Background()
 	a := w.scenario(t, "A", w.buyNow)
 	b := w.scenario(t, "B", w.groupOrd)
-	first, _ := w.mgr.RunScenario(ctx, a.ID)
-	second, _ := w.mgr.RunScenario(ctx, a.ID)
-	w.mgr.RunScenario(ctx, b.ID)
+	first, _ := w.runToEnd(ctx, a.ID)
+	second, _ := w.runToEnd(ctx, a.ID)
+	w.runToEnd(ctx, b.ID)
 
 	runs, err := w.mgr.ListTestRuns(ctx, a.ID)
 	if err != nil {
@@ -365,7 +376,7 @@ func TestPublish_FailedStoppedAndRunningScenariosBlockToo(t *testing.T) {
 				return mwanachamaagency.RunOutcome{Result: result, StopReason: "x"}, nil
 			}
 			s := w.scenario(t, "Shop says yes", w.buyNow)
-			if _, err := w.mgr.RunScenario(context.Background(), s.ID); err != nil {
+			if _, err := w.runToEnd(context.Background(), s.ID); err != nil {
 				t.Fatal(err)
 			}
 			_, err := w.mgr.PublishAgency(context.Background(), w.draftID, "", "")

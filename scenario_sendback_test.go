@@ -58,9 +58,11 @@ func newSendBackWorld(t *testing.T) sendBackWorld {
 
 func (w sendBackWorld) runAll(t *testing.T) {
 	t.Helper()
-	if _, err := w.mgr.RunScenarios(context.Background(), w.draftID, nil); err != nil {
+	runs, err := w.mgr.RunScenarios(context.Background(), w.draftID, nil)
+	if err != nil {
 		t.Fatalf("RunScenarios: %v", err)
 	}
+	w.awaitAll(t, runs)
 	for name, result := range w.results(t) {
 		if result != models.ScenarioPassed {
 			t.Fatalf("%s = %q before the change, want passed", name, result)

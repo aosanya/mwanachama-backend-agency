@@ -45,7 +45,7 @@ type scenarioWorld struct {
 	agentRole models.Role
 }
 
-func newScenarioWorld(t *testing.T) scenarioWorld {
+func newScenarioWorld(t *testing.T, opts ...mwanachamaagency.Option) scenarioWorld {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
@@ -59,7 +59,12 @@ func newScenarioWorld(t *testing.T) scenarioWorld {
 		t.Fatalf("Provision: %v", err)
 	}
 	runner := &scriptedRunner{outcome: passing}
-	mgr, err := mwanachamaagency.NewAgencyManager(db, s, mwanachamaagency.WithScenarioRunner(runner))
+	pool, err := db.DB()
+	if err != nil {
+		t.Fatalf("db.DB: %v", err)
+	}
+	pool.SetMaxOpenConns(1)
+	mgr, err := mwanachamaagency.NewAgencyManager(db, s, append([]mwanachamaagency.Option{mwanachamaagency.WithScenarioRunner(runner)}, opts...)...)
 	if err != nil {
 		t.Fatalf("NewAgencyManager: %v", err)
 	}
@@ -148,9 +153,26 @@ func (w scenarioWorld) get(t *testing.T, id string) models.Scenario {
 	return s
 }
 
+func (w scenarioWorld) runToEnd(ctx context.Context, id string) (models.TestRun, error) {
+	pressed, err := w.mgr.RunScenario(ctx, id)
+	if err != nil {
+		return models.TestRun{}, err
+	}
+	return w.mgr.AwaitRun(ctx, pressed.ID)
+}
+
+func (w scenarioWorld) awaitAll(t *testing.T, runs []models.TestRun) {
+	t.Helper()
+	for _, run := range runs {
+		if _, err := w.mgr.AwaitRun(context.Background(), run.ID); err != nil {
+			t.Fatalf("AwaitRun: %v", err)
+		}
+	}
+}
+
 func (w scenarioWorld) pass(t *testing.T, id string) {
 	t.Helper()
-	run, err := w.mgr.RunScenario(context.Background(), id)
+	run, err := w.runToEnd(context.Background(), id)
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}
@@ -550,7 +572,7 @@ func TestDeleteScenario_TakesItsActorsInputsAndRunsWithIt(t *testing.T) {
 	if _, err := w.mgr.SetScenarioInput(ctx, models.ScenarioInput{ScenarioID: s.ID, StepID: s.Blocks[0].StepID, Field: "Enter the product", Value: "urea"}); err != nil {
 		t.Fatalf("SetScenarioInput: %v", err)
 	}
-	run, err := w.mgr.RunScenario(ctx, s.ID)
+	run, err := w.runToEnd(ctx, s.ID)
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}

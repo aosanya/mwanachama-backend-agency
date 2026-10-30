@@ -15,13 +15,14 @@ Declared in `agency.blueprint.json`, named in `agency.agency.json`, carried by
 | `scenario` | `name`, `summary` (what it tries), `workflow_id` (the workflow it mirrors, in the same draft), `result`, `last_run_id`, `thens` (the Then lines, see below), the draft. |
 | `scenario_actor` | `name` (unique in the scenario, ignoring case and outer spaces), `role_id` (an agency role of the same draft), `kind`, `ordinality`. |
 | `scenario_input` | `step_id`, `field` (the prompt of a question on that step's form) and `value`. No row means the field is Free. |
-| `test_run` | `scenario_id`, `draft_version`, `result`, `stop_reason`, `tokens`, `steps`, `started_at`, `finished_at`. |
+| `test_run` | `scenario_id`, `draft_version`, `result`, `stop_reason`, `tokens`, `steps`, `queued_at`, `started_at`, `finished_at`. |
 
 A scenario has no code (`SC-n`): nothing quotes one by handle, so it is
 identified by its id and its name.
 
-`result` is `not_run` (Not run yet), `running`, `passed`, `failed` or
-`stopped`. A run's `result` is `running`, `passed`, `failed` or `stopped`.
+`result` is `not_run` (Not run yet), `waiting`, `running`, `passed`, `failed` or
+`stopped`. A run's `result` is `waiting`, `running`, `passed`, `failed` or
+`stopped`.
 
 There is no block object. A scenario's blocks are the steps of its workflow,
 one actor each, and are derived on every read (`scenario.blocks`): the step,
@@ -175,11 +176,15 @@ so reading it afterwards shows the new names: `Workflow` on the scenario and
 
 ## Running
 
-`RunScenario(id)` writes a `running` test run and marks the scenario
-`running`, calls the runner, then writes the outcome to the run and the
-scenario. `RunScenarios(draft, ids)` runs the named scenarios, or every one of
-the draft when none are named, one after the other, and refuses the whole batch
-before running any if a name is not a scenario of that draft.
+`RunScenario(id)` answers at once with a `running` test run, or a `waiting` one
+when the hub's Scenarios at once setting is full, and marks the scenario to
+match. The runner goes on in the background, each finished step is written into
+the run, and the outcome is written to the run and the scenario at the end.
+`RunScenarios(draft, ids)` presses the named scenarios, or every one of the
+draft when none are named, in that order, and refuses the whole batch before
+pressing any if a name is not a scenario of that draft. How a run is started,
+queued, stopped and picked up after a restart is in
+[background-runs.md](background-runs.md).
 
 The runner is an interface, handed the run id, the scenario as the designer
 sees it (blocks, actors, inputs), the workflow, the rules it shows and the
@@ -197,16 +202,16 @@ published by accident; HS280 replaces it. An error from the runner, or an
 outcome that is not `passed`, `failed` or `stopped`, becomes a stopped run
 with a reason, so a scenario is never left `running`.
 
-A scenario already `running` refuses a second run (`ErrScenarioRunning`). The
-run is synchronous here; keeping a run going when the page closes, and how
-many run at once, belong to the executor.
+A scenario already `running` or `waiting` refuses a second run
+(`ErrScenarioRunning`).
 
-The scenario takes the run's result only if it is still `running` on this run.
+The scenario takes the run's result only if it is still `running` or `waiting`
+on this run.
 Editing a scenario, or changing what it uses, while it runs sends it to
 `not_run`, and the finished run is kept as it ended but does not pass the
 scenario: the pass would be for something that no longer exists.
 
-Runs are listed newest first (`ListTestRuns`) and read with `GetTestRun`.
+Runs are listed newest pressed first (`ListTestRuns`) and read with `GetTestRun`.
 There is no operation to remove a run yet.
 
 ## The publish gate
@@ -238,7 +243,7 @@ All under `agency.scenario.*` and `agency.test_run.*` in
 `agency_delete_scenario`, `agency_run_scenario`, `agency_run_scenarios`,
 `agency_add_scenario_actor`, `agency_rename_scenario_actor`,
 `agency_remove_scenario_actor`, `agency_set_scenario_input`,
-`agency_get_test_run` and `agency_list_test_runs`.
+`agency_get_test_run`, `agency_list_test_runs` and `agency_stop_test_run`.
 
 ## Not here
 

@@ -4,6 +4,7 @@ type ScenarioResult string
 
 const (
 	ScenarioNotRun  ScenarioResult = "not_run"
+	ScenarioWaiting ScenarioResult = "waiting"
 	ScenarioRunning ScenarioResult = "running"
 	ScenarioPassed  ScenarioResult = "passed"
 	ScenarioFailed  ScenarioResult = "failed"
@@ -12,6 +13,7 @@ const (
 
 var scenarioResultLabels = map[ScenarioResult]string{
 	ScenarioNotRun:  "Not run yet",
+	ScenarioWaiting: "Waiting",
 	ScenarioRunning: "Running",
 	ScenarioPassed:  "Passed",
 	ScenarioFailed:  "Failed",
@@ -103,6 +105,7 @@ type ScenarioBlock struct {
 type TestRunResult string
 
 const (
+	TestRunWaiting TestRunResult = "waiting"
 	TestRunRunning TestRunResult = "running"
 	TestRunPassed  TestRunResult = "passed"
 	TestRunFailed  TestRunResult = "failed"
@@ -110,7 +113,7 @@ const (
 )
 
 func (r TestRunResult) Valid() bool {
-	return r == TestRunRunning || r == TestRunPassed || r == TestRunFailed || r == TestRunStopped
+	return r == TestRunWaiting || r == TestRunRunning || r.Finished()
 }
 
 func (r TestRunResult) Finished() bool {
@@ -147,6 +150,7 @@ type TestRun struct {
 	StopReason   string        `json:"stop_reason"`
 	Tokens       int           `json:"tokens"`
 	Steps        []RunStep     `json:"steps,omitempty"`
+	QueuedAt     string        `json:"queued_at"`
 	StartedAt    string        `json:"started_at"`
 	FinishedAt   string        `json:"finished_at"`
 }
@@ -171,3 +175,5 @@ type DocumentScenario struct {
 	Inputs     []DocumentScenarioInput `json:"inputs,omitempty"`
 	Thens      []ScenarioThen          `json:"thens,omitempty"`
 }
+
+const StoppedByDesigner = "Stopped by the designer"

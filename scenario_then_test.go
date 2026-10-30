@@ -159,7 +159,7 @@ func TestRunScenario_AStepKeepsWhoPlayedIt(t *testing.T) {
 		return out, err
 	}
 
-	run, err := w.mgr.RunScenario(ctx, s.ID)
+	run, err := w.runToEnd(ctx, s.ID)
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}

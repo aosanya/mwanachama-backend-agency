@@ -17,6 +17,7 @@ type RunRequest struct {
 	Workflow     models.Workflow
 	Rules        []models.Rule
 	DraftVersion string
+	Done         []models.RunStep
 }
 
 type RunOutcome struct {
@@ -28,6 +29,11 @@ type RunOutcome struct {
 
 type ScenarioRunner interface {
 	Run(ctx context.Context, req RunRequest) (RunOutcome, error)
+}
+
+type StepReporter interface {
+	ScenarioRunner
+	RunReporting(ctx context.Context, req RunRequest, finished func(models.RunStep) (carryOn bool)) (RunOutcome, error)
 }
 
 type stoppedRunner struct{}
@@ -64,7 +70,7 @@ type startedRun struct {
 	rules    []models.Rule
 }
 
-func (m *agencyManager) startRun(ctx context.Context, scenarioID string) (startedRun, error) {
+func (m *agencyManager) startRun(ctx context.Context, scenarioID, runID string, result models.TestRunResult, queuedAt string) (startedRun, error) {
 	var started startedRun
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		s, err := m.findScenario(ctx, tx, scenarioID)
@@ -74,32 +80,25 @@ func (m *agencyManager) startRun(ctx context.Context, scenarioID string) (starte
 		if err := m.requireOpenDraft(ctx, tx, s.DraftID); err != nil {
 			return err
 		}
-		if s.Result == models.ScenarioRunning {
+		if s.Result == models.ScenarioRunning || s.Result == models.ScenarioWaiting {
 			return ErrScenarioRunning
 		}
-		var wf models.Workflow
-		wq := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), s.DraftID).Where("id = ?", s.WorkflowID)
-		if err := m.take(wq, roleWorkflow, &wf, ErrWorkflowNotFound); err != nil {
-			return err
-		}
-		rules, err := m.workflowRules(ctx, tx, s.DraftID, wf)
+		wf, rules, version, err := m.runInputs(ctx, tx, s)
 		if err != nil {
 			return err
 		}
-		version, err := m.contentHashFor(ctx, tx, s.DraftID)
-		if err != nil {
-			return err
-		}
-
 		now := models.NowRFC3339()
 		run := models.TestRun{
-			ID: newID(), ScenarioID: s.ID, DraftID: s.DraftID, DraftVersion: version,
-			Result: models.TestRunRunning, StartedAt: now,
+			ID: runID, ScenarioID: s.ID, DraftID: s.DraftID, DraftVersion: version,
+			Result: result, QueuedAt: queuedAt,
+		}
+		if result == models.TestRunRunning {
+			run.StartedAt = now
 		}
 		if err := m.insertRow(ctx, tx, roleTestRun, run); err != nil {
 			return err
 		}
-		s.Result, s.LastRunID, s.LastUpdated = models.ScenarioRunning, run.ID, now
+		s.Result, s.LastRunID, s.LastUpdated = result.ScenarioResult(), run.ID, now
 		if err := m.writeUpdate(ctx, tx, roleScenario, s.ID, s, ErrScenarioNotFound); err != nil {
 			return err
 		}
@@ -113,31 +112,22 @@ func (m *agencyManager) startRun(ctx context.Context, scenarioID string) (starte
 	return started, err
 }
 
-func (m *agencyManager) finishRun(ctx context.Context, started startedRun, outcome RunOutcome) (models.TestRun, error) {
-	run := started.run
-	run.Result, run.StopReason, run.Steps, run.Tokens = outcome.Result, outcome.StopReason, outcome.Steps, outcome.Tokens
-	run.FinishedAt = models.NowRFC3339()
-	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := m.writeUpdate(ctx, tx, roleTestRun, run.ID, run, ErrTestRunNotFound); err != nil {
-			return err
-		}
-		return tx.WithContext(ctx).Table(m.table(roleScenario)).
-			Where("id = ? AND result = ? AND last_run_id = ?", run.ScenarioID, string(models.ScenarioRunning), run.ID).
-			Updates(map[string]any{"result": string(run.Result.ScenarioResult()), "last_updated": run.FinishedAt}).Error
-	})
-	return run, err
+func (m *agencyManager) runInputs(ctx context.Context, tx *gorm.DB, s models.Scenario) (models.Workflow, []models.Rule, string, error) {
+	var wf models.Workflow
+	wq := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), s.DraftID).Where("id = ?", s.WorkflowID)
+	if err := m.take(wq, roleWorkflow, &wf, ErrWorkflowNotFound); err != nil {
+		return wf, nil, "", err
+	}
+	rules, err := m.workflowRules(ctx, tx, s.DraftID, wf)
+	if err != nil {
+		return wf, nil, "", err
+	}
+	version, err := m.contentHashFor(ctx, tx, s.DraftID)
+	return wf, rules, version, err
 }
 
 func (m *agencyManager) RunScenario(ctx context.Context, id string) (models.TestRun, error) {
-	started, err := m.startRun(ctx, id)
-	if err != nil {
-		return models.TestRun{}, fmt.Errorf("RunScenario: %w", err)
-	}
-	outcome, runErr := m.scenarioRunner().Run(ctx, RunRequest{
-		RunID: started.run.ID, Scenario: started.scenario, Workflow: started.workflow,
-		Rules: started.rules, DraftVersion: started.run.DraftVersion,
-	})
-	run, err := m.finishRun(ctx, started, settled(outcome, runErr))
+	run, err := m.press(ctx, id)
 	if err != nil {
 		return models.TestRun{}, fmt.Errorf("RunScenario: %w", err)
 	}
@@ -185,7 +175,7 @@ func (m *agencyManager) ListTestRuns(ctx context.Context, scenarioID string) ([]
 	if _, err := m.findScenario(ctx, m.db, scenarioID); err != nil {
 		return nil, err
 	}
-	q := m.q(ctx, roleTestRun).Where("scenario_id = ?", scenarioID).Order("started_at DESC")
+	q := m.q(ctx, roleTestRun).Where("scenario_id = ?", scenarioID).Order("queued_at DESC")
 	out, err := list[models.TestRun](m, q, roleTestRun)
 	if err != nil {
 		return nil, fmt.Errorf("ListTestRuns: %w", err)

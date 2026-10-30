@@ -7,11 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
 type scenarioRoutes struct {
 	t       *testing.T
+	mgr     mwanachamaagency.AgencyManager
 	call    func(method, path, body string) *httptest.ResponseRecorder
 	draftID string
 	flow    models.Workflow
@@ -40,7 +42,7 @@ func newScenarioRoutes(t *testing.T) scenarioRoutes {
 		serve(mgr, rec, httptest.NewRequest(method, path, strings.NewReader(body)))
 		return rec
 	}
-	return scenarioRoutes{t: t, call: call, draftID: draftID, flow: flow, askID: ask.ID, farmer: farmer}
+	return scenarioRoutes{t: t, mgr: mgr, call: call, draftID: draftID, flow: flow, askID: ask.ID, farmer: farmer}
 }
 
 func (s scenarioRoutes) expect(rec *httptest.ResponseRecorder, status int, into any) {
@@ -106,9 +108,14 @@ func TestScenarioRoutes_WriteAScenarioAndPlayIt(t *testing.T) {
 
 	var run models.TestRun
 	r.expect(r.call(http.MethodPost, "/scenarios/"+sc.ID+"/runs", ""), http.StatusCreated, &run)
-	if run.Result != models.TestRunStopped || run.ScenarioID != sc.ID {
-		t.Errorf("run = %+v, want a stopped run: no executor is installed", run)
+	if run.ScenarioID != sc.ID {
+		t.Errorf("run = %+v, want a run of the scenario", run)
 	}
+	if ended, err := r.mgr.AwaitRun(t.Context(), run.ID); err != nil || ended.Result != models.TestRunStopped {
+		t.Errorf("ended run = %+v, %v, want a stopped run: no executor is installed", ended, err)
+	}
+	r.expect(r.call(http.MethodPost, "/test-runs/"+run.ID+"/stop", ""), http.StatusConflict, nil)
+	r.expect(r.call(http.MethodPost, "/test-runs/no-such-run/stop", ""), http.StatusNotFound, nil)
 	var got models.TestRun
 	r.expect(r.call(http.MethodGet, "/test-runs/"+run.ID, ""), http.StatusOK, &got)
 	if got.ID != run.ID {
