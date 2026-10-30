@@ -94,7 +94,7 @@ func freshMountKey(entry models.ModuleCatalogEntry, name string, used map[string
 	base := models.MountKeyFromName(name)
 	key := base
 	for n := 2; used[key]; n++ {
-		key = base + "-" + strconv.Itoa(n)
+		key = base + strconv.Itoa(n)
 	}
 	return key
 }

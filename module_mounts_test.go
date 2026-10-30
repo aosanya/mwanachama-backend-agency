@@ -8,6 +8,7 @@ import (
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
+	"github.com/aosanya/mwanachama-backend-shared/spec"
 )
 
 func mountsOf(t *testing.T, mod models.Module) []models.ModuleMount {
@@ -59,7 +60,7 @@ func TestTheFirstNewNameTakesTodaysMountAndTheRestGetTheirOwn(t *testing.T) {
 	}
 	got := mountsOf(t, named)
 	want := []models.ModuleMount{
-		{Name: "Inputs", Key: "market"}, {Name: "Harvest", Key: "harvest", Icon: "wheat"}, {Name: "Get a ride", Key: "get-a-ride", Icon: "bike"},
+		{Name: "Inputs", Key: "market"}, {Name: "Harvest", Key: "harvest", Icon: "wheat"}, {Name: "Get a ride", Key: "getaride", Icon: "bike"},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("mounts = %+v, want %+v", got, want)
@@ -189,5 +190,40 @@ func TestMountNamesArePublishedVersionedAndForked(t *testing.T) {
 	}
 	if got := mountsOf(t, mods[0]); len(got) != 2 || got[1].Name != "Harvest" {
 		t.Errorf("forked mounts = %+v", got)
+	}
+}
+
+func TestEveryMountKeyFollowsTheSharedSegmentPattern(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	draftID := newDraftAgency(t, mgr, ctx)
+	market, _ := seededModule(mgr, ctx, draftID, "market")
+
+	names := []string{"Bus market", "Bus-market", "Bus  market!", "2024 harvest", "Café stand", "Get a ride", "Ride", "Ride 2", "Ride!"}
+	wanted := make([]models.ModuleMount, len(names))
+	for i, name := range names {
+		wanted[i] = models.ModuleMount{Name: name}
+	}
+	named, err := mgr.SetModuleMounts(ctx, market.ID, wanted)
+	if err != nil {
+		t.Fatalf("SetModuleMounts: %v", err)
+	}
+	seen := map[string]string{}
+	for _, mount := range mountsOf(t, named) {
+		if !spec.SegmentPattern.MatchString(mount.Key) {
+			t.Errorf("mount %q has key %q, which the segment pattern %s refuses", mount.Name, mount.Key, spec.SegmentPattern)
+		}
+		if other, dup := seen[mount.Key]; dup {
+			t.Errorf("mounts %q and %q share the key %q", other, mount.Name, mount.Key)
+		}
+		seen[mount.Key] = mount.Name
+	}
+}
+
+func TestAMountKeyFromAnyNameIsAUsableSegment(t *testing.T) {
+	for _, name := range []string{"Bus market", "a-b-c", "42", "!!!", "日本語", "x_y", "  spaced  out  "} {
+		if key := models.MountKeyFromName(name); !spec.SegmentPattern.MatchString(key) {
+			t.Errorf("MountKeyFromName(%q) = %q, which the segment pattern %s refuses", name, key, spec.SegmentPattern)
+		}
 	}
 }

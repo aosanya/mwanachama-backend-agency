@@ -206,19 +206,16 @@ func ValidateModuleMounts(code string, mounts []ModuleMount) error {
 
 func MountKeyFromName(name string) string {
 	var b strings.Builder
-	dash := false
 	for _, r := range strings.ToLower(name) {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+		switch {
+		case r >= 'a' && r <= 'z':
 			b.WriteRune(r)
-			dash = false
-		} else if !dash && b.Len() > 0 {
-			b.WriteByte('-')
-			dash = true
+		case r >= '0' && r <= '9' && b.Len() > 0:
+			b.WriteRune(r)
 		}
 	}
-	key := strings.TrimRight(b.String(), "-")
-	if key == "" {
+	if b.Len() == 0 {
 		return "mount"
 	}
-	return key
+	return b.String()
 }
