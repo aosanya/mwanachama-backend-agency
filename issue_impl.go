@@ -115,10 +115,10 @@ func (s *issueScan) checkRACI() error {
 		roleIDs[r.ID] = true
 	}
 
-	objectivesWithAccountable := make(map[string]bool, len(assignments))
+	accountables := make(map[string]int, len(assignments))
 	for _, a := range assignments {
 		if a.Label == models.RACILabelAccountable {
-			objectivesWithAccountable[a.ObjectiveID] = true
+			accountables[a.ObjectiveID]++
 		}
 		if !roleIDs[a.RoleID] {
 			s.add(models.IssueSeverityError, "role_assignment", a.ID,
@@ -130,9 +130,13 @@ func (s *issueScan) checkRACI() error {
 		}
 	}
 	for _, o := range objectives {
-		if !objectivesWithAccountable[o.ID] {
+		switch held := accountables[o.ID]; {
+		case held == 0:
 			s.add(models.IssueSeverityError, "objective", o.ID,
 				"Objective %s %q has no Accountable role assigned", o.Code, o.Title)
+		case held > 1:
+			s.add(models.IssueSeverityError, "objective", o.ID,
+				"Objective %s %q has %d Accountable roles assigned, and only one is allowed", o.Code, o.Title, held)
 		}
 	}
 	return nil

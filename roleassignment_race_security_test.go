@@ -9,7 +9,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG53_OpenHole_TwoAccountablesHoldOneObjective(t *testing.T) {
+func TestAG53_TwoAccountablesHoldOneObjective(t *testing.T) {
 	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
 	_, o, owner := seedPublishableAgency(t, mgr, ctx)
@@ -41,6 +41,6 @@ func TestAG53_OpenHole_TwoAccountablesHoldOneObjective(t *testing.T) {
 	_, publishErr := mgr.PublishAgency(ctx, o.DraftID, "two-accountables", "production")
 
 	if insertErr == nil && !errors.Is(publishErr, mwanachamaagency.ErrPublishValidationFailed) {
-		t.Errorf("AG53 (P2) open hole: a second Accountable row on objective %s, written as a concurrent CreateRoleAssignment writes it after both counted zero, was accepted by the store (insert error %v), the objective now holds %d Accountables (%s and %s), and PublishAgency answered %v; want the store to refuse the second row, or the publish gate to refuse an objective with more than one Accountable", o.ID, insertErr, len(held), owner.ID, rival.ID, publishErr)
+		t.Errorf("AG53: a second Accountable row on objective %s, written as a concurrent CreateRoleAssignment writes it after both counted zero, was accepted by the store (insert error %v), the objective now holds %d Accountables (%s and %s), and PublishAgency answered %v; want the store to refuse the second row, or the publish gate to refuse an objective with more than one Accountable", o.ID, insertErr, len(held), owner.ID, rival.ID, publishErr)
 	}
 }
