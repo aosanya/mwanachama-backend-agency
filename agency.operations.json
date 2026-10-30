@@ -1985,7 +1985,7 @@
       "action": "agency.scenario.create",
       "status": 201,
       "title": "Create scenario",
-      "description": "Write a test scenario: one path through one workflow of the draft, which the Test agent plays out. Its blocks are that workflow's steps and it starts Not run yet. Add the people it plays with add scenario actor and fix what a step is given with set scenario input. Thens is a list of step_id and then: the Then line of a block, which the Test agent judges against the test copy once the step has been played. A workflow of another draft is refused.",
+      "description": "Write a test scenario: one path through one workflow of the draft, which the Test agent plays out. Its blocks are that workflow's steps and it starts Not run yet. Send actors (a name and a role_id each) and inputs (a step_id, a field and a value each) to write the people and the fixed answers in the same call, with no scenario_id or draft_id on the entries; all of it lands or none of it does. Add or change them later with add scenario actor and set scenario input. Thens is a list of step_id and then: the Then line of a block, which the Test agent judges against the test copy once the step has been played. A workflow of another draft is refused.",
       "args": [
         {
           "from": "body",

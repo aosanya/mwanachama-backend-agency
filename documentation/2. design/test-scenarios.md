@@ -71,6 +71,20 @@ step's form does not ask, all with `ErrInvalidScenario`. Setting an empty value
 frees the field and deletes the row. Deleting a step deletes the inputs fixed
 on it.
 
+### Drafting a scenario in one call (HS320)
+
+The Test agent drafts a scenario for an untested rule and the designer approves
+it, so the scenario, its people, its fixed answers and its Then lines must be
+writable in one tool call before any scenario exists. `agency_create_scenario`
+takes `actors`, `inputs` and `thens` with entries that carry only what the
+designer would write: an actor is `name` and `role_id`, an input is `step_id`,
+`field` and `value`, a Then line is `step_id` and `then`. The `scenario_id` and
+`draft_id` of an entry are the store's, set from the scenario being written,
+and the tool schemas of create and update do not ask for them (they used to,
+which refused every draft that carried an input). The questions to fix an input
+on are read beforehand from `agency_list_work_items`, which returns each step's
+form questions.
+
 ## What each write does
 
 - `CreateScenario` needs an open draft, a name and a workflow of that draft

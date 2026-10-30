@@ -57,6 +57,11 @@ var storeOwned = map[string]bool{
 	"Issue.severity":   true,
 	"Issue.message":    true,
 	"Issue.entity_id":  true,
+
+	"ScenarioActor.draft_id":    true,
+	"ScenarioActor.scenario_id": true,
+	"ScenarioInput.draft_id":    true,
+	"ScenarioInput.scenario_id": true,
 }
 
 func fields() (map[string]dispatch.FieldDoc, error) {
