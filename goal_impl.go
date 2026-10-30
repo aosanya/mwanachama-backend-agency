@@ -83,7 +83,7 @@ func (m *agencyManager) DeleteGoal(ctx context.Context, id string) error {
 		}
 
 		objectivesOfGoal := "objective_id in (select id from " + m.table(roleObjective) + " where draft_id = ? and goal_id = ?)"
-		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
+		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleMeasure} {
 			if err := m.deleteInDraft(ctx, tx, role, existing.DraftID, objectivesOfGoal, existing.DraftID, id); err != nil {
 				return err
 			}

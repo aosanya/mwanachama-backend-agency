@@ -146,8 +146,8 @@ func TestMountNamesArePublishedVersionedAndForked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seededModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: market.ID, Rationale: "farmers buy inputs"}); err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
+	if _, err := mgr.SetModuleEnabled(ctx, o.DraftID, market.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
 	}
 
 	first, err := mgr.PublishAgency(ctx, o.DraftID, "", "")

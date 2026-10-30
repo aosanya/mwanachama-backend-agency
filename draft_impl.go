@@ -245,14 +245,11 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 	if err != nil {
 		return fmt.Errorf("CreateDraft: %w", err)
 	}
-	moduleIDs := make(map[string]string, len(modules))
 	for _, mod := range modules {
-		old := mod.ID
 		mod.ID, mod.DraftID, mod.CreatedAt, mod.LastUpdated = newID(), newDraftID, now, now
 		if err := m.copyRow(ctx, tx, roleModule, mod); err != nil {
 			return err
 		}
-		moduleIDs[old] = mod.ID
 	}
 
 	assignments, err := list[models.RoleAssignment](m, scopeQuery(tx.Table(m.table(roleRoleAssignment)), sourceScope), roleRoleAssignment)
@@ -264,19 +261,6 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		a.RoleID = remap(roleIDs, a.RoleID)
 		a.ObjectiveID = remap(objectiveIDs, a.ObjectiveID)
 		if err := m.copyRow(ctx, tx, roleRoleAssignment, a); err != nil {
-			return err
-		}
-	}
-
-	objectiveModules, err := list[models.ObjectiveModule](m, scopeQuery(tx.Table(m.table(roleObjectiveModule)), sourceScope), roleObjectiveModule)
-	if err != nil {
-		return fmt.Errorf("CreateDraft: %w", err)
-	}
-	for _, om := range objectiveModules {
-		om.ID, om.DraftID, om.CreatedAt, om.LastUpdated = newID(), newDraftID, now, now
-		om.ObjectiveID = remap(objectiveIDs, om.ObjectiveID)
-		om.ModuleID = remap(moduleIDs, om.ModuleID)
-		if err := m.copyRow(ctx, tx, roleObjectiveModule, om); err != nil {
 			return err
 		}
 	}

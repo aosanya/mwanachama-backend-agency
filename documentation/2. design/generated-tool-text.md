@@ -23,7 +23,7 @@ exactly one of four places:
   operator uses (`G-1`, `R-5`) and, for a publication, the key
   `agency_set_publication_channel` actually takes.
 - **the label** — the first of `Title`, `Name`, `Text`, `Message`,
-  `Description`, `Rationale`, quoted.
+  `Description`, quoted.
 - **references** — `ID` first, then every other `*ID` and `*Code` field.
 - **facts** — `Label`, `Severity`, `TargetType`, `Status`, `Enabled`, which
   are enum-shaped, and `Channel`, which is not: the blueprint declares

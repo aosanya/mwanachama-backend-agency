@@ -66,15 +66,11 @@ func (s *issueScan) checkModuleSettings() error {
 	if err != nil {
 		return err
 	}
-	var linkedIDs []string
-	if err := s.scoped(roleObjectiveModule).Pluck("module_id", &linkedIDs).Error; err != nil {
+	kinds, err := s.m.draftStepKinds(s.ctx, s.tx, s.draftID)
+	if err != nil {
 		return err
 	}
-	linked := make(map[string]bool, len(linkedIDs))
-	for _, id := range linkedIDs {
-		linked[id] = true
-	}
-	for _, mod := range deriveEnabled(modules, linked) {
+	for _, mod := range withEffectiveEnabled(modules, kinds) {
 		severity := models.IssueSeverityError
 		if !mod.Enabled {
 			severity = models.IssueSeverityWarning

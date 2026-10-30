@@ -7,24 +7,23 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestModuleRequires_EnablingFormsEnablesCatalogAndGit(t *testing.T) {
+func TestModuleRequires_SwitchingFormsOnEnablesCatalogAndGit(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 	draftID := o.DraftID
 
 	created := map[string]models.Module{}
-	for _, code := range []string{"forms", "catalog", "git", "comm"} {
+	for _, code := range []string{"forms", "catalog", "git", "taskmanager"} {
 		mod, err := seededModule(mgr, ctx, draftID, code)
 		if err != nil {
-			t.Fatalf("CreateModule %s: %v", code, err)
+			t.Fatalf("seededModule %s: %v", code, err)
 		}
 		created[code] = mod
 	}
 
-	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: created["forms"].ID, Rationale: "residents answer forms"})
-	if err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
+	if _, err := mgr.SetModuleEnabled(ctx, draftID, created["forms"].ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
 	}
 
 	for _, code := range []string{"forms", "catalog", "git"} {
@@ -35,17 +34,38 @@ func TestModuleRequires_EnablingFormsEnablesCatalogAndGit(t *testing.T) {
 			t.Fatalf("expected GetModule to agree %s is enabled, got %+v (%v)", code, got, err)
 		}
 	}
-	if got := moduleByCode(t, mgr, ctx, draftID, "comm"); got.Enabled {
-		t.Fatalf("expected comm untouched by forms, got %+v", got)
+	if got := moduleByCode(t, mgr, ctx, draftID, "taskmanager"); got.Enabled {
+		t.Fatalf("expected taskmanager untouched by forms, got %+v", got)
 	}
 
-	if err := mgr.DeleteObjectiveModule(ctx, link.ID); err != nil {
-		t.Fatalf("DeleteObjectiveModule: %v", err)
+	if _, err := mgr.SetModuleEnabled(ctx, draftID, created["forms"].ID, false); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
 	}
 	for _, code := range []string{"forms", "catalog", "git"} {
 		if got := moduleByCode(t, mgr, ctx, draftID, code); got.Enabled {
 			t.Fatalf("expected %s disabled once forms is off, got %+v", code, got)
 		}
+	}
+}
+
+func TestModuleRequires_ACatalogSwitchedOnByHandStaysOnWhenFormsGoesOff(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := o.DraftID
+	forms := moduleByCode(t, mgr, ctx, draftID, "forms")
+	catalog := moduleByCode(t, mgr, ctx, draftID, "catalog")
+
+	for _, id := range []string{forms.ID, catalog.ID} {
+		if _, err := mgr.SetModuleEnabled(ctx, draftID, id, true); err != nil {
+			t.Fatalf("SetModuleEnabled: %v", err)
+		}
+	}
+	if _, err := mgr.SetModuleEnabled(ctx, draftID, forms.ID, false); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
+	}
+	if got := moduleByCode(t, mgr, ctx, draftID, "catalog"); !got.Enabled || !got.Explicit {
+		t.Fatalf("expected catalog to stay on by its own flag, got %+v", got)
 	}
 }
 

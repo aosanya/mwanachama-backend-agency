@@ -72,7 +72,7 @@ func TestRegisterTools_ListsExpectedTools(t *testing.T) {
 		"agency_set_raci",
 		"agency_create_value", "agency_create_rule", "agency_design_from_spec",
 		"agency_list_types",
-		"agency_update_module_rationale", "agency_list_module_objectives",
+		"agency_set_module_enabled", "agency_list_modules", "agency_get_module",
 	}
 	for _, w := range want {
 		if !names[w] {
@@ -279,7 +279,7 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 	}
 }
 
-func TestModuleLinkTools_UpdateAndInverseList(t *testing.T) {
+func TestModuleSwitchTools_SetListAndRefuseLocked(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
 	drafts, err := mgr.ListDrafts(ctx, mwanachamaagency.DraftFilter{})
@@ -287,21 +287,13 @@ func TestModuleLinkTools_UpdateAndInverseList(t *testing.T) {
 		t.Fatalf("ListDrafts: %+v err=%v", drafts, err)
 	}
 	draftID := drafts[0].ID
-	goal, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption"})
+	git, err := seededModule(mgr, ctx, draftID, "git")
 	if err != nil {
-		t.Fatalf("CreateGoal: %v", err)
+		t.Fatalf("seededModule: %v", err)
 	}
-	obj, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: goal.ID, Title: "Onboard members"})
+	auth, err := seededModule(mgr, ctx, draftID, "auth")
 	if err != nil {
-		t.Fatalf("CreateObjective: %v", err)
-	}
-	mods, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{Code: "auth"})
-	if err != nil || len(mods) != 1 {
-		t.Fatalf("ListModules: %+v err=%v", mods, err)
-	}
-	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: obj.ID, ModuleID: mods[0].ID, Rationale: "signs members in"})
-	if err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
+		t.Fatalf("seededModule: %v", err)
 	}
 
 	mux := http.NewServeMux()
@@ -311,28 +303,41 @@ func TestModuleLinkTools_UpdateAndInverseList(t *testing.T) {
 	defer srv.Close()
 	cs := mcpConnect(t, srv.URL)
 
-	blank, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_update_module_rationale",
-		Arguments: map[string]any{"instance_id": "any", "objective_module_id": link.ID, "rationale": " "}})
+	on, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_set_module_enabled",
+		Arguments: map[string]any{"instance_id": "any", "draft_id": draftID, "module_id": git.ID, "enabled": true}})
+	if err != nil || on.IsError {
+		t.Fatalf("switch on: err=%v result=%+v", err, on)
+	}
+	listed, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_list_modules",
+		Arguments: map[string]any{"instance_id": "any", "draft_id": draftID, "code": "git"}})
+	if err != nil || listed.IsError {
+		t.Fatalf("list: err=%v result=%+v", err, listed)
+	}
+	b, _ := json.Marshal(listed.StructuredContent)
+	for _, want := range []string{`"enabled":true`, `"explicit":true`, `"needed_by_steps":false`} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("list result missing %s: %s", want, b)
+		}
+	}
+
+	locked, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_set_module_enabled",
+		Arguments: map[string]any{"instance_id": "any", "draft_id": draftID, "module_id": auth.ID, "enabled": false}})
 	if err != nil {
 		t.Fatalf("CallTool: %v", err)
 	}
-	if !blank.IsError {
-		t.Fatalf("blank rationale should be a tool error")
+	if !locked.IsError {
+		t.Fatalf("switching a locked module off should be a tool error")
 	}
-	upd, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_update_module_rationale",
-		Arguments: map[string]any{"instance_id": "any", "objective_module_id": link.ID, "rationale": "keeps members' identities verified"}})
-	if err != nil || upd.IsError {
-		t.Fatalf("update: err=%v result=%+v", err, upd)
+
+	elsewhere, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_set_module_enabled",
+		Arguments: map[string]any{"instance_id": "any", "draft_id": "no-such-draft", "module_id": git.ID, "enabled": false}})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
 	}
-	inv, err := cs.CallTool(ctx, &gosdkmcp.CallToolParams{Name: "agency_list_module_objectives",
-		Arguments: map[string]any{"instance_id": "any", "module_id": mods[0].ID, "draft_id": draftID}})
-	if err != nil || inv.IsError {
-		t.Fatalf("inverse list: err=%v result=%+v", err, inv)
+	if !elsewhere.IsError {
+		t.Fatalf("a module of another draft should not be found")
 	}
-	b, _ := json.Marshal(inv)
-	for _, want := range []string{"Onboard members", "Grow adoption", "keeps members' identities verified"} {
-		if !strings.Contains(string(b), want) {
-			t.Errorf("inverse list result missing %q: %s", want, b)
-		}
+	if got, err := mgr.GetModule(ctx, git.ID); err != nil || !got.Explicit {
+		t.Fatalf("a refused call changed git: %+v %v", got, err)
 	}
 }

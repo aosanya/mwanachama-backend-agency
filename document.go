@@ -160,23 +160,15 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		})
 	}
 
-	objectiveModules, err := list[models.ObjectiveModule](m, scoped(roleObjectiveModule).Order("created_at"), roleObjectiveModule)
-	if err != nil {
-		return fail(err)
-	}
-	linkedModules := make(map[string]bool, len(objectiveModules))
-	for _, om := range objectiveModules {
-		linkedModules[om.ModuleID] = true
-		doc.ObjectiveModules = append(doc.ObjectiveModules, models.DocumentObjectiveModule{
-			ObjectiveID: om.ObjectiveID, ModuleID: om.ModuleID, Rationale: om.Rationale,
-		})
-	}
-
 	modules, err := list[models.Module](m, scoped(roleModule).Order("code"), roleModule)
 	if err != nil {
 		return fail(err)
 	}
-	for _, mod := range deriveEnabled(modules, linkedModules) {
+	kinds, err := m.draftStepKinds(ctx, tx, draftID)
+	if err != nil {
+		return fail(err)
+	}
+	for _, mod := range withEffectiveEnabled(modules, kinds) {
 		doc.Modules = append(doc.Modules, models.DocumentModule{
 			ID: mod.ID, Code: mod.Code, Enabled: mod.Enabled, Spec: json.RawMessage(mod.Spec),
 			Settings: json.RawMessage(mod.Settings), Mounts: json.RawMessage(mod.Mounts),
@@ -327,7 +319,6 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	for _, entry := range models.ModuleCatalog {
 		catalog[entry.Code] = entry
 	}
-	moduleIDs := make(map[string]string, len(doc.Modules))
 	for _, mod := range doc.Modules {
 		mounts, err := models.ParseModuleMounts(string(mod.Mounts))
 		if err == nil {
@@ -344,18 +335,6 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleModule, row); err != nil {
-			return fail(err)
-		}
-		moduleIDs[mod.ID] = row.ID
-	}
-
-	for _, om := range doc.ObjectiveModules {
-		row := models.ObjectiveModule{
-			ID: newID(), DraftID: draftID, ObjectiveID: objectiveIDs[om.ObjectiveID],
-			ModuleID: moduleIDs[om.ModuleID], Rationale: om.Rationale,
-			CreatedAt: now, LastUpdated: now,
-		}
-		if err := m.copyRow(ctx, tx, roleObjectiveModule, row); err != nil {
 			return fail(err)
 		}
 	}

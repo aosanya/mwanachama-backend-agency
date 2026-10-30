@@ -16,7 +16,6 @@ type TableNames struct {
 	Roles              string
 	RoleAssignments    string
 	Modules            string
-	ObjectiveModules   string
 	Values             string
 	ValueAttachments   string
 	Rules              string
@@ -52,7 +51,6 @@ func TablesFor(s *spec.Spec) TableNames {
 		Roles:              table(roleRole),
 		RoleAssignments:    table(roleRoleAssignment),
 		Modules:            table(roleModule),
-		ObjectiveModules:   table(roleObjectiveModule),
 		Values:             table(roleValue),
 		ValueAttachments:   table(roleValueAttachment),
 		Rules:              table(roleRule),

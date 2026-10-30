@@ -56,17 +56,12 @@ func TestObjectiveNestedListingsNeverReachAnotherDraftsRows(t *testing.T) {
 		return list
 	}
 
-	mods, err := mgr.ListModules(ctx, draftA, mwanachamaagency.ModuleFilter{Code: "auth"})
-	if err != nil || len(mods) != 1 {
-		t.Fatalf("precondition: ListModules(code=auth) in draft A: rows=%+v err=%v", mods, err)
-	}
 	goal := create("/goals", `{"title":"GA","draft_id":"`+draftA+`"}`)
 	objective := create("/objectives", `{"title":"OA","goal_id":"`+goal+`","draft_id":"`+draftA+`"}`)
 	role := create("/roles", `{"name":"RA","draft_id":"`+draftA+`"}`)
 	create("/role-assignments", `{"role_id":"`+role+`","objective_id":"`+objective+`","label":"accountable","draft_id":"`+draftA+`"}`)
-	create("/objectives/"+objective+"/modules", `{"rationale":"needed","module_id":"`+mods[0].ID+`","draft_id":"`+draftA+`"}`)
 
-	for _, nested := range []string{"role-assignments", "modules"} {
+	for _, nested := range []string{"role-assignments"} {
 		base := "/objectives/" + objective + "/" + nested
 		if got := rows(base + "?draft_id=" + draftA); len(got) != 1 || got[0]["draft_id"] != draftA {
 			t.Fatalf("precondition: GET %s?draft_id=<A> -> %v, want the one row of draft A", base, got)
@@ -85,8 +80,8 @@ func TestObjectiveNestedListingsNeverReachAnotherDraftsRows(t *testing.T) {
 	if _, err := mgr.GetObjective(ctx, objective); err != nil {
 		t.Fatalf("postcondition: GetObjective: %v", err)
 	}
-	links, err := mgr.ListObjectiveModulesForObjective(ctx, objective, draftA, mwanachamaagency.ObjectiveModuleFilter{})
-	if err != nil || len(links) != 1 {
-		t.Fatalf("postcondition: draft A's link changed: %+v %v", links, err)
+	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, objective, draftA, mwanachamaagency.RoleAssignmentFilter{})
+	if err != nil || len(assignments) != 1 {
+		t.Fatalf("postcondition: draft A's assignment changed: %+v %v", assignments, err)
 	}
 }

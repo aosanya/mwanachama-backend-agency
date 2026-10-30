@@ -57,8 +57,8 @@ func TestModuleSettingsFailingTheModulesCheckBlockPublishThenPublishWithTheDraft
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: forms.ID, Rationale: "residents answer forms"}); err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
+	if _, err := mgr.SetModuleEnabled(ctx, o.DraftID, forms.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
 	}
 
 	if _, err := mgr.PublishAgency(ctx, o.DraftID, "", ""); !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {
@@ -153,8 +153,8 @@ func TestNoSettingsCheckerMeansNoSettingsCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: forms.ID, Rationale: "residents answer forms"}); err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
+	if _, err := mgr.SetModuleEnabled(ctx, o.DraftID, forms.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
 	}
 	if _, err := mgr.PublishAgency(ctx, o.DraftID, "", ""); err != nil {
 		t.Fatalf("expected publish with no checker to pass, got %v", err)
@@ -197,8 +197,8 @@ func TestASwitchedOffModulesBadSettingsWarnAndSwitchingItOnBlocks(t *testing.T) 
 		t.Fatalf("a warning must not block publish, got %v", err)
 	}
 
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: forms.ID, Rationale: "residents answer forms"}); err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
+	if _, err := mgr.SetModuleEnabled(ctx, o.DraftID, forms.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
 	}
 	if _, err := mgr.PublishAgency(ctx, o.DraftID, "", ""); !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {
 		t.Fatalf("switching the module on must check its settings again and block, got %v", err)

@@ -81,7 +81,7 @@ func (m *agencyManager) DeleteObjective(ctx context.Context, id string) error {
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
-		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
+		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleMeasure} {
 			if err := m.deleteInDraft(ctx, tx, role, existing.DraftID, "objective_id = ?", id); err != nil {
 				return err
 			}

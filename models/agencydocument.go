@@ -19,23 +19,22 @@ import "encoding/json"
 // was published, with Code alongside it. An importer may resolve either;
 // Code is the one that survives a promotion unchanged (AG16).
 type AgencyDocument struct {
-	Agency           DocumentAgency            `json:"agency"`
-	Roles            []DocumentRole            `json:"roles"`
-	Goals            []DocumentGoal            `json:"goals"`
-	Objectives       []DocumentObjective       `json:"objectives"`
-	Workflows        []DocumentWorkflow        `json:"workflows"`
-	WorkItems        []DocumentWorkItem        `json:"work_items"`
-	RoleAssignments  []DocumentRoleAssignment  `json:"role_assignments"`
-	Values           []DocumentStatement       `json:"values"`
-	Rules            []DocumentStatement       `json:"rules"`
-	ValueAttachments []DocumentAttachment      `json:"value_attachments"`
-	RuleAttachments  []DocumentAttachment      `json:"rule_attachments"`
-	Modules          []DocumentModule          `json:"modules"`
-	ObjectiveModules []DocumentObjectiveModule `json:"objective_modules"`
-	EventFlowSteps   []EventFlowStep           `json:"event_flow_steps"`
-	Records          []DocumentRecord          `json:"records,omitempty"`
-	Measures         []DocumentMeasure         `json:"measures,omitempty"`
-	Scenarios        []DocumentScenario        `json:"scenarios,omitempty"`
+	Agency           DocumentAgency           `json:"agency"`
+	Roles            []DocumentRole           `json:"roles"`
+	Goals            []DocumentGoal           `json:"goals"`
+	Objectives       []DocumentObjective      `json:"objectives"`
+	Workflows        []DocumentWorkflow       `json:"workflows"`
+	WorkItems        []DocumentWorkItem       `json:"work_items"`
+	RoleAssignments  []DocumentRoleAssignment `json:"role_assignments"`
+	Values           []DocumentStatement      `json:"values"`
+	Rules            []DocumentStatement      `json:"rules"`
+	ValueAttachments []DocumentAttachment     `json:"value_attachments"`
+	RuleAttachments  []DocumentAttachment     `json:"rule_attachments"`
+	Modules          []DocumentModule         `json:"modules"`
+	EventFlowSteps   []EventFlowStep          `json:"event_flow_steps"`
+	Records          []DocumentRecord         `json:"records,omitempty"`
+	Measures         []DocumentMeasure        `json:"measures,omitempty"`
+	Scenarios        []DocumentScenario       `json:"scenarios,omitempty"`
 }
 
 type DocumentAgency struct {
@@ -138,10 +137,4 @@ type DocumentModule struct {
 	Spec     json.RawMessage `json:"spec,omitempty"`
 	Settings json.RawMessage `json:"settings,omitempty"`
 	Mounts   json.RawMessage `json:"mounts,omitempty"`
-}
-
-type DocumentObjectiveModule struct {
-	ObjectiveID string `json:"objective_id"`
-	ModuleID    string `json:"module_id"`
-	Rationale   string `json:"rationale"`
 }

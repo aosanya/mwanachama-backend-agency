@@ -115,15 +115,7 @@ var (
 
 	ErrInvalidModuleSettings = errors.New("mwanachamaagency: module settings must be a JSON object")
 	ErrInvalidModuleMounts   = models.ErrInvalidMounts
-	// ErrDuplicateObjectiveModule is returned by CreateObjectiveModule when
-	// the same (Objective, Module) pair is already linked in that scope.
-	ErrDuplicateObjectiveModule = errors.New("mwanachamaagency: objective already linked to this module")
-	// ErrRationaleRequired is returned by CreateObjectiveModule when the link
-	// carries no Rationale.
-	ErrRationaleRequired = errors.New("mwanachamaagency: objective module needs a rationale")
-	// ErrObjectiveModuleNotFound is returned when an ObjectiveModule id has
-	// no match.
-	ErrObjectiveModuleNotFound = errors.New("mwanachamaagency: objective module not found")
+	ErrModuleLocked          = errors.New("mwanachamaagency: a locked module cannot be switched off")
 
 	ErrInvalidMeasure   = errors.New("mwanachamaagency: invalid measure")
 	ErrInvalidRecord    = errors.New("mwanachamaagency: invalid record")

@@ -207,7 +207,7 @@
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
         {"name": "name", "type": "string", "description": "What the capability is called in a listing.", "required": true},
         {"name": "description", "type": "text", "description": "What switching it on gives the organization."},
-        {"name": "enabled", "type": "bool", "description": "Whether this capability is switched on. Derived from the objectives that link to it, never set directly."},
+        {"name": "enabled", "type": "bool", "description": "The switch itself: whether somebody switched this capability on in this draft. What actually runs is this, or locked, or needed by a workflow step, plus whatever those require; the listing shows that as enabled."},
         {"name": "locked", "type": "bool", "description": "Whether this capability may never be switched off. The operator door is the only one."},
         {"name": "spec", "type": "json", "description": "The declared shape this organization gives the capability: which object fills each of the module's roles, what this organization calls it, and which table it lands in. Empty unless the module declares a blueprint to validate it against. Carries no instance — a launch supplies that."},
         {"name": "settings", "type": "json", "description": "The values this organization gives the capability's own settings, as one JSON object keyed by setting name. Empty means none given. Checked by the module itself at publish, and published and versioned with the draft."},
@@ -221,26 +221,6 @@
         {"name": "code", "description": "Finds a capability by the name the catalog uses.", "fields": ["code"]},
         {"name": "draft_code_unique", "description": "Refuses a second capability with the same name in one draft, so two writers racing cannot both add it.", "fields": ["draft_id", "code"], "unique": true, "not_deleted": true},
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
-      ]
-    },
-    {
-      "role": "objective_module",
-      "description": "One reason an objective needs a capability, which is what switches that capability on.",
-      "fields": [
-        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
-        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
-        {"name": "objective_id", "type": "string", "description": "The objective doing the needing. Must be in the same draft as this link.", "required": true},
-        {"name": "module_id", "type": "string", "description": "The capability it needs. Must be in the same draft as this link.", "required": true},
-        {"name": "rationale", "type": "text", "description": "Why this objective needs it, which is what a reviewer reads.", "required": true},
-        {"name": "created_at", "type": "timestamp", "description": "When the link was made.", "immutable": true},
-        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
-        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
-      ],
-      "indexes": [
-        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
-        {"name": "objective", "description": "Reads what one objective needs.", "fields": ["objective_id"]},
-        {"name": "module", "description": "Reads what needs one capability, which is what decides whether it is on.", "fields": ["module_id"]},
-        {"name": "link_unique", "description": "Refuses a second link between one objective and one capability in a draft, so two writers racing cannot both add it.", "fields": ["draft_id", "objective_id", "module_id"], "unique": true, "not_deleted": true}
       ]
     },
     {

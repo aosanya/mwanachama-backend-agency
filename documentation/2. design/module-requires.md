@@ -14,43 +14,42 @@ list of other catalog codes. `forms` is the only entry carrying one today:
 
 ## How it is enforced
 
-A Module's `Enabled` was already derived rather than stored (AGD-002): an
-unlocked Module is on exactly when an Objective in the same scope links it.
-`deriveEnabled` (`module_impl.go`) widens that rule: it takes the directly
-enabled codes in a scope and closes them over `requires`
-(`models.WithRequiredModules`, transitive), so every module a directly
-enabled one requires reads as enabled too.
+A Module reads as enabled when it is locked, or its stored flag is on, or a
+workflow step in the same draft needs it (AGD-008). `withEffectiveEnabled`
+(`module_impl.go`) then closes that set over `requires`
+(`models.WithRequiredModules`, transitive), so every module a switched-on one
+requires reads as enabled too.
 
 Three consequences follow without any further code:
 
-- **Enabling forms enables both.** Linking an Objective to `forms` makes
-  `catalog` and `git` read as enabled in `ListModules`, `GetModule` and the
-  publication document.
-- **Neither can be disabled while forms is on.** There is no stored flag to
-  turn off; removing `catalog`'s or `git`'s own links leaves them enabled for
-  as long as anything links `forms`.
+- **Switching forms on enables both.** `catalog` and `git` read as enabled in
+  `ListModules`, `GetModule` and the publication document, with their own
+  `explicit` flag still off.
+- **Neither can be disabled while forms is on.** Switching `catalog`'s or
+  `git`'s own flag off leaves them enabled for as long as forms is.
 - **Importing a template that has forms enables both.** Import writes the
-  template's Modules and Objective links; enablement is then read through the
-  same derivation.
+  template's Modules with their stored flag; enablement is then read through
+  the same rule.
 
-The derivation always runs over every Module in the scope, before
-`ListModules`' code/name/description filters, so a filtered listing reports
-the same `Enabled` an unfiltered one does.
+The rule always runs over every Module in the scope, before `ListModules`'
+code/name/description filters, so a filtered listing reports the same
+`enabled` an unfiltered one does.
 
-Turning `forms` off (its last link removed) turns `catalog` and `git` back
+Switching `forms` off (with no step needing it) turns `catalog` and `git` back
 off unless something else enables them.
 
 ## Import creates what forms requires (AG81)
 
 Member app decision 250 (owner, 2026-10-22): importing an agency or template
 that switches on `forms` creates any forms catalog or report store it lacks.
-The derivation above can only report a Module row that exists, so a document
+The rule above can only report a Module row that exists, so a document
 carrying a `forms` Module but no `catalog` or `git` row would otherwise land
 with forms on and nothing to hold its answers or its report.
 
 `ImportDocument` (`import.go`) therefore runs `addRequiredModules` after the
-document is written into its draft. A Module counts as switched on when the
-document marks it `enabled` or an Objective links it; the switched-on codes
+document is written into its draft. A Module counts as switched on when it reads
+as enabled by the rule above (the document's flag, a step in the document, or
+a lock); the switched-on codes
 are closed over `requires`, and every code in that closure the draft has no
 Module row for is created from its catalog entry, enabled, in the same
 transaction. A row the document already carries is left as it is, and a
@@ -59,4 +58,4 @@ document that switches on nothing that requires anything gains no rows.
 `mwanachama-wakala-api`'s `POST /instances/import` does not go through
 `ImportDocument`: it seeds the whole module catalog into the new draft before
 applying the document, so `catalog` and `git` are already present there and
-read as enabled through the derivation as soon as `forms` is linked.
+read as enabled through the rule as soon as `forms` is switched on.

@@ -64,9 +64,6 @@ func TestModuleSpec_SurvivesImportAndPublication(t *testing.T) {
 		Modules: []models.DocumentModule{
 			{ID: "m1", Code: "catalog", Enabled: true, Spec: json.RawMessage(catalogSpec)},
 		},
-		ObjectiveModules: []models.DocumentObjectiveModule{
-			{ObjectiveID: "o1", ModuleID: "m1", Rationale: "the shop is this module"},
-		},
 	}
 
 	out, err := mgr.ImportDocument(ctx, "imported with a spec", doc)
@@ -82,7 +79,7 @@ func TestModuleSpec_SurvivesImportAndPublication(t *testing.T) {
 		t.Errorf("a stored spec must carry no instance, got %s", imported.Spec)
 	}
 	if !imported.Enabled {
-		t.Error("a module linked to an Objective should read as enabled")
+		t.Error("a module the document switches on should read as enabled")
 	}
 
 	if _, err := mgr.PublishAgency(ctx, out.Draft.ID, "spec-1", "production"); err != nil {

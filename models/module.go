@@ -25,6 +25,9 @@ type Module struct {
 	CreatedAt   string `json:"created_at"`
 	LastUpdated string `json:"last_updated"`
 	Deleted     bool   `json:"deleted"`
+
+	Explicit      bool `json:"explicit" spec:"-"`
+	NeededBySteps bool `json:"needed_by_steps" spec:"-"`
 }
 
 type ModuleMount struct {
@@ -56,6 +59,7 @@ type ModuleCatalogEntry struct {
 	Mount       string   `json:"mount,omitempty"`
 	Mountable   bool     `json:"mountable,omitempty"`
 	Requires    []string `json:"requires,omitempty"`
+	StepKinds   []string `json:"step_kinds,omitempty"`
 }
 
 //go:embed modules_catalog.json
@@ -82,6 +86,11 @@ func mustParseModuleCatalog(raw []byte) []ModuleCatalogEntry {
 		}
 	}
 	for _, entry := range catalog {
+		for _, kind := range entry.StepKinds {
+			if !StepKind(kind).Valid() {
+				panic(fmt.Sprintf("models: modules_catalog.json: %q lists the unknown step kind %q", entry.Code, kind))
+			}
+		}
 		for _, required := range entry.Requires {
 			if !seen[required] {
 				panic(fmt.Sprintf("models: modules_catalog.json: %q requires unknown code %q", entry.Code, required))
@@ -118,6 +127,18 @@ func WithRequiredModules(enabled map[string]bool) map[string]bool {
 		pending = append(pending, ModuleRequires(code)...)
 	}
 	return out
+}
+
+func ModulesNeededBySteps(kinds map[StepKind]bool) map[string]bool {
+	needed := make(map[string]bool)
+	for _, entry := range ModuleCatalog {
+		for _, kind := range entry.StepKinds {
+			if kinds[StepKind(kind)] {
+				needed[entry.Code] = true
+			}
+		}
+	}
+	return needed
 }
 
 func CatalogEntry(code string) (ModuleCatalogEntry, bool) {

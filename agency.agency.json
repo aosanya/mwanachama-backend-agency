@@ -64,12 +64,6 @@
       "description": "One capability from the platform catalog, switched on or off."
     },
     {
-      "role": "objective_module",
-      "name": "objective_module",
-      "table": "objective_modules",
-      "description": "The reason one objective needs one capability."
-    },
-    {
       "role": "value",
       "name": "value",
       "table": "values",

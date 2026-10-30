@@ -60,7 +60,7 @@ Member app decision 406: the `actor` module (members, groups, roles, join
 requests) is marked `locked` and `enabled` in `models/modules_catalog.json`,
 as `auth` is, so a new draft's catalog seed can never leave an owner unable to
 sign in and reach the people who switch modules back on. A locked module keeps
-its stored `enabled` rather than deriving it from Objective links. Existing
+its stored `enabled`; it reads enabled whatever that holds (AGD-008). Existing
 module rows keep whatever they already hold: the seed only inserts a missing
 code. The agency definition itself has no module row to lock; wakala-api never
 gates `actor` or `agency` regardless (WK186).

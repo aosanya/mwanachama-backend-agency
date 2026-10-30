@@ -63,21 +63,16 @@ func (m *agencyManager) addRequiredModules(ctx context.Context, tx *gorm.DB, dra
 	if err != nil {
 		return fmt.Errorf("addRequiredModules: %w", err)
 	}
-	var linkedIDs []string
-	if err := scopeQuery(tx.WithContext(ctx).Table(m.table(roleObjectiveModule)), draftID).
-		Pluck("module_id", &linkedIDs).Error; err != nil {
+	kinds, err := m.draftStepKinds(ctx, tx, draftID)
+	if err != nil {
 		return fmt.Errorf("addRequiredModules: %w", err)
-	}
-	linked := make(map[string]bool, len(linkedIDs))
-	for _, id := range linkedIDs {
-		linked[id] = true
 	}
 
 	present := make(map[string]bool, len(held))
 	switchedOn := make(map[string]bool, len(held))
-	for _, mod := range held {
+	for _, mod := range withEffectiveEnabled(held, kinds) {
 		present[mod.Code] = true
-		switchedOn[mod.Code] = mod.Enabled || linked[mod.ID]
+		switchedOn[mod.Code] = mod.Enabled
 	}
 
 	for _, entry := range models.ModuleCatalog {

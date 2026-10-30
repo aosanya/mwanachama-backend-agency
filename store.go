@@ -23,7 +23,6 @@ const (
 	roleRole            = "role"
 	roleRoleAssignment  = "role_assignment"
 	roleModule          = "module"
-	roleObjectiveModule = "objective_module"
 	roleValue           = "value"
 	roleValueAttachment = "value_attachment"
 	roleRule            = "rule"
@@ -69,7 +68,6 @@ func carriers() map[string]any {
 		roleRole:            models.Role{},
 		roleRoleAssignment:  models.RoleAssignment{},
 		roleModule:          models.Module{},
-		roleObjectiveModule: models.ObjectiveModule{},
 		roleValue:           models.Value{},
 		roleValueAttachment: models.ValueAttachment{},
 		roleRule:            models.Rule{},

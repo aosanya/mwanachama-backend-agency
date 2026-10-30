@@ -101,9 +101,6 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 	}
 }
 
-// TestPublishAgency_ModuleOnlyChangeIsAChange mirrors
-// TestPublishAgency_RACIOnlyChangeIsAChange: a Module/ObjectiveModule-only
-// edit must require republishing too, now that contentHashFor covers them.
 func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -115,12 +112,9 @@ func TestPublishAgency_ModuleOnlyChangeIsAChange(t *testing.T) {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 
-	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "widgets", Name: "Widgets", Enabled: true})
-	if err != nil {
-		t.Fatalf("CreateModule: %v", err)
-	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective"}); err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
+	git := moduleByCode(t, mgr, ctx, draftID, "git")
+	if _, err := mgr.SetModuleEnabled(ctx, draftID, git.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
 	}
 
 	p2, err := mgr.PublishAgency(ctx, draftID, "", "")
@@ -141,11 +135,6 @@ func TestPublishAgency_ModuleSpecOnlyChangeIsAChange(t *testing.T) {
 	mod, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "widgets", Name: "Widgets", Enabled: true})
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
-	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{
-		DraftID: draftID, ObjectiveID: o.ID, ModuleID: mod.ID, Rationale: "needed for the objective",
-	}); err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
 	p1, err := mgr.PublishAgency(ctx, draftID, "", "")
@@ -594,5 +583,42 @@ func TestCreateDraft_ForkFromUnknownPublication(t *testing.T) {
 	_, err := mgr.CreateDraft(ctx, "revisit", "no-such-tag", "publication")
 	if !errors.Is(err, mwanachamaagency.ErrPublicationNotFound) {
 		t.Fatalf("expected ErrPublicationNotFound, got %v", err)
+	}
+}
+
+func TestPublishedDocument_CarriesTheEffectiveEnabledValue(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
+
+	addStep(t, mgr, ctx, draftID, models.StepKindFillForm)
+	taskmanager := moduleByCode(t, mgr, ctx, draftID, "taskmanager")
+	if _, err := mgr.SetModuleEnabled(ctx, draftID, taskmanager.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
+	}
+
+	published, err := mgr.PublishAgency(ctx, draftID, "", "")
+	if err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+	enabled := map[string]bool{}
+	for _, mod := range published.Document.Modules {
+		enabled[mod.Code] = mod.Enabled
+	}
+	want := map[string]bool{
+		"auth": true, "actor": true, "comm": true,
+		"taskmanager": true,
+		"forms":       true, "catalog": true, "git": true,
+		"agency": false, "custody": false, "digitaltwin": false, "accounting": false,
+		"voting": false, "engage": false, "market": false,
+	}
+	for code, on := range want {
+		if enabled[code] != on {
+			t.Errorf("published %s enabled = %v, want %v (%v)", code, enabled[code], on, enabled)
+		}
+	}
+	if len(enabled) != len(models.ModuleCatalog) {
+		t.Errorf("published %d modules, want the catalog's %d", len(enabled), len(models.ModuleCatalog))
 	}
 }

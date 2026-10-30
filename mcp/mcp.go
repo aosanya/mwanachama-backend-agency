@@ -35,7 +35,6 @@ func RegisterTools(server *mcp.Server, resolve ManagerResolver) {
 	if err := registerDeclaredTools(server, resolve); err != nil {
 		panic(fmt.Sprintf("agency tools: %v", err))
 	}
-	registerModuleObjectivesTool(server, resolve)
 	registerCompositeTools(server, resolve)
 	registerCatalogTools(server)
 	registerDashboardUI(server)

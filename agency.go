@@ -48,11 +48,6 @@ type AgencyManager interface {
 	GetObjective(ctx context.Context, id string) (models.Objective, error)
 	ListObjectives(ctx context.Context, draftID string, filter ObjectiveFilter) ([]models.Objective, error)
 	UpdateObjective(ctx context.Context, o models.Objective) (models.Objective, error)
-	// DeleteObjective cascades: every RoleAssignment, WorkItem and
-	// ObjectiveModule scoped to it is deleted too — same bypass of RoleAssignment's own
-	// independent-edit rule as DeleteGoal's cascade (see its doc comment
-	// above). WorkItem.ObjectiveID is required, so a surviving WorkItem
-	// would be unreachable rather than merely untagged.
 	DeleteObjective(ctx context.Context, id string) error
 
 	// Workflow
@@ -184,17 +179,6 @@ type AgencyManager interface {
 	UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
 	DeleteRoleAssignment(ctx context.Context, id string) error
 
-	// Module. A catalog entry for a capability domain (e.g. "git",
-	// "taskmanager") this Agency may enable — a real gate on a mounting
-	// gateway's route registration for that domain, not a passive record
-	// (AGD-002). Fully read-only from the outside: no Update/Delete, and
-	// no route/MCP tool calls CreateModule either — every Module code,
-	// its Name/Description, and its default Enabled/Locked state come
-	// from [models.ModuleCatalog], applied by [gormstore.BackfillModules]
-	// at Migrate time. CreateModule stays on this interface only as
-	// SeedSWELab's own fallback for a code Migrate somehow didn't
-	// backfill; it returns [ErrInvalidModule] if Code is empty,
-	// [ErrDuplicateModule] if Code already exists in that scope.
 	CreateModule(ctx context.Context, mod models.Module) (models.Module, error)
 	GetModule(ctx context.Context, id string) (models.Module, error)
 	ListModules(ctx context.Context, draftID string, filter ModuleFilter) ([]models.Module, error)
@@ -202,24 +186,7 @@ type AgencyManager interface {
 	ListPickers(ctx context.Context, draftID string) (models.Pickers, error)
 	SetModuleSettings(ctx context.Context, id string, settings json.RawMessage) (models.Module, error)
 	SetModuleMounts(ctx context.Context, id string, mounts []models.ModuleMount) (models.Module, error)
-
-	// ObjectiveModule. Links an Objective to a Module — many-to-many,
-	// Draft-scoped, enforcing the same same-scope rule as RoleAssignment: a
-	// Draft's Objective can only link a Module already forked into that
-	// same Draft. CreateObjectiveModule returns [ErrObjectiveNotFound]/
-	// [ErrModuleNotFound] if the referenced Objective/Module doesn't exist
-	// in that scope, or [ErrDuplicateObjectiveModule] if the pair is
-	// already linked.
-	CreateObjectiveModule(ctx context.Context, om models.ObjectiveModule) (models.ObjectiveModule, error)
-	ListObjectiveModules(ctx context.Context, draftID string, filter ObjectiveModuleFilter) ([]models.ObjectiveModule, error)
-	// ListObjectiveModulesForObjective answers "which Modules does this
-	// Objective link, in this scope."
-	ListObjectiveModulesForObjective(ctx context.Context, objectiveID, draftID string, filter ObjectiveModuleFilter) ([]models.ObjectiveModule, error)
-	// UpdateObjectiveModule replaces a link's Rationale. Returns
-	// [ErrRationaleRequired] for a blank one and [ErrObjectiveModuleNotFound]
-	// for an unknown id.
-	UpdateObjectiveModule(ctx context.Context, id, rationale string) (models.ObjectiveModule, error)
-	DeleteObjectiveModule(ctx context.Context, id string) error
+	SetModuleEnabled(ctx context.Context, draftID, id string, enabled bool) (models.Module, error)
 
 	// Value/Rule. Plain-text statements an AI agent acting as a Role
 	// needs made explicit (see models.Value/models.Rule's doc comments).

@@ -9,9 +9,6 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// bootstrapDraftID returns the single Draft [gormstore.EnsureWorkingDraft]
-// creates during Migrate — the home for gormstore.BackfillModules' seeded
-// catalog rows before any test has forked or created a Draft of its own.
 func bootstrapDraftID(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) string {
 	t.Helper()
 	drafts, err := mgr.ListDrafts(ctx, mwanachamaagency.DraftFilter{})
@@ -36,10 +33,8 @@ func TestCreateAndGetModule(t *testing.T) {
 	if mod.ID == "" {
 		t.Fatal("expected minted ID")
 	}
-	// Enabled is derived from the Objectives linking this Module, so a
-	// caller-supplied true on a module nothing links yet is ignored.
-	if mod.Enabled {
-		t.Fatalf("expected a freshly created, unlinked module to be disabled, got %+v", mod)
+	if !mod.Enabled || !mod.Explicit || mod.NeededBySteps {
+		t.Fatalf("expected a module created switched on to read enabled and explicit, got %+v", mod)
 	}
 
 	got, err := mgr.GetModule(ctx, mod.ID)
@@ -74,10 +69,6 @@ func TestCreateModule_EmptyCode(t *testing.T) {
 	}
 }
 
-// TestCreateModule_DuplicateCode relies on gormstore.BackfillModules having
-// already seeded every models.ModuleCatalog entry into the bootstrap Draft
-// at Migrate time (see gormstore/module.go) — so re-creating one of those
-// codes in that same Draft must be rejected outright.
 func TestCreateModule_DuplicateCode(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -125,6 +116,16 @@ func TestBackfillModules_SeedsCatalogDefaults(t *testing.T) {
 	}
 
 	neverOff := map[string]bool{"auth": true, "actor": true}
+	onByDefault := map[string]bool{"auth": true, "actor": true, "comm": true}
+	for code := range onByDefault {
+		mod, ok := byCode[code]
+		if !ok {
+			t.Fatalf("expected a backfilled %s module", code)
+		}
+		if !mod.Enabled || !mod.Explicit {
+			t.Fatalf("expected %s to backfill switched on, got %+v", code, mod)
+		}
+	}
 	for code := range neverOff {
 		mod, ok := byCode[code]
 		if !ok {
@@ -135,8 +136,11 @@ func TestBackfillModules_SeedsCatalogDefaults(t *testing.T) {
 		}
 	}
 
+	if byCode["comm"].Locked {
+		t.Fatalf("comm is on by default but must stay switchable, got %+v", byCode["comm"])
+	}
 	for _, entry := range models.ModuleCatalog {
-		if neverOff[entry.Code] {
+		if onByDefault[entry.Code] {
 			continue
 		}
 		mod := byCode[entry.Code]
@@ -151,12 +155,8 @@ func TestListModules_Filter(t *testing.T) {
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 	draftID := o.DraftID
-	widgets, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "widgets", Name: "Widgets"})
-	if err != nil {
+	if _, err := mgr.CreateModule(ctx, models.Module{DraftID: draftID, Code: "widgets", Name: "Widgets", Enabled: true}); err != nil {
 		t.Fatalf("CreateModule: %v", err)
-	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: widgets.ID, Rationale: "needed for the objective"}); err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
 	}
 
 	byCode, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{Code: "widg"})
@@ -174,7 +174,7 @@ func TestListModules_Filter(t *testing.T) {
 	}
 	want := map[string]bool{"widgets": true}
 	for _, entry := range models.ModuleCatalog {
-		if entry.Locked {
+		if entry.Locked || entry.Enabled {
 			want[entry.Code] = true
 		}
 	}
@@ -186,50 +186,170 @@ func TestListModules_Filter(t *testing.T) {
 		got[mod.Code] = true
 	}
 	if len(got) != len(want) || len(enabled) != len(want) {
-		t.Fatalf("expected widgets and the locked catalog modules to be enabled, got %d: %+v", len(enabled), enabled)
+		t.Fatalf("expected widgets and the default-on catalog modules to be enabled, got %d: %+v", len(enabled), enabled)
 	}
 }
 
-// TestModuleEnabled_DerivedFromObjectiveLinks is AGD-002's selection rule
-// as the operator meets it: a Module is selected by linking it to an
-// Objective that needs it, and unselected by removing the last such link.
-func TestModuleEnabled_DerivedFromObjectiveLinks(t *testing.T) {
+func addStep(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string, kind models.StepKind) models.WorkItem {
+	t.Helper()
+	objectives, err := mgr.ListObjectives(ctx, draftID, mwanachamaagency.ObjectiveFilter{})
+	if err != nil || len(objectives) == 0 {
+		t.Fatalf("ListObjectives: %+v %v", objectives, err)
+	}
+	workflows, err := mgr.ListWorkflows(ctx, draftID, mwanachamaagency.WorkflowFilter{})
+	if err != nil || len(workflows) == 0 {
+		t.Fatalf("ListWorkflows: %+v %v", workflows, err)
+	}
+	roleID := ""
+	if kind != models.StepKindSendForm {
+		role, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "Doer " + string(kind)})
+		if err != nil {
+			t.Fatalf("CreateRole: %v", err)
+		}
+		roleID = role.ID
+	}
+	item := models.WorkItem{
+		DraftID: draftID, WorkflowID: workflows[0].ID, ObjectiveID: objectives[0].ID,
+		Title: "step " + string(kind), Ordinality: 50, Kind: kind, RoleID: roleID, FormName: "A form",
+		Questions: []models.StepQuestion{{Prompt: "Write the message", AnswerType: models.AnswerFreeText, Required: true}},
+	}
+	created, err := mgr.CreateWorkItem(ctx, item)
+	if err != nil {
+		t.Fatalf("CreateWorkItem(%s): %v", kind, err)
+	}
+	return created
+}
+
+func TestModuleEnabled_NeededByAFillFormStep(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
 	draftID := o.DraftID
 
-	gitMod, err := seededModule(mgr, ctx, draftID, "git")
-	if err != nil {
-		t.Fatalf("CreateModule: %v", err)
-	}
-	if gitMod.Enabled {
-		t.Fatalf("expected git to start disabled, got %+v", gitMod)
+	before := moduleByCode(t, mgr, ctx, draftID, "forms")
+	if before.Enabled || before.Explicit || before.NeededBySteps {
+		t.Fatalf("expected forms to start off with no steps, got %+v", before)
 	}
 
-	link, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: draftID, ObjectiveID: o.ID, ModuleID: gitMod.ID, Rationale: "needed for the objective"})
-	if err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
-	}
-	if got := moduleByCode(t, mgr, ctx, draftID, "git"); !got.Enabled {
-		t.Fatalf("expected git to be enabled once an objective links it, got %+v", got)
-	}
-	if got, err := mgr.GetModule(ctx, gitMod.ID); err != nil || !got.Enabled {
-		t.Fatalf("expected GetModule to agree git is enabled, got %+v (%v)", got, err)
-	}
+	addStep(t, mgr, ctx, draftID, models.StepKindFillForm)
 
-	if err := mgr.DeleteObjectiveModule(ctx, link.ID); err != nil {
-		t.Fatalf("DeleteObjectiveModule: %v", err)
+	after := moduleByCode(t, mgr, ctx, draftID, "forms")
+	if !after.Enabled || after.Explicit || !after.NeededBySteps {
+		t.Fatalf("expected forms enabled by a fill_form step with the stored flag still off, got %+v", after)
 	}
-	if got := moduleByCode(t, mgr, ctx, draftID, "git"); got.Enabled {
-		t.Fatalf("expected git to be disabled once its last link is gone, got %+v", got)
+	if got, err := mgr.GetModule(ctx, before.ID); err != nil || got != after {
+		t.Fatalf("expected GetModule to agree with the listing, got %+v (%v) want %+v", got, err, after)
+	}
+	for _, code := range []string{"catalog", "git"} {
+		if got := moduleByCode(t, mgr, ctx, draftID, code); !got.Enabled || got.Explicit || got.NeededBySteps {
+			t.Fatalf("expected %s enabled only because forms requires it, got %+v", code, got)
+		}
 	}
 }
 
-// TestModuleEnabled_LockedStaysEnabled asserts the one exception: a locked
-// code is mounted whether or not any Objective names it — exercised
-// against the bootstrap Draft, since that's the one carrying the
-// models.ModuleCatalog backfill "auth" comes from.
+func TestModuleEnabled_EveryFormsStepKindNeedsForms(t *testing.T) {
+	for _, kind := range []models.StepKind{models.StepKindFillForm, models.StepKindSendForm, models.StepKindYesNo} {
+		t.Run(string(kind), func(t *testing.T) {
+			mgr := newTestManager(t)
+			ctx := context.Background()
+			_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+			addStep(t, mgr, ctx, o.DraftID, kind)
+			if got := moduleByCode(t, mgr, ctx, o.DraftID, "forms"); !got.Enabled || !got.NeededBySteps {
+				t.Fatalf("expected a %s step to need forms, got %+v", kind, got)
+			}
+		})
+	}
+}
+
+func TestModuleEnabled_NotifyStepNeedsCommEvenWhenSwitchedOff(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := o.DraftID
+	comm := moduleByCode(t, mgr, ctx, draftID, "comm")
+
+	off, err := mgr.SetModuleEnabled(ctx, draftID, comm.ID, false)
+	if err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
+	}
+	if off.Enabled || off.Explicit || off.NeededBySteps {
+		t.Fatalf("expected comm off with no notify step, got %+v", off)
+	}
+
+	addStep(t, mgr, ctx, draftID, models.StepKindNotify)
+
+	needed := moduleByCode(t, mgr, ctx, draftID, "comm")
+	if !needed.Enabled || needed.Explicit || !needed.NeededBySteps {
+		t.Fatalf("expected a notify step to keep comm running while its switch is off, got %+v", needed)
+	}
+}
+
+func TestModuleEnabled_FollowsTheStepsThatNeedIt(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := o.DraftID
+
+	step := addStep(t, mgr, ctx, draftID, models.StepKindFillForm)
+	if !moduleByCode(t, mgr, ctx, draftID, "forms").Enabled {
+		t.Fatal("expected forms enabled while a fill_form step exists")
+	}
+	if err := mgr.DeleteWorkItem(ctx, step.ID); err != nil {
+		t.Fatalf("DeleteWorkItem: %v", err)
+	}
+	if got := moduleByCode(t, mgr, ctx, draftID, "forms"); got.Enabled || got.NeededBySteps {
+		t.Fatalf("expected forms off again once its step is gone, got %+v", got)
+	}
+}
+
+func TestModuleEnabled_FromTheStoredFlag(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := o.DraftID
+	taskmanager := moduleByCode(t, mgr, ctx, draftID, "taskmanager")
+	if taskmanager.Enabled || taskmanager.Explicit {
+		t.Fatalf("expected taskmanager to start off, got %+v", taskmanager)
+	}
+
+	on, err := mgr.SetModuleEnabled(ctx, draftID, taskmanager.ID, true)
+	if err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
+	}
+	if !on.Enabled || !on.Explicit || on.NeededBySteps {
+		t.Fatalf("expected the stored flag alone to switch it on, got %+v", on)
+	}
+	if got := moduleByCode(t, mgr, ctx, draftID, "taskmanager"); got != on {
+		t.Fatalf("expected the listing to agree, got %+v want %+v", got, on)
+	}
+
+	off, err := mgr.SetModuleEnabled(ctx, draftID, taskmanager.ID, false)
+	if err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
+	}
+	if off.Enabled || off.Explicit {
+		t.Fatalf("expected the flag to switch it off again, got %+v", off)
+	}
+}
+
+func TestModuleEnabled_RequiresPullsInWhatItNeeds(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	draftID := o.DraftID
+	forms := moduleByCode(t, mgr, ctx, draftID, "forms")
+
+	if _, err := mgr.SetModuleEnabled(ctx, draftID, forms.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
+	}
+	for _, code := range models.ModuleRequires("forms") {
+		got := moduleByCode(t, mgr, ctx, draftID, code)
+		if !got.Enabled || got.Explicit || got.NeededBySteps {
+			t.Fatalf("expected %s enabled only because forms requires it, got %+v", code, got)
+		}
+	}
+}
+
 func TestModuleEnabled_LockedStaysEnabled(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -237,49 +357,113 @@ func TestModuleEnabled_LockedStaysEnabled(t *testing.T) {
 
 	auth := moduleByCode(t, mgr, ctx, draftID, "auth")
 	if !auth.Locked || !auth.Enabled {
-		t.Fatalf("expected auth to be locked and enabled with no links at all, got %+v", auth)
+		t.Fatalf("expected auth to be locked and enabled with no steps at all, got %+v", auth)
 	}
 }
 
-// TestModuleEnabled_ScopedToItsOwnDraft asserts a link made inside a Draft
-// enables that Draft's own Module copy and leaves the Draft it forked from
-// alone — selecting a module is a draft edit like any other, taking effect
-// only where it was made.
+func TestSetModuleEnabled_RefusesSwitchingALockedModuleOff(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	draftID := bootstrapDraftID(t, mgr, ctx)
+	auth := moduleByCode(t, mgr, ctx, draftID, "auth")
+
+	if _, err := mgr.SetModuleEnabled(ctx, draftID, auth.ID, false); !errors.Is(err, mwanachamaagency.ErrModuleLocked) {
+		t.Fatalf("expected ErrModuleLocked, got %v", err)
+	}
+	if got := moduleByCode(t, mgr, ctx, draftID, "auth"); !got.Enabled || !got.Explicit {
+		t.Fatalf("expected auth untouched by the refused switch, got %+v", got)
+	}
+	if _, err := mgr.SetModuleEnabled(ctx, draftID, auth.ID, true); err != nil {
+		t.Fatalf("switching a locked module on is harmless, got %v", err)
+	}
+}
+
+func TestSetModuleEnabled_RefusesAnotherDraftAnUnknownIDAndAnArchivedDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, goal, _, _, _ := seedLiveAgency(t, mgr, ctx)
+	seedDraftID := goal.DraftID
+	other, err := mgr.CreateDraft(ctx, "other", seedDraftID, "draft")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	git := moduleByCode(t, mgr, ctx, seedDraftID, "git")
+
+	if _, err := mgr.SetModuleEnabled(ctx, other.ID, git.ID, true); !errors.Is(err, mwanachamaagency.ErrModuleNotFound) {
+		t.Fatalf("expected ErrModuleNotFound for another draft's id, got %v", err)
+	}
+	if _, err := mgr.SetModuleEnabled(ctx, seedDraftID, "unknown", true); !errors.Is(err, mwanachamaagency.ErrModuleNotFound) {
+		t.Fatalf("expected ErrModuleNotFound, got %v", err)
+	}
+	if moduleByCode(t, mgr, ctx, seedDraftID, "git").Explicit || moduleByCode(t, mgr, ctx, other.ID, "git").Explicit {
+		t.Fatal("a refused call switched a module")
+	}
+
+	otherGit := moduleByCode(t, mgr, ctx, other.ID, "git")
+	if _, err := mgr.ArchiveDraft(ctx, other.ID); err != nil {
+		t.Fatalf("ArchiveDraft: %v", err)
+	}
+	if _, err := mgr.SetModuleEnabled(ctx, other.ID, otherGit.ID, true); !errors.Is(err, mwanachamaagency.ErrDraftNotOpen) {
+		t.Fatalf("expected ErrDraftNotOpen, got %v", err)
+	}
+}
+
 func TestModuleEnabled_ScopedToItsOwnDraft(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, seedGoal, _, _, _ := seedLiveAgency(t, mgr, ctx)
 	seedDraftID := seedGoal.DraftID
 
-	seedGit, err := seededModule(mgr, ctx, seedDraftID, "git")
-	if err != nil {
-		t.Fatalf("CreateModule: %v", err)
-	}
-
 	d, err := mgr.CreateDraft(ctx, "d", seedDraftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	draftObjectives, err := mgr.ListObjectives(ctx, d.ID, mwanachamaagency.ObjectiveFilter{})
-	if err != nil || len(draftObjectives) == 0 {
-		t.Fatalf("ListObjectives(draft): %+v (%v)", draftObjectives, err)
-	}
+	seedGit := moduleByCode(t, mgr, ctx, seedDraftID, "git")
 	draftGit := moduleByCode(t, mgr, ctx, d.ID, "git")
 	if draftGit.ID == seedGit.ID {
 		t.Fatal("expected the fork to mint a new Module id")
 	}
 
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{
-		DraftID: d.ID, ObjectiveID: draftObjectives[0].ID, ModuleID: draftGit.ID, Rationale: "needed for the objective",
-	}); err != nil {
-		t.Fatalf("CreateObjectiveModule(draft): %v", err)
+	if _, err := mgr.SetModuleEnabled(ctx, d.ID, draftGit.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled(draft): %v", err)
 	}
-
 	if got := moduleByCode(t, mgr, ctx, d.ID, "git"); !got.Enabled {
 		t.Fatalf("expected the new draft's git copy to be enabled, got %+v", got)
 	}
 	if got := moduleByCode(t, mgr, ctx, seedDraftID, "git"); got.Enabled {
-		t.Fatalf("expected the seed draft's git to stay disabled — the link only exists in the new draft, got %+v", got)
+		t.Fatalf("expected the seed draft's git to stay off, got %+v", got)
+	}
+}
+
+func TestFreshAgencyListsAuthActorAndCommEnabledWithNoSteps(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "Fresh"}); err != nil {
+		t.Fatalf("CreateAgency: %v", err)
+	}
+	draft, err := mgr.CreateDraft(ctx, "fresh", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+
+	mods, err := mgr.ListModules(ctx, draft.ID, mwanachamaagency.ModuleFilter{})
+	if err != nil {
+		t.Fatalf("ListModules: %v", err)
+	}
+	enabled := map[string]models.Module{}
+	for _, mod := range mods {
+		if mod.NeededBySteps {
+			t.Fatalf("no steps exist yet, but %s reads needed_by_steps: %+v", mod.Code, mod)
+		}
+		if mod.Enabled {
+			enabled[mod.Code] = mod
+		}
+	}
+	if len(enabled) != 3 || enabled["auth"].ID == "" || enabled["actor"].ID == "" || enabled["comm"].ID == "" {
+		t.Fatalf("expected exactly auth, actor and comm enabled, got %+v", enabled)
+	}
+	if !enabled["auth"].Locked || !enabled["actor"].Locked || enabled["comm"].Locked {
+		t.Fatalf("expected auth and actor locked and comm not, got %+v", enabled)
 	}
 }
 

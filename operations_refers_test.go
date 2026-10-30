@@ -51,7 +51,7 @@ func TestReferencesListsTheMarkedArgumentsAndNoScopeOrJoinRowId(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 	references := s.References()
-	if len(references) < 29 {
+	if len(references) < 27 {
 		t.Fatalf("References lists %d arguments, want every goal, objective, workflow, work item, role, value and rule id the file declares", len(references))
 	}
 	seen := map[string]bool{}
@@ -71,7 +71,7 @@ func TestReferencesListsTheMarkedArgumentsAndNoScopeOrJoinRowId(t *testing.T) {
 	if len(missing) > 0 {
 		t.Errorf("References never lists %v", missing)
 	}
-	for _, scope := range []string{"draft_id", "assignment_id", "attachment_id", "objective_module_id", "instance_id"} {
+	for _, scope := range []string{"draft_id", "assignment_id", "attachment_id", "module_id", "instance_id"} {
 		if seen[scope] {
 			t.Errorf("%s is a scope or a join row, not a reference", scope)
 		}

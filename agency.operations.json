@@ -11,7 +11,6 @@
     "ErrDuplicateAccountable": 409,
     "ErrDuplicateAttachment": 409,
     "ErrDuplicateModule": 409,
-    "ErrDuplicateObjectiveModule": 409,
     "ErrDuplicateTag": 409,
     "ErrEventFlowStepNotFound": 404,
     "ErrGoalNotFound": 404,
@@ -26,13 +25,12 @@
     "ErrInvalidTargetType": 400,
     "ErrInvalidValue": 400,
     "ErrInvalidWorkItem": 400,
+    "ErrModuleLocked": 409,
     "ErrModuleNotFound": 404,
     "ErrNoChangesDetected": 409,
-    "ErrObjectiveModuleNotFound": 404,
     "ErrObjectiveNotFound": 404,
     "ErrPublicationNotFound": 404,
     "ErrPublishValidationFailed": 409,
-    "ErrRationaleRequired": 400,
     "ErrRoleAssignmentNotFound": 404,
     "ErrRoleNotFound": 404,
     "ErrRuleAttachmentNotFound": 404,
@@ -452,126 +450,6 @@
         }
       ],
       "tool": "agency_list_role_assignments_for_objective"
-    },
-    "create_objective_module": {
-      "method": "POST",
-      "path": "/objectives/{objective_id}/modules",
-      "call": "CreateObjectiveModule",
-      "action": "agency.objective_module.create",
-      "status": 201,
-      "title": "Need a capability",
-      "description": "Record that an objective needs a capability, with the reason. This link is what switches the capability on.",
-      "args": [
-        {
-          "from": "body",
-          "whole": true
-        },
-        {
-          "from": "path",
-          "as": "objective_id",
-          "refers": "agency.objective",
-          "into": "ObjectiveID",
-          "description": "The objective doing the needing."
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_attach_module"
-    },
-    "list_objective_modules": {
-      "method": "GET",
-      "path": "/objectives/{objective_id}/modules",
-      "call": "ListObjectiveModulesForObjective",
-      "action": "agency.objective_module.list",
-      "title": "List an objective's capabilities",
-      "description": "List what one objective needs, and why.",
-      "args": [
-        {
-          "from": "path",
-          "as": "objective_id",
-          "refers": "agency.objective",
-          "description": "The objective whose needs to read."
-        },
-        {
-          "from": "query",
-          "as": "draft_id",
-          "description": "The draft to read it in."
-        },
-        {
-          "from": "query",
-          "whole": true
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_list_objective_modules"
-    },
-    "update_objective_module": {
-      "method": "PATCH",
-      "path": "/objectives/{objective_id}/modules/{objective_module_id}",
-      "call": "UpdateObjectiveModule",
-      "action": "agency.objective_module.update",
-      "title": "Change the reason",
-      "description": "Rewrite why an objective needs a capability. The reason may not be emptied.",
-      "args": [
-        {
-          "from": "path",
-          "as": "objective_id",
-          "ignored": true,
-          "description": "The objective the link hangs off. Part of the address, not of the call."
-        },
-        {
-          "from": "path",
-          "as": "objective_module_id",
-          "description": "The link to rewrite."
-        },
-        {
-          "from": "body",
-          "as": "rationale",
-          "required": true,
-          "description": "Why this objective needs it."
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_update_module_rationale"
-    },
-    "delete_objective_module": {
-      "method": "DELETE",
-      "path": "/objectives/{objective_id}/modules/{objective_module_id}",
-      "call": "DeleteObjectiveModule",
-      "action": "agency.objective_module.delete",
-      "status": 204,
-      "title": "Stop needing a capability",
-      "description": "Remove the link between an objective and a capability, which may switch that capability off.",
-      "args": [
-        {
-          "from": "path",
-          "as": "objective_id",
-          "ignored": true,
-          "description": "The objective the link hangs off. Part of the address, not of the call."
-        },
-        {
-          "from": "path",
-          "as": "objective_module_id",
-          "description": "The link to remove."
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_detach_module"
     },
     "create_workflow": {
       "method": "POST",
@@ -1039,7 +917,7 @@
       "call": "ListModules",
       "action": "agency.module.list",
       "title": "List capabilities",
-      "description": "List the capability catalog for one draft, each showing whether it is switched on. Whether it is on is derived from the objectives that need it, never set here.",
+      "description": "List the capability catalog for one draft. Each shows enabled (what runs: locked, or switched on, or needed by a workflow step, plus what those require), explicit (the switch itself, set with agency_set_module_enabled) and needed_by_steps (a workflow step uses it).",
       "args": [
         {
           "from": "query",
@@ -1064,7 +942,7 @@
       "call": "GetModule",
       "action": "agency.module.read",
       "title": "Read capability",
-      "description": "Read one capability and whether it is switched on.",
+      "description": "Read one capability: enabled (what runs), explicit (the switch itself) and needed_by_steps (a workflow step uses it).",
       "args": [
         {
           "from": "path",
@@ -1078,6 +956,39 @@
         }
       ],
       "tool": "agency_get_module"
+    },
+    "set_module_enabled": {
+      "method": "PUT",
+      "path": "/modules/{module_id}/enabled",
+      "call": "SetModuleEnabled",
+      "action": "agency.module.set_enabled",
+      "title": "Switch a capability on or off",
+      "description": "Set the switch of one capability in a draft. A capability stays on while a workflow step needs it or another capability that is on requires it, whatever this switch says; the returned enabled shows the outcome. A locked capability cannot be switched off. Only in an open draft.",
+      "args": [
+        {
+          "from": "body",
+          "as": "draft_id",
+          "required": true,
+          "description": "The draft the capability is in. A capability of another draft is not found."
+        },
+        {
+          "from": "path",
+          "as": "module_id",
+          "description": "The capability to switch."
+        },
+        {
+          "from": "body",
+          "as": "enabled",
+          "required": true,
+          "description": "true to switch it on, false to switch it off."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_set_module_enabled"
     },
     "set_module_mounts": {
       "method": "PUT",
@@ -1699,7 +1610,7 @@
       "tool": "agency_delete_goal",
       "status": 204,
       "title": "Delete goal",
-      "description": "Remove a goal, every objective under it, and the work items, RACI links and capability links under those.",
+      "description": "Remove a goal, every objective under it, and the work items and RACI links under those.",
       "args": [
         {
           "from": "path",
@@ -1722,7 +1633,7 @@
       "tool": "agency_delete_objective",
       "status": 204,
       "title": "Delete objective",
-      "description": "Remove an objective and the work items, RACI links and capability links that hang off it.",
+      "description": "Remove an objective and the work items and RACI links that hang off it.",
       "args": [
         {
           "from": "path",

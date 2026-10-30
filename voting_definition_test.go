@@ -54,8 +54,8 @@ func TestVotingDefinition_SettingsAndRunAPollPublishAndForkTogether(t *testing.T
 	if err != nil {
 		t.Fatalf("CreateModule: %v", err)
 	}
-	if _, err := mgr.CreateObjectiveModule(ctx, models.ObjectiveModule{DraftID: o.DraftID, ObjectiveID: o.ID, ModuleID: voting.ID, Rationale: "groups answer polls"}); err != nil {
-		t.Fatalf("CreateObjectiveModule: %v", err)
+	if _, err := mgr.SetModuleEnabled(ctx, o.DraftID, voting.ID, true); err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
 	}
 	role.Powers = []string{"poll.run"}
 	if _, err := mgr.UpdateRole(ctx, role); err != nil {

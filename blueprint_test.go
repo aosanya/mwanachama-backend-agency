@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const declaredRoles = 25
+const declaredRoles = 24
 
 func TestBlueprintParses(t *testing.T) {
 	b, err := Blueprint()
@@ -41,7 +41,6 @@ func TestEveryDeclaredColumnHasACarrierField(t *testing.T) {
 		"role":             models.Role{},
 		"role_assignment":  models.RoleAssignment{},
 		"module":           models.Module{},
-		"objective_module": models.ObjectiveModule{},
 		"value":            models.Value{},
 		"value_attachment": models.ValueAttachment{},
 		"rule":             models.Rule{},

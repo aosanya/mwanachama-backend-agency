@@ -23,10 +23,6 @@ func TestGetModule_NotFound(t *testing.T) {
 	}
 }
 
-// TestListAndGetModule lists and gets the backfilled catalog rows —
-// Module has no HTTP Create/Update/Delete any more (AGD-002 reversed to
-// fully read-only), so this exercises the always-present catalog rows
-// (e.g. "auth") rather than a route-created Module.
 func TestListAndGetModule(t *testing.T) {
 	mgr := newTestManager(t)
 	draftID := bootstrapDraftID(t, mgr)
@@ -82,117 +78,98 @@ func TestListModules_DefaultCatalogState(t *testing.T) {
 		t.Fatalf("expected %d modules, got %d", len(models.ModuleCatalog), len(list))
 	}
 	for _, mod := range list {
-		wantEnabled := mod.Code == "auth" || mod.Code == "actor"
-		if mod.Enabled != wantEnabled {
+		locked := mod.Code == "auth" || mod.Code == "actor"
+		wantEnabled := locked || mod.Code == "comm"
+		if mod.Enabled != wantEnabled || mod.Explicit != wantEnabled {
 			t.Fatalf("expected module %q Enabled=%v, got %+v", mod.Code, wantEnabled, mod)
 		}
-		if mod.Locked != wantEnabled {
-			t.Fatalf("expected module %q Locked=%v, got %+v", mod.Code, wantEnabled, mod)
+		if mod.Locked != locked {
+			t.Fatalf("expected module %q Locked=%v, got %+v", mod.Code, locked, mod)
+		}
+		if mod.NeededBySteps {
+			t.Fatalf("expected module %q needed by no step in an empty draft, got %+v", mod.Code, mod)
 		}
 	}
 }
 
-// TestObjectiveModule_HTTPLifecycle drives the nested
-// /objectives/{objectiveID}/modules sub-resource (attach/list/detach)
-// through the HTTP layer end to end, mirroring
-// TestValueAttachment_HTTPLifecycle's shape. Module linking is unaffected
-// by AGD-002's reversal — only the Module catalog's own mutability changed
-// — so this attaches an already-backfilled catalog row ("auth") rather
-// than a route-created Module.
-func TestObjectiveModule_HTTPLifecycle(t *testing.T) {
-	mgr := newTestManager(t)
-	ctx := t.Context()
-	draftID := bootstrapDraftID(t, mgr)
-	goal, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption"})
-	if err != nil {
-		t.Fatalf("CreateGoal: %v", err)
-	}
-	objective, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: goal.ID, Title: "Grow adoption"})
-	if err != nil {
-		t.Fatalf("CreateObjective: %v", err)
-	}
-	mods, err := mgr.ListModules(ctx, draftID, mwanachamaagency.ModuleFilter{Code: "auth"})
-	if err != nil || len(mods) != 1 {
-		t.Fatalf("ListModules(code=auth): rows=%+v err=%v", mods, err)
-	}
-	mod := mods[0]
-
-	req := httptest.NewRequest(http.MethodPost, "/objectives/"+objective.ID+"/modules",
-		strings.NewReader(`{"rationale":"needed","module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
-	req.SetPathValue("objectiveID", objective.ID)
+func putEnabled(mgr mwanachamaagency.AgencyManager, moduleID, body string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPut, "/modules/"+moduleID+"/enabled", strings.NewReader(body))
+	req.SetPathValue("moduleID", moduleID)
 	rec := httptest.NewRecorder()
 	serve(mgr, rec, req)
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("attach status = %d, body = %s", rec.Code, rec.Body.String())
+	return rec
+}
+
+func TestSetModuleEnabled_HTTPSwitchesOnAndOff(t *testing.T) {
+	mgr := newTestManager(t)
+	draftID := bootstrapDraftID(t, mgr)
+	git := moduleWithCode(t, mgr, draftID, "git")
+
+	rec := putEnabled(mgr, git.ID, `{"draft_id":"`+draftID+`","enabled":true}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("switch on status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-	var link models.ObjectiveModule
-	if err := json.Unmarshal(rec.Body.Bytes(), &link); err != nil {
-		t.Fatalf("unmarshal link: %v", err)
+	var on models.Module
+	if err := json.Unmarshal(rec.Body.Bytes(), &on); err != nil {
+		t.Fatalf("unmarshal: %v", err)
 	}
-	if link.ID == "" || link.ModuleID != mod.ID || link.ObjectiveID != objective.ID {
-		t.Fatalf("unexpected link: %+v", link)
+	if !on.Enabled || !on.Explicit || on.NeededBySteps {
+		t.Fatalf("after switching on: %+v", on)
 	}
 
-	// Duplicate attach is a conflict.
-	dupReq := httptest.NewRequest(http.MethodPost, "/objectives/"+objective.ID+"/modules",
-		strings.NewReader(`{"rationale":"needed","module_id":"`+mod.ID+`","draft_id":"`+draftID+`"}`))
-	dupReq.SetPathValue("objectiveID", objective.ID)
-	dupRec := httptest.NewRecorder()
-	serve(mgr, dupRec, dupReq)
-	if dupRec.Code != http.StatusConflict {
-		t.Fatalf("expected 409 on duplicate link, got %d: %s", dupRec.Code, dupRec.Body.String())
+	rec = putEnabled(mgr, git.ID, `{"draft_id":"`+draftID+`","enabled":false}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("switch off status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-
-	listReq := httptest.NewRequest(http.MethodGet, "/objectives/"+objective.ID+"/modules?draft_id="+draftID, nil)
-	listReq.SetPathValue("objectiveID", objective.ID)
-	listRec := httptest.NewRecorder()
-	serve(mgr, listRec, listReq)
-	if listRec.Code != http.StatusOK {
-		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
+	var off models.Module
+	if err := json.Unmarshal(rec.Body.Bytes(), &off); err != nil {
+		t.Fatalf("unmarshal: %v", err)
 	}
-	var links []models.ObjectiveModule
-	if err := json.Unmarshal(listRec.Body.Bytes(), &links); err != nil {
-		t.Fatalf("unmarshal links: %v", err)
-	}
-	if len(links) != 1 {
-		t.Fatalf("expected 1 link, got %d", len(links))
-	}
-
-	delReq := httptest.NewRequest(http.MethodDelete, "/objectives/"+objective.ID+"/modules/"+link.ID, nil)
-	delReq.SetPathValue("objectiveModuleID", link.ID)
-	delRec := httptest.NewRecorder()
-	serve(mgr, delRec, delReq)
-	if delRec.Code != http.StatusNoContent {
-		t.Fatalf("delete status = %d, body = %s", delRec.Code, delRec.Body.String())
-	}
-
-	afterReq := httptest.NewRequest(http.MethodGet, "/objectives/"+objective.ID+"/modules?draft_id="+draftID, nil)
-	afterReq.SetPathValue("objectiveID", objective.ID)
-	afterRec := httptest.NewRecorder()
-	serve(mgr, afterRec, afterReq)
-	var afterLinks []models.ObjectiveModule
-	if err := json.Unmarshal(afterRec.Body.Bytes(), &afterLinks); err != nil {
-		t.Fatalf("unmarshal after-delete links: %v", err)
-	}
-	if len(afterLinks) != 0 {
-		t.Fatalf("expected 0 links after detach, got %d", len(afterLinks))
+	if off.Enabled || off.Explicit {
+		t.Fatalf("after switching off: %+v", off)
 	}
 }
 
-// TestCreateObjectiveModule_ObjectiveNotFoundIs404 confirms a nonexistent
-// objectiveID (as named by the URL path, not the body) is refused cleanly.
-func TestCreateObjectiveModule_ObjectiveNotFoundIs404(t *testing.T) {
+func TestSetModuleEnabled_HTTPRefusesALockedModuleSwitchedOff(t *testing.T) {
 	mgr := newTestManager(t)
 	draftID := bootstrapDraftID(t, mgr)
-	mods, err := mgr.ListModules(t.Context(), draftID, mwanachamaagency.ModuleFilter{Code: "auth"})
-	if err != nil || len(mods) != 1 {
-		t.Fatalf("ListModules(code=auth): rows=%+v err=%v", mods, err)
-	}
+	auth := moduleWithCode(t, mgr, draftID, "auth")
 
-	req := httptest.NewRequest(http.MethodPost, "/objectives/unknown/modules", strings.NewReader(`{"rationale":"needed","module_id":"`+mods[0].ID+`","draft_id":"`+draftID+`"}`))
-	req.SetPathValue("objectiveID", "unknown")
-	rec := httptest.NewRecorder()
-	serve(mgr, rec, req)
+	rec := putEnabled(mgr, auth.ID, `{"draft_id":"`+draftID+`","enabled":false}`)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if !moduleWithCode(t, mgr, draftID, "auth").Enabled {
+		t.Fatal("a refused switch-off still turned auth off")
+	}
+}
+
+func TestSetModuleEnabled_HTTPIgnoresAModuleOfAnotherDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := t.Context()
+	draftA := bootstrapDraftID(t, mgr)
+	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"}); err != nil {
+		t.Fatalf("CreateAgency: %v", err)
+	}
+	draftB, err := mgr.CreateDraft(ctx, "b", draftA, "draft")
+	if err != nil {
+		t.Fatalf("CreateDraft fork: %v", err)
+	}
+	gitA := moduleWithCode(t, mgr, draftA, "git")
+
+	rec := putEnabled(mgr, gitA.ID, `{"draft_id":"`+draftB.ID+`","enabled":true}`)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if moduleWithCode(t, mgr, draftA, "git").Explicit || moduleWithCode(t, mgr, draftB.ID, "git").Explicit {
+		t.Fatal("a mismatched draft id still switched a module")
+	}
+}
+
+func TestSetModuleEnabled_HTTPMissingModuleIs404(t *testing.T) {
+	mgr := newTestManager(t)
+	draftID := bootstrapDraftID(t, mgr)
+	rec := putEnabled(mgr, "unknown", `{"draft_id":"`+draftID+`","enabled":true}`)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}

@@ -189,16 +189,6 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		}))
 	}
 
-	objectiveModules, err := list[models.ObjectiveModule](m, scoped(roleObjectiveModule), roleObjectiveModule)
-	if err != nil {
-		return "", fmt.Errorf("contentHashFor: %w", err)
-	}
-	for _, r := range objectiveModules {
-		records = append(records, hashRecord("ObjectiveModule", map[string]any{
-			"id": r.ID, "objective_id": r.ObjectiveID, "module_id": r.ModuleID,
-		}))
-	}
-
 	values, err := list[models.Value](m, scoped(roleValue), roleValue)
 	if err != nil {
 		return "", fmt.Errorf("contentHashFor: %w", err)

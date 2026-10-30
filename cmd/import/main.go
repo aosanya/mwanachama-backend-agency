@@ -98,7 +98,6 @@ func counts(doc models.AgencyDocument) []countOf {
 		{"rules", len(doc.Rules)},
 		{"attachments", len(doc.ValueAttachments) + len(doc.RuleAttachments)},
 		{"modules", len(doc.Modules)},
-		{"capability links", len(doc.ObjectiveModules)},
 		{"event flow steps", len(doc.EventFlowSteps)},
 	}
 }

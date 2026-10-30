@@ -26,10 +26,6 @@ func readDocument(t *testing.T, path string) models.AgencyDocument {
 	return doc
 }
 
-// The company written as an agency is the most demanding document this
-// repo has: nine seats, ten objectives, thirty-five RACI links, eight
-// attachments and fourteen capability links, all cross-referenced by id.
-// Anything it cannot round-trip is a finding about the format.
 func TestImportDocument_MwanachamaWakala(t *testing.T) {
 	doc := readDocument(t, wakalaDocument)
 	mgr := newTestManager(t)
@@ -81,10 +77,6 @@ func TestImportDocument_MwanachamaWakala(t *testing.T) {
 			v, err := mgr.ListRoleAssignments(ctx, draftID, mwanachamaagency.RoleAssignmentFilter{})
 			return len(v), err
 		}), len(doc.RoleAssignments)},
-		{"capability links", count(t, func() (int, error) {
-			v, err := mgr.ListObjectiveModules(ctx, draftID, mwanachamaagency.ObjectiveModuleFilter{})
-			return len(v), err
-		}), len(doc.ObjectiveModules)},
 		{"attachments", out.Attachments, len(doc.ValueAttachments) + len(doc.RuleAttachments)},
 	} {
 		if tc.got != tc.want {

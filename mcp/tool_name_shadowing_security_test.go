@@ -50,7 +50,6 @@ func TestNoHandWrittenToolSilentlyReplacesADeclaredOneOfTheSameName(t *testing.T
 	}
 
 	handWritten := publishedToolNames(t, func(s *mcp.Server) {
-		registerModuleObjectivesTool(s, resolve)
 		registerCompositeTools(s, resolve)
 		registerCatalogTools(s)
 		registerDashboardUI(s)

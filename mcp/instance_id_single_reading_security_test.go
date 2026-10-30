@@ -73,9 +73,9 @@ func TestInstanceIDReachesTheResolverOnceAndInOneSpelling(t *testing.T) {
 	cs := mcpConnect(t, srv.URL)
 
 	toolArgs := map[string]map[string]any{
-		"agency_list_goals":             {"draft_id": outsiderDraft.ID},
-		"agency_list_module_objectives": {"draft_id": outsiderDraft.ID, "module_id": "m"},
-		"agency_design_from_spec":       {"draft_id": outsiderDraft.ID, "goals": []any{map[string]any{"key": "g", "title": "PLANTED"}}},
+		"agency_list_goals":       {"draft_id": outsiderDraft.ID},
+		"agency_list_modules":     {"draft_id": outsiderDraft.ID},
+		"agency_design_from_spec": {"draft_id": outsiderDraft.ID, "goals": []any{map[string]any{"key": "g", "title": "PLANTED"}}},
 	}
 	respellings := []map[string]any{
 		{"instance_id": "member", "INSTANCE_ID": "outsider"},

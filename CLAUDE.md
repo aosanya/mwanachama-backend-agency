@@ -1077,6 +1077,14 @@ storage (superseded by AGD-006/AGD-007, same note).
     `todo.md`, not this note's to resolve), **AG33** (`agency_design_from_spec`
     duplicate-`key` silent misattribution — open on `todo.md`).
 
+- **AGD-008 (2026-10-30): the objective-to-module link is gone.** A module
+  reads `enabled` when locked, or its stored flag is on, or a work item's
+  kind is in its catalog `step_kinds`, closed over `requires`
+  (`withEffectiveEnabled`, `module_impl.go`); listings also carry `explicit`
+  and `needed_by_steps`, and `agency_set_module_enabled` writes the flag.
+  `comm` is on by default beside the locked `auth` and `actor`. See
+  [AGD-008](documentation/2.%20design/todo_details/AGD-008.md).
+
 ## Conventions
 
 - **The objects are declared, not written (AGD-007, 2026-09-24).**

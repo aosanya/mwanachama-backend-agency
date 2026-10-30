@@ -89,12 +89,6 @@ type ModuleFilter struct {
 	Enabled     *bool  `query:"enabled"`
 }
 
-// ObjectiveModuleFilter's ObjectiveID/ModuleID are exact-match narrows.
-type ObjectiveModuleFilter struct {
-	ObjectiveID string `query:"-"`
-	ModuleID    string `query:"module_id"`
-}
-
 // ValueFilter's Role/Goal/Objective/Workflow/WorkItem ID fields each
 // narrow to Values attached to that specific target (AGD-003) — exact
 // match against a resolved id, not a substring search like Code/Text.

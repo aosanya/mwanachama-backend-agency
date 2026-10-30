@@ -33,7 +33,6 @@ var carriers = map[string]string{
 	"role":               "Role",
 	"role_assignment":    "RoleAssignment",
 	"module":             "Module",
-	"objective_module":   "ObjectiveModule",
 	"value":              "Value",
 	"value_attachment":   "ValueAttachment",
 	"rule":               "Rule",
@@ -278,7 +277,7 @@ func line(v reflect.Value) string {
 
 var skipInLine = map[string]bool{"DraftID": true, "CreatedAt": true, "LastUpdated": true, "PublishedAt": true}
 
-var labelFields = map[string]bool{"Title": true, "Name": true, "Text": true, "Message": true, "Description": true, "Rationale": true}
+var labelFields = map[string]bool{"Title": true, "Name": true, "Text": true, "Message": true, "Description": true}
 
 var factFields = map[string]bool{"Label": true, "Severity": true, "Channel": true, "TargetType": true, "Status": true, "Enabled": true}
 
