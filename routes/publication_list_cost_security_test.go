@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestAG67_OpenHole_PublicationListingCarriesEveryWholeDocument(t *testing.T) {
+func TestAG67_PublicationListingNamesEachPublicationWithoutItsDocument(t *testing.T) {
 	mgr := newTestManager(t)
 	draftID := seedPublishableAgency(t, mgr)
 	call := func(method, path, body string) (int, string) {

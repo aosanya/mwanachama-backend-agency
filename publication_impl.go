@@ -14,6 +14,8 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+const publicationSummaryColumns = "id, draft_id, content_hash, version, tag, channel, published_at, last_updated"
+
 func toPublicationRow(p models.AgencyPublication) publication {
 	document, err := json.Marshal(p.Document)
 	if err != nil {
@@ -341,7 +343,7 @@ func (m *agencyManager) GetPublication(ctx context.Context, version int) (models
 }
 
 func (m *agencyManager) ListPublications(ctx context.Context, filter PublicationFilter) ([]models.AgencyPublication, error) {
-	q := m.q(ctx, rolePublication).Order("version")
+	q := m.q(ctx, rolePublication).Select(publicationSummaryColumns).Order("version")
 	q = likeFilter(q, "tag", filter.Tag)
 	q = eqFilter(q, "channel", filter.Channel)
 
