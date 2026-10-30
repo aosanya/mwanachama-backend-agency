@@ -175,7 +175,7 @@ func (m *agencyManager) find(ctx context.Context, tx *gorm.DB, role, id string, 
 	return m.take(q, role, out, notFound)
 }
 
-var alwaysImmutable = []string{"id", "code", "created_at"}
+var alwaysImmutable = []string{"id", "code", "draft_id", "created_at"}
 
 func (m *agencyManager) writeUpdate(ctx context.Context, tx *gorm.DB, role, id string, v any, notFound error, skip ...string) error {
 	row, err := m.encode(role, v)

@@ -64,6 +64,7 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 			return err
 		}
 		w.Code = existing.Code
+		w.DraftID = existing.DraftID
 		w.CreatedAt = existing.CreatedAt
 		w.LastUpdated = models.NowRFC3339()
 

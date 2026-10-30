@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestAG48_OpenHole_UpdateMovesRowIntoAnotherDraft(t *testing.T) {
+func TestAG48_UpdateKeepsARowInItsDraft(t *testing.T) {
 	mgr, openDraft := newTestManagerWithDraft(t)
 	archived, err := mgr.CreateDraft(t.Context(), "closed", "", "")
 	if err != nil {

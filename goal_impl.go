@@ -52,6 +52,7 @@ func (m *agencyManager) UpdateGoal(ctx context.Context, g models.Goal) (models.G
 			return err
 		}
 		g.Code = existing.Code
+		g.DraftID = existing.DraftID
 		g.CreatedAt = existing.CreatedAt
 		g.LastUpdated = models.NowRFC3339()
 
@@ -73,20 +74,14 @@ func (m *agencyManager) DeleteGoal(ctx context.Context, id string) error {
 			return err
 		}
 
-		var objectiveIDs []string
-		if err := tx.Table(m.table(roleObjective)).Where("goal_id = ?", id).
-			Pluck("id", &objectiveIDs).Error; err != nil {
-			return err
-		}
-		if len(objectiveIDs) > 0 {
-			for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
-				if err := m.deleteWhere(ctx, tx, role, "objective_id in ?", objectiveIDs); err != nil {
-					return err
-				}
-			}
-			if err := m.deleteWhere(ctx, tx, roleObjective, "goal_id = ?", id); err != nil {
+		objectivesOfGoal := "objective_id in (select id from " + m.table(roleObjective) + " where goal_id = ?)"
+		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
+			if err := m.deleteWhere(ctx, tx, role, objectivesOfGoal, id); err != nil {
 				return err
 			}
+		}
+		if err := m.deleteWhere(ctx, tx, roleObjective, "goal_id = ?", id); err != nil {
+			return err
 		}
 		return m.deleteWhere(ctx, tx, roleGoal, "id = ?", id)
 	})

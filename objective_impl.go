@@ -52,6 +52,7 @@ func (m *agencyManager) UpdateObjective(ctx context.Context, o models.Objective)
 			return err
 		}
 		o.Code = existing.Code
+		o.DraftID = existing.DraftID
 		o.CreatedAt = existing.CreatedAt
 		o.LastUpdated = models.NowRFC3339()
 
