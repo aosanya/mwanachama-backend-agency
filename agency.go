@@ -7,6 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/aosanya/mwanachama-backend-shared/identity"
 	"github.com/aosanya/mwanachama-backend-shared/spec"
 	"github.com/aosanya/mwanachama-backend-shared/specstore"
 
@@ -18,6 +19,8 @@ import (
 // always belongs to some Draft — AGD-006, there is no live row-scope), the
 // Draft edit lifecycle, and publication.
 type AgencyManager interface {
+	identity.Owner
+
 	// Agency. UpdateAgency only ever touches Name/Description —
 	// Mission/Vision were removed 2026-09-10 (AGD-001); Description was
 	// added back 2026-09-11 at the user's explicit request. Nothing else
