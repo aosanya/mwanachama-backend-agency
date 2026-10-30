@@ -151,7 +151,7 @@ func TestProvisionIsCheapWhenThereIsNothingToDo(t *testing.T) {
 	t.Logf("a second Provision ran %d statements", statements)
 }
 
-func TestAG51_OpenBug_ProvisionReseedsAfterAllDraftsAreArchived(t *testing.T) {
+func TestAG51_ProvisionLeavesAnArchivedOnlyDraftSetAlone(t *testing.T) {
 	db := openDB(t)
 	s, err := mwanachamaagency.SpecFor("agency")
 	if err != nil {
