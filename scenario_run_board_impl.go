@@ -79,6 +79,20 @@ func WithScenariosAtOnce(limit func(ctx context.Context) int) Option {
 	return func(m *agencyManager) { m.atOnce = limit }
 }
 
+func WithTokensPerTest(limit func(ctx context.Context) int) Option {
+	return func(m *agencyManager) { m.tokenLimit = limit }
+}
+
+func (m *agencyManager) tokensPerTest(ctx context.Context) int {
+	if m.tokenLimit == nil {
+		return 0
+	}
+	if n := m.tokenLimit(ctx); n > 0 {
+		return n
+	}
+	return 0
+}
+
 func (m *agencyManager) scenariosAtOnce(ctx context.Context) int {
 	if m.atOnce == nil {
 		return 0
@@ -155,7 +169,7 @@ func (m *agencyManager) begin(ctx context.Context, runID string) (startedRun, er
 			return err
 		}
 		if run.Result == models.TestRunWaiting {
-			run.Result, run.StartedAt, run.DraftVersion = models.TestRunRunning, models.NowRFC3339(), version
+			run.Result, run.StartedAt, run.DraftVersion, run.TokenBudget = models.TestRunRunning, models.NowRFC3339(), version, m.tokensPerTest(ctx)
 			if err := m.writeUpdate(ctx, tx, roleTestRun, run.ID, run, ErrTestRunNotFound); err != nil {
 				return err
 			}
@@ -187,7 +201,7 @@ func (m *agencyManager) abandon(ctx context.Context, runID string, cause error) 
 	if err := m.find(ctx, m.db, roleTestRun, runID, &run, ErrTestRunNotFound); err == nil && !run.Result.Finished() {
 		m.finishRun(ctx, run, RunOutcome{
 			Result: models.TestRunStopped, StopReason: fmt.Sprintf("The run could not start: %v", cause),
-			Steps: run.Steps, Tokens: run.Tokens,
+			Steps: run.Steps, Tokens: run.Tokens, Stored: run.Stored,
 		})
 	}
 	m.board.release(runID)

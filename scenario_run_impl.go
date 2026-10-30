@@ -18,6 +18,8 @@ type RunRequest struct {
 	Rules        []models.Rule
 	DraftVersion string
 	Done         []models.RunStep
+	TokenBudget  int
+	Starting     func(stepID string)
 }
 
 type RunOutcome struct {
@@ -25,6 +27,7 @@ type RunOutcome struct {
 	StopReason string
 	Steps      []models.RunStep
 	Tokens     int
+	Stored     []models.StoredRecord
 }
 
 type ScenarioRunner interface {
@@ -56,7 +59,7 @@ func (m *agencyManager) scenarioRunner() ScenarioRunner {
 func settled(o RunOutcome, err error) RunOutcome {
 	switch {
 	case err != nil:
-		return RunOutcome{Result: models.TestRunStopped, StopReason: fmt.Sprintf("The executor failed: %v", err), Steps: o.Steps, Tokens: o.Tokens}
+		return RunOutcome{Result: models.TestRunStopped, StopReason: fmt.Sprintf("The executor failed: %v", err), Steps: o.Steps, Tokens: o.Tokens, Stored: o.Stored}
 	case !o.Result.Finished():
 		o.Result, o.StopReason = models.TestRunStopped, "The executor ended without a result"
 	}
@@ -90,7 +93,7 @@ func (m *agencyManager) startRun(ctx context.Context, scenarioID, runID string, 
 		now := models.NowRFC3339()
 		run := models.TestRun{
 			ID: runID, ScenarioID: s.ID, DraftID: s.DraftID, DraftVersion: version,
-			Result: result, QueuedAt: queuedAt,
+			Result: result, QueuedAt: queuedAt, TokenBudget: m.tokensPerTest(ctx),
 		}
 		if result == models.TestRunRunning {
 			run.StartedAt = now
@@ -131,7 +134,7 @@ func (m *agencyManager) RunScenario(ctx context.Context, id string) (models.Test
 	if err != nil {
 		return models.TestRun{}, fmt.Errorf("RunScenario: %w", err)
 	}
-	return run, nil
+	return m.present(ctx, run), nil
 }
 
 func (m *agencyManager) RunScenarios(ctx context.Context, draftID string, scenarioIDs []string) ([]models.TestRun, error) {
@@ -168,7 +171,7 @@ func (m *agencyManager) GetTestRun(ctx context.Context, id string) (models.TestR
 	if err := m.find(ctx, m.db, roleTestRun, id, &run, ErrTestRunNotFound); err != nil {
 		return models.TestRun{}, err
 	}
-	return run, nil
+	return m.present(ctx, run), nil
 }
 
 func (m *agencyManager) ListTestRuns(ctx context.Context, scenarioID string) ([]models.TestRun, error) {
@@ -180,5 +183,29 @@ func (m *agencyManager) ListTestRuns(ctx context.Context, scenarioID string) ([]
 	if err != nil {
 		return nil, fmt.Errorf("ListTestRuns: %w", err)
 	}
+	for i := range out {
+		out[i] = m.present(ctx, out[i])
+	}
 	return out, nil
+}
+
+const latestEditLabel = "Latest edit"
+
+func (m *agencyManager) present(ctx context.Context, run models.TestRun) models.TestRun {
+	if run.Stored == nil {
+		run.Stored = []models.StoredRecord{}
+	}
+	run.DraftLabel = m.draftLabel(ctx, run)
+	return run
+}
+
+func (m *agencyManager) draftLabel(ctx context.Context, run models.TestRun) string {
+	var draft models.Draft
+	if err := m.find(ctx, m.db, roleDraft, run.DraftID, &draft, ErrDraftNotFound); err == nil && draft.Status == models.DraftStatusOpen {
+		return latestEditLabel
+	}
+	if p, err := m.findPublicationBy(ctx, m.db, "content_hash = ?", run.DraftVersion); err == nil && p.Tag != "" {
+		return p.Tag
+	}
+	return run.DraftVersion
 }

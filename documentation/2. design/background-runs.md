@@ -72,3 +72,30 @@ reached its next step forgets it.
 
 `AwaitRun(ctx, runID)` returns once the run has ended in this process, and is for
 tests and for callers that want the answer. It is not an operation.
+
+## What the console run page reads (HS440)
+
+`agency_get_test_run` (`test_run_id`) and `agency_list_test_runs` carry, beside
+the steps, tokens, `draft_version` and times:
+
+- `stored`: the records the run left in the test copy, `[{record, holds, rows}]`.
+  The runner hands them back in `RunOutcome.Stored`; the run keeps them when it
+  ends, and a run stopped before the runner answered keeps what it held. A run
+  that left nothing reads `[]`.
+- `token_budget`: the tokens-per-test limit the run was started under, `0` for
+  none. `WithTokensPerTest(func(ctx) int)` gives the manager the hub setting, read
+  when the run starts (when it leaves `waiting`, for a queued one) and not again,
+  so a later change of the setting does not rewrite old runs. The runner is told
+  in `RunRequest.TokenBudget`.
+- `draft_label`: a name for the draft the run used. Not stored; read each time.
+  `Latest edit` while the draft is open, else the tag of the publication whose
+  content hash is the run's `draft_version`, else the `draft_version`.
+- on each step `waited` (always present): the runner sets it when it acted out a
+  wait on that step.
+- `running_step`: the id of the step in progress, empty between steps and once the
+  run has ended. The runner calls `RunRequest.Starting(stepID)` as it begins a
+  step; the manager writes the marker into the run and clears it when the step is
+  reported. A runner that never calls `Starting` leaves it empty.
+
+`RunRequest.TokenBudget`, `RunRequest.Starting` and `RunOutcome.Stored` are
+additions; a runner that ignores them still compiles and still runs.

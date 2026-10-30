@@ -2285,7 +2285,7 @@
       "call": "GetTestRun",
       "action": "agency.test_run.read",
       "title": "Read test run",
-      "description": "Read one test run: how it ended, the draft version it ran on, what transpired step by step with who acted, what was recorded, the rules checked and the tokens used.",
+      "description": "Read one test run: how it ended, the draft version it ran on and draft_label, its name (Latest edit for the open draft, else the published version label, else the version), what transpired step by step with who acted, what was recorded, the rules checked, whether a wait was acted out (waited) and the tokens used; running_step, the step in progress (empty once the run ended); stored, the records the run left in the test copy as record, holds and rows; and token_budget, the tokens-per-test limit it was started under (0 means none).",
       "args": [
         {
           "from": "path",

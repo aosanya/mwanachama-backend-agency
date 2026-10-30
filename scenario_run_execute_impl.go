@@ -40,19 +40,31 @@ func (m *agencyManager) runSteps(ctx context.Context, started startedRun, live *
 	req := RunRequest{
 		RunID: started.run.ID, Scenario: started.scenario, Workflow: started.workflow,
 		Rules: started.rules, DraftVersion: started.run.DraftVersion, Done: append([]models.RunStep(nil), done...),
+		TokenBudget: started.run.TokenBudget,
 	}
 
 	var mu sync.Mutex
 	var reported []models.RunStep
+	runningStep := ""
+	save := func() {
+		partial := append(append([]models.RunStep(nil), done...), reported...)
+		current := started.run
+		current.Steps, current.Tokens, current.RunningStep = partial, tokensOf(partial), runningStep
+		m.writeUpdate(ctx, m.db, roleTestRun, current.ID, current, ErrTestRunNotFound)
+	}
 	report := func(step models.RunStep) bool {
 		mu.Lock()
 		defer mu.Unlock()
 		reported = append(reported, step)
-		partial := append(append([]models.RunStep(nil), done...), reported...)
-		current := started.run
-		current.Steps, current.Tokens = partial, tokensOf(partial)
-		m.writeUpdate(ctx, m.db, roleTestRun, current.ID, current, ErrTestRunNotFound)
+		runningStep = ""
+		save()
 		return !live.stopped.Load()
+	}
+	req.Starting = func(stepID string) {
+		mu.Lock()
+		defer mu.Unlock()
+		runningStep = stepID
+		save()
 	}
 
 	var outcome RunOutcome
@@ -89,6 +101,7 @@ func (m *agencyManager) endRun(ctx context.Context, started startedRun, live *li
 
 func (m *agencyManager) finishRun(ctx context.Context, run models.TestRun, outcome RunOutcome) (models.TestRun, error) {
 	run.Result, run.StopReason, run.Steps, run.Tokens = outcome.Result, outcome.StopReason, outcome.Steps, outcome.Tokens
+	run.Stored, run.RunningStep = outcome.Stored, ""
 	run.FinishedAt = models.NowRFC3339()
 	scenarioResult := run.Result.ScenarioResult()
 	if run.Result == models.TestRunStopped && run.StopReason == models.StoppedByDesigner {
@@ -120,11 +133,11 @@ func (m *agencyManager) StopRun(ctx context.Context, runID string) (models.TestR
 	}
 	b.dequeue(runID)
 	run, err = m.finishRun(ctx, run, RunOutcome{
-		Result: models.TestRunStopped, StopReason: models.StoppedByDesigner, Steps: run.Steps, Tokens: run.Tokens,
+		Result: models.TestRunStopped, StopReason: models.StoppedByDesigner, Steps: run.Steps, Tokens: run.Tokens, Stored: run.Stored,
 	})
 	b.release(runID)
 	if err != nil {
 		return models.TestRun{}, fmt.Errorf("StopRun: %w", err)
 	}
-	return run, nil
+	return m.present(ctx, run), nil
 }

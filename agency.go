@@ -304,15 +304,16 @@ type AgencyManager interface {
 }
 
 type agencyManager struct {
-	db       *gorm.DB
-	st       *specstore.Store
-	tables   TableNames
-	settings SettingsChecker
-	runner   ScenarioRunner
-	atOnce   func(ctx context.Context) int
-	board    *runBoard
-	groups   GroupLister
-	runs     RunLister
+	db         *gorm.DB
+	st         *specstore.Store
+	tables     TableNames
+	settings   SettingsChecker
+	runner     ScenarioRunner
+	atOnce     func(ctx context.Context) int
+	tokenLimit func(ctx context.Context) int
+	board      *runBoard
+	groups     GroupLister
+	runs       RunLister
 }
 
 func NewAgencyManager(db *gorm.DB, s *spec.Spec, opts ...Option) (AgencyManager, error) {

@@ -139,20 +139,31 @@ type RunStep struct {
 	Failed   bool        `json:"failed,omitempty"`
 	Expected string      `json:"expected,omitempty"`
 	Found    string      `json:"found,omitempty"`
+	Waited   bool        `json:"waited"`
+}
+
+type StoredRecord struct {
+	Record string `json:"record"`
+	Holds  string `json:"holds"`
+	Rows   int    `json:"rows"`
 }
 
 type TestRun struct {
-	ID           string        `json:"id"`
-	ScenarioID   string        `json:"scenario_id"`
-	DraftID      string        `json:"draft_id,omitempty"`
-	DraftVersion string        `json:"draft_version"`
-	Result       TestRunResult `json:"result"`
-	StopReason   string        `json:"stop_reason"`
-	Tokens       int           `json:"tokens"`
-	Steps        []RunStep     `json:"steps,omitempty"`
-	QueuedAt     string        `json:"queued_at"`
-	StartedAt    string        `json:"started_at"`
-	FinishedAt   string        `json:"finished_at"`
+	ID           string         `json:"id"`
+	ScenarioID   string         `json:"scenario_id"`
+	DraftID      string         `json:"draft_id,omitempty"`
+	DraftVersion string         `json:"draft_version"`
+	Result       TestRunResult  `json:"result"`
+	StopReason   string         `json:"stop_reason"`
+	Tokens       int            `json:"tokens"`
+	Steps        []RunStep      `json:"steps,omitempty"`
+	Stored       []StoredRecord `json:"stored"`
+	TokenBudget  int            `json:"token_budget"`
+	RunningStep  string         `json:"running_step"`
+	DraftLabel   string         `json:"draft_label" spec:"-"`
+	QueuedAt     string         `json:"queued_at"`
+	StartedAt    string         `json:"started_at"`
+	FinishedAt   string         `json:"finished_at"`
 }
 
 type DocumentScenarioActor struct {

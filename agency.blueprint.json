@@ -487,7 +487,10 @@
         {"name": "result", "type": "enum", "description": "How the run stands: waiting for a free place under the hub's Scenarios at once setting, running, or how it ended.", "default": "running", "values": ["waiting", "running", "passed", "failed", "stopped"]},
         {"name": "stop_reason", "type": "string", "description": "Why a stopped run stopped, such as Budget reached."},
         {"name": "tokens", "type": "int", "description": "The tokens the whole run used."},
-        {"name": "steps", "type": "json", "description": "What transpired, in order: for each step who acted, who played it (the Test agent and the kind of step it played), what they did, what the agency recorded, the step, the rules checked and whether they held, the tokens used, and for a failure what was expected and what was found."},
+        {"name": "steps", "type": "json", "description": "What transpired, in order: for each step who acted, who played it (the Test agent and the kind of step it played), what they did, what the agency recorded, the step, the rules checked and whether they held, the tokens used, whether a wait was acted out, and for a failure what was expected and what was found."},
+        {"name": "stored", "type": "json", "description": "The records the run left in the test copy, each as the record's name, what it holds and how many rows it holds."},
+        {"name": "token_budget", "type": "int", "description": "The tokens-per-test limit the run was started under. 0 means none."},
+        {"name": "running_step", "type": "string", "description": "The id of the step in progress. Empty once the run has ended."},
         {"name": "queued_at", "type": "timestamp", "description": "When the run was pressed. Runs past the Scenarios at once setting wait and start in this order, and a restart keeps it.", "immutable": true},
         {"name": "started_at", "type": "timestamp", "description": "When the run began to run. Empty while it waits."},
         {"name": "finished_at", "type": "timestamp", "description": "When it ended. Empty while it runs."}
