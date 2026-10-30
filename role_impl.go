@@ -114,9 +114,9 @@ func (m *agencyManager) findRole(ctx context.Context, tx *gorm.DB, id string) (m
 }
 
 func (m *agencyManager) roleNotFoundError(ctx context.Context, tx *gorm.DB, id string) error {
-	pattern := "%" + strings.ToLower(id) + "%"
+	pattern := "%" + likeEscaper.Replace(strings.ToLower(id)) + "%"
 	q := tx.WithContext(ctx).Table(m.table(roleRole)).
-		Where("LOWER(code) LIKE ? OR LOWER(name) LIKE ?", pattern, pattern)
+		Where("LOWER(code) LIKE ? ESCAPE '\\' OR LOWER(name) LIKE ? ESCAPE '\\'", pattern, pattern)
 
 	matches, err := list[models.Role](m, q, roleRole)
 	if err != nil || len(matches) == 0 {

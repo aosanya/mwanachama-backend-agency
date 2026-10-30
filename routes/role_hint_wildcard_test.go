@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestAG56_OpenBug_RoleHintTreatsUnderscoreAndPercentAsWildcards(t *testing.T) {
+func TestAG56_RoleHintTreatsUnderscoreAndPercentLiterally(t *testing.T) {
 	mgr, draft := newTestManagerWithDraft(t)
 	call := func(method, path, body string) (int, map[string]any) {
 		t.Helper()
