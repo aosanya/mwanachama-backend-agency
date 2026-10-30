@@ -12,7 +12,7 @@ Declared in `agency.blueprint.json`, named in `agency.agency.json`, carried by
 
 | Object | Holds |
 |---|---|
-| `scenario` | `name`, `summary` (what it tries), `workflow_id` (the workflow it mirrors, in the same draft), `result`, `last_run_id`, the draft. |
+| `scenario` | `name`, `summary` (what it tries), `workflow_id` (the workflow it mirrors, in the same draft), `result`, `last_run_id`, `thens` (the Then lines, see below), the draft. |
 | `scenario_actor` | `name` (unique in the scenario, ignoring case and outer spaces), `role_id` (an agency role of the same draft), `kind`, `ordinality`. |
 | `scenario_input` | `step_id`, `field` (the prompt of a question on that step's form) and `value`. No row means the field is Free. |
 | `test_run` | `scenario_id`, `draft_version`, `result`, `stop_reason`, `tokens`, `steps`, `started_at`, `finished_at`. |
@@ -26,7 +26,26 @@ identified by its id and its name.
 There is no block object. A scenario's blocks are the steps of its workflow,
 one actor each, and are derived on every read (`scenario.blocks`): the step,
 its kind, its action, the actor, and for each question of its form the field
-with `free` or the fixed `value`.
+with `free` or the fixed `value`, and the block's `then`.
+
+### Then lines
+
+A block's Then line is what the Test agent judges against the test copy once
+that step has been played. It is stored on the scenario as `thens`, a list of
+`step_id` and `then`, and read back on every block as `then` (and as `thens`
+beside the blocks, in step order, only for steps that have a line). Create and
+update take `thens`: an entry sets the line of that step, an empty `then`
+clears it, a step with no entry keeps what it has, and omitting `thens` changes
+nothing. An entry naming a step outside the scenario's workflow is refused with
+`ErrInvalidScenario` and nothing is written. A line whose step has since been
+deleted is not returned, and a fork or a publication carries the lines onto the
+new draft's steps.
+
+### Who played a run step
+
+Each step of a run's `steps` has `played_by`, filled by the executor with who
+played it, such as `Test agent · Fill a form`; `actor` stays the character in
+the script. The agency stores and returns it as given.
 
 ### Actors
 

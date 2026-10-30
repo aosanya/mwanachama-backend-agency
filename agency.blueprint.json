@@ -403,6 +403,7 @@
         {"name": "workflow_id", "type": "string", "description": "The workflow it mirrors, in the same draft. Its steps are the scenario's blocks and the rules it shows are the ones attached to that workflow.", "required": true},
         {"name": "result", "type": "enum", "description": "Where the scenario stands on this draft: not run yet, or the result of its last run. Anything but passed blocks publishing, and a change to what it uses sends it back to not run yet.", "default": "not_run", "values": ["not_run", "running", "passed", "failed", "stopped"]},
         {"name": "last_run_id", "type": "string", "description": "The test run that set the result. Empty while the scenario has not run on this draft."},
+        {"name": "thens", "type": "json", "description": "The Then line of each block, as a list of step_id and then: what the Test agent judges against the test copy once that step has been played. A step with no entry has no Then line."},
         {"name": "created_at", "type": "timestamp", "description": "When the scenario was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."}
       ],
@@ -460,7 +461,7 @@
         {"name": "result", "type": "enum", "description": "How the run stands: running, or how it ended.", "default": "running", "values": ["running", "passed", "failed", "stopped"]},
         {"name": "stop_reason", "type": "string", "description": "Why a stopped run stopped, such as Budget reached."},
         {"name": "tokens", "type": "int", "description": "The tokens the whole run used."},
-        {"name": "steps", "type": "json", "description": "What transpired, in order: for each step who acted, what they did, what the agency recorded, the step, the rules checked and whether they held, the tokens used, and for a failure what was expected and what was found."},
+        {"name": "steps", "type": "json", "description": "What transpired, in order: for each step who acted, who played it (the Test agent and the kind of step it played), what they did, what the agency recorded, the step, the rules checked and whether they held, the tokens used, and for a failure what was expected and what was found."},
         {"name": "started_at", "type": "timestamp", "description": "When the run began.", "immutable": true},
         {"name": "finished_at", "type": "timestamp", "description": "When it ended. Empty while it runs."}
       ],

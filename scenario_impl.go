@@ -177,20 +177,67 @@ func (m *agencyManager) scenarioView(ctx context.Context, tx *gorm.DB, s models.
 	}
 	s.Actors = append(stored, built...)
 	s.Inputs = inputs
-	s.Blocks = scenarioBlocks(steps, s.Actors, roleNames, inputs)
+	s.Blocks = scenarioBlocks(steps, s.Actors, roleNames, inputs, s.Thens)
+	s.Thens = thensOf(s.Blocks)
 	return s, nil
 }
 
-func scenarioBlocks(steps []models.WorkItem, actors []models.ScenarioActor, roleNames map[string]string, inputs []models.ScenarioInput) []models.ScenarioBlock {
+func thensOf(blocks []models.ScenarioBlock) []models.ScenarioThen {
+	var out []models.ScenarioThen
+	for _, b := range blocks {
+		if b.Then != "" {
+			out = append(out, models.ScenarioThen{StepID: b.StepID, Then: b.Then})
+		}
+	}
+	return out
+}
+
+func (m *agencyManager) mergeThens(ctx context.Context, tx *gorm.DB, s models.Scenario, requested []models.ScenarioThen) ([]models.ScenarioThen, error) {
+	if requested == nil {
+		return s.Thens, nil
+	}
+	steps, err := m.workflowSteps(ctx, tx, s.DraftID, s.WorkflowID)
+	if err != nil {
+		return nil, err
+	}
+	inWorkflow := make(map[string]bool, len(steps))
+	for _, step := range steps {
+		inWorkflow[step.ID] = true
+	}
+	lines := make(map[string]string, len(s.Thens)+len(requested))
+	for _, t := range s.Thens {
+		lines[t.StepID] = t.Then
+	}
+	for _, t := range requested {
+		if !inWorkflow[t.StepID] {
+			return nil, invalidScenario("step %q is not a step of the workflow this scenario mirrors", t.StepID)
+		}
+		lines[t.StepID] = strings.TrimSpace(t.Then)
+	}
+	var out []models.ScenarioThen
+	for _, step := range steps {
+		if line := lines[step.ID]; line != "" {
+			out = append(out, models.ScenarioThen{StepID: step.ID, Then: line})
+		}
+	}
+	return out, nil
+}
+
+func scenarioBlocks(steps []models.WorkItem, actors []models.ScenarioActor, roleNames map[string]string, inputs []models.ScenarioInput, thens []models.ScenarioThen) []models.ScenarioBlock {
 	fixed := make(map[string]string, len(inputs))
 	for _, in := range inputs {
 		fixed[in.StepID+"\x00"+in.Field] = in.Value
+	}
+	then := make(map[string]string, len(thens))
+	for _, t := range thens {
+		then[t.StepID] = t.Then
 	}
 	blocks := make([]models.ScenarioBlock, 0, len(steps))
 	for _, step := range steps {
 		block := models.ScenarioBlock{
 			StepID: step.ID, Code: step.Code, Title: step.Title, Kind: step.Kind,
 			Action: models.ActionOf(step.Kind, step.FormName, ""), Actor: actorFor(step, actors, roleNames),
+			Then: then[step.ID],
 		}
 		for _, q := range step.Questions {
 			field := models.BlockField{Prompt: q.Prompt, Free: true}
@@ -240,6 +287,11 @@ func (m *agencyManager) CreateScenario(ctx context.Context, s models.Scenario) (
 			ID: newID(), DraftID: s.DraftID, Name: s.Name, Summary: s.Summary, WorkflowID: s.WorkflowID,
 			Result: models.ScenarioNotRun, CreatedAt: now, LastUpdated: now,
 		}
+		thens, err := m.mergeThens(ctx, tx, row, s.Thens)
+		if err != nil {
+			return err
+		}
+		row.Thens = thens
 		if err := m.insertRow(ctx, tx, roleScenario, row); err != nil {
 			return err
 		}
@@ -308,7 +360,11 @@ func (m *agencyManager) UpdateScenario(ctx context.Context, s models.Scenario) (
 		if s.WorkflowID != "" && s.WorkflowID != existing.WorkflowID {
 			return invalidScenario("a scenario mirrors one workflow; write a new scenario for another")
 		}
-		existing.Name, existing.Summary = name, s.Summary
+		thens, err := m.mergeThens(ctx, tx, existing, s.Thens)
+		if err != nil {
+			return err
+		}
+		existing.Name, existing.Summary, existing.Thens = name, s.Summary, thens
 		existing.Result = models.ScenarioNotRun
 		existing.LastUpdated = models.NowRFC3339()
 		if err := m.writeUpdate(ctx, tx, roleScenario, existing.ID, existing, ErrScenarioNotFound, "draft_id"); err != nil {

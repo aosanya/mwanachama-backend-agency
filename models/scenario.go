@@ -50,6 +50,12 @@ type Scenario struct {
 	Actors      []ScenarioActor `json:"actors,omitempty" spec:"-"`
 	Inputs      []ScenarioInput `json:"inputs,omitempty" spec:"-"`
 	Blocks      []ScenarioBlock `json:"blocks,omitempty" spec:"-"`
+	Thens       []ScenarioThen  `json:"thens,omitempty"`
+}
+
+type ScenarioThen struct {
+	StepID string `json:"step_id"`
+	Then   string `json:"then"`
 }
 
 type ScenarioActor struct {
@@ -90,6 +96,7 @@ type ScenarioBlock struct {
 	Kind   StepKind     `json:"kind"`
 	Action string       `json:"action"`
 	Actor  string       `json:"actor"`
+	Then   string       `json:"then,omitempty"`
 	Fields []BlockField `json:"fields,omitempty"`
 }
 
@@ -121,6 +128,7 @@ type RunStep struct {
 	StepID   string      `json:"step_id"`
 	Step     string      `json:"step"`
 	Actor    string      `json:"actor"`
+	PlayedBy string      `json:"played_by,omitempty"`
 	Did      string      `json:"did"`
 	Recorded string      `json:"recorded"`
 	Rules    []RuleCheck `json:"rules,omitempty"`
@@ -161,4 +169,5 @@ type DocumentScenario struct {
 	WorkflowID string                  `json:"workflow_id"`
 	Actors     []DocumentScenarioActor `json:"actors,omitempty"`
 	Inputs     []DocumentScenarioInput `json:"inputs,omitempty"`
+	Thens      []ScenarioThen          `json:"thens,omitempty"`
 }

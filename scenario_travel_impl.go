@@ -25,7 +25,7 @@ func (m *agencyManager) forkScenarios(ctx context.Context, tx *gorm.DB, sourceDr
 		copied := models.Scenario{
 			ID: newID(), DraftID: newDraft, Name: s.Name, Summary: s.Summary,
 			WorkflowID: mapped(remap.workflows, s.WorkflowID), Result: models.ScenarioNotRun,
-			CreatedAt: now, LastUpdated: now,
+			CreatedAt: now, LastUpdated: now, Thens: remapThens(s.Thens, remap.steps),
 		}
 		if err := m.insertRow(ctx, tx, roleScenario, copied); err != nil {
 			return fmt.Errorf("CreateDraft: %w", err)
@@ -56,6 +56,16 @@ func (m *agencyManager) forkScenarios(ctx context.Context, tx *gorm.DB, sourceDr
 	return nil
 }
 
+func remapThens(thens []models.ScenarioThen, steps map[string]string) []models.ScenarioThen {
+	var out []models.ScenarioThen
+	for _, t := range thens {
+		if to, ok := steps[t.StepID]; ok {
+			out = append(out, models.ScenarioThen{StepID: to, Then: t.Then})
+		}
+	}
+	return out
+}
+
 func mapped(ids map[string]string, id string) string {
 	if to, ok := ids[id]; ok {
 		return to
@@ -70,7 +80,7 @@ func (m *agencyManager) scenarioDocuments(ctx context.Context, tx *gorm.DB, draf
 	}
 	var out []models.DocumentScenario
 	for _, s := range scenarios {
-		doc := models.DocumentScenario{ID: s.ID, Name: s.Name, Summary: s.Summary, WorkflowID: s.WorkflowID}
+		doc := models.DocumentScenario{ID: s.ID, Name: s.Name, Summary: s.Summary, WorkflowID: s.WorkflowID, Thens: s.Thens}
 		actors, err := m.storedActors(ctx, tx, s.ID)
 		if err != nil {
 			return nil, err
@@ -98,7 +108,7 @@ func (m *agencyManager) applyScenarioDocuments(ctx context.Context, tx *gorm.DB,
 		}
 		row := models.Scenario{
 			ID: newID(), DraftID: draftID, Name: d.Name, Summary: d.Summary, WorkflowID: workflowID,
-			Result: models.ScenarioNotRun, CreatedAt: now, LastUpdated: now,
+			Result: models.ScenarioNotRun, CreatedAt: now, LastUpdated: now, Thens: remapThens(d.Thens, remap.steps),
 		}
 		if err := m.insertRow(ctx, tx, roleScenario, row); err != nil {
 			return err
