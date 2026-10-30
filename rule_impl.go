@@ -107,7 +107,10 @@ func (m *agencyManager) DeleteRule(ctx context.Context, id string) error {
 		if err := m.deleteWhere(ctx, tx, roleRule, "id = ?", id); err != nil {
 			return err
 		}
-		return m.sendBack(ctx, tx, existing.DraftID, usageKey("rule", existing.Code))
+		if err := m.sendBack(ctx, tx, existing.DraftID, usageKey("rule", existing.Code)); err != nil {
+			return err
+		}
+		return m.dropOrphanedAttachments(ctx, tx, roleRule, roleRuleAttachment, "rule_code", existing.Code)
 	})
 	if err != nil {
 		return fmt.Errorf("DeleteRule: %w", err)

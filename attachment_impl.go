@@ -34,6 +34,17 @@ func hasAnyAttachment(ctx context.Context, tx *gorm.DB, attachmentsTable, codeCo
 	return count > 0, nil
 }
 
+func (m *agencyManager) dropOrphanedAttachments(ctx context.Context, tx *gorm.DB, role, attachmentRole, codeColumn, code string) error {
+	var survivors int64
+	if err := tx.WithContext(ctx).Table(m.table(role)).Where("code = ?", code).Count(&survivors).Error; err != nil {
+		return fmt.Errorf("dropOrphanedAttachments: %w", err)
+	}
+	if survivors > 0 {
+		return nil
+	}
+	return m.deleteWhere(ctx, tx, attachmentRole, codeColumn+" = ?", code)
+}
+
 func (m *agencyManager) targetRole(t models.TargetType) (role string, notFound error, ok bool) {
 	switch t {
 	case models.TargetTypeRole:

@@ -104,7 +104,10 @@ func (m *agencyManager) DeleteValue(ctx context.Context, id string) error {
 		if !attached {
 			return ErrCannotEditLive
 		}
-		return m.deleteWhere(ctx, tx, roleValue, "id = ?", id)
+		if err := m.deleteWhere(ctx, tx, roleValue, "id = ?", id); err != nil {
+			return err
+		}
+		return m.dropOrphanedAttachments(ctx, tx, roleValue, roleValueAttachment, "value_code", existing.Code)
 	})
 	if err != nil {
 		return fmt.Errorf("DeleteValue: %w", err)

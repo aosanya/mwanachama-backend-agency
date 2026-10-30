@@ -122,11 +122,11 @@ func (s *issueScan) checkRACI() error {
 		}
 		if !roleIDs[a.RoleID] {
 			s.add(models.IssueSeverityError, "role_assignment", a.ID,
-				"Role assignment %s refers to Role %s, which does not exist", a.ID, a.RoleID)
+				"Role assignment %s refers to Role %s, which does not exist", a.ID, QuoteIfUnsafe(a.RoleID))
 		}
 		if !objectiveIDs[a.ObjectiveID] {
 			s.add(models.IssueSeverityError, "role_assignment", a.ID,
-				"Role assignment %s refers to Objective %s, which does not exist", a.ID, a.ObjectiveID)
+				"Role assignment %s refers to Objective %s, which does not exist", a.ID, QuoteIfUnsafe(a.ObjectiveID))
 		}
 	}
 	for _, o := range objectives {
@@ -177,19 +177,19 @@ func (s *issueScan) checkWorkItems() error {
 		workflowsWithItem[w.WorkflowID] = true
 		if !objectiveIDs[w.ObjectiveID] {
 			s.add(models.IssueSeverityError, "work_item", w.ID,
-				"Work item %s %q refers to Objective %s, which does not exist", w.Code, w.Title, w.ObjectiveID)
+				"Work item %s %q refers to Objective %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.ObjectiveID))
 		}
 		if w.RoleID != "" && !roleIDs[w.RoleID] {
 			s.add(models.IssueSeverityError, "work_item", w.ID,
-				"Work item %s %q is acted on by Role %s, which does not exist", w.Code, w.Title, w.RoleID)
+				"Work item %s %q is acted on by Role %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.RoleID))
 		}
 		if w.RunWorkflowID != "" && !workflowIDs[w.RunWorkflowID] {
 			s.add(models.IssueSeverityError, "work_item", w.ID,
-				"Work item %s %q runs Workflow %s, which does not exist", w.Code, w.Title, w.RunWorkflowID)
+				"Work item %s %q runs Workflow %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.RunWorkflowID))
 		}
 		if w.CancelWorkflowID != "" && !workflowIDs[w.CancelWorkflowID] {
 			s.add(models.IssueSeverityError, "work_item", w.ID,
-				"Work item %s %q cancels with Workflow %s, which does not exist", w.Code, w.Title, w.CancelWorkflowID)
+				"Work item %s %q cancels with Workflow %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.CancelWorkflowID))
 		}
 	}
 	for _, w := range workflows {
@@ -236,17 +236,31 @@ func (s *issueScan) checkAttachments() error {
 		codesByType[t] = codes
 	}
 
+	valueCodes, err := s.codeSet(roleValue)
+	if err != nil {
+		return err
+	}
+	ruleCodes, err := s.codeSet(roleRule)
+	if err != nil {
+		return err
+	}
+
 	valueAttachments, err := list[models.ValueAttachment](s.m,
 		s.tx.WithContext(s.ctx).Table(s.m.table(roleValueAttachment)), roleValueAttachment)
 	if err != nil {
 		return err
 	}
 	for _, a := range valueAttachments {
+		if !valueCodes[a.ValueCode] {
+			s.add(models.IssueSeverityError, "value_attachment", a.ID,
+				"Attachment to %s %s names Value %s, which does not exist", a.TargetType, a.TargetCode, a.ValueCode)
+			continue
+		}
 		if codesByType[a.TargetType][a.TargetCode] {
 			continue
 		}
 		s.add(models.IssueSeverityError, "value_attachment", a.ID,
-			"Value %s is attached to %s %s, which does not exist", a.ValueCode, a.TargetType, a.TargetCode)
+			"Value %s is attached to %s %s, which does not exist", QuoteIfUnsafe(a.ValueCode), a.TargetType, QuoteIfUnsafe(a.TargetCode))
 	}
 
 	ruleAttachments, err := list[models.RuleAttachment](s.m,
@@ -255,17 +269,25 @@ func (s *issueScan) checkAttachments() error {
 		return err
 	}
 	for _, a := range ruleAttachments {
+		if !ruleCodes[a.RuleCode] {
+			s.add(models.IssueSeverityError, "rule_attachment", a.ID,
+				"Attachment to %s %s names Rule %s, which does not exist", a.TargetType, a.TargetCode, a.RuleCode)
+			continue
+		}
 		if codesByType[a.TargetType][a.TargetCode] {
 			continue
 		}
 		s.add(models.IssueSeverityError, "rule_attachment", a.ID,
-			"Rule %s is attached to %s %s, which does not exist", a.RuleCode, a.TargetType, a.TargetCode)
+			"Rule %s is attached to %s %s, which does not exist", QuoteIfUnsafe(a.RuleCode), a.TargetType, QuoteIfUnsafe(a.TargetCode))
 	}
 	return nil
 }
 
 func (m *agencyManager) ListIssues(ctx context.Context, draftID string, filter IssueFilter) ([]models.Issue, error) {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if _, err := m.findDraft(ctx, tx, draftID); err != nil {
+			return err
+		}
 		_, err := m.rescanIssues(ctx, tx, draftID)
 		return err
 	})
