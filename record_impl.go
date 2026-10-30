@@ -71,6 +71,7 @@ func (m *agencyManager) CreateRecord(ctx context.Context, r models.Record) (mode
 		return models.Record{}, fmt.Errorf("CreateRecord: %w", err)
 	}
 	r.ID = newID()
+	r.Deleted = false
 	r.CreatedAt = models.NowRFC3339()
 	r.LastUpdated = r.CreatedAt
 
@@ -219,6 +220,7 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
 	}
 	row.ID = newID()
+	row.Deleted = false
 	row.RecordCode = record.Code
 	row.CreatedAt = models.NowRFC3339()
 	row.LastUpdated = row.CreatedAt

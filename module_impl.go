@@ -17,6 +17,7 @@ func (m *agencyManager) CreateModule(ctx context.Context, mod models.Module) (mo
 		return models.Module{}, ErrInvalidModule
 	}
 	mod.ID = newID()
+	mod.Deleted = false
 	mod.CreatedAt = models.NowRFC3339()
 	mod.LastUpdated = mod.CreatedAt
 

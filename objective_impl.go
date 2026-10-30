@@ -15,6 +15,7 @@ func (m *agencyManager) CreateObjective(ctx context.Context, o models.Objective)
 	}
 	o.ID = newID()
 	o.Deleted = false
+	o.Deleted = false
 	o.CreatedAt = models.NowRFC3339()
 	o.LastUpdated = o.CreatedAt
 

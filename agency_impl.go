@@ -11,6 +11,7 @@ import (
 
 func (m *agencyManager) CreateAgency(ctx context.Context, a models.Agency) (models.Agency, error) {
 	a.ID = newID()
+	a.Deleted = false
 	a.CreatedAt = models.NowRFC3339()
 	a.LastUpdated = a.CreatedAt
 	if err := m.insert(ctx, roleAgency, a); err != nil {

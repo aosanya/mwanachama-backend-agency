@@ -60,6 +60,7 @@ func (m *agencyManager) CreateRoleAssignment(ctx context.Context, a models.RoleA
 		return models.RoleAssignment{}, err
 	}
 	a.ID = newID()
+	a.Deleted = false
 	a.CreatedAt = models.NowRFC3339()
 	a.LastUpdated = a.CreatedAt
 

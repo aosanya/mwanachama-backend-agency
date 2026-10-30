@@ -15,6 +15,7 @@ func (m *agencyManager) CreateGoal(ctx context.Context, g models.Goal) (models.G
 	}
 	g.ID = newID()
 	g.Deleted = false
+	g.Deleted = false
 	g.CreatedAt = models.NowRFC3339()
 	g.LastUpdated = g.CreatedAt
 

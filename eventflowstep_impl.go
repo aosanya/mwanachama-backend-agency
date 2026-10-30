@@ -13,6 +13,7 @@ func (m *agencyManager) CreateEventFlowStep(ctx context.Context, s models.EventF
 		return models.EventFlowStep{}, err
 	}
 	s.ID = newID()
+	s.Deleted = false
 	s.CreatedAt = models.NowRFC3339()
 	s.LastUpdated = s.CreatedAt
 

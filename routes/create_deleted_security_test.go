@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestAG57_OpenHole_CreateStoresABodySetDeletedFlag(t *testing.T) {
+func TestAG57_CreateIgnoresABodySetDeletedFlag(t *testing.T) {
 	mgr, draft := newTestManagerWithDraft(t)
 
 	call := func(method, path, body string) (int, map[string]any) {

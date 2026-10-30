@@ -20,6 +20,7 @@ func (m *agencyManager) CreateRole(ctx context.Context, r models.Role) (models.R
 	}
 	r.Powers = models.DistinctPowers(r.Powers)
 	r.ID = newID()
+	r.Deleted = false
 	r.CreatedAt = models.NowRFC3339()
 	r.LastUpdated = r.CreatedAt
 

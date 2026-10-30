@@ -44,6 +44,7 @@ func (m *agencyManager) CreateObjectiveModule(ctx context.Context, om models.Obj
 		return models.ObjectiveModule{}, ErrRationaleRequired
 	}
 	om.ID = newID()
+	om.Deleted = false
 	om.CreatedAt = models.NowRFC3339()
 	om.LastUpdated = om.CreatedAt
 

@@ -15,6 +15,7 @@ func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (
 	}
 	w.ID = newID()
 	w.Deleted = false
+	w.Deleted = false
 	w.CreatedAt = models.NowRFC3339()
 	w.LastUpdated = w.CreatedAt
 

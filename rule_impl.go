@@ -17,6 +17,7 @@ func (m *agencyManager) CreateRule(ctx context.Context, v models.Rule) (models.R
 		return models.Rule{}, err
 	}
 	v.ID = newID()
+	v.Deleted = false
 	v.CreatedAt = models.NowRFC3339()
 	v.LastUpdated = v.CreatedAt
 

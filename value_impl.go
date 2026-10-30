@@ -17,6 +17,7 @@ func (m *agencyManager) CreateValue(ctx context.Context, v models.Value) (models
 		return models.Value{}, err
 	}
 	v.ID = newID()
+	v.Deleted = false
 	v.CreatedAt = models.NowRFC3339()
 	v.LastUpdated = v.CreatedAt
 

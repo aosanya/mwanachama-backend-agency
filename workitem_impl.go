@@ -20,6 +20,7 @@ func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) 
 		return models.WorkItem{}, fmt.Errorf("CreateWorkItem: %w", err)
 	}
 	wi.ID = newID()
+	wi.Deleted = false
 	wi.CreatedAt = models.NowRFC3339()
 	wi.LastUpdated = wi.CreatedAt
 
