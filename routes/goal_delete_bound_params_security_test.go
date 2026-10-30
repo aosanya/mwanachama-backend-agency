@@ -10,7 +10,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG76_OpenHole_AGoalWithMoreObjectivesThanOneStatementCanBindCanNeverBeDeleted(t *testing.T) {
+func TestAG76_AGoalWithMoreObjectivesThanOneStatementCanBindCanNeverBeDeleted(t *testing.T) {
 	const objectives = 32767
 	mgr, draftID := newTestManagerWithDraft(t)
 	ctx := t.Context()
@@ -39,7 +39,7 @@ func TestAG76_OpenHole_AGoalWithMoreObjectivesThanOneStatementCanBindCanNeverBeD
 	serve(mgr, get, httptest.NewRequest(http.MethodGet, "/goals/"+goal.ID, nil))
 
 	if del.Code != http.StatusNoContent || get.Code != http.StatusNotFound {
-		t.Errorf("AG76 open hole (P3): DELETE /goals/{id} on a goal holding %d objectives answered %d %s and GET then answered %d — want 204 and then 404; the cascade binds every objective id into one statement, so past the driver's bound-parameter ceiling the goal can never be deleted by anyone in the Instance",
+		t.Errorf("DELETE /goals/{id} on a goal holding %d objectives answered %d %s and GET then answered %d — want 204 and then 404; the cascade binds every objective id into one statement, so past the driver's bound-parameter ceiling the goal can never be deleted by anyone in the Instance",
 			objectives, del.Code, del.Body.String(), get.Code)
 	}
 }
