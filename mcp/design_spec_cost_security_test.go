@@ -13,7 +13,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG58_OpenHole_OneDesignFromSpecCallAppliesUnboundedEntities(t *testing.T) {
+func TestAG58_OneDesignFromSpecCallRefusesUnboundedEntities(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := ctxT(t)
 	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "AG58"}); err != nil {
@@ -51,7 +51,7 @@ func TestAG58_OpenHole_OneDesignFromSpecCallAppliesUnboundedEntities(t *testing.
 		t.Fatalf("ListGoals: %v", err)
 	}
 	if !result.IsError && len(stored) >= goals {
-		t.Errorf("AG58 (P2) open hole: one agency_design_from_spec call carrying %d goals was applied whole — %d goal rows "+
+		t.Errorf("AG58 (P2): one agency_design_from_spec call carrying %d goals was applied whole — %d goal rows "+
 			"written in %s with no refusal; a per-call entity cap should refuse the spec with an error before anything is "+
 			"written (this test assumes a cap below %d)", goals, len(stored), elapsed.Round(time.Millisecond), goals)
 	}

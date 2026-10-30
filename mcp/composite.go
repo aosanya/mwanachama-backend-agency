@@ -51,6 +51,7 @@ func registerCompositeTools(server *mcp.Server, resolve ManagerResolver) {
 			"Entities reference each other by a caller-chosen \"key\" (not a real id); a reference must name a key defined earlier in that section or in a section this tool applies first. " +
 			"Order applied: agency (only if none exists yet), roles, goals, objectives (goal_key), workflows, work_items (objective_key), raci (objective_key). " +
 			"A raci entry may instead reference an already-existing Role/Objective directly by its real id (role_id/objective_id) if it isn't also being created in this same spec — use this to create one new Role (or Objective) and assign it RACI against something that already exists in a single call, instead of a separate create-then-assign round trip. " +
+			"One call carries at most 1000 entries across all sections together; a bigger spec is refused before anything is written, so send it in several calls. " +
 			"One entity failing does not stop the rest — check the result's errors field.",
 	}, mcpDesignAgencyFromSpec(resolve))
 }
@@ -113,10 +114,10 @@ type mcpDesignFromSpecParams struct {
 	RACI       []specRACI      `json:"raci,omitempty"`
 }
 
-// mcpDesignFromSpecResult reports every key this call actually resolved to
-// a real id, plus every failure — never a Go error for a partial
-// application, since a caller needs to see what succeeded even when
-// something later in the spec did not (see the package doc comment).
+func (p mcpDesignFromSpecParams) entityCount() int {
+	return len(p.Roles) + len(p.Goals) + len(p.Objectives) + len(p.Workflows) + len(p.WorkItems) + len(p.RACI)
+}
+
 type mcpDesignFromSpecResult struct {
 	AgencyCreated   bool              `json:"agency_created"`
 	Roles           map[string]string `json:"roles,omitempty"`
@@ -132,6 +133,9 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 	return func(ctx context.Context, _ *mcp.CallToolRequest, p mcpDesignFromSpecParams) (*mcp.CallToolResult, mcpDesignFromSpecResult, error) {
 		m, err := resolve(ctx, p.InstanceID)
 		if err != nil {
+			return nil, mcpDesignFromSpecResult{}, err
+		}
+		if err := mwanachamaagency.CheckDesignSpecSize(p.entityCount()); err != nil {
 			return nil, mcpDesignFromSpecResult{}, err
 		}
 
