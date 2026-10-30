@@ -101,6 +101,9 @@ func (m *agencyManager) UpdateObjectiveModule(ctx context.Context, id, rationale
 		if err != nil {
 			return err
 		}
+		if err := m.requireOpenDraft(ctx, tx, om.DraftID); err != nil {
+			return err
+		}
 		om.Rationale = rationale
 		om.LastUpdated = models.NowRFC3339()
 
@@ -118,7 +121,11 @@ func (m *agencyManager) UpdateObjectiveModule(ctx context.Context, id, rationale
 
 func (m *agencyManager) DeleteObjectiveModule(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findObjectiveModule(ctx, tx, id); err != nil {
+		existing, err := m.findObjectiveModule(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
 		return m.deleteWhere(ctx, tx, roleObjectiveModule, "id = ?", id)

@@ -72,6 +72,9 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 		if err != nil {
 			return err
 		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		wi.Code = existing.Code
 		wi.DraftID = existing.DraftID
 		wi.CreatedAt = existing.CreatedAt
@@ -97,6 +100,9 @@ func (m *agencyManager) DeleteWorkItem(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		existing, err := m.findWorkItem(ctx, tx, id)
 		if err != nil {
+			return err
+		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
 		if err := m.sendBack(ctx, tx, existing.DraftID, m.stepKeys(ctx, tx, existing)...); err != nil {

@@ -52,6 +52,9 @@ func (m *agencyManager) UpdateGoal(ctx context.Context, g models.Goal) (models.G
 		existing, err := m.findGoal(ctx, tx, g.ID)
 		if err != nil {
 			return err
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		}
 		g.Code = existing.Code
 		g.DraftID = existing.DraftID
@@ -75,6 +78,9 @@ func (m *agencyManager) DeleteGoal(ctx context.Context, id string) error {
 		existing, err := m.findGoal(ctx, tx, id)
 		if err != nil {
 			return err
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		}
 
 		objectivesOfGoal := "objective_id in (select id from " + m.table(roleObjective) + " where draft_id = ? and goal_id = ?)"

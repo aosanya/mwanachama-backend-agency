@@ -68,6 +68,9 @@ func (m *agencyManager) UpdateValue(ctx context.Context, v models.Value) (models
 		if err != nil {
 			return err
 		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		attached, err := hasAnyAttachment(ctx, tx, m.table(roleValueAttachment), "value_code", existing.Code)
 		if err != nil {
 			return err
@@ -96,6 +99,9 @@ func (m *agencyManager) DeleteValue(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		existing, err := m.findValue(ctx, tx, id)
 		if err != nil {
+			return err
+		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
 		attached, err := hasAnyAttachment(ctx, tx, m.table(roleValueAttachment), "value_code", existing.Code)

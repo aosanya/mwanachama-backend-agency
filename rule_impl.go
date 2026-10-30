@@ -68,6 +68,9 @@ func (m *agencyManager) UpdateRule(ctx context.Context, v models.Rule) (models.R
 		if err != nil {
 			return err
 		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		attached, err := hasAnyAttachment(ctx, tx, m.table(roleRuleAttachment), "rule_code", existing.Code)
 		if err != nil {
 			return err
@@ -96,6 +99,9 @@ func (m *agencyManager) DeleteRule(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		existing, err := m.findRule(ctx, tx, id)
 		if err != nil {
+			return err
+		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
 		attached, err := hasAnyAttachment(ctx, tx, m.table(roleRuleAttachment), "rule_code", existing.Code)

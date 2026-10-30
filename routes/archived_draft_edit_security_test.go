@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestAG72_OpenHole_RowsInAnArchivedDraftStillTakeUpdatesAndDeletes(t *testing.T) {
+func TestAG72_RowsInAnArchivedDraftRefuseUpdatesAndDeletes(t *testing.T) {
 	mgr, draft := newTestManagerWithDraft(t)
 
 	call := func(method, path, body string) (int, map[string]any) {

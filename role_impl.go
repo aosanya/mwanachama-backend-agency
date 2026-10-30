@@ -61,6 +61,9 @@ func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.R
 		if err != nil {
 			return err
 		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		r.Code = existing.Code
 		r.DraftID = existing.DraftID
 		r.Powers = models.DistinctPowers(r.Powers)
@@ -83,6 +86,9 @@ func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		existing, err := m.findRole(ctx, tx, id)
 		if err != nil {
+			return err
+		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
 		if err := m.refuseRoleHeldByScenario(ctx, tx, existing); err != nil {

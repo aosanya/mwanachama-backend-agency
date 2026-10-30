@@ -389,7 +389,11 @@ func (m *agencyManager) UpdateScenario(ctx context.Context, s models.Scenario) (
 
 func (m *agencyManager) DeleteScenario(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findScenario(ctx, tx, id); err != nil {
+		existing, err := m.findScenario(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
 		for _, role := range []string{roleScenarioActor, roleScenarioInput, roleTestRun} {

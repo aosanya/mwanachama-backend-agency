@@ -117,6 +117,9 @@ func (m *agencyManager) UpdateRecord(ctx context.Context, r models.Record) (mode
 		if err != nil {
 			return err
 		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		r.Code = existing.Code
 		r.DraftID = existing.DraftID
 		r.CreatedAt = existing.CreatedAt
@@ -140,7 +143,11 @@ func (m *agencyManager) UpdateRecord(ctx context.Context, r models.Record) (mode
 
 func (m *agencyManager) DeleteRecord(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findRecord(ctx, tx, id); err != nil {
+		existing, err := m.findRecord(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
 		if err := m.deleteWhere(ctx, tx, roleRecordRow, "record_id = ?", id); err != nil {

@@ -102,6 +102,9 @@ func (m *agencyManager) UpdateRoleAssignment(ctx context.Context, a models.RoleA
 		if err != nil {
 			return err
 		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		a.DraftID = existing.DraftID
 		if err := m.validateRoleAssignment(ctx, tx, a, a.ID); err != nil {
 			return err
@@ -123,7 +126,11 @@ func (m *agencyManager) UpdateRoleAssignment(ctx context.Context, a models.RoleA
 
 func (m *agencyManager) DeleteRoleAssignment(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findRoleAssignment(ctx, tx, id); err != nil {
+		existing, err := m.findRoleAssignment(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
 		return m.deleteWhere(ctx, tx, roleRoleAssignment, "id = ?", id)

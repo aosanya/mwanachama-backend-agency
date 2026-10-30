@@ -52,6 +52,9 @@ func (m *agencyManager) UpdateObjective(ctx context.Context, o models.Objective)
 		existing, err := m.findObjective(ctx, tx, o.ID)
 		if err != nil {
 			return err
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		}
 		o.Code = existing.Code
 		o.DraftID = existing.DraftID
@@ -75,6 +78,9 @@ func (m *agencyManager) DeleteObjective(ctx context.Context, id string) error {
 		existing, err := m.findObjective(ctx, tx, id)
 		if err != nil {
 			return err
+		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
 		}
 		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
 			if err := m.deleteInDraft(ctx, tx, role, existing.DraftID, "objective_id = ?", id); err != nil {
