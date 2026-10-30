@@ -28,7 +28,15 @@ func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (
 }
 
 func (m *agencyManager) GetWorkflow(ctx context.Context, id string) (models.Workflow, error) {
-	return m.findWorkflow(ctx, m.db, id)
+	w, err := m.findWorkflow(ctx, m.db, id)
+	if err != nil {
+		return models.Workflow{}, err
+	}
+	out, err := m.withUse(ctx, []models.Workflow{w})
+	if err != nil {
+		return models.Workflow{}, fmt.Errorf("GetWorkflow: %w", err)
+	}
+	return out[0], nil
 }
 
 func (m *agencyManager) ListWorkflows(ctx context.Context, draftID string, filter WorkflowFilter) ([]models.Workflow, error) {
@@ -38,6 +46,10 @@ func (m *agencyManager) ListWorkflows(ctx context.Context, draftID string, filte
 	q = likeFilter(q, "description", filter.Description)
 
 	out, err := list[models.Workflow](m, q, roleWorkflow)
+	if err != nil {
+		return nil, fmt.Errorf("ListWorkflows: %w", err)
+	}
+	out, err = m.withUse(ctx, out)
 	if err != nil {
 		return nil, fmt.Errorf("ListWorkflows: %w", err)
 	}

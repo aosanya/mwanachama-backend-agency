@@ -56,6 +56,7 @@ type AgencyManager interface {
 	CreateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error)
 	GetWorkflow(ctx context.Context, id string) (models.Workflow, error)
 	ListWorkflows(ctx context.Context, draftID string, filter WorkflowFilter) ([]models.Workflow, error)
+	ListDefaultWorkflows(ctx context.Context) ([]models.Workflow, error)
 	UpdateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error)
 	// DeleteWorkflow cascades: every WorkItem owned by it is deleted too —
 	// same reasoning as DeleteGoal's cascade above (see its doc comment).
@@ -300,6 +301,7 @@ type agencyManager struct {
 	settings SettingsChecker
 	runner   ScenarioRunner
 	groups   GroupLister
+	runs     RunLister
 }
 
 func NewAgencyManager(db *gorm.DB, s *spec.Spec, opts ...Option) (AgencyManager, error) {

@@ -587,7 +587,7 @@
       "call": "ListWorkflows",
       "action": "agency.workflow.list",
       "title": "List workflows",
-      "description": "List one draft's workflows in their listed order, narrowed by the filter.",
+      "description": "List one draft's workflows in their listed order, narrowed by the filter. Each carries in_use (an order is under way on it), orders_under_way, order_versions (the versions those orders are on) and version (the version published now, 0 before the first publish).",
       "args": [
         {
           "from": "query",
@@ -606,13 +606,28 @@
       ],
       "tool": "agency_list_workflows"
     },
+    "list_default_workflows": {
+      "method": "GET",
+      "path": "/workflows/defaults",
+      "call": "ListDefaultWorkflows",
+      "action": "agency.workflow.list_defaults",
+      "title": "List default workflows",
+      "description": "List the workflows every agency has built in, such as Cancel, which holds until the agency adds a cancel workflow of its own. Each carries whether an order is under way on it and the versions those orders are on.",
+      "args": [],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_default_workflows"
+    },
     "get_workflow": {
       "method": "GET",
       "path": "/workflows/{workflow_id}",
       "call": "GetWorkflow",
       "action": "agency.workflow.read",
       "title": "Read workflow",
-      "description": "Read one workflow by its id — its code, name, position and its own event-flow definition.",
+      "description": "Read one workflow by its id — its code, name, position, its own event-flow definition and whether an order is under way on it (in_use, orders_under_way, order_versions, version).",
       "args": [
         {
           "from": "path",
@@ -1936,7 +1951,7 @@
       "action": "agency.scenario.create",
       "status": 201,
       "title": "Create scenario",
-      "description": "Write a test scenario: one path through one workflow of the draft, which the Test agent plays out. Its blocks are that workflow's steps and it starts Not run yet. Add the people it plays with add scenario actor and fix what a step is given with set scenario input. A workflow of another draft is refused.",
+      "description": "Write a test scenario: one path through one workflow of the draft, which the Test agent plays out. Its blocks are that workflow's steps and it starts Not run yet. Add the people it plays with add scenario actor and fix what a step is given with set scenario input. Thens is a list of step_id and then: the Then line of a block, which the Test agent judges against the test copy once the step has been played. A workflow of another draft is refused.",
       "args": [
         {
           "from": "body",
@@ -2002,7 +2017,7 @@
       "call": "UpdateScenario",
       "action": "agency.scenario.update",
       "title": "Update scenario",
-      "description": "Change a scenario's name and what it tries. It goes back to Not run yet and its old runs stay. The workflow it mirrors cannot change; write a new scenario for another one.",
+      "description": "Change a scenario's name and what it tries, and set or clear Then lines with thens (a list of step_id and then; an empty then clears that step's line, a step left out keeps its line). It goes back to Not run yet and its old runs stay. The workflow it mirrors cannot change; write a new scenario for another one.",
       "args": [
         {
           "from": "body",
