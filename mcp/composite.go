@@ -138,6 +138,9 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		if err := mwanachamaagency.CheckDesignSpecSize(p.entityCount()); err != nil {
 			return nil, mcpDesignFromSpecResult{}, err
 		}
+		if err := p.duplicateKeyError(); err != nil {
+			return nil, mcpDesignFromSpecResult{}, err
+		}
 
 		out := mcpDesignFromSpecResult{
 			Roles:      map[string]string{},
