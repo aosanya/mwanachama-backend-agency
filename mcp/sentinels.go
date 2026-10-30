@@ -41,6 +41,7 @@ var sentinels = map[string]error{
 	"ErrValueNotFound":            mwanachamaagency.ErrValueNotFound,
 	"ErrWorkItemNotFound":         mwanachamaagency.ErrWorkItemNotFound,
 	"ErrWorkflowNotFound":         mwanachamaagency.ErrWorkflowNotFound,
+	"ErrInvalidMeasure":           mwanachamaagency.ErrInvalidMeasure,
 	"ErrInvalidRecord":            mwanachamaagency.ErrInvalidRecord,
 	"ErrInvalidRecordRow":         mwanachamaagency.ErrInvalidRecordRow,
 	"ErrRecordNotFound":           mwanachamaagency.ErrRecordNotFound,

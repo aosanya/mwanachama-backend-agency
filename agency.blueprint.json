@@ -352,6 +352,27 @@
       ]
     },
     {
+      "role": "measure",
+      "description": "One figure an objective is judged by: what is measured, where it stands and where it should get to.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "objective_id", "type": "string", "description": "The objective this measure belongs to, in the same draft.", "required": true},
+        {"name": "name", "type": "string", "description": "What is measured, such as Suppliers posting prices. Two measures of one objective never share a name.", "required": true},
+        {"name": "current", "type": "string", "description": "Where the figure stands now. Read by the console; the manager does not set it through the set tool."},
+        {"name": "target", "type": "string", "description": "Where the figure should get to, such as 40.", "required": true},
+        {"name": "unit", "type": "string", "description": "What the figure counts, such as suppliers. Optional."},
+        {"name": "status", "type": "string", "description": "How the objective is doing against the target, in a word or two. Optional."},
+        {"name": "created_at", "type": "timestamp", "description": "When the measure was first set.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "objective", "description": "Reads the measures of one objective, and backs its delete cascade.", "fields": ["objective_id"]}
+      ]
+    },
+    {
       "role": "record",
       "description": "A named list a workflow keeps beside its steps: who adds rows to it and the form each row is added with.",
       "fields": [

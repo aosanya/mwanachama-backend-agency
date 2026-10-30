@@ -51,6 +51,10 @@ type RecordFilter struct {
 	WorkflowID string `query:"workflow_id"`
 }
 
+type MeasureFilter struct {
+	ObjectiveID string `query:"objective_id"`
+}
+
 type RecordRowFilter struct {
 	RecordID   string `query:"record_id"`
 	RecordCode string `query:"record_code"`

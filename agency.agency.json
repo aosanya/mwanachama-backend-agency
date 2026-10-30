@@ -112,6 +112,12 @@
       "description": "The counter behind each kind of stable handle."
     },
     {
+      "role": "measure",
+      "name": "measure",
+      "table": "measures",
+      "description": "One figure an objective is judged by, with its target."
+    },
+    {
       "role": "record",
       "name": "record",
       "table": "records",

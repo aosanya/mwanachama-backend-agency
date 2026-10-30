@@ -212,6 +212,18 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		}
 	}
 
+	measures, err := list[models.Measure](m, scopeQuery(tx.Table(m.table(roleMeasure)), sourceScope).Order("created_at"), roleMeasure)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, measure := range measures {
+		measure.ID, measure.DraftID, measure.CreatedAt, measure.LastUpdated = newID(), newDraftID, now, now
+		measure.ObjectiveID = remap(objectiveIDs, measure.ObjectiveID)
+		if err := m.copyRow(ctx, tx, roleMeasure, measure); err != nil {
+			return err
+		}
+	}
+
 	steps, err := list[models.EventFlowStep](m, scopeQuery(tx.Table(m.table(roleEventFlowStep)), sourceScope), roleEventFlowStep)
 	if err != nil {
 		return fmt.Errorf("CreateDraft: %w", err)

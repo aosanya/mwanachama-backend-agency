@@ -53,6 +53,7 @@ func TestPublishedToolNamesSurvive(t *testing.T) {
 		"agency_publish_agency", "agency_set_publication_channel",
 		"agency_lookup_event_flow_step", "agency_list_issues",
 		"agency_attach_value", "agency_detach_rule",
+		"agency_set_measure", "agency_list_measures",
 	} {
 		if !got[name] {
 			t.Errorf("%s is no longer published", name)
@@ -116,4 +117,24 @@ func TestEveryToolIsDescribed(t *testing.T) {
 			t.Errorf("%s has no title", tool.Name)
 		}
 	}
+}
+
+func TestSetMeasureOffersNoCurrentReading(t *testing.T) {
+	for _, tool := range declaredTools(t) {
+		if tool.Name != "agency_set_measure" {
+			continue
+		}
+		for _, owned := range []string{"current", "draft_id"} {
+			if _, offered := tool.Properties[owned]; offered {
+				t.Errorf("agency_set_measure offers %s, which the manager does not set through it", owned)
+			}
+		}
+		for _, want := range []string{"objective_id", "name", "target", "unit", "status"} {
+			if _, ok := tool.Properties[want]; !ok {
+				t.Errorf("agency_set_measure offers no %s", want)
+			}
+		}
+		return
+	}
+	t.Fatal("agency_set_measure is not declared")
 }

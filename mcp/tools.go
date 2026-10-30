@@ -42,6 +42,7 @@ var carriers = map[string]string{
 	"agency_publication": "AgencyPublication",
 	"record":             "Record",
 	"record_row":         "RecordRow",
+	"measure":            "Measure",
 	"scenario":           "Scenario",
 	"scenario_actor":     "ScenarioActor",
 	"scenario_input":     "ScenarioInput",
@@ -49,11 +50,13 @@ var carriers = map[string]string{
 }
 
 var storeOwned = map[string]bool{
-	"Module.enabled":  true,
-	"Draft.status":    true,
-	"Issue.severity":  true,
-	"Issue.message":   true,
-	"Issue.entity_id": true,
+	"Module.enabled":   true,
+	"Measure.current":  true,
+	"Measure.draft_id": true,
+	"Draft.status":     true,
+	"Issue.severity":   true,
+	"Issue.message":    true,
+	"Issue.entity_id":  true,
 }
 
 func fields() (map[string]dispatch.FieldDoc, error) {

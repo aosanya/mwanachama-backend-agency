@@ -33,6 +33,10 @@ inputs, test runs, the send-back rule and the publish gate (HS260).
 [module-mounts.md](module-mounts.md) covers the names an agency gives each mount
 of a module (HS271), their rules, and which modules can be mounted by name.
 
+[objective-measures.md](objective-measures.md) covers the measures an objective
+carries, the two operations that list and set them, and how they travel through
+fork and publish (HS427).
+
 [generated-tool-text.md](generated-tool-text.md) covers what a generated MCP
 tool's answer says. It is the design behind every `agency_*` tool's text,
 which a client that never reads `structuredContent` sees as the whole answer.

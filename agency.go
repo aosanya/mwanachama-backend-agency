@@ -64,6 +64,9 @@ type AgencyManager interface {
 	// Objective-scoped, AG12), so there is nothing further to cascade to.
 	DeleteWorkflow(ctx context.Context, id string) error
 
+	SetMeasure(ctx context.Context, m models.Measure) (models.Measure, error)
+	ListMeasures(ctx context.Context, draftID string, filter MeasureFilter) ([]models.Measure, error)
+
 	CreateRecord(ctx context.Context, r models.Record) (models.Record, error)
 	GetRecord(ctx context.Context, id string) (models.Record, error)
 	ListRecords(ctx context.Context, draftID string, filter RecordFilter) ([]models.Record, error)

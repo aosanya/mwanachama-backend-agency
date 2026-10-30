@@ -37,6 +37,7 @@
     "ErrValueNotFound": 404,
     "ErrWorkItemNotFound": 404,
     "ErrWorkflowNotFound": 404,
+    "ErrInvalidMeasure": 400,
     "ErrInvalidRecord": 400,
     "ErrInvalidRecordRow": 400,
     "ErrRecordNotFound": 404,
@@ -2264,6 +2265,51 @@
         }
       ],
       "tool": "agency_list_test_runs"
+    },
+    "set_measure": {
+      "method": "PUT",
+      "path": "/measures",
+      "call": "SetMeasure",
+      "action": "agency.measure.set",
+      "title": "Set measure",
+      "description": "Set one measure of an objective: what is measured and the target it should reach, with an optional unit and status. Setting a name the objective already measures replaces that measure and keeps its current reading; the current reading is never set here. The draft is the objective's own. Refused with 404 for an objective that does not exist and 409 once its draft is archived.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_set_measure"
+    },
+    "list_measures": {
+      "method": "GET",
+      "path": "/measures",
+      "call": "ListMeasures",
+      "action": "agency.measure.list",
+      "title": "List measures",
+      "description": "List one draft's measures, each with the objective it belongs to, its current reading, target, unit and status. Narrow to one objective with objective_id.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose measures to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_measures"
     }
   }
 }

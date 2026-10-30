@@ -103,6 +103,17 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		})
 	}
 
+	measures, err := list[models.Measure](m, scoped(roleMeasure).Order("created_at"), roleMeasure)
+	if err != nil {
+		return fail(err)
+	}
+	for _, measure := range measures {
+		doc.Measures = append(doc.Measures, models.DocumentMeasure{
+			ObjectiveID: measure.ObjectiveID, Name: measure.Name, Current: measure.Current,
+			Target: measure.Target, Unit: measure.Unit, Status: measure.Status,
+		})
+	}
+
 	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment).Order("created_at"), roleRoleAssignment)
 	if err != nil {
 		return fail(err)
@@ -266,6 +277,17 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleRecord, row); err != nil {
+			return fail(err)
+		}
+	}
+
+	for _, measure := range doc.Measures {
+		row := models.Measure{
+			ID: newID(), DraftID: draftID, ObjectiveID: objectiveIDs[measure.ObjectiveID], Name: measure.Name,
+			Current: measure.Current, Target: measure.Target, Unit: measure.Unit, Status: measure.Status,
+			CreatedAt: now, LastUpdated: now,
+		}
+		if err := m.copyRow(ctx, tx, roleMeasure, row); err != nil {
 			return fail(err)
 		}
 	}

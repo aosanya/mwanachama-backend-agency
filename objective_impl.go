@@ -72,7 +72,7 @@ func (m *agencyManager) DeleteObjective(ctx context.Context, id string) error {
 		if _, err := m.findObjective(ctx, tx, id); err != nil {
 			return err
 		}
-		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule} {
+		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
 			if err := m.deleteWhere(ctx, tx, role, "objective_id = ?", id); err != nil {
 				return err
 			}

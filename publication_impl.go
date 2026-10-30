@@ -165,6 +165,17 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		records = append(records, hashRecord("Module", fields))
 	}
 
+	measures, err := list[models.Measure](m, scoped(roleMeasure), roleMeasure)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	for _, r := range measures {
+		records = append(records, hashRecord("Measure", map[string]any{
+			"id": r.ID, "objective_id": r.ObjectiveID, "name": r.Name, "current": r.Current,
+			"target": r.Target, "unit": r.Unit, "status": r.Status, "deleted": r.Deleted,
+		}))
+	}
+
 	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment), roleRoleAssignment)
 	if err != nil {
 		return "", fmt.Errorf("contentHashFor: %w", err)

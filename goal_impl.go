@@ -79,7 +79,7 @@ func (m *agencyManager) DeleteGoal(ctx context.Context, id string) error {
 			return err
 		}
 		if len(objectiveIDs) > 0 {
-			for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule} {
+			for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
 				if err := m.deleteWhere(ctx, tx, role, "objective_id in ?", objectiveIDs); err != nil {
 					return err
 				}

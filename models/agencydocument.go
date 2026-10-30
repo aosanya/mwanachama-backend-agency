@@ -34,6 +34,7 @@ type AgencyDocument struct {
 	ObjectiveModules []DocumentObjectiveModule `json:"objective_modules"`
 	EventFlowSteps   []EventFlowStep           `json:"event_flow_steps"`
 	Records          []DocumentRecord          `json:"records,omitempty"`
+	Measures         []DocumentMeasure         `json:"measures,omitempty"`
 	Scenarios        []DocumentScenario        `json:"scenarios,omitempty"`
 }
 

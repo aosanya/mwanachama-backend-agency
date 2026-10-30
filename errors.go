@@ -123,6 +123,7 @@ var (
 	// no match.
 	ErrObjectiveModuleNotFound = errors.New("mwanachamaagency: objective module not found")
 
+	ErrInvalidMeasure   = errors.New("mwanachamaagency: invalid measure")
 	ErrInvalidRecord    = errors.New("mwanachamaagency: invalid record")
 	ErrRecordNotFound   = errors.New("mwanachamaagency: record not found")
 	ErrInvalidRecordRow = errors.New("mwanachamaagency: invalid record row")
