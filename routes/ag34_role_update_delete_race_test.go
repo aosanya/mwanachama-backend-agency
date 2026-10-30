@@ -2,7 +2,6 @@ package routes_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -86,12 +85,12 @@ func TestAG34_ConcurrentUpdateAndDeleteAnswerOnlyOKOrNotFound(t *testing.T) {
 	mgr, srv := raceHarness(t)
 	ctx := context.Background()
 
+	d, err := mgr.CreateDraft(ctx, "race", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
 	const total = 200
 	for i := 0; i < total; i++ {
-		d, err := mgr.CreateDraft(ctx, fmt.Sprintf("d%d", i), "", "")
-		if err != nil {
-			t.Fatalf("CreateDraft: %v", err)
-		}
 		role, err := mgr.CreateRole(ctx, models.Role{DraftID: d.ID, Name: "bug-hunter"})
 		if err != nil {
 			t.Fatalf("CreateRole: %v", err)
