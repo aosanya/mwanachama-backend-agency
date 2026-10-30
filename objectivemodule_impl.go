@@ -58,7 +58,7 @@ func (m *agencyManager) CreateObjectiveModule(ctx context.Context, om models.Obj
 		if count > 0 {
 			return ErrDuplicateObjectiveModule
 		}
-		return m.copyRow(ctx, tx, roleObjectiveModule, om)
+		return duplicateOr(m.copyRow(ctx, tx, roleObjectiveModule, om), ErrDuplicateObjectiveModule)
 	})
 	if err != nil {
 		return models.ObjectiveModule{}, fmt.Errorf("CreateObjectiveModule: %w", err)

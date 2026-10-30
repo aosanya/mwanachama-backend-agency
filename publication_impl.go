@@ -318,13 +318,13 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag, channel
 			LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, rolePublication, toPublicationRow(p)); err != nil {
-			return fmt.Errorf("PublishAgency: %w", err)
+			return fmt.Errorf("PublishAgency: %w", classifyConflict(err))
 		}
 		out = p
 		return nil
 	})
 	if err != nil {
-		return models.AgencyPublication{}, err
+		return models.AgencyPublication{}, classifyConflict(err)
 	}
 	return out, nil
 }

@@ -9,6 +9,7 @@ import (
 var (
 	// ErrAgencyNotFound is returned when no Agency row exists.
 	ErrAgencyNotFound = errors.New("mwanachamaagency: agency not found")
+	ErrAgencyExists = errors.New("mwanachamaagency: this instance already has its agency")
 	// ErrGoalNotFound is returned when a Goal id has no match.
 	ErrGoalNotFound = errors.New("mwanachamaagency: goal not found")
 	// ErrWorkflowNotFound is returned when a Workflow id has no match.
@@ -140,3 +141,5 @@ var (
 	ErrTestRunNotFound        = errors.New("mwanachamaagency: test run not found")
 	ErrUsedByScenario         = errors.New("mwanachamaagency: used by a scenario")
 )
+
+var ErrConflict = errors.New("mwanachamaagency: another write got there first, try again")

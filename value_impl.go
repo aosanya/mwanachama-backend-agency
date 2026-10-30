@@ -160,7 +160,7 @@ func (m *agencyManager) CreateValueAttachment(ctx context.Context, valueID strin
 			CreatedAt:  models.NowRFC3339(),
 		}
 		if err := m.copyRow(ctx, tx, roleValueAttachment, a); err != nil {
-			return fmt.Errorf("CreateValueAttachment: %w", err)
+			return fmt.Errorf("CreateValueAttachment: %w", duplicateOr(err, ErrDuplicateAttachment))
 		}
 		out = a
 		return nil

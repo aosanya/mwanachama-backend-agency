@@ -1,7 +1,9 @@
 {
   "errors": {
     "ErrAgencyNotFound": 404,
+    "ErrAgencyExists": 409,
     "ErrCannotEditLive": 409,
+    "ErrConflict": 409,
     "ErrAmbiguousLookup": 409,
     "ErrDraftNotFound": 404,
     "ErrDraftNotOpen": 409,

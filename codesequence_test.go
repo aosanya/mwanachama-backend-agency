@@ -2,8 +2,8 @@ package mwanachamaagency_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"testing"
 
@@ -38,14 +38,7 @@ func TestCodesRunInSequence(t *testing.T) {
 	}
 }
 
-// AG35: the counter behind a code was read and written back without a
-// precondition, so two writers reading the same number both kept it. The
-// claim is a compare-and-set now, and what this asserts is the property
-// that guarded gap did not have — that no two rows ever carry one code.
-// SQLite's own locking can still refuse a concurrent write outright, which
-// is a different failure and not this one, so a refusal is tolerated here
-// and a duplicate is not.
-func TestConcurrentCreatesNeverShareACode(t *testing.T) {
+func TestAG35_ConcurrentCreatesNeverShareACodeAndRefusalsAreClassified(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
@@ -95,7 +88,7 @@ func TestConcurrentCreatesNeverShareACode(t *testing.T) {
 				mu.Lock()
 				defer mu.Unlock()
 				if err != nil {
-					if strings.Contains(err.Error(), "locked") || strings.Contains(err.Error(), "deadlocked") {
+					if errors.Is(err, mwanachamaagency.ErrConflict) {
 						refusals++
 						return
 					}

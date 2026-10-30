@@ -30,7 +30,7 @@ func (m *agencyManager) CreateModule(ctx context.Context, mod models.Module) (mo
 		if count > 0 {
 			return ErrDuplicateModule
 		}
-		return m.copyRow(ctx, tx, roleModule, mod)
+		return duplicateOr(m.copyRow(ctx, tx, roleModule, mod), ErrDuplicateModule)
 	})
 	if err != nil {
 		return models.Module{}, fmt.Errorf("CreateModule: %w", err)

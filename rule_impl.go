@@ -163,7 +163,7 @@ func (m *agencyManager) CreateRuleAttachment(ctx context.Context, ruleID string,
 			CreatedAt:  models.NowRFC3339(),
 		}
 		if err := m.copyRow(ctx, tx, roleRuleAttachment, a); err != nil {
-			return fmt.Errorf("CreateRuleAttachment: %w", err)
+			return fmt.Errorf("CreateRuleAttachment: %w", duplicateOr(err, ErrDuplicateAttachment))
 		}
 		out = a
 		return m.sendBack(ctx, tx, "", usageKey(string(targetType), targetCode))
