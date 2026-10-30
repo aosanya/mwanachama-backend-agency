@@ -14,6 +14,7 @@
     "ErrEventFlowStepNotFound": 404,
     "ErrGoalNotFound": 404,
     "ErrInvalidForkSource": 400,
+    "ErrLimitExceeded": 409,
     "ErrInvalidLookup": 400,
     "ErrInvalidModule": 400,
     "ErrInvalidModuleMounts": 400,

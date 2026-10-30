@@ -58,6 +58,9 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 		if _, err := m.findAgency(ctx, tx); err != nil {
 			return err
 		}
+		if err := m.checkDraftRoom(tx); err != nil {
+			return err
+		}
 
 		var sourceScope string
 		var source models.AgencyPublication

@@ -19,6 +19,7 @@ var sentinels = map[string]error{
 	"ErrEventFlowStepNotFound":    mwanachamaagency.ErrEventFlowStepNotFound,
 	"ErrGoalNotFound":             mwanachamaagency.ErrGoalNotFound,
 	"ErrInvalidForkSource":        mwanachamaagency.ErrInvalidForkSource,
+	"ErrLimitExceeded":            mwanachamaagency.ErrLimitExceeded,
 	"ErrInvalidLookup":            mwanachamaagency.ErrInvalidLookup,
 	"ErrInvalidModule":            mwanachamaagency.ErrInvalidModule,
 	"ErrInvalidRACILabel":         mwanachamaagency.ErrInvalidRACILabel,

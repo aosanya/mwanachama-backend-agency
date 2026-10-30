@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestAG54_OpenHole_OneForkRequestCopiesEveryRowWithoutLimit(t *testing.T) {
+func TestAG54_ForkRequestsAreRefusedOnceAnAgencyHoldsTooManyDrafts(t *testing.T) {
 	mgr, source := newTestManagerWithDraft(t)
 	ctx := t.Context()
 
@@ -59,7 +59,7 @@ func TestAG54_OpenHole_OneForkRequestCopiesEveryRowWithoutLimit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListDrafts: %v", err)
 	}
-	t.Errorf("AG54 (P2) open hole: %d consecutive ~100-byte POST /drafts forks of a %d-goal draft were all accepted, "+
+	t.Errorf("AG54 (P2): %d consecutive ~100-byte POST /drafts forks of a %d-goal draft were all accepted, "+
 		"each copying every row, leaving %d drafts and %d goal rows written by the forks alone; "+
 		"want a fork refused with a 4xx once an agency holds more drafts, or more forked rows, than a cap "+
 		"(this test assumes a cap below %d drafts)", accepted, goals, len(drafts), accepted*goals, forks)
