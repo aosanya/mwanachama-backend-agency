@@ -76,15 +76,47 @@ on it.
 - `CreateScenario` needs an open draft, a name and a workflow of that draft
   (`ErrWorkflowNotFound` otherwise); it may carry `actors` and `inputs`, and
   all of it lands or none of it does. It starts `not_run`.
-- `UpdateScenario` changes the name and the summary. The result in the body is
-  ignored, the workflow cannot change (a scenario mirrors one workflow;
-  write a new one), and the actors and inputs in the body are ignored because
-  they have their own operations. The scenario goes back to `not_run`; its old
-  runs and `last_run_id` stay.
+- `UpdateScenario` changes the name, the summary and the Then lines, and may
+  carry `actors` and `inputs` (see below). The result in the body is ignored
+  and the workflow cannot change (a scenario mirrors one workflow; write a new
+  one). The scenario goes back to `not_run`; its old runs and `last_run_id`
+  stay.
 - Adding, renaming and removing an actor, and setting an input, each send the
   scenario back to `not_run`.
 - `DeleteScenario` removes its actors, inputs and runs with it.
 - Every write to a scenario needs its draft to be open (`ErrDraftNotOpen`).
+
+### Updating the whole set in one call (HS410)
+
+One Save in the console is one proposal, so `UpdateScenario` takes the same
+`actors` and `inputs` that create takes and applies the whole set or none of it.
+
+- Omitted (or null), `actors` and `inputs` leave what the scenario has. Sent
+  as a list, each is the complete new list, so `[]` clears it.
+- An actor entry carries `name` and `role_id`, and optionally the `id` of a
+  stored actor of this scenario. With an `id` the entry is that actor: a new
+  `name` renames it and a new `role_id` changes its role, keeping the row, its
+  id and its place in the blocks. Without an `id` the entry is the stored
+  actor that has that name now (ignoring case and outer spaces), else a new
+  actor. An entry with no `role_id` keeps the role the actor has; a new actor
+  needs one. An `id` is claimed before names are matched, so two actors can
+  swap names in one call. Stored actors the list leaves out are removed, and
+  the position in the list becomes `ordinality`.
+- Entries read back from the scenario with `built_in` true (the agents and the
+  System) are skipped, so a read-back scenario can be sent unchanged. A
+  built-in actor still counts for the unique-name check.
+- An input entry is `step_id`, `field` and `value`, checked as
+  `SetScenarioInput` checks it. A field of the scenario that the list leaves
+  out is freed, an empty `value` frees that field, an unchanged value is not
+  rewritten, and the same field twice is refused.
+- Everything is checked before the first write: a repeated name
+  (`ErrDuplicateScenarioActor`), a nameless actor, a new actor with no role,
+  an actor `id` that is not this scenario's (`ErrScenarioActorNotFound`), a
+  role outside the draft (`ErrRoleNotFound`), and a step or question that does
+  not fit (`ErrInvalidScenario`). A refusal leaves the scenario, its result
+  and its runs as they were.
+- `AddScenarioActor`, `RenameScenarioActor`, `RemoveScenarioActor` and
+  `SetScenarioInput` stay as they are for single changes.
 
 ## Sending scenarios back
 

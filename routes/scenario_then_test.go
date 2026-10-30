@@ -30,3 +30,27 @@ func TestScenarioRoutes_AThenLineIsWrittenWithTheScenarioAndReadBackOnItsBlock(t
 
 	r.expect(r.call(http.MethodPatch, "/scenarios/"+sc.ID, `{"name":"Shop says yes","thens":[{"step_id":"nope","then":"x"}]}`), http.StatusBadRequest, nil)
 }
+
+func TestScenarioRoutes_APatchSetsTheActorsAndInputsAsOneSet(t *testing.T) {
+	r := newScenarioRoutes(t)
+
+	var sc models.Scenario
+	r.expect(r.call(http.MethodPost, "/scenarios", `{"draft_id":"`+r.draftID+`","name":"Shop says yes","workflow_id":"`+r.flow.ID+`","actors":[{"name":"Farmer 1","role_id":"`+r.farmer.ID+`"}]}`), http.StatusCreated, &sc)
+	first := sc.Actors[0].ID
+
+	var set models.Scenario
+	body := `{"name":"Shop says yes","actors":[{"id":"` + first + `","name":"Mama Akinyi"},{"name":"Buyer","role_id":"` + r.farmer.ID + `"}],"inputs":[{"step_id":"` + r.askID + `","field":"Enter the product","value":"urea"}]}`
+	r.expect(r.call(http.MethodPatch, "/scenarios/"+sc.ID, body), http.StatusOK, &set)
+	if len(set.Inputs) != 1 || set.Inputs[0].Value != "urea" || set.Blocks[0].Actor != "Mama Akinyi" {
+		t.Fatalf("set = %+v, want the renamed actor and the fixed answer", set)
+	}
+
+	clash := `{"name":"Shop says yes","actors":[{"id":"` + first + `","name":"Buyer"},{"name":" buyer ","role_id":"` + r.farmer.ID + `"}]}`
+	r.expect(r.call(http.MethodPatch, "/scenarios/"+sc.ID, clash), http.StatusConflict, nil)
+
+	var read models.Scenario
+	r.expect(r.call(http.MethodGet, "/scenarios/"+sc.ID, ""), http.StatusOK, &read)
+	if read.Blocks[0].Actor != "Mama Akinyi" || len(read.Inputs) != 1 {
+		t.Errorf("after the refused patch: %+v, want the earlier set kept", read)
+	}
+}

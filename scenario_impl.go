@@ -364,10 +364,17 @@ func (m *agencyManager) UpdateScenario(ctx context.Context, s models.Scenario) (
 		if err != nil {
 			return err
 		}
+		set, err := m.planScenarioSet(ctx, tx, existing, s)
+		if err != nil {
+			return err
+		}
 		existing.Name, existing.Summary, existing.Thens = name, s.Summary, thens
 		existing.Result = models.ScenarioNotRun
 		existing.LastUpdated = models.NowRFC3339()
 		if err := m.writeUpdate(ctx, tx, roleScenario, existing.ID, existing, ErrScenarioNotFound, "draft_id"); err != nil {
+			return err
+		}
+		if err := m.applyScenarioSet(ctx, tx, existing, set); err != nil {
 			return err
 		}
 		view, err := m.scenarioView(ctx, tx, existing)
@@ -531,27 +538,32 @@ func (m *agencyManager) RemoveScenarioActor(ctx context.Context, id string) erro
 	return nil
 }
 
-func (m *agencyManager) writeInput(ctx context.Context, tx *gorm.DB, s models.Scenario, in models.ScenarioInput) (models.ScenarioInput, error) {
+func (m *agencyManager) checkInput(ctx context.Context, tx *gorm.DB, s models.Scenario, in models.ScenarioInput) error {
 	if in.StepID == "" || strings.TrimSpace(in.Field) == "" {
-		return models.ScenarioInput{}, invalidScenario("an input names a step and a field of its form")
+		return invalidScenario("an input names a step and a field of its form")
 	}
 	var step models.WorkItem
 	sq := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkItem)), s.DraftID).Where("id = ?", in.StepID)
 	if err := m.take(sq, roleWorkItem, &step, ErrWorkItemNotFound); err != nil {
 		if errors.Is(err, ErrWorkItemNotFound) {
-			return models.ScenarioInput{}, invalidScenario("step %s is not in this draft", in.StepID)
+			return invalidScenario("step %s is not in this draft", in.StepID)
 		}
-		return models.ScenarioInput{}, err
+		return err
 	}
 	if step.WorkflowID != s.WorkflowID {
-		return models.ScenarioInput{}, invalidScenario("step %q is not a step of the workflow this scenario mirrors", step.Title)
+		return invalidScenario("step %q is not a step of the workflow this scenario mirrors", step.Title)
 	}
-	asked := false
 	for _, q := range step.Questions {
-		asked = asked || q.Prompt == in.Field
+		if q.Prompt == in.Field {
+			return nil
+		}
 	}
-	if !asked {
-		return models.ScenarioInput{}, invalidScenario("step %q asks no question %q", step.Title, in.Field)
+	return invalidScenario("step %q asks no question %q", step.Title, in.Field)
+}
+
+func (m *agencyManager) writeInput(ctx context.Context, tx *gorm.DB, s models.Scenario, in models.ScenarioInput) (models.ScenarioInput, error) {
+	if err := m.checkInput(ctx, tx, s, in); err != nil {
+		return models.ScenarioInput{}, err
 	}
 
 	where := "scenario_id = ? AND step_id = ? AND field = ?"
@@ -568,6 +580,9 @@ func (m *agencyManager) writeInput(ctx context.Context, tx *gorm.DB, s models.Sc
 	}
 	if len(held) > 0 {
 		row := held[0]
+		if row.Value == in.Value {
+			return row, nil
+		}
 		row.Value, row.LastUpdated = in.Value, now
 		if err := m.writeUpdate(ctx, tx, roleScenarioInput, row.ID, row, ErrScenarioNotFound); err != nil {
 			return models.ScenarioInput{}, err
