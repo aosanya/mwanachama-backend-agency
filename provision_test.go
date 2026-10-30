@@ -29,7 +29,7 @@ func liveTables(t *testing.T, db *gorm.DB) []string {
 	t.Helper()
 	var names []string
 	if err := db.Raw(`select name from sqlite_master where type='table' and name not like 'sqlite_%'
-		and name not like '%_' || ?`, spec.NameRegistrySuffix).
+		and name not like '%_' || ? and name not like '%' || ?`, spec.NameRegistrySuffix, spec.TestSuffix).
 		Scan(&names).Error; err != nil {
 		t.Fatalf("list tables: %v", err)
 	}
