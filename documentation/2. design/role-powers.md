@@ -225,3 +225,30 @@ nearby (no archive, no target, no create beyond the agents' own); the earlier
 codes are all still present; a role may declare every one and still publish; and,
 when the sibling repos are checked out beside this one, every action is declared
 by its module under the tool name the agents call.
+
+## The risk manager's reads (HS97)
+
+`risk.read`, "Ask what could go wrong", module `riskmanager`, carries only the
+reads a person asks the risk manager in the risk-owner journey:
+
+| Question | Action |
+|---|---|
+| What are the threats | `riskmanager.threat.list` |
+| What are the consequences | `riskmanager.consequence.list` |
+| What are the preventive measures | `riskmanager.preventive_measure.list` |
+| What are the mitigating measures | `riskmanager.mitigating_measure.list` |
+| What relies on a control | `riskmanager.control.reliance` |
+| What are the gaps | `riskmanager.gap.list` |
+| Finding what to ask about | `riskmanager.risk.list`, `riskmanager.risk.read`, `riskmanager.risk.bowtie`, `riskmanager.control.list`, `riskmanager.control.read` |
+
+No write action is carried by any unlocked power. The work that closes a gap is
+raised by the manager after approving a draft, never by the agent's own role.
+`risk_powers_test.go` fails if a non-GET action of the risk manager joins an
+unlocked power, if `risk.read` carries anything the risk manager does not
+declare as a read, or if a demo template other than the lab's Hub Steward
+holds it. The risk manager's operations file is read from the sibling checkout
+and the test skips when it is absent.
+
+The module is not in the module catalog and is not mounted: the mount is
+HS95 on the hub project's board and RM1 on the risk manager's, and waits on the
+owner's go-ahead. Until it is mounted the power names actions no route serves.
