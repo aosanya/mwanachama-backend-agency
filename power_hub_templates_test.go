@@ -11,7 +11,8 @@ var hubDemoTemplates = []struct {
 	file      string
 	agentRole string
 }{
-	{"../projects/meta-global-ai-hackathon-community-hubs/submission/demo/farmers/agency.json", "Farmers' coordinator"},
+	{"../projects/meta-global-ai-hackathon-community-hubs/submission/demo/farmers/agency.json", "Farmers' agent"},
+	{"../projects/meta-global-ai-hackathon-community-hubs/submission/demo/farmers/agency.json", "Suppliers' agent"},
 	{"../projects/meta-global-ai-hackathon-community-hubs/submission/demo/siaya-lab/agency.json", "Hub Steward"},
 	{"../projects/meta-global-ai-hackathon-community-hubs/submission/demo/boda-boda-riders/agency.json", "Hub Steward"},
 }
