@@ -137,7 +137,7 @@ func withInstance(schema json.RawMessage) (json.RawMessage, error) {
 }
 
 func declaredHandler(name string, resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, map[string]any) (*mcp.CallToolResult, any, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, in map[string]any) (*mcp.CallToolResult, any, error) {
+	return func(ctx context.Context, req *mcp.CallToolRequest, in map[string]any) (*mcp.CallToolResult, any, error) {
 		instance, _ := in[instanceArg].(string)
 		delete(in, instanceArg)
 
@@ -158,7 +158,7 @@ func declaredHandler(name string, resolve ManagerResolver) func(context.Context,
 		if err != nil {
 			return nil, nil, err
 		}
-		out, err := tool.Invoke(ctx, args)
+		out, err := tool.Handle(ctx, dispatch.Request{Arguments: args, Meta: metaOf(req)})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -167,6 +167,13 @@ func declaredHandler(name string, resolve ManagerResolver) func(context.Context,
 		}
 		return summaryWithContext(headline(out), describe(out)), structured(out), nil
 	}
+}
+
+func metaOf(req *mcp.CallToolRequest) map[string]any {
+	if req == nil || req.Params == nil {
+		return nil
+	}
+	return req.Params.Meta
 }
 
 func structured(out any) any {
