@@ -38,8 +38,8 @@ one issue on that module (`entity_type: "module"`):
 - a **switched-off** module's problem is `warning` severity and does not
   block (member app decision 408, AG87). Nothing will run the module, but a
   bad value left in the definition would block the day the module is switched
-  on, so the owner hears about it now. Linking the module to an Objective
-  switches it on, and the next scan reports the same problem as an error.
+  on, so the owner hears about it now. Switching the module on (or a workflow
+  step that needs it) makes the next scan report the same problem as an error.
 
 Handing settings only to modules that are on is the host's side (wakala-api
 WK185).

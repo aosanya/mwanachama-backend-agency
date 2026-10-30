@@ -9,7 +9,9 @@ voting: it is one entry in each of the two catalogs.
 
 `voting` is an entry in `models/modules_catalog.json`, off by default and not
 locked, so every draft carries a voting module row and the definition switches
-it on the way it switches any module on (linking it to an Objective). Switched
+it on the way it switches any module on (`agency_set_module_enabled`; voting
+has no step kind, so only the switch turns it on, see
+[AGD-008](todo_details/AGD-008.md)). Switched
 off, the host does not mount it (decision 284). It requires no other module.
 
 ## Default poll settings

@@ -138,18 +138,17 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   Mutation-checked: pointing `DeleteValueAttachment` at the rule-attachment
   table deletes the Rule's attachment through the Value door (`204`).
 
-- **A capability is switched on only by a link in its own draft** — pinned
+- **A capability is switched on only in its own draft** — pinned
   by `routes/module_enabled_scope_security_test.go` (2026-10-12,
-  hundred-and-sixty-ninth security sweep), the first pin on the catalog doors
+  hundred-and-sixty-ninth security sweep, rewritten for the agency-level
+  switch by AGD-008), the first pin on the catalog doors
   `GET /modules` and `GET /modules/{id}`. With the bootstrap draft A and a
-  fork B (each holding its own `git` row): linking A's objective to B's `git`
-  answers `404` and switches nothing on; linking it to A's `git` answers `201`
-  and `GET /modules?draft_id=<A>&enabled=true` lists `git`, while B's listing
-  and `GetModule` on B's `git` still read it off. `POST /modules`,
-  `PATCH`/`DELETE /modules/{id}` answer `405` — `enabled` is derived, never
-  written. Mutation-checked: dropping the draft scope from
-  `validateObjectiveModule`'s module lookup turns the cross-draft link `201`.
-  Also probed, not pinned: `enabled=1`/`TRUE`/`yes` → `400`, `code=%` → `[]`.
+  fork B (each holding its own `git` row): `PUT /modules/{id}/enabled` on B's
+  `git` through draft A answers `404` and switches nothing on; the same call
+  on A's `git` answers `200` and `GET /modules?draft_id=<A>&enabled=true`
+  lists `git`, while B's listing and `GetModule` on B's `git` still read it
+  off. `POST /modules`, `PATCH`/`DELETE /modules/{id}` answer `405` — the
+  switch is the only write door. Also probed, not pinned: `enabled=1`/`TRUE`/`yes` → `400`, `code=%` → `[]`.
 
 - **Two Instances on one database never reach each other's rows** — pinned
   by `routes/instance_table_set_isolation_security_test.go` (2026-10-12,
@@ -250,16 +249,16 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   `mcp/tool_name_shadowing_security_test.go` (security sweep, 2026-10-12,
   OWASP MCP03/MCP07). The go-sdk's `AddTool` keeps whichever registration of
   a name lands last and drops the other without a word, and `RegisterTools`
-  registers the 68 declared tools first and the three hand-written ones
-  (`agency_list_module_objectives`, `agency_design_from_spec`,
-  `agency_list_types`) after. A declared operation later naming one of those
+  registers the declared tools first and the hand-written ones
+  (`agency_design_from_spec`, `agency_list_types`) after. A declared operation later naming one of those
   would be silently replaced, and a hand-written tool registered first would
   be silently replaced by a declared one gated differently. The test lists
   the hand-written tools on their own, asserts none is declared, and asserts
   `RegisterTools` publishes exactly declared + hand-written. Shared's S63
   covers the same collision between two declared operations; this is the
   seam S63 cannot see. Mutation-checked: renaming `agency_list_types` to
-  `agency_list_goals` turns both assertions red (70 published, want 71).
+  `agency_list_goals` turns both assertions red (one tool fewer published than
+  declared plus hand-written).
 
 - **`agency_design_from_spec` plants nothing in a closed, unknown or unnamed
   Draft** — pinned by `mcp/design_spec_closed_draft_security_test.go`
@@ -374,15 +373,6 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   the way labels are, or the dangling `objective_id` is refused. The
   labels' quoting is pinned green beside it in
   `mcp/tool_text_label_security_test.go`.
-- `mcp/module_objectives_text_security_test.go`'s
-  `TestAG66_OpenHole_ModuleObjectivesToolTextForgesLinesFromStoredTitles`
-  (AG66, P2) — left failing on purpose by the 2026-10-05 security sweep
-  (eighty-eighth run): the hand-written `agency_list_module_objectives`
-  writes an Objective title, its Goal's title and the link's rationale into
-  its text unquoted, so one stored link carrying newlines lists as several
-  objective lines and a bare `SYSTEM:` line. It turns green once those
-  values are quoted the way `tools.go`'s `line` quotes every generated
-  tool's labels.
 - `routes/publication_list_cost_security_test.go`'s
   `TestAG67_OpenHole_PublicationListingCarriesEveryWholeDocument` (AG67,
   P2) — left failing on purpose by the 2026-10-05 security sweep (ninetieth
@@ -427,20 +417,18 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   "version 99 on production" and a bare `SYSTEM:` line. It turns green once
   `tools.go`'s `line` quotes facts as well as labels, or a channel is held
   to a name pattern.
-- `objectivemodule_race_test.go`'s
-  `TestAG61_OpenBug_TwoObjectiveModulesHoldTheSameObjectiveAndModule` (AG61,
-  bug), `module_code_race_test.go`'s
+- `module_code_race_test.go`'s
   `TestAG62_OpenBug_TwoModulesShareTheSameCodeInOneDraft` (AG62, bug) and
   `valueattachment_race_test.go`'s
   `TestAG63_OpenBug_TwoValueAttachmentsLinkTheSameValueAndTarget` (AG63,
   bug) — left failing on purpose by the 2026-10-02 integration-test sweep,
   widening AG52/AG53's shape (a pre-check-then-insert duplicate rule with no
   backing unique index) to every other `ErrDuplicate*` rule in the package:
-  none of `CreateObjectiveModule`, `CreateModule` or
+  neither `CreateModule` nor
   `CreateValueAttachment`/`CreateRuleAttachment` has a composite unique
   index behind its own duplicate check, so a direct insert placed where a
-  concurrent winner would land it slips past the check undetected. All
-  three turn green with the same fix shape as AG53 — a declared composite
+  concurrent winner would land it slips past the check undetected. Both
+  turn green with the same fix shape as AG53 — a declared composite
   unique index per object, recognised and recovered from on the insert.
 - `valueattachment_dangling_source_test.go`'s
   `TestAG64_OpenBug_DeletingAnAttachedValueOrphansItsAttachment` (AG64,

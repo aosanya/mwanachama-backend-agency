@@ -5,9 +5,10 @@ Member app decision 464, board row AG91.
 Provisioning seeds every entry of `models.ModuleCatalog` into an agency's
 first working draft. A draft created with `CreateDraft(ctx, description, "",
 "")` copies nothing, because it has no source to fork from, and before AG91 it
-held no modules either. A module can only be switched on by linking an
-Objective to the draft's own copy of it, and an unpublished agency is gated
-on its modules, so such a draft could never switch one on.
+held no modules either. A module is switched on by setting the flag on the
+draft's own copy of it (or by a workflow step that needs it, AGD-008), and an
+unpublished agency is gated on its modules, so such a draft could never
+switch one on.
 
 `CreateDraft` with no source now seeds the catalog into the new draft through
 `seedModuleCatalog`, the same function provisioning's `backfillModules` runs,

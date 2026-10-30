@@ -9,12 +9,13 @@ they disagree.
 | Record | What it decided |
 |---|---|
 | [AGD-001](todo_details/AGD-001.md) | `Objective` is first-class, RACI is Objective-scoped, Values and Rules make tacit rules explicit, and `Mission`/`Vision` are gone |
-| [AGD-002](todo_details/AGD-002.md) | the Module catalog, and the Objective↔Module link that switches a capability on |
+| [AGD-002](todo_details/AGD-002.md) | the Module catalog (its Objective↔Module link was removed by AGD-008) |
 | [AGD-003](todo_details/AGD-003.md) | a Value or Rule attaches to many targets, referenced by Code so promotion never strands it |
 | [AGD-004](todo_details/AGD-004.md) | publishing is gated by the Issue scan, and takes an operator tag |
 | [AGD-005](todo_details/AGD-005.md) | a publication carries the whole Agency as a document, and production reads a channel on a tag |
 | [AGD-006](todo_details/AGD-006.md) | there is no live row set: every row belongs to a Draft, and publish reads that Draft directly |
 | [AGD-007](todo_details/AGD-007.md) | the objects are declared in `agency.blueprint.json`, not written as row structs |
+| [AGD-008](todo_details/AGD-008.md) | a module is switched on by a switch or a workflow step, not by an objective link |
 
 AGD-006 and AGD-007 describe the code as it ships today. The porting notes in
 the repo's `CLAUDE.md` up to AG30 describe a nullable `DraftID`, a live row
