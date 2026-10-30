@@ -14,6 +14,7 @@ func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (
 		return models.Workflow{}, err
 	}
 	w.ID = newID()
+	w.Deleted = false
 	w.CreatedAt = models.NowRFC3339()
 	w.LastUpdated = w.CreatedAt
 
@@ -92,13 +93,13 @@ func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
 		if err := m.sendBack(ctx, tx, existing.DraftID, usageKey("workflow", existing.Code)); err != nil {
 			return err
 		}
-		if err := m.deleteWhere(ctx, tx, roleWorkItem, "workflow_id = ?", id); err != nil {
+		if err := m.deleteInDraft(ctx, tx, roleWorkItem, existing.DraftID, "workflow_id = ?", id); err != nil {
 			return err
 		}
-		if err := m.deleteWhere(ctx, tx, roleRecordRow, "record_id IN (select id from "+m.table(roleRecord)+" where workflow_id = ?)", id); err != nil {
+		if err := m.deleteInDraft(ctx, tx, roleRecordRow, existing.DraftID, "record_id IN (select id from "+m.table(roleRecord)+" where workflow_id = ?)", id); err != nil {
 			return err
 		}
-		if err := m.deleteWhere(ctx, tx, roleRecord, "workflow_id = ?", id); err != nil {
+		if err := m.deleteInDraft(ctx, tx, roleRecord, existing.DraftID, "workflow_id = ?", id); err != nil {
 			return err
 		}
 		return m.deleteWhere(ctx, tx, roleWorkflow, "id = ?", id)

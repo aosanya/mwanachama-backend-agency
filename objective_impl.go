@@ -14,6 +14,7 @@ func (m *agencyManager) CreateObjective(ctx context.Context, o models.Objective)
 		return models.Objective{}, err
 	}
 	o.ID = newID()
+	o.Deleted = false
 	o.CreatedAt = models.NowRFC3339()
 	o.LastUpdated = o.CreatedAt
 
@@ -70,11 +71,12 @@ func (m *agencyManager) UpdateObjective(ctx context.Context, o models.Objective)
 
 func (m *agencyManager) DeleteObjective(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findObjective(ctx, tx, id); err != nil {
+		existing, err := m.findObjective(ctx, tx, id)
+		if err != nil {
 			return err
 		}
 		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
-			if err := m.deleteWhere(ctx, tx, role, "objective_id = ?", id); err != nil {
+			if err := m.deleteInDraft(ctx, tx, role, existing.DraftID, "objective_id = ?", id); err != nil {
 				return err
 			}
 		}

@@ -104,7 +104,7 @@ func (m *agencyManager) take(q *gorm.DB, role string, out any, notFound error) e
 }
 
 func (m *agencyManager) insert(ctx context.Context, role string, v any) error {
-	return m.st.Insert(ctx, role, v)
+	return classifyConflict(m.st.Insert(ctx, role, v))
 }
 
 func (m *agencyManager) encode(role string, v any) (map[string]any, error) {
@@ -154,7 +154,7 @@ func nextCode(ctx context.Context, tx *gorm.DB, table, entityType, prefix string
 			return fmt.Sprintf("%s-%d", prefix, n), nil
 		}
 	}
-	return "", fmt.Errorf("nextCode: %s: the counter moved under %d attempts", entityType, codeSequenceAttempts)
+	return "", fmt.Errorf("nextCode: %s: the counter moved under %d attempts: %w", entityType, codeSequenceAttempts, ErrConflict)
 }
 
 func asInt(v any) (int, error) {
@@ -196,7 +196,7 @@ func (m *agencyManager) writeUpdate(ctx context.Context, tx *gorm.DB, role, id s
 }
 
 func (m *agencyManager) createWithCode(ctx context.Context, role, entityType, prefix string, build func(code string) any) error {
-	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		code, err := nextCode(ctx, tx, m.table(roleCodeSequence), entityType, prefix)
 		if err != nil {
 			return err
@@ -207,6 +207,11 @@ func (m *agencyManager) createWithCode(ctx context.Context, role, entityType, pr
 		}
 		return tx.Table(m.table(role)).Create(row).Error
 	})
+	return classifyConflict(err)
+}
+
+func (m *agencyManager) deleteInDraft(ctx context.Context, tx *gorm.DB, role, draftID, where string, args ...any) error {
+	return m.deleteWhere(ctx, tx, role, "draft_id = ? and ("+where+")", append([]any{draftID}, args...)...)
 }
 
 func (m *agencyManager) deleteWhere(ctx context.Context, tx *gorm.DB, role, where string, args ...any) error {

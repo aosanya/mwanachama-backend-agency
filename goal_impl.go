@@ -14,6 +14,7 @@ func (m *agencyManager) CreateGoal(ctx context.Context, g models.Goal) (models.G
 		return models.Goal{}, err
 	}
 	g.ID = newID()
+	g.Deleted = false
 	g.CreatedAt = models.NowRFC3339()
 	g.LastUpdated = g.CreatedAt
 
@@ -70,17 +71,18 @@ func (m *agencyManager) UpdateGoal(ctx context.Context, g models.Goal) (models.G
 
 func (m *agencyManager) DeleteGoal(ctx context.Context, id string) error {
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if _, err := m.findGoal(ctx, tx, id); err != nil {
+		existing, err := m.findGoal(ctx, tx, id)
+		if err != nil {
 			return err
 		}
 
-		objectivesOfGoal := "objective_id in (select id from " + m.table(roleObjective) + " where goal_id = ?)"
+		objectivesOfGoal := "objective_id in (select id from " + m.table(roleObjective) + " where draft_id = ? and goal_id = ?)"
 		for _, role := range []string{roleRoleAssignment, roleWorkItem, roleObjectiveModule, roleMeasure} {
-			if err := m.deleteWhere(ctx, tx, role, objectivesOfGoal, id); err != nil {
+			if err := m.deleteInDraft(ctx, tx, role, existing.DraftID, objectivesOfGoal, existing.DraftID, id); err != nil {
 				return err
 			}
 		}
-		if err := m.deleteWhere(ctx, tx, roleObjective, "goal_id = ?", id); err != nil {
+		if err := m.deleteInDraft(ctx, tx, roleObjective, existing.DraftID, "goal_id = ?", id); err != nil {
 			return err
 		}
 		return m.deleteWhere(ctx, tx, roleGoal, "id = ?", id)
