@@ -42,12 +42,11 @@ func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
 		}
 	}
 
-	var openDrafts int64
-	if err := db.Table(tableFor(s, roleDraft)).
-		Where("status = ?", string(models.DraftStatusOpen)).Count(&openDrafts).Error; err != nil {
-		return false, fmt.Errorf("agency: read the working draft: %w", err)
+	var drafts int64
+	if err := db.Table(tableFor(s, roleDraft)).Count(&drafts).Error; err != nil {
+		return false, fmt.Errorf("agency: read the drafts: %w", err)
 	}
-	if openDrafts == 0 {
+	if drafts == 0 {
 		return false, nil
 	}
 
@@ -81,14 +80,18 @@ func seed(db *gorm.DB, s *spec.Spec) error {
 	if err != nil {
 		return err
 	}
-	if err := adoptUnscopedRows(db, s, draftID); err != nil {
-		return err
+	if draftID != "" {
+		if err := adoptUnscopedRows(db, s, draftID); err != nil {
+			return err
+		}
 	}
 	if err := backfillCodes(db, s); err != nil {
 		return err
 	}
-	if err := backfillModules(db, s, draftID); err != nil {
-		return err
+	if draftID != "" {
+		if err := backfillModules(db, s, draftID); err != nil {
+			return err
+		}
 	}
 	return raiseSequencesPastExistingCodes(db, s)
 }
@@ -112,6 +115,14 @@ func ensureWorkingDraft(db *gorm.DB, s *spec.Spec) (string, error) {
 	if len(open) == 1 {
 		id, _ := open[0]["id"].(string)
 		return id, nil
+	}
+
+	var held int64
+	if err := db.Table(drafts).Count(&held).Error; err != nil {
+		return "", fmt.Errorf("agency: read the drafts: %w", err)
+	}
+	if held > 0 {
+		return "", nil
 	}
 
 	now := models.NowRFC3339()
