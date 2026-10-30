@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestAG50_OpenHole_IssueScanWritesUnderADraftThatDoesNotExist(t *testing.T) {
+func TestAG50_IssueScanRefusesADraftThatDoesNotExist(t *testing.T) {
 	mgr, _ := newTestManagerWithDraft(t)
 
 	get := func(path string) *httptest.ResponseRecorder {
