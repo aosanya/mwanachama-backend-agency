@@ -152,3 +152,63 @@ func (s *issueScan) attachmentTargets() (map[models.TargetType]map[string]bool, 
 	}
 	return out, nil
 }
+
+func (s *issueScan) checkConsequenceHazards() error {
+	hazards, err := list[models.Hazard](s.m, s.scoped(roleHazard), roleHazard)
+	if err != nil {
+		return err
+	}
+	consequences, err := list[models.Consequence](s.m, s.scoped(roleConsequence), roleConsequence)
+	if err != nil {
+		return err
+	}
+	risks, err := list[models.Risk](s.m, s.scoped(roleRisk), roleRisk)
+	if err != nil {
+		return err
+	}
+	links, err := list[models.RiskConsequence](s.m, s.scoped(roleRiskConsequence), roleRiskConsequence)
+	if err != nil {
+		return err
+	}
+	liveHazards := make(map[string]bool, len(hazards))
+	for _, h := range hazards {
+		if !h.Deleted {
+			liveHazards[h.Code] = true
+		}
+	}
+	hazardOfConsequence := make(map[string]string, len(consequences))
+	for _, c := range consequences {
+		if c.Deleted {
+			continue
+		}
+		hazardOfConsequence[c.Code] = c.HazardCode
+		switch {
+		case strings.TrimSpace(c.HazardCode) == "":
+			s.add(models.IssueSeverityError, "consequence", c.ID, "Consequence %s %q names no hazard", c.Code, c.Title)
+		case !liveHazards[c.HazardCode]:
+			s.add(models.IssueSeverityError, "consequence", c.ID,
+				"Consequence %s %q names hazard %s, which does not exist", c.Code, c.Title, QuoteIfUnsafe(c.HazardCode))
+		}
+	}
+	hazardOfRisk := make(map[string]string, len(risks))
+	for _, r := range risks {
+		hazardOfRisk[r.Code] = r.HazardCode
+	}
+	for _, l := range links {
+		consequenceHazard, held := hazardOfConsequence[l.ConsequenceCode]
+		if !held {
+			continue
+		}
+		riskHazard := hazardOfRisk[l.RiskCode]
+		switch {
+		case riskHazard == "":
+			s.add(models.IssueSeverityError, "risk_consequence", l.ID,
+				"Risk %s links consequence %s but names no hazard", QuoteIfUnsafe(l.RiskCode), QuoteIfUnsafe(l.ConsequenceCode))
+		case riskHazard != consequenceHazard:
+			s.add(models.IssueSeverityError, "risk_consequence", l.ID,
+				"Risk %s is under hazard %s but links consequence %s of hazard %s",
+				QuoteIfUnsafe(l.RiskCode), riskHazard, QuoteIfUnsafe(l.ConsequenceCode), consequenceHazard)
+		}
+	}
+	return nil
+}

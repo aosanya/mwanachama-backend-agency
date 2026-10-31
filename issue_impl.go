@@ -33,6 +33,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkModuleSettings,
 		s.checkPermissions,
 		s.checkControls,
+		s.checkConsequenceHazards,
 		s.checkScenarios,
 	} {
 		if err := check(); err != nil {

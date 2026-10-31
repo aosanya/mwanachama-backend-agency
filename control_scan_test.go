@@ -139,7 +139,11 @@ func libraryParts(t *testing.T, w scenarioWorld) (models.Threat, models.Conseque
 	if err != nil {
 		t.Fatalf("CreateThreat: %v", err)
 	}
-	consequence, err := maker.CreateConsequence(ctx, models.Consequence{DraftID: w.draftID, Title: "Money lost"})
+	hazard, err := maker.CreateHazard(ctx, models.Hazard{DraftID: w.draftID, Title: "Handling money"})
+	if err != nil {
+		t.Fatalf("CreateHazard: %v", err)
+	}
+	consequence, err := maker.CreateConsequence(ctx, models.Consequence{DraftID: w.draftID, HazardCode: hazard.Code, Title: "Money lost"})
 	if err != nil {
 		t.Fatalf("CreateConsequence: %v", err)
 	}
