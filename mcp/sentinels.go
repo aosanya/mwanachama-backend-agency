@@ -58,5 +58,11 @@ var sentinels = map[string]error{
 	"ErrScenarioRunning":            mwanachamaagency.ErrScenarioRunning,
 	"ErrTestRunNotFound":            mwanachamaagency.ErrTestRunNotFound,
 	"ErrTestRunFinished":            mwanachamaagency.ErrTestRunFinished,
+	"ErrReviewRunning":              mwanachamaagency.ErrReviewRunning,
+	"ErrReviewNotFound":             mwanachamaagency.ErrReviewNotFound,
+	"ErrReviewAreaNotFound":         mwanachamaagency.ErrReviewAreaNotFound,
+	"ErrReviewAreaRecorded":         mwanachamaagency.ErrReviewAreaRecorded,
+	"ErrFindingNotFound":            mwanachamaagency.ErrFindingNotFound,
+	"ErrInvalidReview":              mwanachamaagency.ErrInvalidReview,
 	"ErrUsedByScenario":             mwanachamaagency.ErrUsedByScenario,
 }

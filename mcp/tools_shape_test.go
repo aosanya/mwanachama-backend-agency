@@ -53,6 +53,9 @@ func TestPublishedToolNamesSurvive(t *testing.T) {
 		"agency_lookup_event_flow_step", "agency_list_issues",
 		"agency_attach_value", "agency_detach_rule",
 		"agency_set_measure", "agency_list_measures",
+		"agency_start_review", "agency_get_review", "agency_list_reviews",
+		"agency_set_finding_status", "agency_comment_finding",
+		"agency_review_input", "agency_record_review_area",
 	} {
 		if !got[name] {
 			t.Errorf("%s is no longer published", name)

@@ -261,6 +261,14 @@ type AgencyManager interface {
 	StopRun(ctx context.Context, runID string) (models.TestRun, error)
 	ResumeRuns(ctx context.Context) ([]models.TestRun, error)
 	AwaitRun(ctx context.Context, runID string) (models.TestRun, error)
+
+	StartReview(ctx context.Context, draftID, startedBy string) (models.ReviewView, error)
+	GetReview(ctx context.Context, reviewID, draftID string) (models.ReviewView, error)
+	ListReviews(ctx context.Context, draftID string) ([]models.Review, error)
+	SetFindingStatus(ctx context.Context, findingID string, status models.FindingStatus) (models.FindingView, error)
+	CommentFinding(ctx context.Context, findingID, body, author string) (models.ReviewComment, error)
+	ReviewInput(ctx context.Context, reviewID string, area models.ReviewAreaName) (models.ReviewInput, error)
+	RecordReviewArea(ctx context.Context, reviewID string, area models.ReviewAreaName, status models.ReviewAreaStatus, summary, failureReason string, tokens int, findings []models.ReviewFindingInput) (models.ReviewAreaView, models.ReviewStatus, error)
 }
 
 type agencyManager struct {
@@ -274,6 +282,8 @@ type agencyManager struct {
 	board      *runBoard
 	groups     GroupLister
 	runs       RunLister
+
+	reviewAreas ReviewAreasFunc
 }
 
 func NewAgencyManager(db *gorm.DB, s *spec.Spec, opts ...Option) (AgencyManager, error) {

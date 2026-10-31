@@ -53,7 +53,13 @@
     "ErrTestRunFinished": 409,
     "ErrTestRunNotFound": 404,
     "ErrUsedByScenario": 409,
-    "ErrDuplicateWorkflowObjective": 409
+    "ErrDuplicateWorkflowObjective": 409,
+    "ErrReviewRunning": 409,
+    "ErrReviewNotFound": 404,
+    "ErrReviewAreaNotFound": 404,
+    "ErrReviewAreaRecorded": 409,
+    "ErrFindingNotFound": 404,
+    "ErrInvalidReview": 400
   },
   "operations": {
     "create_agency": {
@@ -2367,6 +2373,224 @@
         }
       ],
       "tool": "agency_list_measures"
+    },
+    "start_review": {
+      "method": "POST",
+      "path": "/reviews",
+      "call": "StartReview",
+      "action": "agency.review.start",
+      "status": 201,
+      "title": "Run review",
+      "description": "Start a review of one draft: write a review in status running with one part for each reviewer, all reading, and answer at once. previous_review_id is the latest earlier review of the draft. Refused with \"A review of this draft is already running.\" while one is running. The reviewers write their findings with agency_record_review_area.",
+      "args": [
+        {
+          "from": "body",
+          "as": "draft_id",
+          "required": true,
+          "description": "The draft to review."
+        },
+        {
+          "from": "body",
+          "as": "started_by",
+          "description": "The person who pressed Run review."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_start_review"
+    },
+    "get_review": {
+      "method": "GET",
+      "path": "/review",
+      "call": "GetReview",
+      "action": "agency.review.read",
+      "title": "Read review",
+      "description": "Read one review with its parts: each part carries its summary, failure_reason, tokens and findings, and each finding its comments. Name the review by review_id, or take the latest review of a draft with draft_id. Answers {review: null} when the draft has none.",
+      "args": [
+        {
+          "from": "query",
+          "as": "review_id",
+          "description": "The review to read."
+        },
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose latest review to read, when review_id is not given."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_review"
+    },
+    "list_reviews": {
+      "method": "GET",
+      "path": "/reviews",
+      "call": "ListReviews",
+      "action": "agency.review.list",
+      "title": "List reviews",
+      "description": "List every review of one draft, newest first, without parts or findings.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "required": true,
+          "description": "The draft whose reviews to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_reviews"
+    },
+    "set_finding_status": {
+      "method": "PATCH",
+      "path": "/review-findings/{finding_id}",
+      "call": "SetFindingStatus",
+      "action": "agency.review_finding.set_status",
+      "title": "Answer finding",
+      "description": "Record what the designer did with a finding: open, applied or dismissed. Answers the finding with its comments.",
+      "args": [
+        {
+          "from": "path",
+          "as": "finding_id",
+          "description": "The finding."
+        },
+        {
+          "from": "body",
+          "as": "status",
+          "required": true,
+          "description": "open, applied or dismissed."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_set_finding_status"
+    },
+    "comment_finding": {
+      "method": "POST",
+      "path": "/review-findings/{finding_id}/comments",
+      "call": "CommentFinding",
+      "action": "agency.review_comment.create",
+      "status": 201,
+      "title": "Comment on finding",
+      "description": "Write the designer's note on a finding. The next review reads it. Answers the comment.",
+      "args": [
+        {
+          "from": "path",
+          "as": "finding_id",
+          "description": "The finding to comment on."
+        },
+        {
+          "from": "body",
+          "as": "body",
+          "required": true,
+          "description": "The text of the note."
+        },
+        {
+          "from": "body",
+          "as": "author",
+          "description": "Who wrote it."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_comment_finding"
+    },
+    "review_input": {
+      "method": "GET",
+      "path": "/reviews/{review_id}/input",
+      "call": "ReviewInput",
+      "action": "agency.review.input",
+      "title": "Read review input",
+      "description": "What a reviewer reads before it reads the draft: the findings of the previous review for one part, each with its comments, as {previous: [...]}. Empty for a first run.",
+      "args": [
+        {
+          "from": "path",
+          "as": "review_id",
+          "description": "The running review."
+        },
+        {
+          "from": "query",
+          "as": "area",
+          "required": true,
+          "description": "The part: goals, objectives, roles_agents, workflows, risks or tests."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_review_input"
+    },
+    "record_review_area": {
+      "method": "PUT",
+      "path": "/reviews/{review_id}/areas/{area}",
+      "call": "RecordReviewArea",
+      "action": "agency.review_area.record",
+      "title": "Record review part",
+      "description": "A reviewer's one report on its part, once, when it has finished: status done or failed, the two-sentence summary, the reason when it failed, the tokens it spent and its findings. Each finding has title, detail, tool, arguments, then (a list of {tool, arguments}), fate (new, fixed, still_open or withdrawn), fate_reason, carried_from_id (the earlier finding it answers) and reopen. A finding with carried_from_id takes the earlier finding's status, except that an applied one whose fate is still_open comes back open, and a dismissed one comes back open only when reopen is true. The part's tokens are added to the review, and when no part is left reading the review is set to done with finished_at. Answers {area, review_status}.",
+      "args": [
+        {
+          "from": "path",
+          "as": "review_id",
+          "description": "The running review."
+        },
+        {
+          "from": "path",
+          "as": "area",
+          "description": "The part: goals, objectives, roles_agents, workflows, risks or tests."
+        },
+        {
+          "from": "body",
+          "as": "status",
+          "required": true,
+          "description": "done or failed."
+        },
+        {
+          "from": "body",
+          "as": "summary",
+          "description": "The two sentences at the top of the tab."
+        },
+        {
+          "from": "body",
+          "as": "failure_reason",
+          "description": "The sentence shown on a Failed tab."
+        },
+        {
+          "from": "body",
+          "as": "tokens",
+          "description": "What this reviewer spent."
+        },
+        {
+          "from": "body",
+          "as": "findings",
+          "description": "The findings, each with title, detail, tool, arguments, then, fate, fate_reason, carried_from_id and reopen."
+        }
+      ],
+      "returns": [
+        {
+          "as": "area"
+        },
+        {
+          "as": "review_status"
+        }
+      ],
+      "tool": "agency_record_review_area"
     }
   }
 }

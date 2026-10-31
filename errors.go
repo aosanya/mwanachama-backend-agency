@@ -140,4 +140,13 @@ var (
 	ErrUsedByScenario         = errors.New("mwanachamaagency: used by a scenario")
 )
 
+var (
+	ErrReviewRunning      = errors.New("A review of this draft is already running.")
+	ErrReviewNotFound     = errors.New("mwanachamaagency: review not found")
+	ErrReviewAreaNotFound = errors.New("mwanachamaagency: review part not found")
+	ErrReviewAreaRecorded = errors.New("mwanachamaagency: this part of the review has already been recorded")
+	ErrFindingNotFound    = errors.New("mwanachamaagency: review finding not found")
+	ErrInvalidReview      = errors.New("mwanachamaagency: invalid review")
+)
+
 var ErrConflict = errors.New("mwanachamaagency: another write got there first, try again")

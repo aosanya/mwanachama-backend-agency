@@ -36,6 +36,10 @@ inputs, test runs, the send-back rule and the publish gate (HS260).
 background, held Waiting under the hub's Scenarios at once setting, stopped by
 the designer and picked up after a restart (HS330).
 
+[review.md](review.md) covers the seven operations of the Review feature, how a
+run starts and a part is recorded, the carry-over of a designer's answers and
+the `then_steps` column (HS465-HS468).
+
 [module-mounts.md](module-mounts.md) covers the names an agency gives each mount
 of a module (HS271), their rules, and which modules can be mounted by name.
 
