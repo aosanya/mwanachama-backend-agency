@@ -62,8 +62,8 @@ func TestProvisionCreatesEveryDeclaredTable(t *testing.T) {
 	if got := liveTables(t, db); strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Errorf("tables =\n  %v\nwant\n  %v", got, want)
 	}
-	if len(want) != 25 {
-		t.Errorf("declared tables = %d, want the 25 objects the spec declares", len(want))
+	if len(want) != 29 {
+		t.Errorf("declared tables = %d, want the 29 objects the spec declares", len(want))
 	}
 }
 
@@ -87,8 +87,8 @@ func TestProvisionIsIdempotent(t *testing.T) {
 			t.Fatalf("Provision %d: %v", i, err)
 		}
 	}
-	if n := len(liveTables(t, db)); n != 25 {
-		t.Errorf("tables = %d, want 25", n)
+	if n := len(liveTables(t, db)); n != 29 {
+		t.Errorf("tables = %d, want 29", n)
 	}
 }
 

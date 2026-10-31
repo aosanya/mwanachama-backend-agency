@@ -496,6 +496,74 @@
         {"name": "scenario", "description": "Reads the runs of one scenario.", "fields": ["scenario_id"]},
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
       ]
+    },
+    {
+      "role": "review",
+      "description": "One run of the AI reviewers over one draft: who pressed it, when it began and ended, the review it read first and the tokens all the parts spent. Every review is kept with the draft and never carried into a publication.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft that was read.", "required": true},
+        {"name": "status", "type": "enum", "description": "Where the run stands: running while any part is still being read, then done, or failed.", "default": "running", "values": ["running", "done", "failed"]},
+        {"name": "previous_review_id", "type": "string", "description": "The review this run read first. Empty for the first run on a draft."},
+        {"name": "started_by", "type": "string", "description": "The person who pressed Run review."},
+        {"name": "started_at", "type": "timestamp", "description": "When the run began.", "immutable": true},
+        {"name": "finished_at", "type": "timestamp", "description": "When every part had finished. Empty while it runs."},
+        {"name": "tokens", "type": "int", "description": "The total tokens spent across the parts."}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Reads the reviews of one draft, the latest among them.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "review_area",
+      "description": "One reviewer's part of a review: the part it read, how it stands, the two sentences it wrote and the tokens it spent. A review has one for each part, five where the agency has no objectives.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "review_id", "type": "string", "description": "The review this part belongs to.", "required": true},
+        {"name": "area", "type": "enum", "description": "The part of the draft the reviewer reads.", "required": true, "values": ["goals", "objectives", "roles_agents", "workflows", "risks", "tests"]},
+        {"name": "status", "type": "enum", "description": "Whether the reviewer is still reading, has finished, or could not finish.", "default": "reading", "values": ["reading", "done", "failed"]},
+        {"name": "failure_reason", "type": "text", "description": "The sentence shown on a Failed tab."},
+        {"name": "summary", "type": "text", "description": "The two sentences at the top of the tab."},
+        {"name": "tokens", "type": "int", "description": "The tokens this reviewer spent."}
+      ],
+      "indexes": [
+        {"name": "review", "description": "Reads the parts of one review.", "fields": ["review_id"]}
+      ]
+    },
+    {
+      "role": "review_finding",
+      "description": "One suggestion a reviewer made: what it noticed, what Apply would run, what the designer did with it and the reviewer's judgement of whether the problem is still there.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "review_id", "type": "string", "description": "The review this finding came from.", "required": true},
+        {"name": "area_id", "type": "string", "description": "The part of that review it came from.", "required": true},
+        {"name": "title", "type": "string", "description": "The line the designer reads, such as Describe Farmer R-47.", "required": true},
+        {"name": "detail", "type": "text", "description": "The sentence under the title."},
+        {"name": "tool", "type": "string", "description": "The agency tool Apply runs. Empty when the finding only advises."},
+        {"name": "arguments", "type": "json", "description": "What Apply passes to that tool, as an object."},
+        {"name": "then_steps", "type": "json", "description": "The further steps Apply runs after the tool, each as a tool and its arguments, in order."},
+        {"name": "status", "type": "enum", "description": "What the designer did: still open, applied, or dismissed.", "default": "open", "values": ["open", "applied", "dismissed"]},
+        {"name": "fate", "type": "enum", "description": "The reviewer's judgement of the problem: new, fixed, still open, or withdrawn.", "default": "new", "values": ["new", "fixed", "still_open", "withdrawn"]},
+        {"name": "fate_reason", "type": "text", "description": "Why, in one sentence."},
+        {"name": "carried_from_id", "type": "string", "description": "The earlier finding this one answers. Empty for a new one."}
+      ],
+      "indexes": [
+        {"name": "review", "description": "Reads the findings of one review.", "fields": ["review_id"]}
+      ]
+    },
+    {
+      "role": "review_comment",
+      "description": "A note the designer wrote on one finding. The next review reads it.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "finding_id", "type": "string", "description": "The finding it is on.", "required": true},
+        {"name": "author", "type": "string", "description": "Who wrote it."},
+        {"name": "body", "type": "text", "description": "The text.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When it was written.", "immutable": true}
+      ],
+      "indexes": [
+        {"name": "finding", "description": "Reads the comments on one finding.", "fields": ["finding_id"]}
+      ]
     }
   ]
 }

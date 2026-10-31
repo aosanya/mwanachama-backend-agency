@@ -30,6 +30,10 @@ type TableNames struct {
 	ScenarioActors     string
 	ScenarioInputs     string
 	TestRuns           string
+	Reviews            string
+	ReviewAreas        string
+	ReviewFindings     string
+	ReviewComments     string
 }
 
 func TablesFor(s *spec.Spec) TableNames {
@@ -66,5 +70,9 @@ func TablesFor(s *spec.Spec) TableNames {
 		ScenarioActors:     table(roleScenarioActor),
 		ScenarioInputs:     table(roleScenarioInput),
 		TestRuns:           table(roleTestRun),
+		Reviews:            table(roleReview),
+		ReviewAreas:        table(roleReviewArea),
+		ReviewFindings:     table(roleReviewFinding),
+		ReviewComments:     table(roleReviewComment),
 	}
 }

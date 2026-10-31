@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const declaredRoles = 25
+const declaredRoles = 29
 
 func TestBlueprintParses(t *testing.T) {
 	b, err := Blueprint()
@@ -51,6 +51,10 @@ func TestEveryDeclaredColumnHasACarrierField(t *testing.T) {
 		"scenario_actor":     models.ScenarioActor{},
 		"scenario_input":     models.ScenarioInput{},
 		"test_run":           models.TestRun{},
+		"review":             models.Review{},
+		"review_area":        models.ReviewArea{},
+		"review_finding":     models.ReviewFinding{},
+		"review_comment":     models.ReviewComment{},
 	}
 
 	for role, carrier := range carriers {
@@ -126,6 +130,22 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 		"test_run.result": {
 			string(models.TestRunWaiting), string(models.TestRunRunning), string(models.TestRunPassed),
 			string(models.TestRunFailed), string(models.TestRunStopped),
+		},
+		"review.status": {
+			string(models.ReviewRunning), string(models.ReviewDone), string(models.ReviewFailed),
+		},
+		"review_area.area": {
+			string(models.ReviewAreaGoals), string(models.ReviewAreaObjectives), string(models.ReviewAreaRolesAgents),
+			string(models.ReviewAreaWorkflows), string(models.ReviewAreaRisks), string(models.ReviewAreaTests),
+		},
+		"review_area.status": {
+			string(models.ReviewAreaReading), string(models.ReviewAreaDone), string(models.ReviewAreaFailed),
+		},
+		"review_finding.status": {
+			string(models.FindingOpen), string(models.FindingApplied), string(models.FindingDismissed),
+		},
+		"review_finding.fate": {
+			string(models.FateNew), string(models.FateFixed), string(models.FateStillOpen), string(models.FateWithdrawn),
 		},
 		"issue.severity": {
 			string(models.IssueSeverityInfo),

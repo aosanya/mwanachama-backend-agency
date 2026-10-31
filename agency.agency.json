@@ -152,6 +152,30 @@
       "name": "test_run",
       "table": "test_runs",
       "description": "One run of one scenario, kept with what transpired in it."
+    },
+    {
+      "role": "review",
+      "name": "review",
+      "table": "reviews",
+      "description": "One run of the AI reviewers over one draft."
+    },
+    {
+      "role": "review_area",
+      "name": "review_area",
+      "table": "review_areas",
+      "description": "One reviewer's part of a review."
+    },
+    {
+      "role": "review_finding",
+      "name": "review_finding",
+      "table": "review_findings",
+      "description": "One suggestion a reviewer made, with what the designer did with it."
+    },
+    {
+      "role": "review_comment",
+      "name": "review_comment",
+      "table": "review_comments",
+      "description": "The designer's note on a finding."
     }
   ]
 }
