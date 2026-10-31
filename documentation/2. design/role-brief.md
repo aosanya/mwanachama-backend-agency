@@ -7,9 +7,9 @@ It reads the publication on the `production` channel (`GetPublicationForChannel`
 Parts, all taken from the publication document:
 
 - the seat's name and description (the seat is found by id or code);
-- the objectives it is answerable for through its RACI assignments, each with its goal;
+- the objectives it serves: those of every workflow that has a step the seat holds a RACI label on (`role_assignments` by step, then `workflow_objectives` by workflow), each with its goal and the labels the seat holds there;
 - the values and rules attached to the seat, to one of those objectives, to one of those goals, or to nothing at all (organization-wide). Anything attached only to another seat or objective is left out;
-- the `prompt` of each work item serving those objectives (items with no prompt are skipped).
+- the `prompt` of each work item of those workflows (items with no prompt are skipped).
 
 An unknown seat answers `ErrRoleNotFound`; no production publication answers `ErrPublicationNotFound`.
 

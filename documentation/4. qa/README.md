@@ -18,6 +18,13 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
 
 ## What is guarded, and how
 
+Entries that name a Work Item's `objective_id`, Objective-scoped RACI or one
+Accountable per Objective record tests and sweeps from before AGD-009
+(2026-10-31). Since then a step has no objective, RACI is a label on a step
+with no limit on any label, and the scan does not police it; see
+[AGD-009](../2.%20design/todo_details/AGD-009.md). Route tests that still name
+the old shape are being moved over under AG97.
+
 - **No live row to protect** (AGD-006) — `ErrCannotEditLiveRACI` and
   `PromoteDraft` are gone; every row belongs to a Draft and is edited there.
   The one immutability left is `ErrCannotEditLive`: an Agency-wide
@@ -31,7 +38,7 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   (`ErrDraftNotFound`/`ErrDraftNotOpen`) rather than silently attached to a
   Draft the write could never reach.
 - **The publish gate** (`AGD-004`): `PublishAgency` runs the Issue scan —
-  dangling references, an Objective with no Accountable, a Goal with no
+  dangling references, a Workflow with no Objective, a Goal with no
   Objectives, a Workflow with no WorkItems — before hashing, and refuses
   with `ErrPublishValidationFailed` if any check family reports `error`
   severity. `SeedSWELab` publishing clean on the first try is the check
@@ -61,27 +68,25 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   The rows inside an archived draft do not hold yet — see Red by design (AG72).
 - **The composite tool never reaches across drafts** — pinned by
   `mcp/composite_draft_scope_security_test.go`: an `agency_design_from_spec`
-  `raci` entry naming another draft's Role or Objective by id is refused
-  (`role not found` / `objective not found`) and nothing is stored in either
+  `raci` entry naming another draft's Role or Work Item by id is refused
+  (`role not found` / `work item not found`) and nothing is stored in either
   draft. Mutation-checked against `validateRoleAssignment`'s draft scope.
   The REST half is pinned by `routes/roleassignment_draft_scope_security_test.go`
   (2026-09-30): `POST /role-assignments` and `PATCH /role-assignments/{id}`
-  naming another draft's Role or Objective each answer `404`, store nothing,
+  naming another draft's Role or Work Item each answer `404`, store nothing,
   and leave the existing assignment as it was — mutation-checked the same way
   (4 of 4 red with the scope dropped). Other references are not held at
   create: `POST /objectives` with another draft's `goal_id` and `POST
-  /work-items` with another draft's (or a nonexistent) `workflow_id`/
-  `objective_id` answer `201`; the issue scan flags the Work Item as a
-  dangling Objective, but has no Objective→Goal check (AG27's open "Create
+  /work-items` with another draft's (or a nonexistent) `workflow_id`
+  answer `201`; the issue scan has no Objective→Goal check (AG27's open "Create
   still accepts a nonexistent reference" class — correctness, not a boundary).
-- **An objective's nested listings answer only the draft they name** — pinned
-  by `routes/nested_listing_draft_scope_security_test.go` (2026-10-08):
-  with an Accountable assignment and a capability link on an objective in
-  draft A, `GET /objectives/{id}/role-assignments` and
-  `GET /objectives/{id}/modules` return draft A's one row for `?draft_id=<A>`
-  and `[]` for another open draft, for no `draft_id` at all, and for a draft
-  that does not exist. Mutation-checked: dropping `scopeQuery` from
-  `ListRoleAssignmentsForObjective` turns all three RACI cases red.
+- **A work item's nested listings answer only the draft they name** — pinned
+  by `routes/nested_listing_draft_scope_security_test.go` (2026-10-08, moved
+  from the objective's listings by AGD-009): with an assignment on a work item
+  in draft A, `GET /work-items/{id}/role-assignments` returns draft A's one row
+  for `?draft_id=<A>` and `[]` for another open draft, for no `draft_id` at
+  all, and for a draft that does not exist. Mutation-checked: dropping
+  `scopeQuery` from `ListRoleAssignmentsForWorkItem` turns the RACI cases red.
 - **A publication is the server's, and only its channel moves** — pinned by
   `routes/publication_forged_fields_security_test.go` (2026-09-29,
   twenty-third sweep): `POST /publications` carrying `version: 99`,
@@ -163,17 +168,17 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   consulted. Mutation-checked: making `SpecForMount` ignore its instance
   argument turns eight of the nine doors red.
 
-- **An update never seats a second Accountable** — pinned by
-  `routes/raci_update_accountable_security_test.go` (2026-10-05, ninety-
-  fourth security sweep). With one Accountable already on an objective,
-  `PATCH /role-assignments/{id}` relabelling a Consulted seat to
-  `accountable`, re-pointing another objective's Accountable onto it, or
-  doing either while claiming `draft_id`/`id`/`created_at` in the body each
-  answer `409`, and the objective keeps exactly its original Accountable.
-  The create half was already covered by `TestCreateRoleAssignment_DuplicateAccountable`;
-  the concurrent half is AG53. Mutation-checked: skipping
-  `validateRoleAssignment` in `UpdateRoleAssignment` turns all four
-  assertions red.
+- **An update never duplicates a role and label on a step** (AGD-009, which
+  replaced "never seats a second Accountable", 2026-10-05). `PATCH
+  /role-assignments/{id}` giving a row the role and label another row on the
+  same step already holds, with or without `draft_id`/`id`/`created_at` in the
+  body, answers `409` and leaves both rows as they were; an update to itself is
+  allowed. Pinned at the manager by
+  `TestUpdateRoleAssignment_ToADuplicateIsRefusedAndToItselfIsAllowed`. A second
+  Accountable, or any number of any label, is accepted
+  (`TestCreateRoleAssignment_TwoAccountablesOnOneStepAreAllowed`).
+  Mutation-checked: skipping `validateRoleAssignment` in `UpdateRoleAssignment`
+  turns the duplicate assertions red.
 
 - **No draft-scoped create lands outside an open draft** — pinned by
   `routes/create_draft_gate_security_test.go` (2026-10-06, hundred-and-third
@@ -334,15 +339,12 @@ filters, `security_wk17_test.go`), 23 in `mcp/` (10 files), 64 in `routes/`
   version 3 and two publications left on `production`). SQLite serialises the
   writers, so the test writes the losing writer's row directly and turns green
   once the store refuses a second publication at one version.
-- `roleassignment_race_security_test.go`'s
-  `TestAG53_OpenHole_TwoAccountablesHoldOneObjective` (AG53, P2) — left
-  failing on purpose by the 2026-09-30 security sweep (thirty-eighth run):
-  eight concurrent `CreateRoleAssignment(label: accountable)` calls on one
-  Objective over Postgres stored two, three or four Accountables in three of
-  twenty-five rounds, the Issue scan reported nothing and the draft still
-  publishes. SQLite serialises the writers, so the test writes the racing
-  row directly and turns green once the store refuses it or the publish
-  gate refuses an Objective with more than one Accountable.
+- AG53 (two Accountables on one Objective under concurrent creates) is closed
+  by AGD-009: more than one Accountable is allowed, so the race is gone. What
+  stays refused is the same role and label twice on one step, and
+  `roleassignment_race_security_test.go`'s
+  `TestConcurrentCreateRoleAssignmentWithOneRoleAndLabelStoresOneAndClassifiesTheRest`
+  holds that under concurrent writers.
 - `routes/draft_fork_cost_security_test.go`'s
   `TestAG54_OpenHole_OneForkRequestCopiesEveryRowWithoutLimit` (AG54, P2) —
   left failing on purpose by the 2026-09-30 security sweep (fortieth run):

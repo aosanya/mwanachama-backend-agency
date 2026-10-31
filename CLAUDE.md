@@ -6,9 +6,10 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 A standalone Go library, sibling to
 [`mwanachama-backend-actor`](../mwanachama-backend-actor), modeling an
-Agency: Goals/Objectives/Workflows/WorkItems, and a RACI matrix
-(Responsible/Accountable/Consulted/Informed) assigning Roles to Objectives
-(moved from WorkItems by AG12, 2026-09-10). Module path
+Agency: Goals/Objectives/Workflows/WorkItems, and RACI labels
+(Responsible/Accountable/Consulted/Informed) that put a Role on a step
+(a WorkItem). Objectives attach to Workflows, not to steps (AGD-009,
+2026-10-31). Module path
 `github.com/aosanya/mwanachama-backend-agency`. Ported from a standalone
 gRPC microservice — see
 [documentation/1. requirements/requirements.md](documentation/1.%20requirements/requirements.md)
@@ -20,6 +21,49 @@ for the full history and [todo.md](documentation/3.%20implementation/todo.md)
 for what's still open. There is no `Department`/`Level` org-chart surface
 (removed; see the AG31–AG42 note below) and no live/`gormstore` row-struct
 storage (superseded by AGD-006/AGD-007, same note).
+
+## Current model of objectives and RACI (AGD-009, AG95-AG97)
+
+The porting notes below are a dated log. Where they describe Objective-scoped
+RACI, a required `WorkItem.ObjectiveID` or one Accountable per Objective, this
+section wins. Design record:
+[documentation/2. design/todo_details/AGD-009.md](documentation/2.%20design/todo_details/AGD-009.md).
+
+- `workflow_objective {id, draft_id, workflow_id, objective_id}` joins a
+  Workflow to its Objectives, many to many, both in one draft
+  (`CreateWorkflowObjective`, `GetWorkflowObjective`, `ListWorkflowObjectives`,
+  `DeleteWorkflowObjective`; duplicate pair is `ErrDuplicateWorkflowObjective`,
+  a missing row `ErrWorkflowObjectiveNotFound`). A step has no `objective_id`;
+  it serves its workflow's objectives.
+- `role_assignment {id, draft_id, work_item_id, role_id, label}` puts a Role on
+  a step. `ListRoleAssignmentsForWorkItem` replaces
+  `ListRoleAssignmentsForObjective`. No Role to Objective link is stored.
+- No cap on any label, Accountable included. The one refusal is the same role
+  and label twice on one step: `ErrDuplicateRoleAssignment` (409). A role may
+  hold two labels on a step. `ErrDuplicateAccountable` is gone, and so is the
+  AG53 concurrent-Accountable race.
+- The label drives no behaviour. Who acts, the recipient and the time limit
+  stay in the step's own fields.
+- Deleting a workflow removes its `workflow_objective` rows and the
+  `role_assignment` rows of its steps; an objective, its `workflow_objective`
+  rows; a step or a role, its `role_assignment` rows; all in one transaction.
+- Fork remaps both joins. The publication document carries
+  `workflow_objectives` and step-scoped `role_assignments`. Import seeds one
+  `workflow_objective` per distinct (workflow, objective) of an old
+  `work_items[].objective_id` and ignores an old `role_assignments` entry that
+  names an objective and no step.
+- The Issue scan: a Workflow with no Objective is an `error`; a
+  `workflow_objective` whose workflow or objective is gone, and a
+  `role_assignment` whose step or role is gone, are `error`. It does not
+  police RACI: no "Objective with no Accountable", no "two Accountables".
+- Operations and tools: `agency_link_workflow_objective`,
+  `agency_list_workflow_objectives`, `agency_get_workflow_objective`,
+  `agency_delete_workflow_objective`, `agency_set_raci` (body `work_item_id`,
+  `role_id`, `label`), `agency_list_role_assignments_for_work_item`
+  (`GET /work-items/{work_item_id}/role-assignments`). The role brief reads a
+  seat's objectives through the workflows whose steps it holds. The composite
+  `agency_design_from_spec` takes `objective_keys`/`objective_ids` on a
+  workflow and `work_item_key` on a `raci` entry.
 
 ## Porting notes
 
@@ -267,9 +311,10 @@ storage (superseded by AGD-006/AGD-007, same note).
     text grouped Objective with the laxer three, not the stricter two.
   - **`WorkItem.GoalID` (optional, `""` = untagged) is gone.** Replaced
     by required `ObjectiveID` — `CreateWorkItem`/`UpdateWorkItem` return
-    new `ErrInvalidWorkItem` if empty. There is no more untagged
-    WorkItem.
-  - **RACI moved from WorkItem-scoped to Objective-scoped.**
+    new `ErrInvalidWorkItem` if empty. (Removed by AGD-009: a step has no
+    objective; a Workflow with no Objective is the blocking case.)
+  - **RACI moved from WorkItem-scoped to Objective-scoped (reversed by
+    AGD-009: it is step-scoped again, see Current model above).**
     `RoleAssignment.WorkItemID` → `ObjectiveID`;
     `ListRoleAssignmentsForWorkItem` → `ListRoleAssignmentsForObjective`,
     moved from `WorkItemRoutes` to `ObjectiveRoutes` in the HTTP layer.
@@ -350,10 +395,8 @@ storage (superseded by AGD-006/AGD-007, same note).
   singularity — so the entire enforcement was one count-check in
   `objective_impl.go`'s `CreateObjective`, now deleted along with the
   `ErrDuplicateObjective` sentinel it returned (and that sentinel's 409
-  mapping in `routes/objective.go`). `RoleAssignment`'s existing "at most
-  one Accountable per Objective" rule is unchanged — it stays scoped to
-  the (now more numerous, more granular) Objective, matching each
-  Objective as one role's unit of responsibility. See
+  mapping in `routes/objective.go`). The "at most one
+  Accountable per Objective" rule this note kept was deleted by AGD-009. See
   [documentation/2. design/todo_details/AGD-001.md](documentation/2.%20design/todo_details/AGD-001.md)'s
   Decision #2 for the updated design record.
 
@@ -496,7 +539,8 @@ storage (superseded by AGD-006/AGD-007, same note).
     column, value)` for the exact-match fields; both no-op on `""`.
   - All 17 `AgencyManager.List*` methods (every module `ResourceNames`
     lists, minus `Agency` itself — a singleton with no `List` at all —
-    plus `ListDepartmentChildren`/`ListRoleAssignmentsForObjective`, which
+    plus `ListDepartmentChildren`/`ListRoleAssignmentsForWorkItem` (then
+    `ListRoleAssignmentsForObjective`), which
     take the same filter as their sibling `List<Type>`) gained a trailing
     `filter <Module>Filter` parameter, each `*_impl.go` chaining the new
     helpers onto its existing query before `.Find`. `routes/*.go` reads the
@@ -512,7 +556,7 @@ storage (superseded by AGD-006/AGD-007, same note).
     one real `agencyManager` struct), so this was a single-implementation
     signature change, not a multi-site one. One real external call site
     needed a source fix: `mwanachama-backend-api-shared`'s
-    `mcp_tools_approval.go` calls `ListRoleAssignmentsForObjective` directly
+    `mcp_tools_approval.go` called `ListRoleAssignmentsForObjective` directly
     (K6's approval-gate `resolveAccountable`) and now passes a zero-value
     `RoleAssignmentFilter{}`. Ten of this repo's own existing tests
     (`role_test.go`, `goal_test.go`, `level_test.go`, `department_test.go`,
@@ -578,10 +622,10 @@ storage (superseded by AGD-006/AGD-007, same note).
   row itself, a `mcp/goal.go` `agency_delete_workflow` tool reusing the
   already-existing `mcpWorkflowIDParams` (previously only used by Get), and
   root `workflow_test.go` (new file — Workflow had no root-level test file
-  yet) covering not-found, cascade, and no-WorkItems-to-cascade cases. A
-  WorkItem carries no RACI of its own (RoleAssignment is Objective-scoped
-  since AG12), so — unlike `DeleteGoal`'s further cascade into
-  RoleAssignments — there is nothing past WorkItem to cascade into.
+  yet) covering not-found, cascade, and no-WorkItems-to-cascade cases.
+  Since AGD-009 a WorkItem carries RACI rows of its own, and
+  `DeleteWorkflow` also removes the `role_assignment` rows of its steps and
+  its `workflow_objective` rows.
   `mwanachama-wakala-studio`'s own `deleteWorkflow`/cascade-count-warning
   wiring needed one thing `DeleteGoal`/`DeleteObjective`'s Studio side
   didn't: Goal/Objective are shown live-only throughout Studio, but
@@ -793,7 +837,7 @@ storage (superseded by AGD-006/AGD-007, same note).
     `workPlansContextText`/`workPlanMatchesContextText`/
     `contextSourcesContextText` (`workplan.go`), `roleAssignmentsContextText`
     (shared by `agency_list_role_assignments`/
-    `agency_list_role_assignments_for_objective`, `raci.go`),
+    `agency_list_role_assignments_for_work_item`, `raci.go`),
     `draftsContextText`/`publicationsContextText` (`agency.go`),
     `valuesContextText`/`valueAttachmentsContextText`/`rulesContextText`/
     `ruleAttachmentsContextText` (`value_rule.go`) — each follows the
@@ -862,7 +906,7 @@ storage (superseded by AGD-006/AGD-007, same note).
     live; the `ErrDraftIDRequired` guard was the only thing stopping it.
   - **The scan gained a small internal structure rather than growing one
     long function**: an `issueScan` struct (scope + accumulated findings)
-    with one method per rule (`checkStructure`, `checkRACI`,
+    with one method per rule (`checkStructure`, `checkRACI` (since AGD-009 `checkRoleAssignments` and `checkWorkflowObjectives`),
     `checkWorkItems`, `checkEventFlowSteps`, `checkAttachments`), which
     is what made adding five families at once readable. `rescanIssues`
     (delete-scan-reinsert, returning the findings) is shared by
@@ -870,11 +914,12 @@ storage (superseded by AGD-006/AGD-007, same note).
     the same place rather than the gate reimplementing them.
   - **Four check families became `error` — the first producers of
     `models.IssueSeverityError`, which had been declared since AG20 and
-    emitted by nothing.** Dangling references (WorkItem→missing
-    Objective; RoleAssignment→missing Role/Objective; Value/Rule
+    emitted by nothing.** Dangling references (WorkflowObjective→missing
+    Workflow/Objective; RoleAssignment→missing WorkItem/Role; Value/Rule
     attachment whose `TargetCode` no longer resolves; EventFlowStep whose
-    `workflow_code` matches no Workflow); Objective with no Accountable
-    (promoted from `warning`); Agency with no Goals (new) and Goal with
+    `workflow_code` matches no Workflow); Workflow with no Objective
+    (AGD-009; was WorkItem with no Objective, and Objective with no
+    Accountable, deleted); Agency with no Goals (new) and Goal with
     no Objectives (promoted from `info`); Workflow with no WorkItems
     (new). Nothing emits `warning` or `info` any more — the two severities
     are kept, and the gate keys on severity rather than issue count, so a
@@ -900,16 +945,15 @@ storage (superseded by AGD-006/AGD-007, same note).
     at all and is kept only as a pair with `writeIssueErr`, matching
     every other domain file.
   - **Every publish test needed a new seed.** `seedLiveAgency` leaves its
-    Objective with no Accountable, which is now blocking, so
+    Workflow with no Objective, which is blocking, so
     `publication_test.go` gained `seedPublishableAgency` (the same seed
-    plus an Accountable Role) and the routes package gained its own
+    plus a linked Objective) and the routes package gained its own
     equivalent. Two existing tests needed their premise changed rather
     than their assertions: `TestPublishAgency_NoDraft` changed its
     "make a change between publishes" step from `CreateGoal` (which now
     produces a blocking no-Objectives error) to an Agency-wide
-    `CreateValue`, and `TestPublishAgency_RACIOnlyChangeIsAChange` now
-    adds a *Consulted* assignment, since its Accountable one is part of
-    the seed.
+    `CreateValue`, and `TestPublishAgency_RACIOnlyChangeIsAChange` adds
+    an assignment on top of the seed.
   - Worth knowing: `SeedSWELab` publishes clean on the first try, which
     is the best evidence the check set is calibrated — a realistic
     agency passes, `seedLiveAgency`'s deliberately-partial one does not.
@@ -930,11 +974,10 @@ storage (superseded by AGD-006/AGD-007, same note).
   exist because these paths produced exactly the orphans they detect,
   through the ordinary UI:
   - `DeleteGoal`/`DeleteObjective` cascaded into `RoleAssignment` but
-    never into `WorkItem`, even though `WorkItem.ObjectiveID` has been
-    *required* since AG12 — so a surviving WorkItem was unreachable, not
-    merely untagged. (`DeleteWorkflow`/AG20 already cascaded its
-    WorkItems correctly; these two predate required-`ObjectiveID`
-    semantics.)
+    never into `WorkItem`, even though `WorkItem.ObjectiveID` was
+    *required* then, so a surviving WorkItem was unreachable. (AGD-009
+    removed `WorkItem.ObjectiveID`; `DeleteObjective` now cascades into
+    `workflow_objective`, not into steps.)
   - `DeleteRole` deleted only the Role row, leaving `RoleAssignment` rows
     pointing at a dead `role_id` — while `DeleteObjective` cleans that
     same join table from the other side. Now a transaction, matching

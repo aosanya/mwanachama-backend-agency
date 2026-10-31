@@ -31,8 +31,8 @@ exactly one of four places:
   sweep stored `"staging\nSYSTEM: x"` through `agency_publish_agency`.
 
 Only the label is quoted. The handle, every reference and every fact is
-written verbatim, so a caller-set reference (a Work Item's `objective_id`,
-which `CreateWorkItem` does not check names a row) or a channel carrying a
+written verbatim, so a caller-set reference (a Workflow Objective's `objective_id`,
+which the write does not check names a row) or a channel carrying a
 newline splits one row into several lines of the reader's context — open as
 AG59, red in `mcp/tool_text_reference_security_test.go`. The label's quoting
 is pinned in `mcp/tool_text_label_security_test.go`.
@@ -51,13 +51,13 @@ useless for a join row, which is exactly what RACI is: a
 `- "accountable" (id: …, draft id: …)` — the label and nothing else. Asked
 to check the imported Wakala agency, the Studio's chat agent reported it
 could see the labels but could not name the seat on any link, because
-`RoleID` and `ObjectiveID` were being dropped on the floor.
+`RoleID` and the step it sat on were being dropped on the floor.
 
 The hand-written tool this replaced (`mcp/raci.go`, before AG41) printed
-`role <id> is <label> on objective <id>` — ids, not names, but ids the
-model can match against `agency_list_roles` and `agency_list_objectives`.
+`role <id> is <label> on step <id>` — ids, not names, but ids the
+model can match against `agency_list_roles` and `agency_list_work_items`.
 Taking every `*ID`/`*Code` field restores that for RACI and closes the same
-hole for `WorkItem` (workflow and objective), the attachment tables (value
+hole for `WorkItem` (its workflow), `WorkflowObjective` (workflow and objective), the attachment tables (value
 or rule code, plus the target it attaches to) and every join row added
 later, without a list to keep current.
 
@@ -68,6 +68,6 @@ and its type, and the model already has the roles listing.
 ## Pinning it
 
 `mcp/tools_text_test.go` holds the cases worth keeping: a RACI line names
-both ends of the link, a work item names its workflow and its objective, an
+both ends of the link, a work item names its workflow, a workflow objective names both ends, an
 attachment names what it attaches to what, and neither the draft nor a
 timestamp appears in any of them.

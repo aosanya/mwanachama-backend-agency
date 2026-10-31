@@ -65,6 +65,36 @@ Update keeps the step in its draft whatever `draft_id` the body carries.
   longer exists in the draft, which is what deleting a role or a workflow now
   leaves behind. Neither delete cascades into the steps.
 
+## Objectives and RACI on a step (AGD-009)
+
+A step has no `objective_id`. A workflow names the objectives it delivers
+through `workflow_objective` rows (`agency_link_workflow_objective`), many to
+many, both in one draft; a step serves its workflow's objectives. A workflow
+with none is a blocking `error` in the scan.
+
+RACI is a `role_assignment {work_item_id, role_id, label}` on the step, with
+`label` one of `responsible`, `accountable`, `consulted`, `informed`
+(`agency_set_raci`; the step's rows are `GET /work-items/{work_item_id}/role-assignments`,
+`agency_list_role_assignments_for_work_item`). The builder picks any number of
+roles on a step and a label for each. Nothing caps a label, Accountable
+included; the only refusal is the same role with the same label twice on one
+step (`ErrDuplicateRoleAssignment`, 409), and one role may hold two labels.
+
+The label drives nothing. Who acts is `role_id`, who is told is
+`recipient_role_id`, the answer comes from the step's kind and the limit is
+`time_limit_minutes`; the approval gate reads those, not the RACI rows. The scan
+does not count Accountables. No role to objective link is stored: a role's
+objectives are read through the workflows whose steps it holds, which is how
+the role brief ([role-brief.md](role-brief.md)) finds them.
+
+Deleting a step or a role removes its `role_assignment` rows; deleting a
+workflow removes its `workflow_objective` rows and the `role_assignment` rows of
+its steps; deleting an objective removes its `workflow_objective` rows. Fork
+remaps both joins, the publication document carries `workflow_objectives` and
+step-scoped `role_assignments`, and import seeds one `workflow_objective` per
+distinct (workflow, objective) of an older `work_items[].objective_id` while
+ignoring an older `role_assignments` entry that names an objective and no step.
+
 ## The pickers (HS299)
 
 `agency_list_pickers` (`GET /pickers?draft_id=`, action `agency.picker.list`)
