@@ -13,30 +13,31 @@ import (
 )
 
 const (
-	roleAgency          = "agency"
-	roleDraft           = "draft"
-	roleGoal            = "goal"
-	roleObjective       = "objective"
-	roleWorkflow        = "workflow"
-	roleWorkItem        = "work_item"
-	roleEventFlowStep   = "event_flow_step"
-	roleRole            = "role"
-	roleRoleAssignment  = "role_assignment"
-	roleModule          = "module"
-	roleValue           = "value"
-	roleValueAttachment = "value_attachment"
-	roleRule            = "rule"
-	roleRuleAttachment  = "rule_attachment"
-	roleIssue           = "issue"
-	rolePublication     = "agency_publication"
-	roleCodeSequence    = "code_sequence"
-	roleRecord          = "record"
-	roleRecordRow       = "record_row"
-	roleMeasure         = "measure"
-	roleScenario        = "scenario"
-	roleScenarioActor   = "scenario_actor"
-	roleScenarioInput   = "scenario_input"
-	roleTestRun         = "test_run"
+	roleAgency            = "agency"
+	roleDraft             = "draft"
+	roleGoal              = "goal"
+	roleObjective         = "objective"
+	roleWorkflow          = "workflow"
+	roleWorkItem          = "work_item"
+	roleEventFlowStep     = "event_flow_step"
+	roleRole              = "role"
+	roleRoleAssignment    = "role_assignment"
+	roleWorkflowObjective = "workflow_objective"
+	roleModule            = "module"
+	roleValue             = "value"
+	roleValueAttachment   = "value_attachment"
+	roleRule              = "rule"
+	roleRuleAttachment    = "rule_attachment"
+	roleIssue             = "issue"
+	rolePublication       = "agency_publication"
+	roleCodeSequence      = "code_sequence"
+	roleRecord            = "record"
+	roleRecordRow         = "record_row"
+	roleMeasure           = "measure"
+	roleScenario          = "scenario"
+	roleScenarioActor     = "scenario_actor"
+	roleScenarioInput     = "scenario_input"
+	roleTestRun           = "test_run"
 )
 
 type publication struct {
@@ -58,30 +59,31 @@ type codeSequence struct {
 
 func carriers() map[string]any {
 	return map[string]any{
-		roleAgency:          models.Agency{},
-		roleDraft:           models.Draft{},
-		roleGoal:            models.Goal{},
-		roleObjective:       models.Objective{},
-		roleWorkflow:        models.Workflow{},
-		roleWorkItem:        models.WorkItem{},
-		roleEventFlowStep:   models.EventFlowStep{},
-		roleRole:            models.Role{},
-		roleRoleAssignment:  models.RoleAssignment{},
-		roleModule:          models.Module{},
-		roleValue:           models.Value{},
-		roleValueAttachment: models.ValueAttachment{},
-		roleRule:            models.Rule{},
-		roleRuleAttachment:  models.RuleAttachment{},
-		roleIssue:           models.Issue{},
-		rolePublication:     publication{},
-		roleCodeSequence:    codeSequence{},
-		roleRecord:          models.Record{},
-		roleRecordRow:       models.RecordRow{},
-		roleMeasure:         models.Measure{},
-		roleScenario:        models.Scenario{},
-		roleScenarioActor:   models.ScenarioActor{},
-		roleScenarioInput:   models.ScenarioInput{},
-		roleTestRun:         models.TestRun{},
+		roleAgency:            models.Agency{},
+		roleDraft:             models.Draft{},
+		roleGoal:              models.Goal{},
+		roleObjective:         models.Objective{},
+		roleWorkflow:          models.Workflow{},
+		roleWorkItem:          models.WorkItem{},
+		roleEventFlowStep:     models.EventFlowStep{},
+		roleRole:              models.Role{},
+		roleRoleAssignment:    models.RoleAssignment{},
+		roleWorkflowObjective: models.WorkflowObjective{},
+		roleModule:            models.Module{},
+		roleValue:             models.Value{},
+		roleValueAttachment:   models.ValueAttachment{},
+		roleRule:              models.Rule{},
+		roleRuleAttachment:    models.RuleAttachment{},
+		roleIssue:             models.Issue{},
+		rolePublication:       publication{},
+		roleCodeSequence:      codeSequence{},
+		roleRecord:            models.Record{},
+		roleRecordRow:         models.RecordRow{},
+		roleMeasure:           models.Measure{},
+		roleScenario:          models.Scenario{},
+		roleScenarioActor:     models.ScenarioActor{},
+		roleScenarioInput:     models.ScenarioInput{},
+		roleTestRun:           models.TestRun{},
 	}
 }
 

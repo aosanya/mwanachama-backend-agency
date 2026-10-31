@@ -58,8 +58,8 @@ type AgencyManager interface {
 	UpdateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error)
 	// DeleteWorkflow cascades: every WorkItem owned by it is deleted too —
 	// same reasoning as DeleteGoal's cascade above (see its doc comment).
-	// A WorkItem carries no RACI of its own (RoleAssignment is
-	// Objective-scoped, AG12), so there is nothing further to cascade to.
+	// A deleted Workflow also removes its WorkflowObjective rows, and a
+	// deleted step removes its RoleAssignment rows, in the same transaction.
 	DeleteWorkflow(ctx context.Context, id string) error
 
 	SetMeasure(ctx context.Context, m models.Measure) (models.Measure, error)
@@ -74,8 +74,7 @@ type AgencyManager interface {
 	CreateRecordRow(ctx context.Context, row models.RecordRow) (models.RecordRow, error)
 	ListRecordRows(ctx context.Context, draftID string, filter RecordRowFilter) ([]models.RecordRow, error)
 
-	// WorkItem. Belongs to exactly one Objective — CreateWorkItem/
-	// UpdateWorkItem return [ErrInvalidWorkItem] if ObjectiveID is empty.
+	// WorkItem. A step takes its Objectives from its Workflow (AGD-009).
 	CreateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error)
 	GetWorkItem(ctx context.Context, id string) (models.WorkItem, error)
 	ListWorkItems(ctx context.Context, draftID string, filter WorkItemFilter) ([]models.WorkItem, error)
@@ -161,21 +160,15 @@ type AgencyManager interface {
 	UpdateRole(ctx context.Context, r models.Role) (models.Role, error)
 	DeleteRole(ctx context.Context, id string) error
 
-	// RoleAssignment. Assigns a Role to an Objective with a RACILabel
-	// (moved from WorkItem-scoped 2026-09-10, AGD-001).
-	//
-	// CreateRoleAssignment/UpdateRoleAssignment return [ErrInvalidRACILabel]
-	// for an invalid Label, [ErrRoleNotFound]/[ErrObjectiveNotFound] if the
-	// referenced Role/Objective doesn't exist in the same scope, or
-	// [ErrDuplicateAccountable] if another assignment in that scope already
-	// labels the Objective Accountable.
+	CreateWorkflowObjective(ctx context.Context, l models.WorkflowObjective) (models.WorkflowObjective, error)
+	GetWorkflowObjective(ctx context.Context, id string) (models.WorkflowObjective, error)
+	ListWorkflowObjectives(ctx context.Context, draftID string, filter WorkflowObjectiveFilter) ([]models.WorkflowObjective, error)
+	DeleteWorkflowObjective(ctx context.Context, id string) error
+
 	CreateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
 	GetRoleAssignment(ctx context.Context, id string) (models.RoleAssignment, error)
 	ListRoleAssignments(ctx context.Context, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error)
-	// ListRoleAssignmentsForObjective answers "who is assigned to this
-	// Objective, and with what RACI label" — a caller that needs a
-	// WorkItem's RACI resolves via WorkItem.ObjectiveID first.
-	ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error)
+	ListRoleAssignmentsForWorkItem(ctx context.Context, workItemID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error)
 	UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
 	DeleteRoleAssignment(ctx context.Context, id string) error
 

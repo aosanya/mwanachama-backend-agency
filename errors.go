@@ -55,16 +55,21 @@ var (
 	// ErrInvalidRACILabel is returned by CreateRoleAssignment/
 	// UpdateRoleAssignment when Label is not one of the four RACI values.
 	ErrInvalidRACILabel = errors.New("mwanachamaagency: invalid RACI label")
-	// ErrDuplicateAccountable is returned by CreateRoleAssignment/
-	// UpdateRoleAssignment when another assignment in the same scope
-	// already labels the WorkItem Accountable.
-	ErrDuplicateAccountable = errors.New("mwanachamaagency: work item already has an accountable role")
+	// ErrDuplicateRoleAssignment is returned by CreateRoleAssignment/
+	// UpdateRoleAssignment when the same role already holds the same label
+	// on the same step.
+	ErrDuplicateRoleAssignment = errors.New("mwanachamaagency: role already holds this label on the step")
+	// ErrWorkflowObjectiveNotFound is returned when a WorkflowObjective id
+	// has no match.
+	ErrWorkflowObjectiveNotFound = errors.New("mwanachamaagency: workflow objective not found")
+	// ErrDuplicateWorkflowObjective is returned by CreateWorkflowObjective
+	// when the workflow already delivers the objective.
+	ErrDuplicateWorkflowObjective = errors.New("mwanachamaagency: workflow already delivers this objective")
 	// ErrObjectiveNotFound is returned when an Objective id has no match
 	// in the expected scope.
 	ErrObjectiveNotFound = errors.New("mwanachamaagency: objective not found")
-	// ErrInvalidWorkItem is returned by CreateWorkItem/UpdateWorkItem when
-	// ObjectiveID is empty — every WorkItem belongs to exactly one
-	// Objective (AGD-001).
+	// ErrInvalidWorkItem is returned by CreateWorkItem/UpdateWorkItem for a
+	// step that fails validation.
 	ErrInvalidWorkItem = errors.New("mwanachamaagency: invalid work item")
 	// ErrInvalidValue is returned by CreateValue/UpdateValue when Text is
 	// empty.

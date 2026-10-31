@@ -75,7 +75,14 @@ type RoleFilter struct {
 // RoleAssignmentFilter's Label is exact-match against
 // [models.RACILabel]'s four values.
 type RoleAssignmentFilter struct {
-	Label string `query:"label"`
+	Label      string `query:"label"`
+	WorkItemID string `query:"work_item_id"`
+	RoleID     string `query:"role_id"`
+}
+
+type WorkflowObjectiveFilter struct {
+	WorkflowID  string `query:"workflow_id"`
+	ObjectiveID string `query:"objective_id"`
 }
 
 // ModuleFilter's Code/Name/Description are case-insensitive substring

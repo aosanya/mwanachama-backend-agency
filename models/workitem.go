@@ -4,7 +4,6 @@ type WorkItem struct {
 	ID               string         `json:"id"`
 	Code             string         `json:"code"`
 	WorkflowID       string         `json:"workflow_id"`
-	ObjectiveID      string         `json:"objective_id"`
 	DraftID          string         `json:"draft_id,omitempty"`
 	Title            string         `json:"title"`
 	Description      string         `json:"description"`

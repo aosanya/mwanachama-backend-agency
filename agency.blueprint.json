@@ -101,7 +101,6 @@
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "code", "type": "string", "description": "Stable human-readable handle such as WI-1, minted once and never edited.", "immutable": true},
         {"name": "workflow_id", "type": "string", "description": "The workflow that owns this step.", "required": true},
-        {"name": "objective_id", "type": "string", "description": "The objective this step serves. Required — there is no untagged work.", "required": true},
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
         {"name": "title", "type": "string", "description": "The step in one line.", "required": true},
         {"name": "description", "type": "text", "description": "What doing it involves."},
@@ -125,8 +124,7 @@
       "indexes": [
         {"name": "code", "description": "Finds a step by the handle a person quotes.", "fields": ["code"]},
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
-        {"name": "workflow", "description": "Reads the steps of one workflow, and backs its delete cascade.", "fields": ["workflow_id"]},
-        {"name": "objective", "description": "Reads the work serving one objective.", "fields": ["objective_id"]}
+        {"name": "workflow", "description": "Reads the steps of one workflow, and backs its delete cascade.", "fields": ["workflow_id"]}
       ]
     },
     {
@@ -181,21 +179,39 @@
     },
     {
       "role": "role_assignment",
-      "description": "One RACI link: which seat is answerable for which objective, and how.",
+      "description": "One RACI label: which seat takes part in which step, and how. Only a label; what a step does and who acts stays in the step's own fields.",
       "fields": [
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
-        {"name": "role_id", "type": "string", "description": "The seat being assigned. Must be in the same draft as this link.", "required": true},
-        {"name": "objective_id", "type": "string", "description": "The objective it is assigned to. Must be in the same draft as this link.", "required": true},
-        {"name": "label", "type": "enum", "description": "How the seat relates to the objective. At most one accountable per objective.", "required": true, "values": ["responsible", "accountable", "consulted", "informed"]},
+        {"name": "work_item_id", "type": "string", "description": "The step the seat is labelled on. Must be in the same draft as this link.", "required": true},
+        {"name": "role_id", "type": "string", "description": "The seat being labelled. Must be in the same draft as this link.", "required": true},
+        {"name": "label", "type": "enum", "description": "How the seat relates to the step. Any number of seats may hold any label, accountable included; the same seat with the same label twice on one step is refused.", "required": true, "values": ["responsible", "accountable", "consulted", "informed"]},
         {"name": "created_at", "type": "timestamp", "description": "When the link was made.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
       ],
       "indexes": [
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
-        {"name": "role", "description": "Answers what one seat is answerable for.", "fields": ["role_id"]},
-        {"name": "objective", "description": "Answers who to notify about one objective.", "fields": ["objective_id"]}
+        {"name": "role", "description": "Answers which steps one seat is labelled on, and backs its delete cascade.", "fields": ["role_id"]},
+        {"name": "work_item", "description": "Reads the labels of one step, and backs its delete cascade.", "fields": ["work_item_id"]}
+      ]
+    },
+    {
+      "role": "workflow_objective",
+      "description": "One link saying a workflow delivers an objective. A workflow may serve several objectives and an objective may be served by several workflows.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "workflow_id", "type": "string", "description": "The workflow. Must be in the same draft as this link.", "required": true},
+        {"name": "objective_id", "type": "string", "description": "The objective it delivers. Must be in the same draft as this link.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When the link was made.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "workflow", "description": "Reads the objectives of one workflow, and backs its delete cascade.", "fields": ["workflow_id"]},
+        {"name": "objective", "description": "Reads the workflows of one objective, and backs its delete cascade.", "fields": ["objective_id"]}
       ]
     },
     {
