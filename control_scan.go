@@ -71,7 +71,14 @@ func (s *issueScan) checkControls() error {
 				"Control %s is attached to %s %s, which does not exist", QuoteIfUnsafe(a.ControlCode), a.TargetType, QuoteIfUnsafe(a.TargetCode))
 			continue
 		}
-		if a.TargetType == models.TargetTypeRiskPathway && c.OnBreach == models.OnBreachRunWorkflow && sideOf[a.TargetCode] == models.RiskSideThreat {
+		if c.OnBreach != models.OnBreachRunWorkflow {
+			continue
+		}
+		switch {
+		case a.TargetType == models.TargetTypeThreat:
+			s.add(models.IssueSeverityError, "control_attachment", a.ID,
+				"Control %s runs a workflow after the event, so it cannot stand on threat %s", c.Code, QuoteIfUnsafe(a.TargetCode))
+		case a.TargetType == models.TargetTypeRiskPathway && sideOf[a.TargetCode] == models.RiskSideThreat:
 			s.add(models.IssueSeverityError, "control_attachment", a.ID,
 				"Control %s runs a workflow after the event, so it cannot stand on threat pathway %s", c.Code, QuoteIfUnsafe(a.TargetCode))
 		}
@@ -133,5 +140,15 @@ func (s *issueScan) attachmentTargets() (map[models.TargetType]map[string]bool, 
 		return nil, err
 	}
 	out[models.TargetTypeRiskPathway] = pathwayCodes
+	for t, role := range map[models.TargetType]string{
+		models.TargetTypeThreat:      roleThreat,
+		models.TargetTypeConsequence: roleConsequence,
+	} {
+		codes, err := s.codeSet(role)
+		if err != nil {
+			return nil, err
+		}
+		out[t] = codes
+	}
 	return out, nil
 }

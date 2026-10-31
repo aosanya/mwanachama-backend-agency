@@ -8,16 +8,21 @@ import (
 )
 
 var markedReferences = map[string]string{
-	"goal_id":         "agency.goal",
-	"objective_id":    "agency.objective",
-	"workflow_id":     "agency.workflow",
-	"work_item_id":    "agency.work_item",
-	"role_id":         "agency.role",
-	"value_id":        "agency.value",
-	"rule_id":         "agency.rule",
-	"control_id":      "agency.control",
-	"risk_id":         "agency.risk",
-	"risk_pathway_id": "agency.risk_pathway",
+	"goal_id":             "agency.goal",
+	"objective_id":        "agency.objective",
+	"workflow_id":         "agency.workflow",
+	"work_item_id":        "agency.work_item",
+	"role_id":             "agency.role",
+	"value_id":            "agency.value",
+	"rule_id":             "agency.rule",
+	"control_id":          "agency.control",
+	"risk_id":             "agency.risk",
+	"risk_pathway_id":     "agency.risk_pathway",
+	"hazard_id":           "agency.hazard",
+	"threat_id":           "agency.threat",
+	"consequence_id":      "agency.consequence",
+	"risk_threat_id":      "agency.risk_threat",
+	"risk_consequence_id": "agency.risk_consequence",
 }
 
 func TestEveryArgumentNamingAThingAnOperatorWorksWithIsMarkedWithWhatItRefersTo(t *testing.T) {

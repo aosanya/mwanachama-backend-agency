@@ -265,25 +265,6 @@ func TestCreateScenario_StepsNobodyTakesAreThe_System(t *testing.T) {
 	}
 }
 
-func TestCreateScenario_ShowsTheRulesAttachedToItsWorkflow(t *testing.T) {
-	w := newScenarioWorld(t)
-	ctx := context.Background()
-	rule, err := w.mgr.CreateRule(ctx, models.Rule{DraftID: w.draftID, Text: "Ask the shop once"})
-	if err != nil {
-		t.Fatalf("CreateRule: %v", err)
-	}
-	if _, err := w.mgr.CreateRuleAttachment(ctx, rule.ID, models.TargetTypeWorkflow, w.buyNow.ID); err != nil {
-		t.Fatalf("CreateRuleAttachment: %v", err)
-	}
-	s := w.scenario(t, "Shop says yes", w.buyNow)
-	if !reflect.DeepEqual(s.Rules, []string{rule.Code}) {
-		t.Errorf("rules = %v, want [%s]", s.Rules, rule.Code)
-	}
-	if other := w.scenario(t, "Group", w.groupOrd); len(other.Rules) != 0 {
-		t.Errorf("a scenario on another workflow shows rules %v", other.Rules)
-	}
-}
-
 func TestCreateScenario_Refusals(t *testing.T) {
 	w := newScenarioWorld(t)
 	ctx := context.Background()

@@ -40,6 +40,36 @@
       "description": "One way a risk comes about, or one consequence it leads to."
     },
     {
+      "role": "hazard",
+      "name": "hazard",
+      "table": "hazards",
+      "description": "Something that could cause harm, kept once and named by any number of risks."
+    },
+    {
+      "role": "threat",
+      "name": "threat",
+      "table": "threats",
+      "description": "A way a top event can come about, kept once and used by any number of risks."
+    },
+    {
+      "role": "consequence",
+      "name": "consequence",
+      "table": "consequences",
+      "description": "What follows a top event, kept once and used by any number of risks."
+    },
+    {
+      "role": "risk_threat",
+      "name": "risk_threat",
+      "table": "risk_threats",
+      "description": "A risk's use of a library threat."
+    },
+    {
+      "role": "risk_consequence",
+      "name": "risk_consequence",
+      "table": "risk_consequences",
+      "description": "A risk's use of a library consequence."
+    },
+    {
       "role": "workflow",
       "name": "workflow",
       "table": "workflows",

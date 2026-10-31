@@ -38,6 +38,11 @@ const (
 	roleMeasure           = "measure"
 	roleRisk              = "risk"
 	roleRiskPathway       = "risk_pathway"
+	roleHazard            = "hazard"
+	roleThreat            = "threat"
+	roleConsequence       = "consequence"
+	roleRiskThreat        = "risk_threat"
+	roleRiskConsequence   = "risk_consequence"
 	roleScenario          = "scenario"
 	roleScenarioActor     = "scenario_actor"
 	roleScenarioInput     = "scenario_input"
@@ -92,6 +97,11 @@ func carriers() map[string]any {
 		roleMeasure:           models.Measure{},
 		roleRisk:              models.Risk{},
 		roleRiskPathway:       models.RiskPathway{},
+		roleHazard:            models.Hazard{},
+		roleThreat:            models.Threat{},
+		roleConsequence:       models.Consequence{},
+		roleRiskThreat:        models.RiskThreat{},
+		roleRiskConsequence:   models.RiskConsequence{},
 		roleScenario:          models.Scenario{},
 		roleScenarioActor:     models.ScenarioActor{},
 		roleScenarioInput:     models.ScenarioInput{},

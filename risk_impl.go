@@ -27,12 +27,22 @@ func validRiskPathway(p models.RiskPathway) error {
 	return nil
 }
 
+func (m *agencyManager) requireHazardCode(ctx context.Context, tx *gorm.DB, draftID, code string) error {
+	if code == "" {
+		return nil
+	}
+	return m.requireCodeInDraft(ctx, tx, roleHazard, draftID, code, ErrHazardNotFound)
+}
+
 func (m *agencyManager) CreateRisk(ctx context.Context, r models.Risk) (models.Risk, error) {
 	if err := validRisk(r); err != nil {
 		return models.Risk{}, err
 	}
 	if err := m.validateOpenDraftID(ctx, r.DraftID); err != nil {
 		return models.Risk{}, err
+	}
+	if err := m.requireHazardCode(ctx, m.db, r.DraftID, r.HazardCode); err != nil {
+		return models.Risk{}, fmt.Errorf("CreateRisk: %w", err)
 	}
 	r.ID = newID()
 	r.Deleted = false
@@ -76,6 +86,9 @@ func (m *agencyManager) UpdateRisk(ctx context.Context, r models.Risk) (models.R
 			return err
 		}
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
+		if err := m.requireHazardCode(ctx, tx, existing.DraftID, r.HazardCode); err != nil {
 			return err
 		}
 		r.Code = existing.Code

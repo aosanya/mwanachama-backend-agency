@@ -268,6 +268,10 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		}
 	}
 
+	if err := m.forkLibrary(ctx, tx, sourceScope, newDraftID, now); err != nil {
+		return err
+	}
+
 	steps, err := list[models.EventFlowStep](m, scopeQuery(tx.Table(m.table(roleEventFlowStep)), sourceScope), roleEventFlowStep)
 	if err != nil {
 		return fmt.Errorf("CreateDraft: %w", err)
@@ -352,6 +356,63 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		}
 	}
 	return m.forkScenarios(ctx, tx, sourceScope, newDraftID, now, scenarioRemap{workflows: workflowIDs, roles: roleIDs, steps: stepIDs})
+}
+
+func (m *agencyManager) forkLibrary(ctx context.Context, tx *gorm.DB, sourceScope, newDraftID, now string) error {
+	scoped := func(role string) *gorm.DB {
+		return scopeQuery(tx.Table(m.table(role)), sourceScope).Order("created_at")
+	}
+	hazards, err := list[models.Hazard](m, scoped(roleHazard), roleHazard)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, h := range hazards {
+		h.ID, h.DraftID, h.CreatedAt, h.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleHazard, h); err != nil {
+			return err
+		}
+	}
+	threats, err := list[models.Threat](m, scoped(roleThreat), roleThreat)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, t := range threats {
+		t.ID, t.DraftID, t.CreatedAt, t.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleThreat, t); err != nil {
+			return err
+		}
+	}
+	consequences, err := list[models.Consequence](m, scoped(roleConsequence), roleConsequence)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, c := range consequences {
+		c.ID, c.DraftID, c.CreatedAt, c.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleConsequence, c); err != nil {
+			return err
+		}
+	}
+	threatLinks, err := list[models.RiskThreat](m, scoped(roleRiskThreat), roleRiskThreat)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, l := range threatLinks {
+		l.ID, l.DraftID, l.CreatedAt = newID(), newDraftID, now
+		if err := m.copyRow(ctx, tx, roleRiskThreat, l); err != nil {
+			return err
+		}
+	}
+	consequenceLinks, err := list[models.RiskConsequence](m, scoped(roleRiskConsequence), roleRiskConsequence)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, l := range consequenceLinks {
+		l.ID, l.DraftID, l.CreatedAt = newID(), newDraftID, now
+		if err := m.copyRow(ctx, tx, roleRiskConsequence, l); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (m *agencyManager) copyRow(ctx context.Context, tx *gorm.DB, role string, v any) error {

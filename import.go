@@ -36,6 +36,10 @@ func (m *agencyManager) ImportDocument(ctx context.Context, description string, 
 			return err
 		}
 		doc = convertLegacyStatements(doc)
+		doc, err := m.convertLegacyPathways(ctx, tx, doc)
+		if err != nil {
+			return err
+		}
 		if err := applyDocumentToDraft(ctx, m, tx, draft.ID, doc, now); err != nil {
 			return err
 		}
@@ -138,6 +142,82 @@ func convertLegacyStatements(doc models.AgencyDocument) models.AgencyDocument {
 	doc.Values, doc.Rules, doc.ValueAttachments, doc.RuleAttachments = nil, nil, nil, nil
 	doc.ControlAttachments = distinctControlAttachments(doc.ControlAttachments)
 	return doc
+}
+
+func (m *agencyManager) convertLegacyPathways(ctx context.Context, tx *gorm.DB, doc models.AgencyDocument) (models.AgencyDocument, error) {
+	hasLibrary := len(doc.Threats)+len(doc.Consequences)+len(doc.RiskThreats)+len(doc.RiskConsequences) > 0
+	if len(doc.RiskPathways) == 0 || hasLibrary {
+		return doc, nil
+	}
+	riskCodes := make(map[string]string, len(doc.Risks))
+	for _, r := range doc.Risks {
+		riskCodes[r.ID] = r.Code
+	}
+	threatByTitle := make(map[string]string)
+	consequenceByTitle := make(map[string]string)
+	partOf := make(map[string]string, len(doc.RiskPathways))
+	sideOf := make(map[string]models.RiskSide, len(doc.RiskPathways))
+	threatLinks := make(map[models.DocumentRiskThreat]bool)
+	consequenceLinks := make(map[models.DocumentRiskConsequence]bool)
+	sequences := m.table(roleCodeSequence)
+
+	for _, p := range doc.RiskPathways {
+		title := strings.ToLower(strings.TrimSpace(p.Title))
+		riskCode := riskCodes[p.RiskID]
+		switch p.Side {
+		case models.RiskSideThreat:
+			code, held := threatByTitle[title]
+			if !held {
+				minted, err := nextCode(ctx, tx, sequences, "threat", "T")
+				if err != nil {
+					return doc, err
+				}
+				code = minted
+				threatByTitle[title] = code
+				doc.Threats = append(doc.Threats, models.DocumentThreat{ID: newID(), Code: code, Title: p.Title, Description: p.Scenario})
+			}
+			partOf[p.Code], sideOf[p.Code] = code, p.Side
+			link := models.DocumentRiskThreat{RiskCode: riskCode, ThreatCode: code}
+			if riskCode != "" && !threatLinks[link] {
+				threatLinks[link] = true
+				doc.RiskThreats = append(doc.RiskThreats, link)
+			}
+		case models.RiskSideConsequence:
+			code, held := consequenceByTitle[title]
+			if !held {
+				minted, err := nextCode(ctx, tx, sequences, "consequence", "Q")
+				if err != nil {
+					return doc, err
+				}
+				code = minted
+				consequenceByTitle[title] = code
+				doc.Consequences = append(doc.Consequences, models.DocumentConsequence{ID: newID(), Code: code, Title: p.Title, Description: p.Scenario})
+			}
+			partOf[p.Code], sideOf[p.Code] = code, p.Side
+			link := models.DocumentRiskConsequence{RiskCode: riskCode, ConsequenceCode: code}
+			if riskCode != "" && !consequenceLinks[link] {
+				consequenceLinks[link] = true
+				doc.RiskConsequences = append(doc.RiskConsequences, link)
+			}
+		}
+	}
+
+	attachments := make([]models.DocumentControlAttachment, 0, len(doc.ControlAttachments))
+	for _, a := range doc.ControlAttachments {
+		if a.TargetType == string(models.TargetTypeRiskPathway) {
+			if code, converted := partOf[a.TargetCode]; converted {
+				a.TargetType = string(models.TargetTypeThreat)
+				if sideOf[a.TargetCode] == models.RiskSideConsequence {
+					a.TargetType = string(models.TargetTypeConsequence)
+				}
+				a.TargetCode = code
+			}
+		}
+		attachments = append(attachments, a)
+	}
+	doc.ControlAttachments = distinctControlAttachments(attachments)
+	doc.RiskPathways = nil
+	return doc, nil
 }
 
 func distinctControlAttachments(in []models.DocumentControlAttachment) []models.DocumentControlAttachment {

@@ -93,8 +93,12 @@ type ControlAttachment struct {
 	CreatedAt   string     `json:"created_at"`
 }
 
-const TargetTypeRiskPathway TargetType = "risk_pathway"
+const (
+	TargetTypeRiskPathway TargetType = "risk_pathway"
+	TargetTypeThreat      TargetType = "threat"
+	TargetTypeConsequence TargetType = "consequence"
+)
 
 func (t TargetType) ValidForControl() bool {
-	return t.Valid() || t == TargetTypeRiskPathway
+	return t.Valid() || t == TargetTypeRiskPathway || t == TargetTypeThreat || t == TargetTypeConsequence
 }

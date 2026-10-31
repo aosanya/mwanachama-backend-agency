@@ -1,5 +1,17 @@
 {
   "errors": {
+    "ErrHazardNotFound": 404,
+    "ErrThreatNotFound": 404,
+    "ErrConsequenceNotFound": 404,
+    "ErrRiskThreatNotFound": 404,
+    "ErrRiskConsequenceNotFound": 404,
+    "ErrInvalidHazard": 400,
+    "ErrInvalidThreat": 400,
+    "ErrInvalidConsequence": 400,
+    "ErrLibraryPartInUse": 409,
+    "ErrLibraryTitleTaken": 409,
+    "ErrDuplicateRiskThreat": 409,
+    "ErrDuplicateRiskConsequence": 409,
     "ErrAgencyNotFound": 404,
     "ErrAgencyExists": 409,
     "ErrCannotEditLive": 409,
@@ -3043,6 +3055,519 @@
         }
       ],
       "tool": "agency_list_risk_pathways"
+    },
+  "create_hazard": {
+      "method": "POST",
+      "path": "/hazards",
+      "call": "CreateHazard",
+      "action": "agency.hazard.create",
+      "status": 201,
+      "title": "Create hazard",
+      "description": "Add a hazard to the draft's library. It gets a code once and any number of bowties can use it; the title must be unused among the draft's live hazards.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_hazard"
+    },
+    "get_hazard": {
+      "method": "GET",
+      "path": "/hazards/{hazard_id}",
+      "call": "GetHazard",
+      "action": "agency.hazard.read",
+      "title": "Read hazard",
+      "description": "Read one hazard by its id, with the risks that use it and the controls on it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "hazard_id",
+          "refers": "agency.hazard",
+          "description": "The hazard to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_hazard"
+    },
+    "update_hazard": {
+      "method": "PATCH",
+      "path": "/hazards/{hazard_id}",
+      "call": "UpdateHazard",
+      "action": "agency.hazard.update",
+      "title": "Update hazard",
+      "description": "Rewrite a hazard's title and description.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "hazard_id",
+          "refers": "agency.hazard",
+          "into": "ID",
+          "description": "The hazard to rewrite."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_hazard"
+    },
+    "delete_hazard": {
+      "method": "DELETE",
+      "path": "/hazards/{hazard_id}",
+      "call": "DeleteHazard",
+      "action": "agency.hazard.delete",
+      "status": 204,
+      "title": "Delete hazard",
+      "description": "Remove a hazard from the library. Refused while a risk still uses it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "hazard_id",
+          "refers": "agency.hazard",
+          "description": "The hazard to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_hazard"
+    },
+    "list_hazards": {
+      "method": "GET",
+      "path": "/hazards",
+      "call": "ListHazards",
+      "action": "agency.hazard.list",
+      "title": "List hazards",
+      "description": "List one draft's hazards, narrowed by code or title, each with the risks that use it and the controls on it.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose hazards to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_hazards"
+    },
+    "create_threat": {
+      "method": "POST",
+      "path": "/threats",
+      "call": "CreateThreat",
+      "action": "agency.threat.create",
+      "status": 201,
+      "title": "Create threat",
+      "description": "Add a threat to the draft's library. It gets a code once and any number of bowties can use it; the title must be unused among the draft's live threats.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_threat"
+    },
+    "get_threat": {
+      "method": "GET",
+      "path": "/threats/{threat_id}",
+      "call": "GetThreat",
+      "action": "agency.threat.read",
+      "title": "Read threat",
+      "description": "Read one threat by its id, with the risks that use it and the controls on it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "threat_id",
+          "refers": "agency.threat",
+          "description": "The threat to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_threat"
+    },
+    "update_threat": {
+      "method": "PATCH",
+      "path": "/threats/{threat_id}",
+      "call": "UpdateThreat",
+      "action": "agency.threat.update",
+      "title": "Update threat",
+      "description": "Rewrite a threat's title and description.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "threat_id",
+          "refers": "agency.threat",
+          "into": "ID",
+          "description": "The threat to rewrite."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_threat"
+    },
+    "delete_threat": {
+      "method": "DELETE",
+      "path": "/threats/{threat_id}",
+      "call": "DeleteThreat",
+      "action": "agency.threat.delete",
+      "status": 204,
+      "title": "Delete threat",
+      "description": "Remove a threat from the library. Refused while a risk still uses it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "threat_id",
+          "refers": "agency.threat",
+          "description": "The threat to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_threat"
+    },
+    "list_threats": {
+      "method": "GET",
+      "path": "/threats",
+      "call": "ListThreats",
+      "action": "agency.threat.list",
+      "title": "List threats",
+      "description": "List one draft's threats, narrowed by code or title, each with the risks that use it and the controls on it.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose threats to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_threats"
+    },
+    "create_consequence": {
+      "method": "POST",
+      "path": "/consequences",
+      "call": "CreateConsequence",
+      "action": "agency.consequence.create",
+      "status": 201,
+      "title": "Create consequence",
+      "description": "Add a consequence to the draft's library. It gets a code once and any number of bowties can use it; the title must be unused among the draft's live consequences.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_consequence"
+    },
+    "get_consequence": {
+      "method": "GET",
+      "path": "/consequences/{consequence_id}",
+      "call": "GetConsequence",
+      "action": "agency.consequence.read",
+      "title": "Read consequence",
+      "description": "Read one consequence by its id, with the risks that use it and the controls on it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "consequence_id",
+          "refers": "agency.consequence",
+          "description": "The consequence to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_consequence"
+    },
+    "update_consequence": {
+      "method": "PATCH",
+      "path": "/consequences/{consequence_id}",
+      "call": "UpdateConsequence",
+      "action": "agency.consequence.update",
+      "title": "Update consequence",
+      "description": "Rewrite a consequence's title and description.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "consequence_id",
+          "refers": "agency.consequence",
+          "into": "ID",
+          "description": "The consequence to rewrite."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_consequence"
+    },
+    "delete_consequence": {
+      "method": "DELETE",
+      "path": "/consequences/{consequence_id}",
+      "call": "DeleteConsequence",
+      "action": "agency.consequence.delete",
+      "status": 204,
+      "title": "Delete consequence",
+      "description": "Remove a consequence from the library. Refused while a risk still uses it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "consequence_id",
+          "refers": "agency.consequence",
+          "description": "The consequence to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_consequence"
+    },
+    "list_consequences": {
+      "method": "GET",
+      "path": "/consequences",
+      "call": "ListConsequences",
+      "action": "agency.consequence.list",
+      "title": "List consequences",
+      "description": "List one draft's consequences, narrowed by code or title, each with the risks that use it and the controls on it.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose consequences to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_consequences"
+    },
+    "create_risk_threat": {
+      "method": "POST",
+      "path": "/risk-threats",
+      "call": "CreateRiskThreat",
+      "action": "agency.risk_threat.create",
+      "status": 201,
+      "title": "Link risk to threat",
+      "description": "Say that a risk uses a threat, by their codes. Both must exist in the draft and the same pair cannot be linked twice.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_risk_threat"
+    },
+    "delete_risk_threat": {
+      "method": "DELETE",
+      "path": "/risk-threats/{risk_threat_id}",
+      "call": "DeleteRiskThreat",
+      "action": "agency.risk_threat.delete",
+      "status": 204,
+      "title": "Unlink risk from threat",
+      "description": "Remove one link, leaving the risk and the threat in place.",
+      "args": [
+        {
+          "from": "path",
+          "as": "risk_threat_id",
+          "refers": "agency.risk_threat",
+          "description": "The link to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_risk_threat"
+    },
+    "list_risk_threats": {
+      "method": "GET",
+      "path": "/risk-threats",
+      "call": "ListRiskThreats",
+      "action": "agency.risk_threat.list",
+      "title": "List risk threat links",
+      "description": "List one draft's links between risks and threats, narrowed by risk_code or threat_code.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose links to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_risk_threats"
+    },
+    "create_risk_consequence": {
+      "method": "POST",
+      "path": "/risk-consequences",
+      "call": "CreateRiskConsequence",
+      "action": "agency.risk_consequence.create",
+      "status": 201,
+      "title": "Link risk to consequence",
+      "description": "Say that a risk uses a consequence, by their codes. Both must exist in the draft and the same pair cannot be linked twice.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_risk_consequence"
+    },
+    "delete_risk_consequence": {
+      "method": "DELETE",
+      "path": "/risk-consequences/{risk_consequence_id}",
+      "call": "DeleteRiskConsequence",
+      "action": "agency.risk_consequence.delete",
+      "status": 204,
+      "title": "Unlink risk from consequence",
+      "description": "Remove one link, leaving the risk and the consequence in place.",
+      "args": [
+        {
+          "from": "path",
+          "as": "risk_consequence_id",
+          "refers": "agency.risk_consequence",
+          "description": "The link to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_risk_consequence"
+    },
+    "list_risk_consequences": {
+      "method": "GET",
+      "path": "/risk-consequences",
+      "call": "ListRiskConsequences",
+      "action": "agency.risk_consequence.list",
+      "title": "List risk consequence links",
+      "description": "List one draft's links between risks and consequences, narrowed by risk_code or consequence_code.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose links to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_risk_consequences"
+    },
+    "list_unguarded_parts": {
+      "method": "GET",
+      "path": "/unguarded-parts",
+      "call": "ListUnguardedParts",
+      "action": "agency.unguarded_parts.list",
+      "title": "List unguarded parts",
+      "description": "List every threat and consequence of the draft with no control attached, each once with the risks that use it.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft to scan for parts with no control."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_unguarded_parts"
     }
   }
 }

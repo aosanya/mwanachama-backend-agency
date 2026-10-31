@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const declaredRoles = 33
+const declaredRoles = 38
 
 func TestBlueprintParses(t *testing.T) {
 	b, err := Blueprint()
@@ -175,6 +175,8 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 			string(models.TargetTypeWorkflow),
 			string(models.TargetTypeWorkItem),
 			string(models.TargetTypeRiskPathway),
+			string(models.TargetTypeThreat),
+			string(models.TargetTypeConsequence),
 		},
 	}
 

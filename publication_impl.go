@@ -196,7 +196,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		records = append(records, hashRecord("Risk", map[string]any{
 			"id": r.ID, "title": r.Title, "top_event": r.TopEvent, "hazard": r.Hazard,
 			"owner": r.Owner, "deleted": r.Deleted,
-		}))
+		}, optionalField{"hazard_code", r.HazardCode}))
 	}
 
 	pathways, err := list[models.RiskPathway](m, scoped(roleRiskPathway), roleRiskPathway)
@@ -264,6 +264,12 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		}))
 	}
 
+	library, err := m.libraryHashRecords(scoped)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	records = append(records, library...)
+
 	agency, err := m.findAgency(ctx, tx)
 	if err != nil {
 		return "", err
@@ -277,7 +283,67 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 	return hex.EncodeToString(sum[:]), nil
 }
 
-func hashRecord(typeName string, fields map[string]any) string {
+type optionalField struct {
+	name  string
+	value string
+}
+
+func (m *agencyManager) libraryHashRecords(scoped func(string) *gorm.DB) ([]string, error) {
+	var records []string
+	hazards, err := list[models.Hazard](m, scoped(roleHazard), roleHazard)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range hazards {
+		records = append(records, hashRecord("Hazard", map[string]any{
+			"id": r.ID, "code": r.Code, "title": r.Title, "description": r.Description, "deleted": r.Deleted,
+		}))
+	}
+	threats, err := list[models.Threat](m, scoped(roleThreat), roleThreat)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range threats {
+		records = append(records, hashRecord("Threat", map[string]any{
+			"id": r.ID, "code": r.Code, "title": r.Title, "description": r.Description, "deleted": r.Deleted,
+		}))
+	}
+	consequences, err := list[models.Consequence](m, scoped(roleConsequence), roleConsequence)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range consequences {
+		records = append(records, hashRecord("Consequence", map[string]any{
+			"id": r.ID, "code": r.Code, "title": r.Title, "description": r.Description, "deleted": r.Deleted,
+		}))
+	}
+	threatLinks, err := list[models.RiskThreat](m, scoped(roleRiskThreat), roleRiskThreat)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range threatLinks {
+		records = append(records, hashRecord("RiskThreat", map[string]any{
+			"risk_code": r.RiskCode, "threat_code": r.ThreatCode,
+		}))
+	}
+	consequenceLinks, err := list[models.RiskConsequence](m, scoped(roleRiskConsequence), roleRiskConsequence)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range consequenceLinks {
+		records = append(records, hashRecord("RiskConsequence", map[string]any{
+			"risk_code": r.RiskCode, "consequence_code": r.ConsequenceCode,
+		}))
+	}
+	return records, nil
+}
+
+func hashRecord(typeName string, fields map[string]any, optional ...optionalField) string {
+	for _, o := range optional {
+		if o.value != "" {
+			fields[o.name] = o.value
+		}
+	}
 	b, _ := json.Marshal(map[string]any{"type": typeName, "props": fields})
 	return string(b)
 }

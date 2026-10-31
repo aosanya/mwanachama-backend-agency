@@ -94,18 +94,19 @@ func TestChangedEnforcedControls_AnAdvisoryControlMadeEnforcedIsChanged(t *testi
 }
 
 func TestChangedEnforcedControls_AnEnforcedControlEditedAfterPublishIsChanged(t *testing.T) {
-	mgr := newTestManager(t)
+	w := newScenarioWorld(t)
 	ctx := context.Background()
-	_, o, _ := seedPublishableAgency(t, mgr, ctx)
-	control, err := mgr.CreateControl(ctx, enforcedControl(o.DraftID, "Payments over 5,000 need a second approver"))
-	if err != nil {
-		t.Fatalf("CreateControl: %v", err)
+	control := w.enforced(t, "Only the owner publishes results")
+	w.attachToWorkflow(t, control, w.buyNow)
+	scenario := w.scenario(t, "Shop says yes", w.buyNow, w.actor("Farmer 1", farmer))
+	if _, err := w.runToEnd(ctx, scenario.ID); err != nil {
+		t.Fatalf("RunScenario: %v", err)
 	}
-	if _, err := mgr.PublishAgency(ctx, o.DraftID, "", ""); err != nil {
-		t.Skipf("an enforced control cannot be published yet: %v", err)
+	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "", ""); err != nil {
+		t.Fatalf("PublishAgency: %v", err)
 	}
 
-	unchanged, err := mgr.ChangedEnforcedControls(ctx, o.DraftID)
+	unchanged, err := w.mgr.ChangedEnforcedControls(ctx, w.draftID)
 	if err != nil {
 		t.Fatalf("ChangedEnforcedControls: %v", err)
 	}
@@ -113,11 +114,11 @@ func TestChangedEnforcedControls_AnEnforcedControlEditedAfterPublishIsChanged(t 
 		t.Fatalf("changed = %v right after publish, want none", codesOf(unchanged))
 	}
 
-	control.CondValue = "9000"
-	if _, err := mgr.UpdateControl(ctx, control); err != nil {
+	control.OnBreach = models.OnBreachHoldForApproval
+	if _, err := w.mgr.UpdateControl(ctx, control); err != nil {
 		t.Fatalf("UpdateControl: %v", err)
 	}
-	changed, err := mgr.ChangedEnforcedControls(ctx, o.DraftID)
+	changed, err := w.mgr.ChangedEnforcedControls(ctx, w.draftID)
 	if err != nil {
 		t.Fatalf("ChangedEnforcedControls: %v", err)
 	}

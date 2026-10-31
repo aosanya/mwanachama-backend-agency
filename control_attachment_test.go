@@ -136,3 +136,54 @@ func TestControlAttachment_DetachLeavesTheControl(t *testing.T) {
 		t.Fatalf("second detach = %v, want ErrControlAttachmentNotFound", err)
 	}
 }
+
+type libraryPartMaker interface {
+	CreateThreat(ctx context.Context, p models.Threat) (models.Threat, error)
+	CreateConsequence(ctx context.Context, p models.Consequence) (models.Consequence, error)
+}
+
+func TestControlAttachment_StandsOnAThreatAndAConsequenceOfTheSameDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	maker := mgr.(libraryPartMaker)
+	threat, err := maker.CreateThreat(ctx, models.Threat{DraftID: o.DraftID, Title: "Supplier fails"})
+	if err != nil {
+		t.Fatalf("CreateThreat: %v", err)
+	}
+	consequence, err := maker.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Stock out"})
+	if err != nil {
+		t.Fatalf("CreateConsequence: %v", err)
+	}
+	c, err := mgr.CreateControl(ctx, paymentHoldControl(o.DraftID))
+	if err != nil {
+		t.Fatalf("CreateControl: %v", err)
+	}
+	onThreat, err := mgr.CreateControlAttachment(ctx, c.ID, models.TargetTypeThreat, threat.ID)
+	if err != nil || onThreat.TargetCode != threat.Code || onThreat.TargetType != models.TargetTypeThreat {
+		t.Fatalf("threat attachment = %+v, %v", onThreat, err)
+	}
+	onConsequence, err := mgr.CreateControlAttachment(ctx, c.ID, models.TargetTypeConsequence, consequence.ID)
+	if err != nil || onConsequence.TargetCode != consequence.Code {
+		t.Fatalf("consequence attachment = %+v, %v", onConsequence, err)
+	}
+	if _, err := mgr.CreateControlAttachment(ctx, c.ID, models.TargetTypeThreat, threat.ID); !errors.Is(err, mwanachamaagency.ErrDuplicateControlAttachment) {
+		t.Fatalf("duplicate err = %v", err)
+	}
+}
+
+func TestControlAttachment_RefusesAThreatOrConsequenceNotInTheDraft(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	c, err := mgr.CreateControl(ctx, paymentHoldControl(o.DraftID))
+	if err != nil {
+		t.Fatalf("CreateControl: %v", err)
+	}
+	if _, err := mgr.CreateControlAttachment(ctx, c.ID, models.TargetTypeThreat, "missing"); !errors.Is(err, mwanachamaagency.ErrThreatNotFound) {
+		t.Fatalf("threat err = %v", err)
+	}
+	if _, err := mgr.CreateControlAttachment(ctx, c.ID, models.TargetTypeConsequence, "missing"); !errors.Is(err, mwanachamaagency.ErrConsequenceNotFound) {
+		t.Fatalf("consequence err = %v", err)
+	}
+}

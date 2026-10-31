@@ -130,3 +130,43 @@ func TestScan_ARunWorkflowControlOnAConsequencePathwayIsAccepted(t *testing.T) {
 		t.Fatalf("issues = %v, want none", got)
 	}
 }
+
+func libraryParts(t *testing.T, w scenarioWorld) (models.Threat, models.Consequence) {
+	t.Helper()
+	ctx := context.Background()
+	maker := w.mgr.(libraryPartMaker)
+	threat, err := maker.CreateThreat(ctx, models.Threat{DraftID: w.draftID, Title: "Typed wrongly"})
+	if err != nil {
+		t.Fatalf("CreateThreat: %v", err)
+	}
+	consequence, err := maker.CreateConsequence(ctx, models.Consequence{DraftID: w.draftID, Title: "Money lost"})
+	if err != nil {
+		t.Fatalf("CreateConsequence: %v", err)
+	}
+	return threat, consequence
+}
+
+func TestScan_ARunWorkflowControlOnAThreatIsAnError(t *testing.T) {
+	w := newScenarioWorld(t)
+	threat, _ := libraryParts(t, w)
+	c := runWorkflowControl(t, w)
+	if _, err := w.mgr.CreateControlAttachment(context.Background(), c.ID, models.TargetTypeThreat, threat.ID); err != nil {
+		t.Fatalf("CreateControlAttachment: %v", err)
+	}
+	got := messagesFor(t, w, "control_attachment")
+	if !anyContains(got, c.Code+" runs a workflow after the event") {
+		t.Fatalf("issues = %v, want the threat refused", got)
+	}
+}
+
+func TestScan_ARunWorkflowControlOnAConsequenceIsAccepted(t *testing.T) {
+	w := newScenarioWorld(t)
+	_, consequence := libraryParts(t, w)
+	c := runWorkflowControl(t, w)
+	if _, err := w.mgr.CreateControlAttachment(context.Background(), c.ID, models.TargetTypeConsequence, consequence.ID); err != nil {
+		t.Fatalf("CreateControlAttachment: %v", err)
+	}
+	if got := messagesFor(t, w, "control_attachment"); len(got) != 0 {
+		t.Fatalf("issues = %v, want none", got)
+	}
+}

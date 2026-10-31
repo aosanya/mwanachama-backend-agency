@@ -1,6 +1,6 @@
 # Design
 
-This module's design lives in nine decision records, one per design
+This module's design lives in twelve decision records, one per design
 session, under [todo_details/](todo_details/). Each is the page that carries
 what would otherwise be comments in the source. Read the latest one that
 touches what you are changing. Later records supersede earlier ones where
@@ -18,6 +18,7 @@ they disagree.
 | [AGD-008](todo_details/AGD-008.md) | a module is switched on by a switch or a workflow step, not by an objective link |
 | [AGD-009](todo_details/AGD-009.md) | objectives attach to workflows, RACI is a label on a step with no limit on any label, and a step has no objective |
 | [AGD-011](todo_details/AGD-011.md) | a control replaces rule and value: advisory or enforced, attached to a pathway, managed through permissions |
+| [AGD-012](todo_details/AGD-012.md) | a library of hazards, threats, consequences and controls; a bowtie is composed from it and controls stand on library parts |
 
 AGD-006 and AGD-007 describe the code as it ships today. The porting notes in
 the repo's `CLAUDE.md` up to AG30 describe a nullable `DraftID`, a live row

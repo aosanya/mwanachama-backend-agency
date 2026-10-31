@@ -18,6 +18,7 @@ type Risk struct {
 	Title       string `json:"title"`
 	TopEvent    string `json:"top_event"`
 	Hazard      string `json:"hazard"`
+	HazardCode  string `json:"hazard_code"`
 	Owner       string `json:"owner"`
 	CreatedAt   string `json:"created_at"`
 	LastUpdated string `json:"last_updated"`
@@ -38,12 +39,13 @@ type RiskPathway struct {
 }
 
 type DocumentRisk struct {
-	ID       string `json:"id"`
-	Code     string `json:"code"`
-	Title    string `json:"title"`
-	TopEvent string `json:"top_event"`
-	Hazard   string `json:"hazard,omitempty"`
-	Owner    string `json:"owner,omitempty"`
+	ID         string `json:"id"`
+	Code       string `json:"code"`
+	Title      string `json:"title"`
+	TopEvent   string `json:"top_event"`
+	Hazard     string `json:"hazard,omitempty"`
+	HazardCode string `json:"hazard_code,omitempty"`
+	Owner      string `json:"owner,omitempty"`
 }
 
 type DocumentRiskPathway struct {

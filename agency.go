@@ -242,6 +242,28 @@ type AgencyManager interface {
 	CreateRuleAttachment(ctx context.Context, ruleID string, targetType models.TargetType, targetID string) (models.RuleAttachment, error)
 	ListRuleAttachments(ctx context.Context, ruleID string) ([]models.RuleAttachment, error)
 	DeleteRuleAttachment(ctx context.Context, id string) error
+	CreateHazard(ctx context.Context, p models.Hazard) (models.Hazard, error)
+	GetHazard(ctx context.Context, id string) (models.Hazard, error)
+	ListHazards(ctx context.Context, draftID string, filter LibraryPartFilter) ([]models.Hazard, error)
+	UpdateHazard(ctx context.Context, p models.Hazard) (models.Hazard, error)
+	DeleteHazard(ctx context.Context, id string) error
+	CreateThreat(ctx context.Context, p models.Threat) (models.Threat, error)
+	GetThreat(ctx context.Context, id string) (models.Threat, error)
+	ListThreats(ctx context.Context, draftID string, filter LibraryPartFilter) ([]models.Threat, error)
+	UpdateThreat(ctx context.Context, p models.Threat) (models.Threat, error)
+	DeleteThreat(ctx context.Context, id string) error
+	CreateConsequence(ctx context.Context, p models.Consequence) (models.Consequence, error)
+	GetConsequence(ctx context.Context, id string) (models.Consequence, error)
+	ListConsequences(ctx context.Context, draftID string, filter LibraryPartFilter) ([]models.Consequence, error)
+	UpdateConsequence(ctx context.Context, p models.Consequence) (models.Consequence, error)
+	DeleteConsequence(ctx context.Context, id string) error
+	CreateRiskThreat(ctx context.Context, l models.RiskThreat) (models.RiskThreat, error)
+	ListRiskThreats(ctx context.Context, draftID string, filter RiskThreatFilter) ([]models.RiskThreat, error)
+	DeleteRiskThreat(ctx context.Context, id string) error
+	CreateRiskConsequence(ctx context.Context, l models.RiskConsequence) (models.RiskConsequence, error)
+	ListRiskConsequences(ctx context.Context, draftID string, filter RiskConsequenceFilter) ([]models.RiskConsequence, error)
+	DeleteRiskConsequence(ctx context.Context, id string) error
+	ListUnguardedParts(ctx context.Context, draftID string) ([]UnguardedPart, error)
 	CreateControl(ctx context.Context, c models.Control) (models.Control, error)
 	GetControl(ctx context.Context, id string) (models.Control, error)
 	ListControls(ctx context.Context, draftID string, filter ControlFilter) ([]models.Control, error)

@@ -84,6 +84,7 @@
         {"name": "title", "type": "string", "description": "The risk in one line.", "required": true},
         {"name": "top_event", "type": "text", "description": "The event at the centre of the risk, such as a harvest going unsold.", "required": true},
         {"name": "hazard", "type": "text", "description": "What could cause harm, where that is worth naming."},
+        {"name": "hazard_code", "type": "string", "description": "The library hazard this risk names, by its stable handle."},
         {"name": "owner", "type": "string", "description": "The role, by code or name, answerable for the risk."},
         {"name": "created_at", "type": "timestamp", "description": "When the risk was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
@@ -113,6 +114,94 @@
         {"name": "code", "description": "Finds a pathway by the handle a person quotes.", "fields": ["code"]},
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
         {"name": "risk", "description": "Reads the arms of one risk, and backs its delete cascade.", "fields": ["risk_id"]}
+      ]
+    },
+    {
+      "role": "hazard",
+      "description": "Something that could cause harm, kept once in the library and named by any number of risks.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as H-1, minted once and never edited.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "title", "type": "string", "description": "The hazard in one line. Unique among the draft's hazards.", "required": true},
+        {"name": "description", "type": "text", "description": "How it plays out, in a sentence or two."},
+        {"name": "created_at", "type": "timestamp", "description": "When it was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds one by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "threat",
+      "description": "A way the top event can come about, kept once in the library and used by any number of risks. Controls stand on it.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as T-1, minted once and never edited.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "title", "type": "string", "description": "The threat in one line. Unique among the draft's threats.", "required": true},
+        {"name": "description", "type": "text", "description": "How it plays out, in a sentence or two."},
+        {"name": "created_at", "type": "timestamp", "description": "When it was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds one by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "consequence",
+      "description": "What follows a top event, kept once in the library and used by any number of risks. Controls stand on it.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as Q-1, minted once and never edited.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "title", "type": "string", "description": "The consequence in one line. Unique among the draft's consequences.", "required": true},
+        {"name": "description", "type": "text", "description": "How it plays out, in a sentence or two."},
+        {"name": "created_at", "type": "timestamp", "description": "When it was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds one by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "risk_threat",
+      "description": "A risk's use of a library threat.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "risk_code", "type": "string", "description": "The risk, by its stable handle rather than its row id.", "required": true},
+        {"name": "threat_code", "type": "string", "description": "The threat, by its stable handle.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When the link was made.", "immutable": true}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "risk_code", "description": "Reads the parts one risk uses.", "fields": ["risk_code"]},
+        {"name": "threat_code", "description": "Reads the risks that use one part.", "fields": ["threat_code"]},
+        {"name": "rt_unique", "description": "Refuses a second link between one risk and one part in a draft.", "fields": ["draft_id", "risk_code", "threat_code"], "unique": true}
+      ]
+    },
+    {
+      "role": "risk_consequence",
+      "description": "A risk's use of a library consequence.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "risk_code", "type": "string", "description": "The risk, by its stable handle rather than its row id.", "required": true},
+        {"name": "consequence_code", "type": "string", "description": "The consequence, by its stable handle.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When the link was made.", "immutable": true}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "risk_code", "description": "Reads the parts one risk uses.", "fields": ["risk_code"]},
+        {"name": "consequence_code", "description": "Reads the risks that use one part.", "fields": ["consequence_code"]},
+        {"name": "rc_unique", "description": "Refuses a second link between one risk and one part in a draft.", "fields": ["draft_id", "risk_code", "consequence_code"], "unique": true}
       ]
     },
     {
@@ -380,7 +469,7 @@
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
         {"name": "control_code", "type": "string", "description": "The control being attached, by its stable handle rather than its row id.", "required": true},
-        {"name": "target_type", "type": "enum", "description": "What kind of thing it is attached to.", "required": true, "values": ["role", "goal", "objective", "workflow", "work_item", "risk_pathway"]},
+        {"name": "target_type", "type": "enum", "description": "What kind of thing it is attached to.", "required": true, "values": ["role", "goal", "objective", "workflow", "work_item", "risk_pathway", "threat", "consequence"]},
         {"name": "target_code", "type": "string", "description": "The thing itself, by its stable handle.", "required": true},
         {"name": "created_at", "type": "timestamp", "description": "When the attachment was made.", "immutable": true}
       ],

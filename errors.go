@@ -157,4 +157,19 @@ var (
 	ErrInvalidReview      = errors.New("mwanachamaagency: invalid review")
 )
 
+var (
+	ErrHazardNotFound           = errors.New("mwanachamaagency: hazard not found")
+	ErrThreatNotFound           = errors.New("mwanachamaagency: threat not found")
+	ErrConsequenceNotFound      = errors.New("mwanachamaagency: consequence not found")
+	ErrRiskThreatNotFound       = errors.New("mwanachamaagency: risk threat not found")
+	ErrRiskConsequenceNotFound  = errors.New("mwanachamaagency: risk consequence not found")
+	ErrInvalidHazard            = errors.New("mwanachamaagency: invalid hazard")
+	ErrInvalidThreat            = errors.New("mwanachamaagency: invalid threat")
+	ErrInvalidConsequence       = errors.New("mwanachamaagency: invalid consequence")
+	ErrLibraryPartInUse         = errors.New("mwanachamaagency: a risk still uses this part")
+	ErrDuplicateRiskThreat      = errors.New("mwanachamaagency: risk already uses this threat")
+	ErrDuplicateRiskConsequence = errors.New("mwanachamaagency: risk already uses this consequence")
+	ErrLibraryTitleTaken        = errors.New("mwanachamaagency: a part of this kind already has this title")
+)
+
 var ErrConflict = errors.New("mwanachamaagency: another write got there first, try again")

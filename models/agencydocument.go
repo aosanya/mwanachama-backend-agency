@@ -24,6 +24,42 @@ type AgencyDocument struct {
 	RiskPathways       []DocumentRiskPathway       `json:"risk_pathways,omitempty"`
 	Controls           []DocumentControl           `json:"controls,omitempty"`
 	ControlAttachments []DocumentControlAttachment `json:"control_attachments,omitempty"`
+	Hazards            []DocumentHazard            `json:"hazards,omitempty"`
+	Threats            []DocumentThreat            `json:"threats,omitempty"`
+	Consequences       []DocumentConsequence       `json:"consequences,omitempty"`
+	RiskThreats        []DocumentRiskThreat        `json:"risk_threats,omitempty"`
+	RiskConsequences   []DocumentRiskConsequence   `json:"risk_consequences,omitempty"`
+}
+
+type DocumentHazard struct {
+	ID          string `json:"id"`
+	Code        string `json:"code"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+}
+
+type DocumentThreat struct {
+	ID          string `json:"id"`
+	Code        string `json:"code"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+}
+
+type DocumentConsequence struct {
+	ID          string `json:"id"`
+	Code        string `json:"code"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+}
+
+type DocumentRiskThreat struct {
+	RiskCode   string `json:"risk_code"`
+	ThreatCode string `json:"threat_code"`
+}
+
+type DocumentRiskConsequence struct {
+	RiskCode        string `json:"risk_code"`
+	ConsequenceCode string `json:"consequence_code"`
 }
 
 type DocumentControl struct {

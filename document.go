@@ -130,7 +130,8 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	}
 	for _, r := range risks {
 		doc.Risks = append(doc.Risks, models.DocumentRisk{
-			ID: r.ID, Code: r.Code, Title: r.Title, TopEvent: r.TopEvent, Hazard: r.Hazard, Owner: r.Owner,
+			ID: r.ID, Code: r.Code, Title: r.Title, TopEvent: r.TopEvent, Hazard: r.Hazard,
+			HazardCode: r.HazardCode, Owner: r.Owner,
 		})
 	}
 
@@ -212,6 +213,10 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		})
 	}
 
+	if err := m.libraryDocuments(scoped, &doc); err != nil {
+		return fail(err)
+	}
+
 	modules, err := list[models.Module](m, scoped(roleModule).Order("code"), roleModule)
 	if err != nil {
 		return fail(err)
@@ -239,6 +244,45 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	}
 
 	return doc, nil
+}
+
+func (m *agencyManager) libraryDocuments(scoped func(string) *gorm.DB, doc *models.AgencyDocument) error {
+	hazards, err := list[models.Hazard](m, scoped(roleHazard).Order("created_at"), roleHazard)
+	if err != nil {
+		return err
+	}
+	for _, h := range hazards {
+		doc.Hazards = append(doc.Hazards, models.DocumentHazard{ID: h.ID, Code: h.Code, Title: h.Title, Description: h.Description})
+	}
+	threats, err := list[models.Threat](m, scoped(roleThreat).Order("created_at"), roleThreat)
+	if err != nil {
+		return err
+	}
+	for _, t := range threats {
+		doc.Threats = append(doc.Threats, models.DocumentThreat{ID: t.ID, Code: t.Code, Title: t.Title, Description: t.Description})
+	}
+	consequences, err := list[models.Consequence](m, scoped(roleConsequence).Order("created_at"), roleConsequence)
+	if err != nil {
+		return err
+	}
+	for _, c := range consequences {
+		doc.Consequences = append(doc.Consequences, models.DocumentConsequence{ID: c.ID, Code: c.Code, Title: c.Title, Description: c.Description})
+	}
+	threatLinks, err := list[models.RiskThreat](m, scoped(roleRiskThreat).Order("created_at"), roleRiskThreat)
+	if err != nil {
+		return err
+	}
+	for _, l := range threatLinks {
+		doc.RiskThreats = append(doc.RiskThreats, models.DocumentRiskThreat{RiskCode: l.RiskCode, ThreatCode: l.ThreatCode})
+	}
+	consequenceLinks, err := list[models.RiskConsequence](m, scoped(roleRiskConsequence).Order("created_at"), roleRiskConsequence)
+	if err != nil {
+		return err
+	}
+	for _, l := range consequenceLinks {
+		doc.RiskConsequences = append(doc.RiskConsequences, models.DocumentRiskConsequence{RiskCode: l.RiskCode, ConsequenceCode: l.ConsequenceCode})
+	}
+	return nil
 }
 
 func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, draftID string, doc models.AgencyDocument, now string) error {
@@ -339,7 +383,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	for _, r := range doc.Risks {
 		row := models.Risk{
 			ID: newID(), Code: r.Code, DraftID: draftID, Title: r.Title, TopEvent: r.TopEvent,
-			Hazard: r.Hazard, Owner: r.Owner, CreatedAt: now, LastUpdated: now,
+			Hazard: r.Hazard, HazardCode: r.HazardCode, Owner: r.Owner, CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleRisk, row); err != nil {
 			return fail(err)
@@ -359,6 +403,10 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		if err := m.copyRow(ctx, tx, roleRiskPathway, row); err != nil {
 			return fail(err)
 		}
+	}
+
+	if err := m.applyLibraryDocuments(ctx, tx, draftID, doc, now); err != nil {
+		return fail(err)
 	}
 
 	for _, link := range documentWorkflowObjectives(doc, workflowIDs, objectiveIDs) {
@@ -466,6 +514,40 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	}
 	remap := scenarioRemap{workflows: workflowIDs, roles: roleIDs, steps: stepIDs}
 	return m.applyScenarioDocuments(ctx, tx, draftID, doc.Scenarios, now, remap)
+}
+
+func (m *agencyManager) applyLibraryDocuments(ctx context.Context, tx *gorm.DB, draftID string, doc models.AgencyDocument, now string) error {
+	for _, h := range doc.Hazards {
+		row := models.Hazard{ID: newID(), Code: h.Code, DraftID: draftID, Title: h.Title, Description: h.Description, CreatedAt: now, LastUpdated: now}
+		if err := m.copyRow(ctx, tx, roleHazard, row); err != nil {
+			return err
+		}
+	}
+	for _, t := range doc.Threats {
+		row := models.Threat{ID: newID(), Code: t.Code, DraftID: draftID, Title: t.Title, Description: t.Description, CreatedAt: now, LastUpdated: now}
+		if err := m.copyRow(ctx, tx, roleThreat, row); err != nil {
+			return err
+		}
+	}
+	for _, c := range doc.Consequences {
+		row := models.Consequence{ID: newID(), Code: c.Code, DraftID: draftID, Title: c.Title, Description: c.Description, CreatedAt: now, LastUpdated: now}
+		if err := m.copyRow(ctx, tx, roleConsequence, row); err != nil {
+			return err
+		}
+	}
+	for _, l := range doc.RiskThreats {
+		row := models.RiskThreat{ID: newID(), DraftID: draftID, RiskCode: l.RiskCode, ThreatCode: l.ThreatCode, CreatedAt: now}
+		if err := m.copyRow(ctx, tx, roleRiskThreat, row); err != nil {
+			return err
+		}
+	}
+	for _, l := range doc.RiskConsequences {
+		row := models.RiskConsequence{ID: newID(), DraftID: draftID, RiskCode: l.RiskCode, ConsequenceCode: l.ConsequenceCode, CreatedAt: now}
+		if err := m.copyRow(ctx, tx, roleRiskConsequence, row); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type workflowObjectiveLink struct {

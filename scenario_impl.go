@@ -132,6 +132,21 @@ func (m *agencyManager) workflowRules(ctx context.Context, tx *gorm.DB, draftID 
 	return list[models.Rule](m, q, roleRule)
 }
 
+func (m *agencyManager) workflowControls(ctx context.Context, tx *gorm.DB, draftID string, workflow models.Workflow) ([]models.Control, error) {
+	if workflow.Code == "" {
+		return nil, nil
+	}
+	var codes []string
+	err := tx.WithContext(ctx).Table(m.table(roleControlAttachment)).
+		Where("draft_id = ? AND target_type = ? AND target_code = ?", draftID, string(models.TargetTypeWorkflow), workflow.Code).
+		Pluck("control_code", &codes).Error
+	if err != nil || len(codes) == 0 {
+		return nil, err
+	}
+	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleControl)), draftID).Where("code IN ?", codes).Order("code")
+	return list[models.Control](m, q, roleControl)
+}
+
 func (m *agencyManager) scenarioView(ctx context.Context, tx *gorm.DB, s models.Scenario) (models.Scenario, error) {
 	roles, err := m.draftRoles(ctx, tx, s.DraftID)
 	if err != nil {
@@ -161,19 +176,19 @@ func (m *agencyManager) scenarioView(ctx context.Context, tx *gorm.DB, s models.
 	var workflow models.Workflow
 	found := m.find(ctx, tx, roleWorkflow, s.WorkflowID, &workflow, ErrWorkflowNotFound) == nil
 	var steps []models.WorkItem
-	var rules []models.Rule
+	var controls []models.Control
 	if found {
 		if steps, err = m.workflowSteps(ctx, tx, s.DraftID, s.WorkflowID); err != nil {
 			return models.Scenario{}, err
 		}
-		if rules, err = m.workflowRules(ctx, tx, s.DraftID, workflow); err != nil {
+		if controls, err = m.workflowControls(ctx, tx, s.DraftID, workflow); err != nil {
 			return models.Scenario{}, err
 		}
 	}
 
 	s.Workflow = workflow.Name
-	for _, r := range rules {
-		s.Rules = append(s.Rules, r.Code)
+	for _, c := range controls {
+		s.Rules = append(s.Rules, c.Code)
 	}
 	s.Actors = append(stored, built...)
 	s.Inputs = inputs

@@ -443,6 +443,9 @@ var codedRoles = []struct {
 	{roleRecord, "record", "RC"},
 	{roleRisk, "risk", "RK"},
 	{roleRiskPathway, "risk_pathway", "RP"},
+	{roleHazard, "hazard", "H"},
+	{roleThreat, "threat", "T"},
+	{roleConsequence, "consequence", "Q"},
 }
 
 const retiredPublicationColumn = "status"

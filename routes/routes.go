@@ -86,6 +86,18 @@ var sentinels = map[string]error{
 	"ErrFindingNotFound":            mwanachamaagency.ErrFindingNotFound,
 	"ErrInvalidReview":              mwanachamaagency.ErrInvalidReview,
 	"ErrUsedByScenario":             mwanachamaagency.ErrUsedByScenario,
+	"ErrHazardNotFound":             mwanachamaagency.ErrHazardNotFound,
+	"ErrThreatNotFound":             mwanachamaagency.ErrThreatNotFound,
+	"ErrConsequenceNotFound":        mwanachamaagency.ErrConsequenceNotFound,
+	"ErrRiskThreatNotFound":         mwanachamaagency.ErrRiskThreatNotFound,
+	"ErrRiskConsequenceNotFound":    mwanachamaagency.ErrRiskConsequenceNotFound,
+	"ErrInvalidHazard":              mwanachamaagency.ErrInvalidHazard,
+	"ErrInvalidThreat":              mwanachamaagency.ErrInvalidThreat,
+	"ErrInvalidConsequence":         mwanachamaagency.ErrInvalidConsequence,
+	"ErrLibraryPartInUse":           mwanachamaagency.ErrLibraryPartInUse,
+	"ErrDuplicateRiskThreat":        mwanachamaagency.ErrDuplicateRiskThreat,
+	"ErrDuplicateRiskConsequence":   mwanachamaagency.ErrDuplicateRiskConsequence,
+	"ErrLibraryTitleTaken":          mwanachamaagency.ErrLibraryTitleTaken,
 }
 
 func Build(m mwanachamaagency.AgencyManager) ([]Route, error) {

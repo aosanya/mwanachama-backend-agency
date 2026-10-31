@@ -13,6 +13,12 @@ func (m *agencyManager) controlTargetRole(t models.TargetType) (role string, not
 	if t == models.TargetTypeRiskPathway {
 		return roleRiskPathway, ErrRiskPathwayNotFound, true
 	}
+	if t == models.TargetTypeThreat {
+		return roleThreat, ErrThreatNotFound, true
+	}
+	if t == models.TargetTypeConsequence {
+		return roleConsequence, ErrConsequenceNotFound, true
+	}
 	return m.targetRole(t)
 }
 
