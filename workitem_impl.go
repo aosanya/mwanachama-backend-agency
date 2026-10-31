@@ -10,9 +10,6 @@ import (
 )
 
 func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error) {
-	if wi.ObjectiveID == "" {
-		return models.WorkItem{}, fmt.Errorf("%w: WorkItem.ObjectiveID is required", ErrInvalidWorkItem)
-	}
 	if err := m.validateOpenDraftID(ctx, wi.DraftID); err != nil {
 		return models.WorkItem{}, err
 	}
@@ -63,9 +60,6 @@ func (m *agencyManager) ListWorkItems(ctx context.Context, draftID string, filte
 }
 
 func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error) {
-	if wi.ObjectiveID == "" {
-		return models.WorkItem{}, fmt.Errorf("%w: WorkItem.ObjectiveID is required", ErrInvalidWorkItem)
-	}
 	var out models.WorkItem
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		existing, err := m.findWorkItem(ctx, tx, wi.ID)
@@ -109,6 +103,9 @@ func (m *agencyManager) DeleteWorkItem(ctx context.Context, id string) error {
 			return err
 		}
 		if err := m.deleteWhere(ctx, tx, roleScenarioInput, "step_id = ?", id); err != nil {
+			return err
+		}
+		if err := m.deleteWhere(ctx, tx, roleRoleAssignment, "work_item_id = ?", id); err != nil {
 			return err
 		}
 		return m.deleteWhere(ctx, tx, roleWorkItem, "id = ?", id)

@@ -24,21 +24,17 @@ func (m *agencyManager) validateRoleAssignment(ctx context.Context, tx *gorm.DB,
 		return fmt.Errorf("validateRoleAssignment: %w", err)
 	}
 
-	var o models.Objective
-	q = scopeQuery(tx.WithContext(ctx).Table(m.table(roleObjective)), a.DraftID).Where("id = ?", a.ObjectiveID)
-	if err := m.take(q, roleObjective, &o, ErrObjectiveNotFound); err != nil {
-		if errors.Is(err, ErrObjectiveNotFound) {
-			return ErrObjectiveNotFound
+	var wi models.WorkItem
+	q = scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkItem)), a.DraftID).Where("id = ?", a.WorkItemID)
+	if err := m.take(q, roleWorkItem, &wi, ErrWorkItemNotFound); err != nil {
+		if errors.Is(err, ErrWorkItemNotFound) {
+			return ErrWorkItemNotFound
 		}
 		return fmt.Errorf("validateRoleAssignment: %w", err)
 	}
 
-	if a.Label != models.RACILabelAccountable {
-		return nil
-	}
-
 	held := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRoleAssignment)), a.DraftID).
-		Where("objective_id = ? AND label = ?", a.ObjectiveID, string(models.RACILabelAccountable))
+		Where("work_item_id = ? AND role_id = ? AND label = ?", a.WorkItemID, a.RoleID, string(a.Label))
 	if excludeID != "" {
 		held = held.Where("id <> ?", excludeID)
 	}
@@ -47,7 +43,7 @@ func (m *agencyManager) validateRoleAssignment(ctx context.Context, tx *gorm.DB,
 		return fmt.Errorf("validateRoleAssignment: %w", err)
 	}
 	if count > 0 {
-		return ErrDuplicateAccountable
+		return ErrDuplicateRoleAssignment
 	}
 	return nil
 }
@@ -75,7 +71,10 @@ func (m *agencyManager) GetRoleAssignment(ctx context.Context, id string) (model
 }
 
 func (m *agencyManager) ListRoleAssignments(ctx context.Context, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error) {
-	q := eqFilter(scopeQuery(m.q(ctx, roleRoleAssignment), draftID), "label", filter.Label)
+	q := scopeQuery(m.q(ctx, roleRoleAssignment), draftID)
+	q = eqFilter(q, "label", filter.Label)
+	q = eqFilter(q, "work_item_id", filter.WorkItemID)
+	q = eqFilter(q, "role_id", filter.RoleID)
 
 	out, err := list[models.RoleAssignment](m, q, roleRoleAssignment)
 	if err != nil {
@@ -84,13 +83,14 @@ func (m *agencyManager) ListRoleAssignments(ctx context.Context, draftID string,
 	return out, nil
 }
 
-func (m *agencyManager) ListRoleAssignmentsForObjective(ctx context.Context, objectiveID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error) {
-	q := scopeQuery(m.q(ctx, roleRoleAssignment), draftID).Where("objective_id = ?", objectiveID)
+func (m *agencyManager) ListRoleAssignmentsForWorkItem(ctx context.Context, workItemID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error) {
+	q := scopeQuery(m.q(ctx, roleRoleAssignment), draftID).Where("work_item_id = ?", workItemID)
 	q = eqFilter(q, "label", filter.Label)
+	q = eqFilter(q, "role_id", filter.RoleID)
 
 	out, err := list[models.RoleAssignment](m, q, roleRoleAssignment)
 	if err != nil {
-		return nil, fmt.Errorf("ListRoleAssignmentsForObjective: %w", err)
+		return nil, fmt.Errorf("ListRoleAssignmentsForWorkItem: %w", err)
 	}
 	return out, nil
 }
