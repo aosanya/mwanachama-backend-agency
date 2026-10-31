@@ -17,7 +17,11 @@ type LibraryPartFilter struct {
 
 type HazardFilter = LibraryPartFilter
 type ThreatFilter = LibraryPartFilter
-type ConsequenceFilter = LibraryPartFilter
+type ConsequenceFilter struct {
+	Code       string `query:"code"`
+	Title      string `query:"title"`
+	HazardCode string `query:"hazard_code"`
+}
 
 type libraryKind struct {
 	role       string

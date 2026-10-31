@@ -26,6 +26,7 @@ type Consequence struct {
 	ID          string `json:"id"`
 	Code        string `json:"code"`
 	DraftID     string `json:"draft_id"`
+	HazardCode  string `json:"hazard_code"`
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
 	CreatedAt   string `json:"created_at"`

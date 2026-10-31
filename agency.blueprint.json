@@ -159,7 +159,8 @@
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "code", "type": "string", "description": "Stable human-readable handle such as Q-1, minted once and never edited.", "immutable": true},
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
-        {"name": "title", "type": "string", "description": "The consequence in one line. Unique among the draft's consequences.", "required": true},
+        {"name": "hazard_code", "type": "string", "description": "The hazard this consequence belongs to, by its stable handle. Every consequence has exactly one.", "required": true},
+        {"name": "title", "type": "string", "description": "The consequence in one line. Unique among the live consequences of its hazard.", "required": true},
         {"name": "description", "type": "text", "description": "How it plays out, in a sentence or two."},
         {"name": "created_at", "type": "timestamp", "description": "When it was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
@@ -167,6 +168,7 @@
       ],
       "indexes": [
         {"name": "code", "description": "Finds one by the handle a person quotes.", "fields": ["code"]},
+        {"name": "hazard", "description": "Reads the consequences of one hazard.", "fields": ["hazard_code"]},
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
       ]
     },

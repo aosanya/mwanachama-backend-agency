@@ -3299,7 +3299,7 @@
       "action": "agency.consequence.create",
       "status": 201,
       "title": "Create consequence",
-      "description": "Add a consequence to the draft's library. It gets a code once and any number of bowties can use it; the title must be unused among the draft's live consequences.",
+      "description": "Add a consequence to the draft's library. It gets a code once and any number of bowties can use it; it belongs to one hazard of the draft, by hazard_code, and its title must be unused among that hazard's live consequences.",
       "args": [
         {
           "from": "body",
@@ -3341,7 +3341,7 @@
       "call": "UpdateConsequence",
       "action": "agency.consequence.update",
       "title": "Update consequence",
-      "description": "Rewrite a consequence's title and description.",
+      "description": "Rewrite a consequence's hazard, title and description. The hazard stays required.",
       "args": [
         {
           "from": "body",

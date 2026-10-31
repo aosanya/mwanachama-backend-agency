@@ -254,7 +254,7 @@ type AgencyManager interface {
 	DeleteThreat(ctx context.Context, id string) error
 	CreateConsequence(ctx context.Context, p models.Consequence) (models.Consequence, error)
 	GetConsequence(ctx context.Context, id string) (models.Consequence, error)
-	ListConsequences(ctx context.Context, draftID string, filter LibraryPartFilter) ([]models.Consequence, error)
+	ListConsequences(ctx context.Context, draftID string, filter ConsequenceFilter) ([]models.Consequence, error)
 	UpdateConsequence(ctx context.Context, p models.Consequence) (models.Consequence, error)
 	DeleteConsequence(ctx context.Context, id string) error
 	CreateRiskThreat(ctx context.Context, l models.RiskThreat) (models.RiskThreat, error)
