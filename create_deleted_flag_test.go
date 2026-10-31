@@ -32,6 +32,14 @@ func TestAG57_EveryCreateMintsItsOwnDeletedFlag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
+	link, err := mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draftID, WorkflowID: workflow.ID, ObjectiveID: objective.ID, Deleted: true})
+	if err != nil {
+		t.Fatalf("CreateWorkflowObjective: %v", err)
+	}
+	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: draftID, WorkItemID: workItem.ID, RoleID: role.ID, Label: models.RACILabelResponsible, Deleted: true})
+	if err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
 	value, err := mgr.CreateValue(ctx, models.Value{DraftID: draftID, Text: "V", Deleted: true})
 	if err != nil {
 		t.Fatalf("CreateValue: %v", err)
@@ -62,6 +70,10 @@ func TestAG57_EveryCreateMintsItsOwnDeletedFlag(t *testing.T) {
 	read("workflow", w.Deleted, err)
 	wi, err := mgr.GetWorkItem(ctx, workItem.ID)
 	read("workitem", wi.Deleted, err)
+	wo, err := mgr.GetWorkflowObjective(ctx, link.ID)
+	read("workflowobjective", wo.Deleted, err)
+	ra, err := mgr.GetRoleAssignment(ctx, assignment.ID)
+	read("roleassignment", ra.Deleted, err)
 	v, err := mgr.GetValue(ctx, value.ID)
 	read("value", v.Deleted, err)
 	ru, err := mgr.GetRule(ctx, rule.ID)
@@ -74,7 +86,7 @@ func TestAG57_EveryCreateMintsItsOwnDeletedFlag(t *testing.T) {
 			t.Errorf("AG57: Create%s stored a body-set deleted=true, want false", name)
 		}
 	}
-	if goal.Deleted || objective.Deleted || role.Deleted || workflow.Deleted || workItem.Deleted || value.Deleted || rule.Deleted || module.Deleted {
+	if goal.Deleted || objective.Deleted || role.Deleted || workflow.Deleted || workItem.Deleted || link.Deleted || assignment.Deleted || value.Deleted || rule.Deleted || module.Deleted {
 		t.Errorf("AG57: a Create answered a row already marked deleted")
 	}
 }
