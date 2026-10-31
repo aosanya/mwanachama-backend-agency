@@ -67,7 +67,7 @@ func TestAG75_DeleteGoalLeavesAnotherDraftsWorkItem(t *testing.T) {
 }
 
 func TestAG75_DeleteObjectiveAndWorkflowLeaveAnotherDraftsWorkItem(t *testing.T) {
-	mgr := newTestManager(t)
+	mgr, db, s := newTestManagerDB(t)
 	ctx := t.Context()
 
 	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "Probe Agency", Enabled: true}); err != nil {
@@ -109,9 +109,12 @@ func TestAG75_DeleteObjectiveAndWorkflowLeaveAnotherDraftsWorkItem(t *testing.T)
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	viaWorkflow, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftB.ID, WorkflowID: wfA.ID, Title: "names A's workflow"})
+	viaWorkflow, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftB.ID, WorkflowID: wfB.ID, Title: "names A's workflow"})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
+	}
+	if err := db.Table(tableOf(t, s, "work_item")).Where("id = ?", viaWorkflow.ID).Update("workflow_id", wfA.ID).Error; err != nil {
+		t.Fatalf("plant a step that names another draft's workflow: %v", err)
 	}
 
 	if err := mgr.DeleteObjective(ctx, objA.ID); err != nil {

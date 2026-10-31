@@ -60,7 +60,7 @@ func (m *agencyManager) CreateWorkflowObjective(ctx context.Context, w models.Wo
 		}
 		return tx.Table(m.table(roleWorkflowObjective)).Create(row).Error
 	})
-	err = classifyConflict(err)
+	err = duplicateOr(err, ErrDuplicateWorkflowObjective)
 	if err != nil {
 		return models.WorkflowObjective{}, fmt.Errorf("CreateWorkflowObjective: %w", err)
 	}

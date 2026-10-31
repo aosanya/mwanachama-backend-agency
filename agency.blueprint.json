@@ -212,7 +212,8 @@
       "indexes": [
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
         {"name": "workflow", "description": "Reads the objectives of one workflow, and backs its delete cascade.", "fields": ["workflow_id"]},
-        {"name": "objective", "description": "Reads the workflows of one objective, and backs its delete cascade.", "fields": ["objective_id"]}
+        {"name": "objective", "description": "Reads the workflows of one objective, and backs its delete cascade.", "fields": ["objective_id"]},
+        {"name": "wf_obj_unique", "description": "Refuses a second link for one workflow and objective, so two writers racing cannot both add it.", "fields": ["workflow_id", "objective_id"], "unique": true}
       ]
     },
     {

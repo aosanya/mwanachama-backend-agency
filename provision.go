@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/aosanya/mwanachama-backend-shared/spec"
 	"github.com/aosanya/mwanachama-backend-shared/specstore"
@@ -17,13 +18,88 @@ func Provision(db *gorm.DB, s *spec.Spec) error {
 	if err != nil {
 		return err
 	}
-	if ready {
-		return nil
+	if !ready {
+		if err := collapseDuplicateObjectiveLinks(db, s); err != nil {
+			return err
+		}
+		if err := spec.Migrate(db, s); err != nil {
+			return err
+		}
+		if err := seed(db, s); err != nil {
+			return err
+		}
 	}
-	if err := spec.Migrate(db, s); err != nil {
+	return carryObjectiveLinksForward(db, s)
+}
+
+func collapseDuplicateObjectiveLinks(db *gorm.DB, s *spec.Spec) error {
+	table := tableFor(s, roleWorkflowObjective)
+	held, err := tablesNamed(db, []string{table})
+	if err != nil {
 		return err
 	}
-	return seed(db, s)
+	if !held[table] {
+		return nil
+	}
+	err = db.Exec(`delete from ` + table + ` where id in (
+		select id from (
+			select id, row_number() over (
+				partition by workflow_id, objective_id order by deleted, created_at, id) as position
+			from ` + table + `) ranked
+		where position > 1)`).Error
+	if err != nil {
+		return fmt.Errorf("agency: collapse duplicate workflow objective links: %w", err)
+	}
+	return nil
+}
+
+func carryObjectiveLinksForward(db *gorm.DB, s *spec.Spec) error {
+	items := tableFor(s, roleWorkItem)
+	older, err := hasColumn(db, items, retiredObjectiveColumn)
+	if err != nil {
+		return err
+	}
+	if !older {
+		return nil
+	}
+	links := tableFor(s, roleWorkflowObjective)
+	var pairs []struct {
+		DraftID     string
+		WorkflowID  string
+		ObjectiveID string
+	}
+	err = db.Raw(`select distinct wi.draft_id, wi.workflow_id, wi.objective_id
+		from ` + items + ` wi
+		join ` + tableFor(s, roleWorkflow) + ` w on w.id = wi.workflow_id and w.draft_id = wi.draft_id
+		join ` + tableFor(s, roleObjective) + ` o on o.id = wi.objective_id and o.draft_id = wi.draft_id
+		where wi.objective_id <> '' and coalesce(wi.deleted, false) = false
+			and not exists (select 1 from ` + links + ` l
+				where l.workflow_id = wi.workflow_id and l.objective_id = wi.objective_id)
+		order by wi.draft_id, wi.workflow_id, wi.objective_id`).Scan(&pairs).Error
+	if err != nil {
+		return fmt.Errorf("agency: read the older step objectives: %w", err)
+	}
+	object := mustObject(s, roleWorkflowObjective)
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, p := range pairs {
+			now := models.NowRFC3339()
+			row, err := specstore.Encode(object, models.WorkflowObjective{
+				ID:          specstore.NewID(),
+				DraftID:     p.DraftID,
+				WorkflowID:  p.WorkflowID,
+				ObjectiveID: p.ObjectiveID,
+				CreatedAt:   now,
+				LastUpdated: now,
+			})
+			if err != nil {
+				return fmt.Errorf("agency: carry the step objectives forward: %w", err)
+			}
+			if err := tx.Table(links).Clauses(clause.OnConflict{DoNothing: true}).Create(row).Error; err != nil {
+				return fmt.Errorf("agency: carry the step objectives forward: %w", err)
+			}
+		}
+		return nil
+	})
 }
 
 func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
@@ -42,6 +118,14 @@ func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
 		}
 	}
 
+	indexed, err := indexesHeld(db, s, roleWorkflowObjective)
+	if err != nil {
+		return false, err
+	}
+	if !indexed {
+		return false, nil
+	}
+
 	var drafts int64
 	if err := db.Table(tableFor(s, roleDraft)).Count(&drafts).Error; err != nil {
 		return false, fmt.Errorf("agency: read the drafts: %w", err)
@@ -56,6 +140,39 @@ func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
 		return false, fmt.Errorf("agency: read the module catalog: %w", err)
 	}
 	return int(codes) >= len(models.ModuleCatalog), nil
+}
+
+const postgresIdentifierLimit = 63
+
+func indexesHeld(db *gorm.DB, s *spec.Spec, role string) (bool, error) {
+	o := mustObject(s, role)
+	query := `select indexname from pg_indexes where schemaname = current_schema() and indexname in ?`
+	postgres := db.Dialector.Name() == "postgres"
+	if !postgres {
+		query = `select name from sqlite_master where type = 'index' and name in ?`
+	}
+	names := make([]string, 0, len(o.Indexes))
+	for _, idx := range o.Indexes {
+		name := s.IndexFor(o, idx)
+		if postgres && len(name) > postgresIdentifierLimit {
+			name = name[:postgresIdentifierLimit]
+		}
+		names = append(names, name)
+	}
+	var found []string
+	if err := db.Raw(query, names).Scan(&found).Error; err != nil {
+		return false, fmt.Errorf("agency: read the index set: %w", err)
+	}
+	held := make(map[string]bool, len(found))
+	for _, name := range found {
+		held[name] = true
+	}
+	for _, name := range names {
+		if !held[name] {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func tablesNamed(db *gorm.DB, names []string) (map[string]bool, error) {
@@ -283,6 +400,8 @@ var codedRoles = []struct {
 }
 
 const retiredPublicationColumn = "status"
+
+const retiredObjectiveColumn = "objective_id"
 
 const timestampColumn = "last_updated"
 

@@ -110,6 +110,9 @@ func validateFormQuestion(invalid func(string, ...any) error, number int, q mode
 }
 
 func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB, wi models.WorkItem) error {
+	if err := m.validateOwningWorkflow(ctx, tx, wi); err != nil {
+		return err
+	}
 	if err := m.validateStepLinkReferences(ctx, tx, wi); err != nil {
 		return err
 	}
@@ -203,4 +206,10 @@ func answerTypeList() string {
 		names = append(names, string(t))
 	}
 	return strings.Join(names, ", ")
+}
+
+func (m *agencyManager) validateOwningWorkflow(ctx context.Context, tx *gorm.DB, wi models.WorkItem) error {
+	var w models.Workflow
+	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), wi.DraftID).Where("id = ?", wi.WorkflowID)
+	return m.take(q, roleWorkflow, &w, ErrWorkflowNotFound)
 }
