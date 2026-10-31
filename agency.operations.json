@@ -8,7 +8,7 @@
     "ErrDraftNotFound": 404,
     "ErrDraftNotOpen": 409,
     "ErrDraftRequired": 400,
-    "ErrDuplicateAccountable": 409,
+    "ErrDuplicateRoleAssignment": 409,
     "ErrDuplicateAttachment": 409,
     "ErrDuplicateModule": 409,
     "ErrDuplicateTag": 409,
@@ -29,6 +29,7 @@
     "ErrModuleNotFound": 404,
     "ErrNoChangesDetected": 409,
     "ErrObjectiveNotFound": 404,
+    "ErrWorkflowObjectiveNotFound": 404,
     "ErrPublicationNotFound": 404,
     "ErrPublishValidationFailed": 409,
     "ErrRoleAssignmentNotFound": 404,
@@ -51,7 +52,8 @@
     "ErrScenarioRunning": 409,
     "ErrTestRunFinished": 409,
     "ErrTestRunNotFound": 404,
-    "ErrUsedByScenario": 409
+    "ErrUsedByScenario": 409,
+    "ErrDuplicateWorkflowObjective": 409
   },
   "operations": {
     "create_agency": {
@@ -420,37 +422,6 @@
       ],
       "tool": "agency_update_objective"
     },
-    "list_objective_raci": {
-      "method": "GET",
-      "path": "/objectives/{objective_id}/role-assignments",
-      "call": "ListRoleAssignmentsForObjective",
-      "action": "agency.objective.list_raci",
-      "title": "Read objective RACI",
-      "description": "Answer who is answerable for one objective, and how. This is the lookup anything asking \"who do I notify\" uses.",
-      "args": [
-        {
-          "from": "path",
-          "as": "objective_id",
-          "refers": "agency.objective",
-          "description": "The objective whose seats to read."
-        },
-        {
-          "from": "query",
-          "as": "draft_id",
-          "description": "The draft to read it in."
-        },
-        {
-          "from": "query",
-          "whole": true
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_list_role_assignments_for_objective"
-    },
     "create_workflow": {
       "method": "POST",
       "path": "/workflows",
@@ -561,6 +532,95 @@
       ],
       "tool": "agency_update_workflow"
     },
+    "create_workflow_objective": {
+      "method": "POST",
+      "path": "/workflow-objectives",
+      "call": "CreateWorkflowObjective",
+      "action": "agency.workflow_objective.create",
+      "status": 201,
+      "title": "Link workflow to objective",
+      "description": "Say that a workflow serves an objective. A workflow may serve several objectives and an objective may be served by several workflows; the same pair cannot be linked twice. Both ends must be in the same draft.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_link_workflow_objective"
+    },
+    "list_workflow_objectives": {
+      "method": "GET",
+      "path": "/workflow-objectives",
+      "call": "ListWorkflowObjectives",
+      "action": "agency.workflow_objective.list",
+      "title": "List workflow objectives",
+      "description": "List one draft's workflow-to-objective links, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose links to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_workflow_objectives"
+    },
+    "get_workflow_objective": {
+      "method": "GET",
+      "path": "/workflow-objectives/{workflow_objective_id}",
+      "call": "GetWorkflowObjective",
+      "action": "agency.workflow_objective.read",
+      "title": "Read workflow objective",
+      "description": "Read one workflow-to-objective link by its id — which workflow, which objective and the draft it belongs to.",
+      "args": [
+        {
+          "from": "path",
+          "as": "workflow_objective_id",
+          "description": "The link to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_workflow_objective"
+    },
+    "delete_workflow_objective": {
+      "method": "DELETE",
+      "path": "/workflow-objectives/{workflow_objective_id}",
+      "call": "DeleteWorkflowObjective",
+      "action": "agency.workflow_objective.delete",
+      "status": 204,
+      "title": "Unlink workflow from objective",
+      "description": "Remove one workflow-to-objective link, leaving the workflow and the objective in place.",
+      "args": [
+        {
+          "from": "path",
+          "as": "workflow_objective_id",
+          "description": "The link to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_workflow_objective"
+    },
     "create_work_item": {
       "method": "POST",
       "path": "/work-items",
@@ -568,7 +628,7 @@
       "action": "agency.work_item.create",
       "status": 201,
       "title": "Create work item",
-      "description": "Add one step of a workflow, with the instruction whoever performs it works from. It must name the objective it serves. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route or run_workflow), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused.",
+      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route or run_workflow), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused.",
       "args": [
         {
           "from": "body",
@@ -613,7 +673,7 @@
       "call": "GetWorkItem",
       "action": "agency.work_item.read",
       "title": "Read work item",
-      "description": "Read one work item by its id — its code, title, prompt, kind, role, form and derived action, and the workflow and objective it belongs to.",
+      "description": "Read one work item by its id — its code, title, prompt, kind, role, form and derived action, and the workflow it belongs to.",
       "args": [
         {
           "from": "path",
@@ -635,7 +695,7 @@
       "call": "UpdateWorkItem",
       "action": "agency.work_item.update",
       "title": "Update work item",
-      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow and objective it belongs to. The same refusals as creating one apply.",
+      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply.",
       "args": [
         {
           "from": "body",
@@ -655,6 +715,37 @@
         }
       ],
       "tool": "agency_update_work_item"
+    },
+    "list_work_item_raci": {
+      "method": "GET",
+      "path": "/work-items/{work_item_id}/role-assignments",
+      "call": "ListRoleAssignmentsForWorkItem",
+      "action": "agency.work_item.list_raci",
+      "title": "Read work item RACI",
+      "description": "Answer which seats take part in one step, and how. This is the lookup anything asking \"who do I notify\" uses.",
+      "args": [
+        {
+          "from": "path",
+          "as": "work_item_id",
+          "refers": "agency.work_item",
+          "description": "The work item whose seats to read."
+        },
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft to read it in."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_role_assignments_for_work_item"
     },
     "create_role": {
       "method": "POST",
@@ -730,7 +821,7 @@
       "call": "GetRoleBrief",
       "action": "agency.role.brief",
       "title": "Read seat brief",
-      "description": "Gather what one seat needs from the production publication: its name and description, the objectives it is answerable for through RACI with their goals, the values and rules attached to it, to those objectives or goals or to the whole organization, and the prompt of each work item serving those objectives. Returns plain text and its named parts.",
+      "description": "Gather what one seat needs from the production publication: its name and description, the work items it takes part in through RACI with the label it holds on each, the objectives their workflows serve and those objectives' goals, the values and rules attached to it, to those objectives or goals or to the whole organization, and the prompt of each of those work items. Returns plain text and its named parts.",
       "args": [
         {
           "from": "path",
@@ -803,7 +894,7 @@
       "action": "agency.raci.create",
       "status": 201,
       "title": "Assign RACI",
-      "description": "Make a seat responsible, accountable, consulted or informed for an objective. Both ends must be in the same draft, and an objective has at most one accountable.",
+      "description": "Give a seat a part in one step of a workflow: responsible, accountable, consulted or informed. Both ends must be in the same draft. A step may have any number of seats under any label; only the same seat with the same label on the same step twice is refused.",
       "args": [
         {
           "from": "body",
@@ -823,7 +914,7 @@
       "call": "ListRoleAssignments",
       "action": "agency.raci.list",
       "title": "List RACI",
-      "description": "List one draft's RACI links, narrowed by the filter.",
+      "description": "List one draft's RACI links, narrowed by the filter (label, work item or role).",
       "args": [
         {
           "from": "query",
@@ -848,7 +939,7 @@
       "call": "GetRoleAssignment",
       "action": "agency.raci.read",
       "title": "Read RACI link",
-      "description": "Read one RACI link by its id — which seat it names, which objective, and how the two relate.",
+      "description": "Read one RACI link by its id — which seat it names, which work item, and how the two relate.",
       "args": [
         {
           "from": "path",
@@ -869,7 +960,7 @@
       "call": "UpdateRoleAssignment",
       "action": "agency.raci.update",
       "title": "Change a RACI link",
-      "description": "Point a RACI link at a different seat or objective, or change how it relates.",
+      "description": "Point a RACI link at a different seat or work item, or change how it relates.",
       "args": [
         {
           "from": "body",
@@ -896,7 +987,7 @@
       "action": "agency.raci.delete",
       "status": 204,
       "title": "Remove a RACI link",
-      "description": "Remove one RACI link, leaving both the seat and the objective in place.",
+      "description": "Remove one RACI link, leaving both the seat and the work item in place.",
       "args": [
         {
           "from": "path",
@@ -1610,7 +1701,7 @@
       "tool": "agency_delete_goal",
       "status": 204,
       "title": "Delete goal",
-      "description": "Remove a goal, every objective under it, and the work items and RACI links under those.",
+      "description": "Remove a goal, every objective under it, and the workflow links under those.",
       "args": [
         {
           "from": "path",
@@ -1633,7 +1724,7 @@
       "tool": "agency_delete_objective",
       "status": 204,
       "title": "Delete objective",
-      "description": "Remove an objective and the work items and RACI links that hang off it.",
+      "description": "Remove an objective and the workflow links that hang off it.",
       "args": [
         {
           "from": "path",
@@ -1656,7 +1747,7 @@
       "tool": "agency_delete_workflow",
       "status": 204,
       "title": "Delete workflow",
-      "description": "Remove a workflow and every work item it owns. Refused with 409 while a scenario mirrors it.",
+      "description": "Remove a workflow, every work item it owns, its objective links and the RACI links of its steps. Refused with 409 while a scenario mirrors it.",
       "args": [
         {
           "from": "path",

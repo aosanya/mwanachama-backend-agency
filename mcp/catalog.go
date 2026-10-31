@@ -28,23 +28,23 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "Goal",
-		WhatItIs: "A strategic objective the Agency pursues — the top of the work breakdown: Goal → Objective → WorkItem.",
+		WhatItIs: "A strategic objective the Agency pursues — the top of the work breakdown: Goal → Objective, served by Workflows made of WorkItems.",
 		HowToAdd: "agency_create_goal (title, optional description).",
 	},
 	{
 		Name:     "Objective",
-		WhatItIs: "A measurable, granular piece of a Goal — a Goal can have several. Each Objective is the unit one Role gets RACI-assigned to, and the unit WorkItems and Objective-scoped Values/Rules attach to.",
+		WhatItIs: "A measurable, granular piece of a Goal — a Goal can have several. Workflows are linked to the Objectives they serve, and Objective-scoped Values/Rules attach to it.",
 		HowToAdd: "agency_create_objective (goal_id, title) — always created under an existing Goal.",
 	},
 	{
 		Name:     "Role",
-		WhatItIs: "A persona that can be assigned to an Objective via RACI (e.g. \"bug-hunter\", \"code-reviewer\"). Belongs to a Draft, freely editable there.",
+		WhatItIs: "A persona that can be given a part in a WorkItem via RACI (e.g. \"bug-hunter\", \"code-reviewer\"). Belongs to a Draft, freely editable there.",
 		HowToAdd: "agency_create_role (name, optional description).",
 	},
 	{
 		Name:     "RoleAssignment (RACI)",
-		WhatItIs: "Assigns one Role to one Objective with a RACI label — responsible, accountable, consulted, or informed. At most one accountable assignment may exist per Objective.",
-		HowToAdd: "agency_set_raci (role_id, objective_id, label).",
+		WhatItIs: "Gives one Role a part in one WorkItem with a RACI label — responsible, accountable, consulted, or informed. A WorkItem may have any number of Roles under any label; only the same Role with the same label on the same WorkItem twice is refused.",
+		HowToAdd: "agency_set_raci (role_id, work_item_id, label).",
 	},
 	{
 		Name:     "Value",
@@ -58,13 +58,13 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "Workflow",
-		WhatItIs: "An ordered sequence of WorkItems belonging to the Agency.",
-		HowToAdd: "agency_create_workflow (name, optional description).",
+		WhatItIs: "An ordered sequence of WorkItems belonging to the Agency, linked to the Objectives it serves (a Workflow may serve several). A Workflow with no Objective blocks publishing.",
+		HowToAdd: "agency_create_workflow (name, optional description), then agency_link_workflow_objective (workflow_id, objective_id) for each Objective it serves.",
 	},
 	{
 		Name:     "WorkItem",
-		WhatItIs: "A single unit of work, owned by exactly one Workflow and belonging to exactly one Objective it advances.",
-		HowToAdd: "agency_create_work_item (workflow_id, objective_id, title).",
+		WhatItIs: "A single unit of work, owned by exactly one Workflow; Roles take part in it through RACI.",
+		HowToAdd: "agency_create_work_item (workflow_id, title).",
 	},
 	{
 		Name:     "EventFlowStep",
@@ -83,7 +83,7 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "Issue",
-		WhatItIs: "A system-detected problem found by scanning a Draft — e.g. a Work Item whose Objective no longer exists, an Objective with no Accountable role, or a Goal with no Objectives. info/warning/error severity. An error-severity Issue blocks publishing that Draft.",
+		WhatItIs: "A system-detected problem found by scanning a Draft — e.g. a Workflow linked to an Objective that no longer exists, a Workflow serving no Objective, or a Goal with no Objectives. info/warning/error severity. An error-severity Issue blocks publishing that Draft.",
 		HowToAdd: "Never created directly — agency_list_issues re-scans and regenerates the Issues every time it's called.",
 	},
 }
