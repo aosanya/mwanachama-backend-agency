@@ -138,6 +138,7 @@ func TestControlAttachment_DetachLeavesTheControl(t *testing.T) {
 }
 
 type libraryPartMaker interface {
+	CreateHazard(ctx context.Context, p models.Hazard) (models.Hazard, error)
 	CreateThreat(ctx context.Context, p models.Threat) (models.Threat, error)
 	CreateConsequence(ctx context.Context, p models.Consequence) (models.Consequence, error)
 }
@@ -151,7 +152,11 @@ func TestControlAttachment_StandsOnAThreatAndAConsequenceOfTheSameDraft(t *testi
 	if err != nil {
 		t.Fatalf("CreateThreat: %v", err)
 	}
-	consequence, err := maker.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Stock out"})
+	hazard, err := maker.CreateHazard(ctx, models.Hazard{DraftID: o.DraftID, Title: "Supply"})
+	if err != nil {
+		t.Fatalf("CreateHazard: %v", err)
+	}
+	consequence, err := maker.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Stock out", HazardCode: hazard.Code})
 	if err != nil {
 		t.Fatalf("CreateConsequence: %v", err)
 	}

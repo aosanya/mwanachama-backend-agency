@@ -25,7 +25,7 @@ type libraryManager interface {
 	GetConsequence(ctx context.Context, id string) (models.Consequence, error)
 	UpdateConsequence(ctx context.Context, p models.Consequence) (models.Consequence, error)
 	DeleteConsequence(ctx context.Context, id string) error
-	ListConsequences(ctx context.Context, draftID string, filter mwanachamaagency.LibraryPartFilter) ([]models.Consequence, error)
+	ListConsequences(ctx context.Context, draftID string, filter mwanachamaagency.ConsequenceFilter) ([]models.Consequence, error)
 }
 
 func newLibraryManager(t *testing.T) libraryManager {
@@ -43,6 +43,18 @@ type libraryPartKind struct {
 	count    func(mgr libraryManager, ctx context.Context, draftID string) (int, error)
 	notFound error
 	invalid  error
+}
+
+func sharedHazard(mgr libraryManager, ctx context.Context, draftID string) string {
+	existing, err := mgr.ListHazards(ctx, draftID, mwanachamaagency.LibraryPartFilter{})
+	if err == nil && len(existing) > 0 {
+		return existing[0].Code
+	}
+	h, err := mgr.CreateHazard(ctx, models.Hazard{DraftID: draftID, Title: "Shared hazard"})
+	if err != nil {
+		return ""
+	}
+	return h.Code
 }
 
 func libraryPartKinds() []libraryPartKind {
@@ -90,7 +102,8 @@ func libraryPartKinds() []libraryPartKind {
 		{
 			name: "consequence", prefix: "Q-", notFound: mwanachamaagency.ErrConsequenceNotFound, invalid: mwanachamaagency.ErrInvalidConsequence,
 			create: func(mgr libraryManager, ctx context.Context, d, t string) (string, string, error) {
-				p, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: d, Title: t})
+				h := sharedHazard(mgr, ctx, d)
+				p, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: d, Title: t, HazardCode: h})
 				return p.ID, p.Code, err
 			},
 			get: func(mgr libraryManager, ctx context.Context, id string) (string, string, error) {
@@ -98,12 +111,17 @@ func libraryPartKinds() []libraryPartKind {
 				return p.Code, p.Title, err
 			},
 			update: func(mgr libraryManager, ctx context.Context, id, t string) error {
-				_, err := mgr.UpdateConsequence(ctx, models.Consequence{ID: id, Title: t})
+				existing, err := mgr.GetConsequence(ctx, id)
+				if err != nil {
+					return err
+				}
+				existing.Title = t
+				_, err = mgr.UpdateConsequence(ctx, existing)
 				return err
 			},
 			delete: func(mgr libraryManager, ctx context.Context, id string) error { return mgr.DeleteConsequence(ctx, id) },
 			count: func(mgr libraryManager, ctx context.Context, d string) (int, error) {
-				l, err := mgr.ListConsequences(ctx, d, mwanachamaagency.LibraryPartFilter{})
+				l, err := mgr.ListConsequences(ctx, d, mwanachamaagency.ConsequenceFilter{})
 				return len(l), err
 			},
 		},
@@ -227,7 +245,11 @@ func TestDeleteThreatAndConsequence_TakeTheirControlAttachmentsWithThem(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	cq, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Stock out"})
+	hz, err := mgr.CreateHazard(ctx, models.Hazard{DraftID: o.DraftID, Title: "Supply"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cq, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Stock out", HazardCode: hz.Code})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,5 +271,117 @@ func TestDeleteThreatAndConsequence_TakeTheirControlAttachmentsWithThem(t *testi
 	}
 	if len(left) != 0 {
 		t.Fatalf("attachments left = %d, want 0", len(left))
+	}
+}
+
+func newHazard(t *testing.T, mgr libraryManager, ctx context.Context, draftID, title string) models.Hazard {
+	t.Helper()
+	h, err := mgr.CreateHazard(ctx, models.Hazard{DraftID: draftID, Title: title})
+	if err != nil {
+		t.Fatalf("CreateHazard %q: %v", title, err)
+	}
+	return h
+}
+
+func TestCreateConsequence_RefusesAnEmptyOrUnknownHazardCode(t *testing.T) {
+	mgr := newLibraryManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+
+	if _, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Stock out"}); !errors.Is(err, mwanachamaagency.ErrInvalidConsequence) {
+		t.Fatalf("empty hazard_code err = %v, want ErrInvalidConsequence", err)
+	}
+	if _, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Stock out", HazardCode: "H-99"}); !errors.Is(err, mwanachamaagency.ErrHazardNotFound) {
+		t.Fatalf("unknown hazard_code err = %v, want ErrHazardNotFound", err)
+	}
+}
+
+func TestCreateConsequence_SameTitleUnderTwoHazardsIsAllowedUnderOneIsTaken(t *testing.T) {
+	mgr := newLibraryManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	fire := newHazard(t, mgr, ctx, o.DraftID, "Fire")
+	flood := newHazard(t, mgr, ctx, o.DraftID, "Flood")
+
+	if _, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Site closed", HazardCode: fire.Code}); err != nil {
+		t.Fatalf("first: %v", err)
+	}
+	if _, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "site CLOSED", HazardCode: flood.Code}); err != nil {
+		t.Fatalf("same title under another hazard: %v", err)
+	}
+	if _, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Site closed", HazardCode: fire.Code}); !errors.Is(err, mwanachamaagency.ErrLibraryTitleTaken) {
+		t.Fatalf("same title under one hazard err = %v, want ErrLibraryTitleTaken", err)
+	}
+}
+
+func TestUpdateConsequence_MovesToAnotherHazardAndRefusesEmptyOrUnknown(t *testing.T) {
+	mgr := newLibraryManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	fire := newHazard(t, mgr, ctx, o.DraftID, "Fire")
+	flood := newHazard(t, mgr, ctx, o.DraftID, "Flood")
+	cq, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Site closed", HazardCode: fire.Code})
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Site closed", HazardCode: flood.Code})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cq.HazardCode = flood.Code
+	if _, err := mgr.UpdateConsequence(ctx, cq); !errors.Is(err, mwanachamaagency.ErrLibraryTitleTaken) {
+		t.Fatalf("move onto a hazard holding the title err = %v, want ErrLibraryTitleTaken", err)
+	}
+	cq.Title = "Site shut"
+	moved, err := mgr.UpdateConsequence(ctx, cq)
+	if err != nil || moved.HazardCode != flood.Code {
+		t.Fatalf("move = %+v, %v", moved, err)
+	}
+	got, err := mgr.GetConsequence(ctx, cq.ID)
+	if err != nil || got.HazardCode != flood.Code {
+		t.Fatalf("get after move = %+v, %v", got, err)
+	}
+
+	cq.HazardCode = ""
+	if _, err := mgr.UpdateConsequence(ctx, cq); !errors.Is(err, mwanachamaagency.ErrInvalidConsequence) {
+		t.Fatalf("empty hazard_code err = %v, want ErrInvalidConsequence", err)
+	}
+	cq.HazardCode = "H-99"
+	if _, err := mgr.UpdateConsequence(ctx, cq); !errors.Is(err, mwanachamaagency.ErrHazardNotFound) {
+		t.Fatalf("unknown hazard_code err = %v, want ErrHazardNotFound", err)
+	}
+	if other.HazardCode != flood.Code {
+		t.Fatalf("other consequence changed: %+v", other)
+	}
+}
+
+func TestListConsequences_FiltersByHazardCode(t *testing.T) {
+	mgr := newLibraryManager(t)
+	ctx := context.Background()
+	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	fire := newHazard(t, mgr, ctx, o.DraftID, "Fire")
+	flood := newHazard(t, mgr, ctx, o.DraftID, "Flood")
+	for _, c := range []models.Consequence{
+		{DraftID: o.DraftID, Title: "Site closed", HazardCode: fire.Code},
+		{DraftID: o.DraftID, Title: "Injury", HazardCode: fire.Code},
+		{DraftID: o.DraftID, Title: "Stock lost", HazardCode: flood.Code},
+	} {
+		if _, err := mgr.CreateConsequence(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	onFire, err := mgr.ListConsequences(ctx, o.DraftID, mwanachamaagency.ConsequenceFilter{HazardCode: fire.Code})
+	if err != nil || len(onFire) != 2 {
+		t.Fatalf("fire list = %+v, %v", onFire, err)
+	}
+	onFlood, err := mgr.ListConsequences(ctx, o.DraftID, mwanachamaagency.ConsequenceFilter{HazardCode: flood.Code})
+	if err != nil || len(onFlood) != 1 || onFlood[0].Title != "Stock lost" {
+		t.Fatalf("flood list = %+v, %v", onFlood, err)
+	}
+	all, err := mgr.ListConsequences(ctx, o.DraftID, mwanachamaagency.ConsequenceFilter{})
+	if err != nil || len(all) != 3 {
+		t.Fatalf("unfiltered list = %d, %v", len(all), err)
 	}
 }
