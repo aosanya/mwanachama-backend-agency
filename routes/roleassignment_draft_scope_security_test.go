@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestRoleAssignmentRefusesARoleOrObjectiveFromAnotherDraft(t *testing.T) {
+func TestRoleAssignmentRefusesARoleOrStepFromAnotherDraft(t *testing.T) {
 	mgr, draftA := newTestManagerWithDraft(t)
 	b, err := mgr.CreateDraft(t.Context(), "other", "", "")
 	if err != nil {
@@ -36,35 +36,35 @@ func TestRoleAssignmentRefusesARoleOrObjectiveFromAnotherDraft(t *testing.T) {
 		return id
 	}
 
-	goalA := create("/goals", `{"title":"GA","draft_id":"`+draftA+`"}`)
-	objectiveA := create("/objectives", `{"title":"OA","goal_id":"`+goalA+`","draft_id":"`+draftA+`"}`)
+	workflowA := create("/workflows", `{"name":"WA","draft_id":"`+draftA+`"}`)
+	stepA := create("/work-items", `{"title":"SA","workflow_id":"`+workflowA+`","draft_id":"`+draftA+`"}`)
 	roleA := create("/roles", `{"name":"RA","draft_id":"`+draftA+`"}`)
-	goalB := create("/goals", `{"title":"GB","draft_id":"`+draftB+`"}`)
-	objectiveB := create("/objectives", `{"title":"OB","goal_id":"`+goalB+`","draft_id":"`+draftB+`"}`)
+	workflowB := create("/workflows", `{"name":"WB","draft_id":"`+draftB+`"}`)
+	stepB := create("/work-items", `{"title":"SB","workflow_id":"`+workflowB+`","draft_id":"`+draftB+`"}`)
 	roleB := create("/roles", `{"name":"RB","draft_id":"`+draftB+`"}`)
-	assignment := create("/role-assignments", `{"role_id":"`+roleA+`","objective_id":"`+objectiveA+`","label":"responsible","draft_id":"`+draftA+`"}`)
+	assignment := create("/role-assignments", `{"role_id":"`+roleA+`","work_item_id":"`+stepA+`","label":"responsible","draft_id":"`+draftA+`"}`)
 
 	refusals := []struct{ name, method, path, body string }{
 		{"create with a role from another draft", http.MethodPost, "/role-assignments",
-			`{"role_id":"` + roleB + `","objective_id":"` + objectiveA + `","label":"accountable","draft_id":"` + draftA + `"}`},
-		{"create with an objective from another draft", http.MethodPost, "/role-assignments",
-			`{"role_id":"` + roleA + `","objective_id":"` + objectiveB + `","label":"accountable","draft_id":"` + draftA + `"}`},
+			`{"role_id":"` + roleB + `","work_item_id":"` + stepA + `","label":"accountable","draft_id":"` + draftA + `"}`},
+		{"create with a step from another draft", http.MethodPost, "/role-assignments",
+			`{"role_id":"` + roleA + `","work_item_id":"` + stepB + `","label":"accountable","draft_id":"` + draftA + `"}`},
 		{"update onto a role from another draft", http.MethodPatch, "/role-assignments/" + assignment,
-			`{"role_id":"` + roleB + `","objective_id":"` + objectiveA + `","label":"responsible"}`},
-		{"update onto an objective from another draft", http.MethodPatch, "/role-assignments/" + assignment,
-			`{"role_id":"` + roleA + `","objective_id":"` + objectiveB + `","label":"responsible"}`},
+			`{"role_id":"` + roleB + `","work_item_id":"` + stepA + `","label":"responsible"}`},
+		{"update onto a step from another draft", http.MethodPatch, "/role-assignments/" + assignment,
+			`{"role_id":"` + roleA + `","work_item_id":"` + stepB + `","label":"responsible"}`},
 	}
 	for _, c := range refusals {
 		t.Run(c.name, func(t *testing.T) {
 			if code, out := call(c.method, c.path, c.body); code != http.StatusNotFound {
-				t.Errorf("%s %s %s -> %d %v; a RoleAssignment must name a Role and an Objective of its own draft (404)", c.method, c.path, c.body, code, out)
+				t.Errorf("%s %s %s -> %d %v; a RoleAssignment must name a Role and a step of its own draft (404)", c.method, c.path, c.body, code, out)
 			}
 		})
 	}
 
 	code, got := call(http.MethodGet, "/role-assignments/"+assignment, "")
-	if code != http.StatusOK || got["role_id"] != roleA || got["objective_id"] != objectiveA || got["draft_id"] != draftA {
-		t.Errorf("GET /role-assignments/%s -> %d %v; the refused updates should have left role %s, objective %s, draft %s", assignment, code, got, roleA, objectiveA, draftA)
+	if code != http.StatusOK || got["role_id"] != roleA || got["work_item_id"] != stepA || got["draft_id"] != draftA {
+		t.Errorf("GET /role-assignments/%s -> %d %v; the refused updates should have left role %s, step %s, draft %s", assignment, code, got, roleA, stepA, draftA)
 	}
 	for _, d := range []string{draftA, draftB} {
 		w := httptest.NewRecorder()
