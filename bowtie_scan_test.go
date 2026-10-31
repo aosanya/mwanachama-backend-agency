@@ -59,3 +59,35 @@ func warningsFor(t *testing.T, w hazardScanWorld, entity string) []string {
 	}
 	return out
 }
+
+func TestScan_AControlOnTwoPartsIsAWarning(t *testing.T) {
+	w := newHazardScanWorld(t)
+	ctx := context.Background()
+	control, err := w.mgr.CreateControl(ctx, models.Control{DraftID: w.draftID, Text: "Grade every listing"})
+	if err != nil {
+		t.Fatalf("CreateControl: %v", err)
+	}
+	risk, err := w.mgr.CreateRisk(ctx, models.Risk{DraftID: w.draftID, Title: "Unsold harvest", TopEvent: "Harvest goes unsold"})
+	if err != nil {
+		t.Fatalf("CreateRisk: %v", err)
+	}
+	for _, title := range []string{"No bids", "Low offers"} {
+		threat, err := w.maker.CreateThreat(ctx, models.Threat{DraftID: w.draftID, Title: title})
+		if err != nil {
+			t.Fatalf("CreateThreat: %v", err)
+		}
+		if _, err := w.mgr.CreateRiskThreat(ctx, models.RiskThreat{DraftID: w.draftID, RiskCode: risk.Code, ThreatCode: threat.Code}); err != nil {
+			t.Fatalf("CreateRiskThreat: %v", err)
+		}
+		if _, err := w.mgr.CreateControlAttachment(ctx, control.ID, models.TargetTypeThreat, threat.ID); err != nil {
+			t.Fatalf("CreateControlAttachment: %v", err)
+		}
+	}
+	got := warningsFor(t, w, "control_attachment")
+	if len(got) != 1 || !anyContains(got, "stands on 2 threats or consequences") {
+		t.Fatalf("control attachment warnings = %v, want one naming the two", got)
+	}
+	if gaps := warningsFor(t, w, "control_gap"); len(gaps) != 0 {
+		t.Fatalf("control gaps = %v, want none once both threats have a control", gaps)
+	}
+}
