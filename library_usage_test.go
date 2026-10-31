@@ -12,6 +12,7 @@ type libraryUsageReader interface {
 	ThreatUsage(ctx context.Context, draftID string) ([]mwanachamaagency.LibraryUsage, error)
 	ConsequenceUsage(ctx context.Context, draftID string) ([]mwanachamaagency.LibraryUsage, error)
 	ListUnguardedParts(ctx context.Context, draftID string) ([]mwanachamaagency.UnguardedPart, error)
+	HazardUsage(ctx context.Context, draftID string) ([]mwanachamaagency.HazardUsage, error)
 }
 
 func seedSharedThreat(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string) (models.Threat, models.Threat, models.Consequence) {
@@ -24,12 +25,16 @@ func seedSharedThreat(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx cont
 	if err != nil {
 		t.Fatalf("CreateThreat: %v", err)
 	}
-	consequence, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: draftID, Title: "Produce spoils"})
+	hazard, err := mgr.CreateHazard(ctx, models.Hazard{DraftID: draftID, Title: "Spoilage"})
+	if err != nil {
+		t.Fatalf("CreateHazard: %v", err)
+	}
+	consequence, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: draftID, HazardCode: hazard.Code, Title: "Produce spoils"})
 	if err != nil {
 		t.Fatalf("CreateConsequence: %v", err)
 	}
 	for _, title := range []string{"First risk", "Second risk"} {
-		risk, err := mgr.CreateRisk(ctx, models.Risk{DraftID: draftID, Title: title, TopEvent: "Something happens"})
+		risk, err := mgr.CreateRisk(ctx, models.Risk{DraftID: draftID, Title: title, TopEvent: "Something happens", HazardCode: hazard.Code})
 		if err != nil {
 			t.Fatalf("CreateRisk: %v", err)
 		}

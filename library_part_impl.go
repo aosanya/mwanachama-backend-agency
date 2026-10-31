@@ -147,8 +147,12 @@ func (m *agencyManager) deletePart(ctx context.Context, k libraryKind, id string
 		if err != nil {
 			return err
 		}
-		if linked > 0 {
-			return fmt.Errorf("%w: %s %s is used by %d risk link(s)", ErrLibraryPartInUse, k.entity, existing.Code, linked)
+		consequences, err := m.consequencesNaming(ctx, tx, k, existing)
+		if err != nil {
+			return err
+		}
+		if linked > 0 || len(consequences) > 0 {
+			return fmt.Errorf("%w: %s %s is used by %d risk link(s) and %d consequence(s) %v", ErrLibraryPartInUse, k.entity, existing.Code, linked, len(consequences), consequences)
 		}
 		if k.role != roleHazard {
 			if err := m.deleteWhere(ctx, tx, roleControlAttachment, "draft_id = ? AND target_type = ? AND target_code = ?", existing.DraftID, k.entity, existing.Code); err != nil {
@@ -157,4 +161,15 @@ func (m *agencyManager) deletePart(ctx context.Context, k libraryKind, id string
 		}
 		return m.deleteWhere(ctx, tx, k.role, "id = ?", id)
 	})
+}
+
+func (m *agencyManager) consequencesNaming(ctx context.Context, tx *gorm.DB, k libraryKind, hazard models.Hazard) ([]string, error) {
+	if k.role != roleHazard {
+		return nil, nil
+	}
+	var codes []string
+	err := tx.WithContext(ctx).Table(m.table(roleConsequence)).
+		Where("draft_id = ? AND hazard_code = ? AND deleted = ?", hazard.DraftID, hazard.Code, false).
+		Order("created_at").Pluck("code", &codes).Error
+	return codes, err
 }

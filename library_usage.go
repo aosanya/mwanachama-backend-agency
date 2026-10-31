@@ -14,6 +14,14 @@ type LibraryUsage struct {
 	Uses  int    `json:"uses"`
 }
 
+type HazardUsage struct {
+	Code             string   `json:"code"`
+	Title            string   `json:"title"`
+	Uses             int      `json:"used_in"`
+	RiskCodes        []string `json:"risk_codes"`
+	ConsequenceCodes []string `json:"consequence_codes"`
+}
+
 type BowtieRef struct {
 	Code  string `json:"code"`
 	Title string `json:"title"`
@@ -153,6 +161,43 @@ func (m *agencyManager) libraryParts(ctx context.Context, draftID string, kind m
 		}
 		part.Uses = len(part.Bowties)
 		out = append(out, part)
+	}
+	return out, nil
+}
+
+func (m *agencyManager) HazardUsage(ctx context.Context, draftID string) ([]HazardUsage, error) {
+	hazards, err := list[models.Hazard](m, scopeQuery(m.q(ctx, roleHazard).Order("created_at"), draftID), roleHazard)
+	if err != nil {
+		return nil, fmt.Errorf("HazardUsage: %w", err)
+	}
+	risks, err := list[models.Risk](m, scopeQuery(m.q(ctx, roleRisk).Order("created_at"), draftID), roleRisk)
+	if err != nil {
+		return nil, fmt.Errorf("HazardUsage: %w", err)
+	}
+	consequences, err := list[models.Consequence](m, scopeQuery(m.q(ctx, roleConsequence).Order("created_at"), draftID), roleConsequence)
+	if err != nil {
+		return nil, fmt.Errorf("HazardUsage: %w", err)
+	}
+	riskCodes := map[string][]string{}
+	for _, r := range risks {
+		if !r.Deleted && r.HazardCode != "" {
+			riskCodes[r.HazardCode] = append(riskCodes[r.HazardCode], r.Code)
+		}
+	}
+	consequenceCodes := map[string][]string{}
+	for _, c := range consequences {
+		if !c.Deleted && c.HazardCode != "" {
+			consequenceCodes[c.HazardCode] = append(consequenceCodes[c.HazardCode], c.Code)
+		}
+	}
+	out := make([]HazardUsage, 0, len(hazards))
+	for _, h := range hazards {
+		if h.Deleted {
+			continue
+		}
+		u := HazardUsage{Code: h.Code, Title: h.Title, RiskCodes: append([]string{}, riskCodes[h.Code]...), ConsequenceCodes: append([]string{}, consequenceCodes[h.Code]...)}
+		u.Uses = len(u.RiskCodes) + len(u.ConsequenceCodes)
+		out = append(out, u)
 	}
 	return out, nil
 }
