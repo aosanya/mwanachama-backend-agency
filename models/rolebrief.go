@@ -31,8 +31,9 @@ type BriefStatement struct {
 }
 
 type BriefWorkItem struct {
-	Code          string `json:"code"`
-	Title         string `json:"title"`
-	ObjectiveCode string `json:"objective_code"`
-	Prompt        string `json:"prompt"`
+	Code          string   `json:"code"`
+	Title         string   `json:"title"`
+	ObjectiveCode string   `json:"objective_code"`
+	Labels        []string `json:"labels"`
+	Prompt        string   `json:"prompt"`
 }

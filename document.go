@@ -307,7 +307,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	for _, ra := range doc.RoleAssignments {
 		stepID, stepKnown := stepIDs[ra.WorkItemID]
 		roleID, roleKnown := roleIDs[ra.RoleID]
-		if ra.WorkItemID == "" || !stepKnown || !roleKnown {
+		if ra.WorkItemID == "" || !stepKnown || !roleKnown || !models.RACILabel(ra.Label).Valid() {
 			continue
 		}
 		key := [3]string{stepID, roleID, ra.Label}

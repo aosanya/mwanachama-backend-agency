@@ -281,3 +281,45 @@ func TestRoleBrief_FollowsAStepAssignmentMovedInANewPublication(t *testing.T) {
 		t.Errorf("auditor, now informed on Mine, should see its prompt and objective:\n%s", b.Text)
 	}
 }
+
+func TestRoleBrief_LeavesOutTheStepsOfAWorkflowTheSeatIsNotOn(t *testing.T) {
+	ctx := context.Background()
+	mgr := newTestManager(t)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
+	scribe, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "scribe"})
+	must(t, err)
+	lead, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "lead"})
+	must(t, err)
+
+	wf, first := flowWithStep(t, mgr, ctx, draftID, "Charter", "Write", "PROMPT-WRITE", o)
+	second, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Sign", Prompt: "PROMPT-SIGN-LEAD-ONLY"})
+	must(t, err)
+	assignOn(t, mgr, ctx, draftID, scribe, first, models.RACILabelResponsible)
+	assignOn(t, mgr, ctx, draftID, scribe, first, models.RACILabelConsulted)
+	assignOn(t, mgr, ctx, draftID, lead, second, models.RACILabelAccountable)
+	_, err = mgr.PublishAgency(ctx, draftID, "", "")
+	must(t, err)
+
+	b, err := mgr.GetRoleBrief(ctx, scribe.ID)
+	must(t, err)
+	if strings.Contains(b.Text, "PROMPT-SIGN-LEAD-ONLY") {
+		t.Errorf("the brief carries the prompt of a step only another seat is on:\n%s", b.Text)
+	}
+	if len(b.WorkItems) != 1 || b.WorkItems[0].Title != "Write" {
+		t.Fatalf("expected only the Write step, got %+v", b.WorkItems)
+	}
+	want := []string{"responsible", "consulted"}
+	if got := b.WorkItems[0].Labels; strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("labels = %v, want %v", got, want)
+	}
+	if !strings.Contains(b.Text, "[responsible, consulted]") {
+		t.Errorf("brief text does not show the labels held on the step:\n%s", b.Text)
+	}
+
+	lb, err := mgr.GetRoleBrief(ctx, lead.ID)
+	must(t, err)
+	if len(lb.WorkItems) != 1 || lb.WorkItems[0].Title != "Sign" || strings.Join(lb.WorkItems[0].Labels, ",") != "accountable" {
+		t.Errorf("lead's brief wrong: %+v", lb.WorkItems)
+	}
+}

@@ -62,6 +62,7 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 	}
 
 	labelsByWorkflow := map[string]map[string]bool{}
+	labelsByStep := map[string]map[string]bool{}
 	var workflowOrder []string
 	for _, a := range doc.RoleAssignments {
 		step, ok := stepsByID[a.WorkItemID]
@@ -73,6 +74,10 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 			workflowOrder = append(workflowOrder, step.WorkflowID)
 		}
 		labelsByWorkflow[step.WorkflowID][a.Label] = true
+		if labelsByStep[step.ID] == nil {
+			labelsByStep[step.ID] = map[string]bool{}
+		}
+		labelsByStep[step.ID][a.Label] = true
 	}
 
 	labelsByObjective := map[string]map[string]bool{}
@@ -112,7 +117,7 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 	brief.Rules = briefStatements(doc.Rules, doc.RuleAttachments, func(a models.DocumentAttachment) string { return a.RuleCode }, scopeByTarget)
 
 	for _, w := range doc.WorkItems {
-		if labelsByWorkflow[w.WorkflowID] == nil || w.Prompt == "" {
+		if labelsByStep[w.ID] == nil || w.Prompt == "" {
 			continue
 		}
 		objectiveCode := ""
@@ -123,7 +128,7 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 			}
 		}
 		brief.WorkItems = append(brief.WorkItems, models.BriefWorkItem{
-			Code: w.Code, Title: w.Title, ObjectiveCode: objectiveCode, Prompt: w.Prompt,
+			Code: w.Code, Title: w.Title, ObjectiveCode: objectiveCode, Labels: orderedLabels(labelsByStep[w.ID]), Prompt: w.Prompt,
 		})
 	}
 
@@ -135,14 +140,18 @@ var raciOrder = []models.RACILabel{
 	models.RACILabelResponsible, models.RACILabelAccountable, models.RACILabelConsulted, models.RACILabelInformed,
 }
 
-func joinLabels(held map[string]bool) string {
+func orderedLabels(held map[string]bool) []string {
 	var out []string
 	for _, l := range raciOrder {
 		if held[string(l)] {
 			out = append(out, string(l))
 		}
 	}
-	return strings.Join(out, ", ")
+	return out
+}
+
+func joinLabels(held map[string]bool) string {
+	return strings.Join(orderedLabels(held), ", ")
 }
 
 func briefStatements(items []models.DocumentStatement, attachments []models.DocumentAttachment, codeOf func(models.DocumentAttachment) string, scopeByTarget map[string]string) []models.BriefStatement {
@@ -190,7 +199,7 @@ func renderBrief(b models.RoleBrief) string {
 		s.WriteString("- none\n")
 	}
 	for _, w := range b.WorkItems {
-		fmt.Fprintf(&s, "- %s %s (serves objective %s): %s\n", w.Code, w.Title, w.ObjectiveCode, w.Prompt)
+		fmt.Fprintf(&s, "- %s %s [%s] (serves objective %s): %s\n", w.Code, w.Title, strings.Join(w.Labels, ", "), w.ObjectiveCode, w.Prompt)
 	}
 	return s.String()
 }

@@ -117,6 +117,10 @@ func (s *issueScan) checkRoleAssignments() error {
 	}
 
 	for _, a := range assignments {
+		if !a.Label.Valid() {
+			s.add(models.IssueSeverityError, "role_assignment", a.ID,
+				"Role assignment %s has label %s, which is not responsible, accountable, consulted or informed", a.ID, QuoteIfUnsafe(string(a.Label)))
+		}
 		if !roleIDs[a.RoleID] {
 			s.add(models.IssueSeverityError, "role_assignment", a.ID,
 				"Role assignment %s refers to Role %s, which does not exist", a.ID, QuoteIfUnsafe(a.RoleID))
