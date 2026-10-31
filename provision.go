@@ -118,6 +118,14 @@ func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
 		}
 	}
 
+	columned, err := columnsHeld(db, s)
+	if err != nil {
+		return false, err
+	}
+	if !columned {
+		return false, nil
+	}
+
 	indexed, err := indexesHeld(db, s, roleWorkflowObjective)
 	if err != nil {
 		return false, err
@@ -143,6 +151,41 @@ func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
 }
 
 const postgresIdentifierLimit = 63
+
+type heldColumn struct {
+	TableName  string
+	ColumnName string
+}
+
+func columnsHeld(db *gorm.DB, s *spec.Spec) (bool, error) {
+	tables := make([]string, 0, len(s.Objects))
+	for _, o := range s.Objects {
+		tables = append(tables, s.TableFor(o))
+	}
+	query := `select table_name, column_name from information_schema.columns
+		where table_schema = current_schema() and table_name in ?`
+	if db.Dialector.Name() != "postgres" {
+		query = `select m.name as table_name, p.name as column_name
+			from sqlite_master m, pragma_table_info(m.name) p
+			where m.type = 'table' and m.name in ?`
+	}
+	var found []heldColumn
+	if err := db.Raw(query, tables).Scan(&found).Error; err != nil {
+		return false, fmt.Errorf("agency: read the column set: %w", err)
+	}
+	held := make(map[string]bool, len(found))
+	for _, c := range found {
+		held[c.TableName+"."+c.ColumnName] = true
+	}
+	for _, o := range s.Objects {
+		for _, f := range o.Fields {
+			if !held[s.TableFor(o)+"."+f.Name] {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
 
 func indexesHeld(db *gorm.DB, s *spec.Spec, role string) (bool, error) {
 	o := mustObject(s, role)
