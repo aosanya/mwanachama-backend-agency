@@ -75,12 +75,11 @@ func (m *agencyManager) ReviewInput(ctx context.Context, reviewID string, area m
 		if err != nil || review.PreviousReviewID == "" {
 			return err
 		}
-		earlier, err := list[models.ReviewArea](m, tx.WithContext(ctx).Table(m.table(roleReviewArea)).
-			Where("review_id = ? AND area = ?", review.PreviousReviewID, string(area)), roleReviewArea)
-		if err != nil || len(earlier) == 0 {
+		earlier, err := m.coveringArea(ctx, tx, review.PreviousReviewID, area)
+		if err != nil || earlier == nil {
 			return err
 		}
-		out.Previous, err = m.findingViews(ctx, tx, "area_id = ?", earlier[0].ID)
+		out.Previous, err = m.findingViews(ctx, tx, "area_id = ?", earlier.ID)
 		return err
 	})
 	if err != nil {

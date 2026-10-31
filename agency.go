@@ -262,7 +262,7 @@ type AgencyManager interface {
 	ResumeRuns(ctx context.Context) ([]models.TestRun, error)
 	AwaitRun(ctx context.Context, runID string) (models.TestRun, error)
 
-	StartReview(ctx context.Context, draftID, startedBy string) (models.ReviewView, error)
+	StartReview(ctx context.Context, draftID, startedBy, area string) (models.ReviewView, error)
 	GetReview(ctx context.Context, reviewID, draftID string) (models.ReviewView, error)
 	ListReviews(ctx context.Context, draftID string) ([]models.Review, error)
 	SetFindingStatus(ctx context.Context, findingID string, status models.FindingStatus) (models.FindingView, error)

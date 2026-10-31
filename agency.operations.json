@@ -2381,7 +2381,7 @@
       "action": "agency.review.start",
       "status": 201,
       "title": "Run review",
-      "description": "Start a review of one draft: write a review in status running with one part for each reviewer, all reading, and answer at once. previous_review_id is the latest earlier review of the draft. Refused with \"A review of this draft is already running.\" while one is running. The reviewers write their findings with agency_record_review_area.",
+      "description": "Start a review of one draft: write a review in status running with one part for each reviewer, or with just the one part named by area, all reading, and answer at once. previous_review_id is the latest earlier review of the draft. Refused with \"A review of this draft is already running.\" while one is running. The reviewers write their findings with agency_record_review_area.",
       "args": [
         {
           "from": "body",
@@ -2393,6 +2393,11 @@
           "from": "body",
           "as": "started_by",
           "description": "The person who pressed Run review."
+        },
+        {
+          "from": "body",
+          "as": "area",
+          "description": "The one part to review: profile, goals, objectives, roles_agents, workflows, risks or tests. Omit it to review every part."
         }
       ],
       "returns": [
@@ -2408,7 +2413,7 @@
       "call": "GetReview",
       "action": "agency.review.read",
       "title": "Read review",
-      "description": "Read one review with its parts: each part carries its summary, failure_reason, tokens and findings, and each finding its comments. Name the review by review_id, or take the latest review of a draft with draft_id. Answers {review: null} when the draft has none.",
+      "description": "Read one review with its parts: each part carries its summary, failure_reason, tokens and findings, and each finding its comments. Name the review by review_id, or take the latest review of a draft with draft_id; then every part shows the newest run that covered it, so a part not read in the latest review keeps its earlier findings. Answers {review: null} when the draft has none.",
       "args": [
         {
           "from": "query",
@@ -2516,7 +2521,7 @@
       "call": "ReviewInput",
       "action": "agency.review.input",
       "title": "Read review input",
-      "description": "What a reviewer reads before it reads the draft: the findings of the previous review for one part, each with its comments, as {previous: [...]}. Empty for a first run.",
+      "description": "What a reviewer reads before it reads the draft: the findings of the newest earlier review that covered one part, each with its comments, as {previous: [...]}. Empty for a first run.",
       "args": [
         {
           "from": "path",

@@ -432,3 +432,16 @@ func TestReviewTools_StartAgainOnceTheRunHasFinished(t *testing.T) {
 		t.Fatal("a review of an unknown draft started")
 	}
 }
+
+func TestReviewTools_StartTakesOneAreaAndReadsOnlyThatPart(t *testing.T) {
+	d := newReviewDesk(t)
+
+	out := d.ok("agency_start_review", map[string]any{"draft_id": d.draftID, "started_by": "amina", "area": "risks"})
+	areas, _ := out["areas"].([]any)
+	if len(areas) != 1 {
+		t.Fatalf("areas = %+v, want one", out["areas"])
+	}
+	if first, _ := areas[0].(map[string]any); first["area"] != "risks" {
+		t.Fatalf("area = %+v, want risks", first)
+	}
+}

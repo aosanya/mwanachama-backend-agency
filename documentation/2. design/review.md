@@ -14,12 +14,12 @@ All seven are declared in `agency.operations.json` and call a manager method; no
 
 | Tool | HTTP | Arguments | Returns |
 |---|---|---|---|
-| `agency_start_review` | `POST /reviews` | `draft_id`, optional `started_by` | `{review, areas}` |
-| `agency_get_review` | `GET /review` | `review_id`, or `draft_id` for the latest | `{review, areas}`; `{review: null}` when the draft has none |
+| `agency_start_review` | `POST /reviews` | `draft_id`, optional `started_by`, optional `area` | `{review, areas}` |
+| `agency_get_review` | `GET /review` | `review_id`, or `draft_id` for the latest | `{review, areas}`; with `draft_id` each part is the newest run that covered it; `{review: null}` when the draft has none |
 | `agency_list_reviews` | `GET /reviews` | `draft_id` | `{items: [review]}`, newest first, no parts |
 | `agency_set_finding_status` | `PATCH /review-findings/{finding_id}` | `finding_id`, `status` | the finding with its `comments` |
 | `agency_comment_finding` | `POST /review-findings/{finding_id}/comments` | `finding_id`, `body`, optional `author` | the comment |
-| `agency_review_input` | `GET /reviews/{review_id}/input` | `review_id`, `area` | `{previous: [finding]}` |
+| `agency_review_input` | `GET /reviews/{review_id}/input` | `review_id`, `area` | `{previous: [finding]}` from the newest earlier review that covered the part |
 | `agency_record_review_area` | `PUT /reviews/{review_id}/areas/{area}` | `review_id`, `area`, `status`, `summary`, `failure_reason`, `tokens`, `findings` | `{area, review_status}` |
 
 A finding is `ReviewFinding` plus `comments`. An area is `ReviewArea` plus `findings`.
@@ -29,6 +29,16 @@ Differences from the hub's table: a listing is `{items}` like every listing in t
 ## Starting a run
 
 `StartReview` needs an open draft, refuses with the sentence `A review of this draft is already running.` while any review of the draft is `running`, sets `previous_review_id` to the latest earlier review, and writes one `reading` area per part.
+
+`StartReview(ctx, draftID, startedBy, area string)` takes an optional `area`. Empty reads every part the hub reads. A part name (`profile`, `goals`, `objectives`, `roles_agents`, `workflows`, `risks`, `tests`) writes only that one `reading` area; an unknown name, or one the hub does not read for the draft, is refused with `ErrInvalidReview`. The other parts are left as they were: they keep the findings, notes and dismissals of the last run that covered them.
+
+### Which earlier part a part follows
+
+Because a review may hold one part, "the previous review" no longer says what a part follows. `coveringArea` in `review_cover_impl.go` walks `previous_review_id` from a review back to the newest review that holds the part. `ReviewInput` reads its `previous` findings from that part, and a carried finding must belong to that same part, not merely to the previous review.
+
+### Reading a draft
+
+`GetReview` by `draft_id` answers the latest review as `review` and, for each part the hub reads, the part from the newest review that held it, ordered as below. A part being read by a running area-only run shows `reading` from that run while the others show their last results. When every run covered every part this is the latest review exactly as before. `GetReview` by `review_id` still answers that review alone.
 
 Which parts are read is decided in one place, `AllReviewAreas` in `review_areas.go`, which returns all six. The farmers' agency should leave out `objectives`; the repo has no agency kind yet, so the hub passes its own function with `WithReviewAreas` when it has one.
 

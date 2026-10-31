@@ -32,7 +32,7 @@ func TestStartReviewReadsAllSixPartsUnlessTheHubNarrowsThem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	started, err := mgr.StartReview(ctx, draft.ID, "amina")
+	started, err := mgr.StartReview(ctx, draft.ID, "amina", "")
 	if err != nil {
 		t.Fatalf("StartReview: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestStartReviewReadsAllSixPartsUnlessTheHubNarrowsThem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	narrowed, err := narrow.StartReview(ctx, other.ID, "")
+	narrowed, err := narrow.StartReview(ctx, other.ID, "", "")
 	if err != nil {
 		t.Fatalf("StartReview: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestReviewFinishesWhenTheNarrowedPartsAreRecorded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	started, err := narrow.StartReview(ctx, draft.ID, "")
+	started, err := narrow.StartReview(ctx, draft.ID, "", "")
 	if err != nil {
 		t.Fatalf("StartReview: %v", err)
 	}

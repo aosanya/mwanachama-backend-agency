@@ -112,6 +112,10 @@ func (m *agencyManager) GetReview(ctx context.Context, reviewID, draftID string)
 		if err != nil || r == nil {
 			return err
 		}
+		if reviewID == "" {
+			out, err = m.latestPerArea(ctx, tx, *r)
+			return err
+		}
 		out, err = m.reviewView(ctx, tx, *r)
 		return err
 	})

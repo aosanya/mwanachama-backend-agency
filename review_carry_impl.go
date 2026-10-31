@@ -13,7 +13,7 @@ import (
 func (m *agencyManager) carriedFindings(ctx context.Context, tx *gorm.DB, review models.Review, area models.ReviewArea, in []models.ReviewFindingInput) ([]models.ReviewFinding, error) {
 	out := make([]models.ReviewFinding, 0, len(in))
 	for i, f := range in {
-		earlier, err := m.earlierFinding(ctx, tx, review, f.CarriedFromID)
+		earlier, err := m.earlierFinding(ctx, tx, review, area.Area, f.CarriedFromID)
 		if err != nil {
 			return nil, invalidReview("finding %d: %v", i+1, err)
 		}
@@ -26,7 +26,7 @@ func (m *agencyManager) carriedFindings(ctx context.Context, tx *gorm.DB, review
 	return out, nil
 }
 
-func (m *agencyManager) earlierFinding(ctx context.Context, tx *gorm.DB, review models.Review, id string) (*models.ReviewFinding, error) {
+func (m *agencyManager) earlierFinding(ctx context.Context, tx *gorm.DB, review models.Review, area models.ReviewAreaName, id string) (*models.ReviewFinding, error) {
 	if id == "" {
 		return nil, nil
 	}
@@ -34,7 +34,11 @@ func (m *agencyManager) earlierFinding(ctx context.Context, tx *gorm.DB, review 
 	if err != nil {
 		return nil, err
 	}
-	if review.PreviousReviewID == "" || f.ReviewID != review.PreviousReviewID {
+	earlier, err := m.coveringArea(ctx, tx, review.PreviousReviewID, area)
+	if err != nil {
+		return nil, err
+	}
+	if earlier == nil || f.AreaID != earlier.ID {
 		return nil, errNotInPreviousReview
 	}
 	return &f, nil

@@ -53,3 +53,30 @@ func TestReviewRoutes_StartRecordAndReadOverHTTP(t *testing.T) {
 		t.Fatalf("GET /reviews = %d %s, want the review without findings", rec.Code, rec.Body.String())
 	}
 }
+
+func TestReviewRoutes_AreaReadsOnlyThatPartAndAnUnknownAreaIsRefused(t *testing.T) {
+	mgr, draftID := newTestManagerWithDraft(t)
+	call := func(body string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		serve(mgr, rec, httptest.NewRequest(http.MethodPost, "/reviews", strings.NewReader(body)))
+		return rec
+	}
+
+	rec := call(`{"draft_id":"` + draftID + `","area":"nonsense"}`)
+	if rec.Code != http.StatusUnprocessableEntity && rec.Code != http.StatusBadRequest {
+		t.Fatalf("POST /reviews with an unknown area = %d %s", rec.Code, rec.Body.String())
+	}
+
+	rec = call(`{"draft_id":"` + draftID + `","area":"goals"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("POST /reviews with area goals = %d %s", rec.Code, rec.Body.String())
+	}
+	var started struct {
+		Areas []struct {
+			Area string `json:"area"`
+		} `json:"areas"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &started); err != nil || len(started.Areas) != 1 || started.Areas[0].Area != "goals" {
+		t.Fatalf("started = %s, %v", rec.Body.String(), err)
+	}
+}
