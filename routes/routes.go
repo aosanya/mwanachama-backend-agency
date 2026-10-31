@@ -97,7 +97,7 @@ var sentinels = map[string]error{
 	"ErrLibraryPartInUse":           mwanachamaagency.ErrLibraryPartInUse,
 	"ErrDuplicateRiskThreat":        mwanachamaagency.ErrDuplicateRiskThreat,
 	"ErrDuplicateRiskConsequence":   mwanachamaagency.ErrDuplicateRiskConsequence,
-	"ErrLibraryTitleTaken":          mwanachamaagency.ErrLibraryTitleTaken,
+	"ErrConsequenceOutsideHazard":   mwanachamaagency.ErrConsequenceOutsideHazard, "ErrLibraryTitleTaken": mwanachamaagency.ErrLibraryTitleTaken,
 }
 
 func Build(m mwanachamaagency.AgencyManager) ([]Route, error) {

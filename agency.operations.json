@@ -12,6 +12,7 @@
     "ErrLibraryTitleTaken": 409,
     "ErrDuplicateRiskThreat": 409,
     "ErrDuplicateRiskConsequence": 409,
+    "ErrConsequenceOutsideHazard": 409,
     "ErrAgencyNotFound": 404,
     "ErrAgencyExists": 409,
     "ErrCannotEditLive": 409,
