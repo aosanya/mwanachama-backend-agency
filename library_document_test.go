@@ -23,7 +23,7 @@ func TestPublishAgency_DocumentCarriesTheLibrary(t *testing.T) {
 	if len(doc.Threats) != 1 || doc.Threats[0].Code != "T-1" || doc.Threats[0].Title != "No buyer is listed" {
 		t.Fatalf("document threats: %+v", doc.Threats)
 	}
-	if len(doc.Consequences) != 1 || doc.Consequences[0].Code != "Q-1" || doc.Consequences[0].Title != "Produce spoils" {
+	if len(doc.Consequences) != 1 || doc.Consequences[0].Code != "Q-1" || doc.Consequences[0].Title != "Produce spoils" || doc.Consequences[0].HazardCode != "H-1" {
 		t.Fatalf("document consequences: %+v", doc.Consequences)
 	}
 	if len(doc.RiskThreats) != 1 || doc.RiskThreats[0].RiskCode != f.risk.Code || doc.RiskThreats[0].ThreatCode != "T-1" {
@@ -63,6 +63,9 @@ func TestCreateDraft_FromATagRestoresTheLibrary(t *testing.T) {
 			t.Fatalf("restored %s rows: %+v", role, got)
 		}
 	}
+	if cq := f.rows(t, "consequence", revisit.ID); cq[0]["hazard_code"] != "H-1" {
+		t.Fatalf("restored consequence lost its hazard_code: %+v", cq)
+	}
 	if links := f.rows(t, "risk_threat", revisit.ID); len(links) != 1 || links[0]["threat_code"] != "T-1" {
 		t.Fatalf("restored threat links: %+v", links)
 	}
@@ -97,9 +100,6 @@ func TestPublishAgency_LibraryChangeIsAChange(t *testing.T) {
 		{"a consequence title", func() error {
 			return f.db.Table(tableOf(t, f.s, "consequence")).Where("draft_id = ? AND code = ?", draftID, "Q-1").Update("title", "Produce is thrown away").Error
 		}},
-		{"a risk hazard code", func() error {
-			return f.db.Table(tableOf(t, f.s, "risk")).Where("id = ?", f.risk.ID).Update("hazard_code", "H-2").Error
-		}},
 		{"a threat link", func() error {
 			return f.db.Table(tableOf(t, f.s, "risk_threat")).Where("draft_id = ?", draftID).Delete(map[string]any{}).Error
 		}},
@@ -112,5 +112,41 @@ func TestPublishAgency_LibraryChangeIsAChange(t *testing.T) {
 		if _, err := mgr.PublishAgency(ctx, draftID, tag, "production"); err != nil {
 			t.Fatalf("changing %s must be a change, got %v", e.name, err)
 		}
+	}
+}
+
+func TestPublishAgency_ConsequenceHazardCodeIsAChange(t *testing.T) {
+	ctx := context.Background()
+	mgr, f, draftID := libraryDraftWithParts(t, ctx)
+	f.part(t, "hazard", draftID, "H-2", "Weather")
+	if err := f.db.Table(tableOf(t, f.s, "risk_consequence")).Where("draft_id = ?", draftID).Delete(map[string]any{}).Error; err != nil {
+		t.Fatalf("unlink: %v", err)
+	}
+	if _, err := mgr.PublishAgency(ctx, draftID, "release-1", "production"); err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+	if err := f.db.Table(tableOf(t, f.s, "consequence")).Where("draft_id = ? AND code = ?", draftID, "Q-1").Update("hazard_code", "H-2").Error; err != nil {
+		t.Fatalf("move consequence: %v", err)
+	}
+	if _, err := mgr.PublishAgency(ctx, draftID, "release-2", "production"); err != nil {
+		t.Fatalf("moving a consequence to another hazard must be a change, got %v", err)
+	}
+}
+
+func TestPublishAgency_RiskHazardCodeIsAChange(t *testing.T) {
+	ctx := context.Background()
+	mgr, f, draftID := libraryDraftWithParts(t, ctx)
+	f.part(t, "hazard", draftID, "H-2", "Weather")
+	if err := f.db.Table(tableOf(t, f.s, "risk_consequence")).Where("draft_id = ?", draftID).Delete(map[string]any{}).Error; err != nil {
+		t.Fatalf("unlink: %v", err)
+	}
+	if _, err := mgr.PublishAgency(ctx, draftID, "release-1", "production"); err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+	if err := f.db.Table(tableOf(t, f.s, "risk")).Where("id = ?", f.risk.ID).Update("hazard_code", "H-2").Error; err != nil {
+		t.Fatalf("move risk: %v", err)
+	}
+	if _, err := mgr.PublishAgency(ctx, draftID, "release-2", "production"); err != nil {
+		t.Fatalf("moving a risk to another hazard must be a change, got %v", err)
 	}
 }

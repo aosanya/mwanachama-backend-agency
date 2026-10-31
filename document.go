@@ -266,7 +266,7 @@ func (m *agencyManager) libraryDocuments(scoped func(string) *gorm.DB, doc *mode
 		return err
 	}
 	for _, c := range consequences {
-		doc.Consequences = append(doc.Consequences, models.DocumentConsequence{ID: c.ID, Code: c.Code, Title: c.Title, Description: c.Description})
+		doc.Consequences = append(doc.Consequences, models.DocumentConsequence{ID: c.ID, Code: c.Code, Title: c.Title, HazardCode: c.HazardCode, Description: c.Description})
 	}
 	threatLinks, err := list[models.RiskThreat](m, scoped(roleRiskThreat).Order("created_at"), roleRiskThreat)
 	if err != nil {
@@ -530,7 +530,7 @@ func (m *agencyManager) applyLibraryDocuments(ctx context.Context, tx *gorm.DB, 
 		}
 	}
 	for _, c := range doc.Consequences {
-		row := models.Consequence{ID: newID(), Code: c.Code, DraftID: draftID, Title: c.Title, Description: c.Description, CreatedAt: now, LastUpdated: now}
+		row := models.Consequence{ID: newID(), Code: c.Code, DraftID: draftID, HazardCode: c.HazardCode, Title: c.Title, Description: c.Description, CreatedAt: now, LastUpdated: now}
 		if err := m.copyRow(ctx, tx, roleConsequence, row); err != nil {
 			return err
 		}

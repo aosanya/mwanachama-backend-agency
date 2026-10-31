@@ -30,10 +30,14 @@ func (f libraryFixture) insert(t *testing.T, role string, row map[string]any) {
 
 func (f libraryFixture) part(t *testing.T, role, draftID, code, title string) {
 	t.Helper()
-	f.insert(t, role, map[string]any{
+	row := map[string]any{
 		"key": code, "code": code, "draft_id": draftID, "title": title,
 		"description": title + " in full", "last_updated": models.NowRFC3339(), "deleted": false,
-	})
+	}
+	if role == "consequence" {
+		row["hazard_code"] = "H-1"
+	}
+	f.insert(t, role, row)
 }
 
 func (f libraryFixture) link(t *testing.T, role, partColumn, draftID, riskCode, partCode string) {
@@ -86,6 +90,9 @@ func TestCreateDraft_ForksTheLibraryKeepingCodes(t *testing.T) {
 		original := f.rows(t, role, source)
 		if len(original) != 1 || original[0]["id"] == got[0]["id"] {
 			t.Fatalf("fork must mint a new %s row and leave the source: %+v", role, original)
+		}
+		if role == "consequence" && got[0]["hazard_code"] != "H-1" {
+			t.Fatalf("forked consequence lost its hazard_code: %+v", got[0])
 		}
 		if got[0]["title"] != original[0]["title"] || got[0]["description"] != original[0]["description"] {
 			t.Fatalf("forked %s lost its words: %+v", role, got[0])

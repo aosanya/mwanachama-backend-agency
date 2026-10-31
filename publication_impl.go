@@ -315,7 +315,7 @@ func (m *agencyManager) libraryHashRecords(scoped func(string) *gorm.DB) ([]stri
 	for _, r := range consequences {
 		records = append(records, hashRecord("Consequence", map[string]any{
 			"id": r.ID, "code": r.Code, "title": r.Title, "description": r.Description, "deleted": r.Deleted,
-		}))
+		}, optionalField{"hazard_code", r.HazardCode}))
 	}
 	threatLinks, err := list[models.RiskThreat](m, scoped(roleRiskThreat), roleRiskThreat)
 	if err != nil {

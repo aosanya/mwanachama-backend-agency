@@ -49,6 +49,7 @@ type DocumentConsequence struct {
 	ID          string `json:"id"`
 	Code        string `json:"code"`
 	Title       string `json:"title"`
+	HazardCode  string `json:"hazard_code,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
