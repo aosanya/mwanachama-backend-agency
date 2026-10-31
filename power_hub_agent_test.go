@@ -237,7 +237,7 @@ func toolNamesByAction(t *testing.T, path string) map[string]string {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		t.Skipf("the sibling operations file is not here: %v", err)
+		t.Fatalf("read the operations file: %v", err)
 	}
 	var ops siblingOperations
 	if err := json.Unmarshal(raw, &ops); err != nil {
@@ -257,10 +257,10 @@ func toolNamesByAction(t *testing.T, path string) map[string]string {
 func TestEveryActionOfTheHubAgentPowersIsDeclaredByItsModuleUnderTheToolNameTheAgentsCall(t *testing.T) {
 	declared := map[string]string{}
 	for _, file := range []string{
-		"../mwanachama-backend-comm/comm.operations.json",
-		"../mwanachama-backend-forms/forms.operations.json",
-		"../mwanachama-backend-sources/sources.operations.json",
-		"../mwanachama-backend-actor/actor.operations.json",
+		"testdata/operations/comm.operations.json",
+		"testdata/operations/forms.operations.json",
+		"testdata/operations/sources.operations.json",
+		"testdata/operations/actor.operations.json",
 	} {
 		for action, tool := range toolNamesByAction(t, file) {
 			declared[action] = tool
@@ -289,7 +289,7 @@ func TestEveryActionOfTheHubAgentPowersIsDeclaredByItsModuleUnderTheToolNameTheA
 }
 
 func TestTheAIActionsTheGatewayAndTheAgentsUseAreDeclaredByTheAIModule(t *testing.T) {
-	declared := toolNamesByAction(t, "../mwanachama-backend-ai/ai.operations.json")
+	declared := toolNamesByAction(t, "testdata/operations/ai.operations.json")
 	for _, c := range hubAgentCalls {
 		if !strings.HasPrefix(c.action, "ai.") {
 			continue

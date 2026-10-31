@@ -11,7 +11,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const wakalaDocument = "../developer/documentation/4. qa/mwanachama-wakala/agency.json"
+const wakalaDocument = "testdata/mwanachama-wakala.agency.json"
 
 func distinctWorkflowObjectivePairs(doc models.AgencyDocument) map[[2]string]bool {
 	pairs := map[[2]string]bool{}
@@ -40,7 +40,7 @@ func readDocument(t *testing.T, path string) models.AgencyDocument {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		t.Skipf("the document is not here: %v", err)
+		t.Fatalf("read the document: %v", err)
 	}
 	var doc models.AgencyDocument
 	if err := json.Unmarshal(raw, &doc); err != nil {

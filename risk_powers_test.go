@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const riskOperations = "../mwanachama-backend-riskmanager/riskmanager.operations.json"
+const riskOperations = "testdata/operations/riskmanager.operations.json"
 
 var riskReadActions = []string{
 	"riskmanager.consequence.list",
@@ -33,11 +33,11 @@ type riskOperation struct {
 	Action string `json:"action"`
 }
 
-func riskOperationsOrSkip(t *testing.T) []riskOperation {
+func riskOperationsFromTestdata(t *testing.T) []riskOperation {
 	t.Helper()
 	raw, err := os.ReadFile(riskOperations)
 	if err != nil {
-		t.Skipf("the risk manager is not checked out beside this repo: %v", err)
+		t.Fatalf("read the risk manager operations: %v", err)
 	}
 	var doc struct {
 		Operations map[string]riskOperation `json:"operations"`
@@ -71,7 +71,7 @@ func TestRiskReadPowerCarriesExactlyTheSixAnswersAndTheReadsThatFindThem(t *test
 }
 
 func TestRiskReadPowerCarriesOnlyActionsTheRiskManagerServesAsReads(t *testing.T) {
-	ops := riskOperationsOrSkip(t)
+	ops := riskOperationsFromTestdata(t)
 	method := map[string]string{}
 	for _, op := range ops {
 		method[op.Action] = op.Method
@@ -90,7 +90,7 @@ func TestRiskReadPowerCarriesOnlyActionsTheRiskManagerServesAsReads(t *testing.T
 }
 
 func TestNoUnlockedPowerCarriesARiskManagerWrite(t *testing.T) {
-	ops := riskOperationsOrSkip(t)
+	ops := riskOperationsFromTestdata(t)
 	held := heldByAnUnlockedPower()
 	for _, op := range ops {
 		if op.Method == "GET" {
@@ -121,9 +121,9 @@ func TestOnlyTheLabsHubStewardHoldsRiskRead(t *testing.T) {
 		file, role string
 		holds      bool
 	}{
-		{"../projects/meta-global-ai-hackathon-community-hubs/submission/demo/siaya-lab/agency.json", "Hub Steward", true},
-		{"../projects/meta-global-ai-hackathon-community-hubs/submission/demo/boda-boda-riders/agency.json", "Hub Steward", false},
-		{"../projects/meta-global-ai-hackathon-community-hubs/submission/demo/farmers/agency.json", "Farmers' agent", false},
+		{"testdata/hub-demo/siaya-lab/agency.json", "Hub Steward", true},
+		{"testdata/hub-demo/boda-boda-riders/agency.json", "Hub Steward", false},
+		{"testdata/hub-demo/farmers/agency.json", "Farmers' agent", false},
 	}
 	for _, c := range cases {
 		t.Run(c.role+" in "+c.file, func(t *testing.T) {

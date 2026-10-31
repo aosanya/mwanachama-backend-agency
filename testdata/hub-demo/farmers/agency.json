@@ -1,0 +1,1340 @@
+{
+  "_template": {
+    "sector": "agriculture",
+    "archetype": "farmers' group",
+    "illustrative": true,
+    "note": "Synthetic template for a group of farmers around a hub planned in Siaya, Kenya. The hub is not open, every person is synthetic, and the numbers in the rules are values chosen for the demo."
+  },
+  "agency": {
+    "id": "270e07b7-6b69-55ca-aa30-9441ce138541",
+    "name": "Siaya Farmers' Group",
+    "description": "A group of farmers around a community tech hub planned in Siaya, Kenya, who buy farm inputs from approved suppliers, alone or as a group order, and look for a buyer for their produce, with two AI agents: one for the farmers and one for the suppliers. The hub is planned, not open.",
+    "enabled": true
+  },
+  "modules": [
+    {
+      "id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "code": "comm",
+      "name": "comm",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3c367fd0-8d14-549a-87df-bf02a7455b52",
+      "code": "taskmanager",
+      "name": "taskmanager",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "dcec5bfc-a1ca-525a-9bb4-d6a64d7c16a1",
+      "code": "forms",
+      "name": "forms",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "25f3b224-a648-58cb-9416-9baa137b2b30",
+      "code": "market",
+      "name": "market",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "objective_modules": [
+    {
+      "id": "e124837a-a15d-5718-95f6-d052293218b5",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "module_id": "dcec5bfc-a1ca-525a-9bb4-d6a64d7c16a1",
+      "rationale": "The farmer's input question is a form; each send opens a thread the Farmers' agent answers in.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1b6301a5-0580-56e2-82c0-c71996bf4425",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "module_id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "rationale": "The Farmers' agent answers the farmer in the thread the form opened.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "14e152b2-d3de-5705-b915-2a2938cfe807",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "module_id": "3c367fd0-8d14-549a-87df-bf02a7455b52",
+      "rationale": "A pooled order is a task for the group coordinator to approve.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "65205d5f-2d74-5184-9015-e12b5f83ea1d",
+      "objective_id": "ca9012e6-6812-56f2-9b66-1c23aad0d4b6",
+      "module_id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "rationale": "Each farmer is told their share in a thread.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "90214bc7-5a35-57d5-beb8-126fc6016ae1",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "module_id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "rationale": "The Farmers' agent offers a match to the farmer and the buyer in a thread.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "6ae84163-baad-573d-ba28-9c4e7b609c6f",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "module_id": "25f3b224-a648-58cb-9416-9baa137b2b30",
+      "rationale": "Posters post their prices here, the farmer picks a row, and each order and group order is kept here.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "fd444917-21b5-5da9-ba8a-a9b52d2f6d13",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "module_id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "rationale": "The agents ask and answer in the person's own thread.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "roles": [
+    {
+      "id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "code": "R-1",
+      "name": "Group coordinator",
+      "description": "Keeps the farmers' group going. Approves each supplier before he appears in the market, starts the group order and sets its minimum, decides for any farmer who stays silent, adds a row to the Group order's Payments record for each farmer who has paid, and answers for the group to suppliers and buyers. This role is held by a person.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "code": "R-2",
+      "name": "Farmer",
+      "description": "A member of the group who grows crops. Says what inputs they need, such as seed or fertiliser and how much, and what produce they have to sell.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ff60e4c9-04a6-5b93-8fcb-a61941d291bb",
+      "code": "R-3",
+      "name": "Supplier",
+      "description": "A seller of farm inputs, approved by the group coordinator before he appears. Posts his offers with a price and a bulk price in his own words, keeps his own stock, says yes with a date or no when a farmer asks, and marks an order paid.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7c80ae1e-428c-564b-a00a-8648146b5495",
+      "code": "R-4",
+      "name": "Buyer",
+      "description": "A person or business that buys the farmers' produce. Posts his price a bag and his bulk price in his own words, and says yes or no for himself when a farmer asks to sell or a group sale is sent to him. Nobody else answers for him, not the Farmers' agent, not the group coordinator. He sees a farmer's name and bags, never a contact.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false,
+      "powers": [
+        "market.browse",
+        "market.offer"
+      ]
+    },
+    {
+      "id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "code": "R-5",
+      "name": "Farmers' agent",
+      "powers": [
+        "ai.use",
+        "chat.post",
+        "chat.thread",
+        "document.read",
+        "document.search",
+        "form.answers.read",
+        "form.compose",
+        "form.send",
+        "group.read",
+        "member.read",
+        "market.browse",
+        "market.ask",
+        "market.group_order",
+        "market.notice"
+      ],
+      "description": "The group's AI role that speaks to the people who want something. Looks at the posted prices first and asks only the one poster a farmer picked, only what is not already posted; shows the farmer each answer; matches farmers' produce to a buyer's request. It never says yes for a person and holds no supplier threads.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f3be31f4-df41-50e1-a976-4c02b28abbbc",
+      "code": "R-6",
+      "name": "Suppliers' agent",
+      "description": "The group's AI role that speaks to the posters. Helps a supplier post his offers and keep his private stock list, and carries the one question a farmer picked him for. It holds no farmer threads, cannot open an order, and never says yes for a person.",
+      "powers": [
+        "ai.use",
+        "chat.post",
+        "chat.thread",
+        "document.read",
+        "document.search",
+        "group.read",
+        "member.read",
+        "market.browse",
+        "market.offer"
+      ],
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "goals": [
+    {
+      "id": "25de69ff-4349-566e-91ea-3bdf7b2d4de1",
+      "code": "G-1",
+      "title": "Farmers buy inputs together",
+      "description": "The group's input needs reach a supplier as one order, so each farmer buys on the group's terms.",
+      "ordinality": 1,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a874d2c5-0289-5188-abbc-01b60b33da71",
+      "code": "G-2",
+      "title": "Farmers find a buyer for their produce",
+      "description": "Farmers see what each buyer pays for their produce and sell it alone or together, at a price the buyer posted himself.",
+      "ordinality": 2,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "objectives": [
+    {
+      "id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "code": "O-1",
+      "goal_id": "25de69ff-4349-566e-91ea-3bdf7b2d4de1",
+      "title": "Gather the farmers' needs into one order",
+      "description": "The Farmers' agent collects each farmer's input question and combines them into one pooled order for a supplier.",
+      "ordinality": 1,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ca9012e6-6812-56f2-9b66-1c23aad0d4b6",
+      "code": "O-2",
+      "goal_id": "25de69ff-4349-566e-91ea-3bdf7b2d4de1",
+      "title": "Get the supplier's answer to the farmers",
+      "description": "The supplier confirms what it can fill and at what price, and each farmer is told what their share is.",
+      "ordinality": 2,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "code": "O-3",
+      "goal_id": "a874d2c5-0289-5188-abbc-01b60b33da71",
+      "title": "Farmers sell their produce at a buyer's posted price, alone or together",
+      "description": "A farmer sees every buyer's posted price, picks one, and sells now or joins a group sale the group coordinator starts. Nothing is sent when a posted price answers.",
+      "ordinality": 1,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "code": "O-4",
+      "goal_id": "25de69ff-4349-566e-91ea-3bdf7b2d4de1",
+      "title": "Farmers buy from approved suppliers, alone or together",
+      "description": "A farmer sees every approved supplier's posted price, picks one, and buys now or joins a group order the group coordinator starts. Nothing is sent when a posted price answers.",
+      "ordinality": 4,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "values": [
+    {
+      "id": "f7c3e770-4252-5585-85d8-8b51a813c667",
+      "code": "V-1",
+      "text": "Farmers do better together than alone; what the agents do is something a person could do and the group can check.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "a2d65944-8e06-5040-8df0-d1ef99cc5219",
+      "code": "RU-1",
+      "text": "A farmer asks for inputs through the group's form, saying the input, the amount and when they need it.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c6b765ca-fb8a-5327-88a4-99789070df80",
+      "code": "RU-2",
+      "text": "The Farmers' agent pools the farmers' needs for the same input into one order, and the group coordinator approves the order before it goes to a supplier.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3dd33a07-2beb-5d33-ab1a-f8651e100a92",
+      "code": "RU-3",
+      "text": "A supplier answers a pooled order with what it can fill and the price; the Farmers' agent tells each farmer their share and the price.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "59671ffd-e661-5a61-b6ad-4bb16f581d24",
+      "code": "RU-4",
+      "text": "A farmer is bound to an order only after they have said yes to their share.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "b6e66a89-a2b3-5595-a18f-5026151d98d1",
+      "code": "RU-5",
+      "text": "A buyer posts his price a bag and his bulk price in his own words, and a farmer says what produce she has, how much and when it is ready.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3bda80ff-4d6c-5219-bd0e-347a8dcd4edb",
+      "code": "RU-6",
+      "text": "The Farmers' agent asks only the one buyer a farmer picked, and only what his posted price does not already answer; each side agrees its own deal.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "057b633f-f08b-5f85-b77b-6cec3a90d2ee",
+      "code": "RU-7",
+      "text": "Neither agent sets a price, takes a payment or says yes for a person, and neither approves its own draft.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "752602fd-bd58-5265-9958-058ee53c633d",
+      "code": "RU-8",
+      "text": "Both agents answer in the language the person writes in.",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "251fb5e1-2c58-56d2-be96-729026687ad9",
+      "code": "RU-9",
+      "text": "A supplier or buyer posts his price and his bulk price in his own words, and the Farmers' agent looks at the posted prices first and asks nothing when a posted price answers.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5aecd70f-37b3-52a3-85d7-adde7b8939dc",
+      "code": "RU-10",
+      "text": "A farmer sees every approved poster's row for a product, each in the poster's own words, and picks; the agents group the rows into products and the group coordinator corrects a wrong grouping.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "76d0e3ed-a179-5d36-bf45-1f765566627b",
+      "code": "RU-11",
+      "text": "Buy now asks the one poster the farmer picked, at once; he says yes with a date, or no; if he does not answer nothing happens; the farmer cancels at once unless the agency has a cancel workflow; the poster marks the order paid.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9aefa9b0-d179-51e9-b45b-14fb0d9dd2de",
+      "code": "RU-12",
+      "text": "A group order starts from a poster's posted bulk price; the group coordinator starts it, sets the minimum and says when it is ready; it has no closing time; sending is locked below the minimum; the order keeps the price and minimum it started with.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5986fcfb-5990-5a54-8871-7e6a78c0c6c2",
+      "code": "RU-13",
+      "text": "The poster sees the open group order with each farmer's name and amount and no contact, and may ask the farmers to revise through the Suppliers' agent; each farmer answers yes or no, and the group coordinator decides for each one who stays silent while the order waits.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "116b9659-9eec-5f1b-86b0-efb4c7d6d485",
+      "code": "RU-14",
+      "text": "Nothing runs on a timer: when someone does not answer the agents do nothing and the person waiting decides.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4d55117e-5aad-5c03-9fa2-9d60c26abe41",
+      "code": "RU-15",
+      "text": "The poster is trusted to be in charge of his stock; the system keeps each yes and never works out stock, and a supplier's private stock list is seen by him alone.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ccb98de4-2f79-56bb-9a63-8efcc1bf56ce",
+      "code": "RU-16",
+      "text": "For something not listed the farmer chooses: ask the shops she ticks, once each, or put up a notice every poster sees; her list shows every poster asked and the answer, waiting, yes or no.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "87d782c1-331c-5402-a708-092ef2e6b3c6",
+      "code": "RU-17",
+      "text": "The group coordinator approves each poster before he appears in the market; the Suppliers' agent holds no farmer threads and cannot open an order, because a poster's reply is outside text the agent cannot trust.",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "value_attachments": [
+    {
+      "id": "4ed8fc2a-73cf-5c6a-a022-9cee9f387c28",
+      "value_code": "V-1",
+      "target_type": "objective",
+      "target_code": "O-1",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "8b7d22f3-b80a-572b-8322-8253f3109938",
+      "value_code": "V-1",
+      "target_type": "objective",
+      "target_code": "O-3",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "45a54001-f750-5b14-8dc6-c2e4721d31fe",
+      "value_code": "V-1",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    }
+  ],
+  "rule_attachments": [
+    {
+      "id": "dde29d30-9506-5d7f-9c70-b9b824a594ff",
+      "rule_code": "RU-1",
+      "target_type": "objective",
+      "target_code": "O-1",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "fdc81c4b-8b14-5680-a26b-b5be76f48b64",
+      "rule_code": "RU-1",
+      "target_type": "role",
+      "target_code": "R-2",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "75554e95-26e8-5fbb-95d6-cfe411e6ff06",
+      "rule_code": "RU-2",
+      "target_type": "objective",
+      "target_code": "O-1",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "febd9369-494a-5171-aa41-a801af974864",
+      "rule_code": "RU-2",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "bd82e496-cbd8-5fe2-a7db-1f736bd5304b",
+      "rule_code": "RU-3",
+      "target_type": "objective",
+      "target_code": "O-2",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "52fe98d7-ca0a-5119-b57a-cc368b61b66c",
+      "rule_code": "RU-3",
+      "target_type": "role",
+      "target_code": "R-3",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "3743ec5a-efdf-54b2-882c-b6a550cfe315",
+      "rule_code": "RU-4",
+      "target_type": "objective",
+      "target_code": "O-2",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "96e0659c-6dd6-549a-8026-49291ff69cd9",
+      "rule_code": "RU-4",
+      "target_type": "role",
+      "target_code": "R-2",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "3d73e79b-c98a-5074-a9d8-e4e62c59c292",
+      "rule_code": "RU-5",
+      "target_type": "objective",
+      "target_code": "O-3",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "3ca96631-771f-5cf8-b5de-763eb8967b67",
+      "rule_code": "RU-5",
+      "target_type": "role",
+      "target_code": "R-4",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "f13aa450-8423-5b7b-a7dc-d58791a67e9b",
+      "rule_code": "RU-6",
+      "target_type": "objective",
+      "target_code": "O-3",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "c9422f29-3268-5574-bb9b-2e9c198f7ccf",
+      "rule_code": "RU-6",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "4f4a4d58-1cdd-5910-97d7-73483709c120",
+      "rule_code": "RU-7",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "2b2ca45d-06f2-571f-8cde-2cff67e6e96e",
+      "rule_code": "RU-8",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "4fddd828-9f79-5f7b-b39d-eea14064c868",
+      "rule_code": "RU-7",
+      "target_type": "role",
+      "target_code": "R-6",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "7301598e-e4c9-54af-b3c5-264d7d595b3e",
+      "rule_code": "RU-8",
+      "target_type": "role",
+      "target_code": "R-6",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "52024358-3b52-5f58-96bf-6c108e9c1036",
+      "rule_code": "RU-9",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "9b9a52bd-fb1a-56c5-9b26-99ea21effd4a",
+      "rule_code": "RU-9",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "3323ac7d-f174-5350-824e-4870821b1379",
+      "rule_code": "RU-9",
+      "target_type": "role",
+      "target_code": "R-3",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "b9115c8c-4125-5277-86b1-604c40e6ca4f",
+      "rule_code": "RU-10",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "73e313ce-a58b-5f0e-8fdb-d7c86ad4fa2f",
+      "rule_code": "RU-10",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "ceadc3d2-a69b-59f0-8649-87fac94c58ca",
+      "rule_code": "RU-10",
+      "target_type": "role",
+      "target_code": "R-6",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "cd8aa25e-8f38-58c3-947d-00e8aff66b4b",
+      "rule_code": "RU-11",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "24755a7a-9dc1-54e7-970d-8305578cfbe1",
+      "rule_code": "RU-11",
+      "target_type": "role",
+      "target_code": "R-2",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "28f09ee6-24be-5725-b489-aa71e22a9153",
+      "rule_code": "RU-11",
+      "target_type": "role",
+      "target_code": "R-3",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "5f3582eb-2829-5f00-9b08-405f86faf373",
+      "rule_code": "RU-12",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "2fbb9da9-86f2-5cdc-8b97-48ead100cb1c",
+      "rule_code": "RU-12",
+      "target_type": "role",
+      "target_code": "R-1",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "9b971ad1-7cb4-57f0-878e-0beb7a5c4399",
+      "rule_code": "RU-13",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "027687ed-7e34-57a0-b69f-a919a8a77e34",
+      "rule_code": "RU-13",
+      "target_type": "role",
+      "target_code": "R-3",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "7a86786f-b944-57ff-a3a1-ec5e761fd377",
+      "rule_code": "RU-13",
+      "target_type": "role",
+      "target_code": "R-6",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "5957d1a9-6edf-5d90-b271-69121a25a5a8",
+      "rule_code": "RU-14",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "678d4d6f-a09c-5407-b921-d4d3a27ee665",
+      "rule_code": "RU-14",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "1a3d44a7-f2fb-550e-80d9-b5050dc0c9a2",
+      "rule_code": "RU-14",
+      "target_type": "role",
+      "target_code": "R-6",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "c1abcf12-4332-5776-b98b-7c4d1a69b329",
+      "rule_code": "RU-15",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "94d750eb-2fde-589b-a4d7-618da09f9a2c",
+      "rule_code": "RU-15",
+      "target_type": "role",
+      "target_code": "R-3",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "612b872e-e340-50b3-a247-4484f9c8aa33",
+      "rule_code": "RU-16",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "aa981137-0966-5589-a4c4-46a3e81f4449",
+      "rule_code": "RU-16",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "c245f249-c9a3-5437-b4e8-400b8ed2eb4e",
+      "rule_code": "RU-16",
+      "target_type": "role",
+      "target_code": "R-2",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "ba6cb785-f5e3-54cb-a69e-09deb390968d",
+      "rule_code": "RU-17",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "ac3f241b-ef8a-540f-b980-a3a04fbe8cb1",
+      "rule_code": "RU-17",
+      "target_type": "role",
+      "target_code": "R-1",
+      "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "c56fd35a-0cb8-52e3-a85c-6fc981374538",
+      "rule_code": "RU-17",
+      "target_type": "role",
+      "target_code": "R-6",
+      "created_at": "2026-10-28T00:00:00Z"
+    }
+  ],
+  "workflows": [
+    {
+      "id": "64603fa9-a8c4-5544-810e-86ce5546ecdb",
+      "code": "W-1",
+      "name": "Pooled input order",
+      "description": "From the farmers' input questions to a supplier's filled order.",
+      "ordinality": 1,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "81f4d0cc-18dd-5f22-a9a7-070b3bae0cf0",
+      "code": "W-2",
+      "name": "Produce to a buyer",
+      "description": "From what a farmer has to a buyer who wants it.",
+      "ordinality": 2,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "36ccddaa-f5dc-5d1e-94c5-314582448092",
+      "code": "W-3",
+      "name": "Approve a poster",
+      "description": "A supplier applies to sell and appears in the market only once approved. Says yes: the group coordinator.",
+      "ordinality": 3,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "fc0157e4-9517-5e18-a390-6e52798794a7",
+      "code": "W-4",
+      "name": "Buy now",
+      "description": "A farmer buys alone from the poster she picked. Says yes: the poster, with a date.",
+      "ordinality": 4,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "15cb700d-0703-5fa1-90e9-a34fc0ba067f",
+      "code": "W-5",
+      "name": "Group order",
+      "description": "Farmers pool one order at a poster's bulk price. Says yes: each farmer for her own line, and the group coordinator for any who stays silent.",
+      "ordinality": 5,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f9cea49d-573d-5dda-8b3d-a376a782d946",
+      "code": "W-6",
+      "name": "Find it",
+      "description": "A farmer looks for something no poster lists. Says yes: the farmer chooses whom to ask or to put up a notice; each asked poster answers for himself.",
+      "ordinality": 6,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "31d2bb69-6e5e-5114-a296-4850068cd3b2",
+      "code": "W-7",
+      "name": "Sell now",
+      "description": "A farmer sells alone to the buyer she picked at his posted price. Says yes: the buyer, with a date to collect.",
+      "ordinality": 7,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "63877f8f-a7ab-53d6-aee8-28b3b8a16e96",
+      "code": "W-8",
+      "name": "Group sale",
+      "description": "Farmers pool one sale at a buyer's bulk price. Says yes: the coordinator starts and sends it, each farmer for her own line, and the buyer for the whole.",
+      "ordinality": 8,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "654075f2-7e8b-5436-b568-26cc9f9614df",
+      "code": "W-9",
+      "name": "Change my share",
+      "description": "A farmer changes or cancels her own share of a group order until the group coordinator sends it. No one approves; the group coordinator is told.",
+      "ordinality": 9,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "work_items": [
+    {
+      "id": "0038b3c8-3e95-594b-acd2-090b967246a1",
+      "code": "WI-1",
+      "workflow_id": "64603fa9-a8c4-5544-810e-86ce5546ecdb",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "title": "Collect the farmers' input questions",
+      "description": "Take each farmer's question about an input, with the amount and the date, from the group's form.",
+      "prompt": "Take each farmer's question about an input, with the amount and the date, from the group's form.",
+      "ordinality": 1,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e652c143-6b1c-5e75-8135-9c0c98a2ca74",
+      "code": "WI-2",
+      "workflow_id": "64603fa9-a8c4-5544-810e-86ce5546ecdb",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "title": "Draft the pooled order",
+      "description": "Combine the questions for the same input into one order and draft it for the group coordinator.",
+      "prompt": "Combine the questions for the same input into one order and draft it for the group coordinator.",
+      "ordinality": 2,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "fd23c4ae-fe79-5a12-b719-956d32244e58",
+      "code": "WI-3",
+      "workflow_id": "64603fa9-a8c4-5544-810e-86ce5546ecdb",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "title": "Approve and send the order",
+      "description": "The group coordinator approves or declines the draft; an approved order goes to the supplier.",
+      "prompt": "The group coordinator approves or declines the draft; an approved order goes to the supplier.",
+      "ordinality": 3,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c319bddd-320c-5f8e-bb34-95a2c247cf90",
+      "code": "WI-4",
+      "workflow_id": "64603fa9-a8c4-5544-810e-86ce5546ecdb",
+      "objective_id": "ca9012e6-6812-56f2-9b66-1c23aad0d4b6",
+      "title": "The supplier answers",
+      "description": "The supplier says what it can fill and the price.",
+      "prompt": "The supplier says what it can fill and the price.",
+      "ordinality": 4,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "05b4973c-cc89-5b1f-9897-7f54b78d5918",
+      "code": "WI-5",
+      "workflow_id": "64603fa9-a8c4-5544-810e-86ce5546ecdb",
+      "objective_id": "ca9012e6-6812-56f2-9b66-1c23aad0d4b6",
+      "title": "Tell each farmer their share",
+      "description": "Tell each farmer their share and its price, and record who says yes.",
+      "prompt": "Tell each farmer their share and its price, and record who says yes.",
+      "ordinality": 5,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5382cad1-c838-5b1a-9eb8-db2bc77a2020",
+      "code": "WI-6",
+      "workflow_id": "81f4d0cc-18dd-5f22-a9a7-070b3bae0cf0",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "Collect produce and wants",
+      "description": "Take what farmers have to sell and what buyers want to buy.",
+      "prompt": "Take what farmers have to sell and what buyers want to buy.",
+      "ordinality": 1,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a1fffd49-a8bb-5387-b04e-8d0d0f4cf90d",
+      "code": "WI-7",
+      "workflow_id": "81f4d0cc-18dd-5f22-a9a7-070b3bae0cf0",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "Offer the match",
+      "description": "Where the produce, amount and date fit, offer the match to the farmer and the buyer.",
+      "prompt": "Where the produce, amount and date fit, offer the match to the farmer and the buyer.",
+      "ordinality": 2,
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "b491d39f-2728-53fc-beaa-67de86288233",
+      "code": "WI-8",
+      "workflow_id": "36ccddaa-f5dc-5d1e-94c5-314582448092",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Receive the supplier's application",
+      "description": "The supplier says his shop, his area and what he sells; the Suppliers' agent hands it to the group coordinator and posts nothing.",
+      "prompt": "The supplier says his shop, his area and what he sells; the Suppliers' agent hands it to the group coordinator and posts nothing.",
+      "ordinality": 1,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3cd39a39-a358-59c8-820d-a7f6c9a4dfc9",
+      "code": "WI-9",
+      "workflow_id": "36ccddaa-f5dc-5d1e-94c5-314582448092",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Approve or decline the supplier",
+      "description": "Says yes: the group coordinator approves or declines. Until she does, the supplier is not shown to any farmer.",
+      "prompt": "Says yes: the group coordinator approves or declines. Until she does, the supplier is not shown to any farmer.",
+      "ordinality": 2,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9b957f12-1a3b-511b-b9ca-516c95ced2b6",
+      "code": "WI-10",
+      "workflow_id": "fc0157e4-9517-5e18-a390-6e52798794a7",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Ask the picked poster",
+      "description": "The farmer picks a row and the Farmers' agent asks that one poster at once. Nothing is sent to anyone else.",
+      "prompt": "The farmer picks a row and the Farmers' agent asks that one poster at once. Nothing is sent to anyone else.",
+      "ordinality": 1,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "be332198-a670-5111-91b4-3ac2afc9234d",
+      "code": "WI-11",
+      "workflow_id": "fc0157e4-9517-5e18-a390-6e52798794a7",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "The poster says yes or no",
+      "description": "Says yes: the poster, with a date; or no, and the farmer picks another herself. No answer does nothing.",
+      "prompt": "Says yes: the poster, with a date; or no, and the farmer picks another herself. No answer does nothing.",
+      "ordinality": 2,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "98a6d4eb-0d48-5465-b94b-571f92c4ba10",
+      "code": "WI-12",
+      "workflow_id": "fc0157e4-9517-5e18-a390-6e52798794a7",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Mark the order paid",
+      "description": "The poster marks the order paid; the farmer may cancel at once until the agency adds a cancel workflow.",
+      "prompt": "The poster marks the order paid; the farmer may cancel at once until the agency adds a cancel workflow.",
+      "ordinality": 3,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4efb5372-5440-5732-8eae-e1350b0a56a9",
+      "code": "WI-13",
+      "workflow_id": "15cb700d-0703-5fa1-90e9-a34fc0ba067f",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Start the group order",
+      "description": "Says yes: the group coordinator starts it from the poster's posted bulk price and sets the minimum.",
+      "prompt": "Says yes: the group coordinator starts it from the poster's posted bulk price and sets the minimum.",
+      "ordinality": 1,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "8bbfb2b6-5b3c-5154-a935-9bb74194ad27",
+      "code": "WI-14",
+      "workflow_id": "15cb700d-0703-5fa1-90e9-a34fc0ba067f",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Farmers join and revise",
+      "description": "Each farmer joins with her amount, or answers yes or no when the poster asks for a revision.",
+      "prompt": "Each farmer joins with her amount, or answers yes or no when the poster asks for a revision.",
+      "ordinality": 2,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e24e55b4-ee96-5f94-aae5-59f15ffa8fed",
+      "code": "WI-15",
+      "workflow_id": "15cb700d-0703-5fa1-90e9-a34fc0ba067f",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Send the order",
+      "description": "Says yes: the group coordinator says when it is ready and sends it once the minimum is met.",
+      "prompt": "Says yes: the group coordinator says when it is ready and sends it once the minimum is met.",
+      "ordinality": 3,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "86a9fdc0-3c49-59f0-ba0e-866090c7a500",
+      "code": "WI-16",
+      "workflow_id": "f9cea49d-573d-5dda-8b3d-a376a782d946",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Choose shops to ask or put up a notice",
+      "description": "Says yes: the farmer ticks the posters to ask, once each, or puts up a notice every poster sees.",
+      "prompt": "Says yes: the farmer ticks the posters to ask, once each, or puts up a notice every poster sees.",
+      "ordinality": 1,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3ff0817a-9a17-5b1d-816b-bd1f2c4066a2",
+      "code": "WI-17",
+      "workflow_id": "f9cea49d-573d-5dda-8b3d-a376a782d946",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Show each answer as found for you",
+      "description": "Each reply becomes a row for the farmer; her list shows every poster asked and the answer.",
+      "prompt": "Each reply becomes a row for the farmer; her list shows every poster asked and the answer.",
+      "ordinality": 2,
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0a74b902-8a6a-5003-87b6-9a7d7be250ae",
+      "code": "WI-18",
+      "workflow_id": "31d2bb69-6e5e-5114-a296-4850068cd3b2",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "The farmer sells at the posted price",
+      "description": "The farmer picks a buyer and enters her bags at the price shown; nothing is sent when the posted price answers.",
+      "prompt": "The farmer picks a buyer and enters her bags at the price shown; nothing is sent when the posted price answers.",
+      "ordinality": 1,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3a2ce3ea-52bd-58e3-9ec0-5539f63ee684",
+      "code": "WI-19",
+      "workflow_id": "31d2bb69-6e5e-5114-a296-4850068cd3b2",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "Ask the buyer once",
+      "description": "The Farmers' agent asks the one buyer she picked only what his posted price does not already answer.",
+      "prompt": "The Farmers' agent asks the one buyer she picked only what his posted price does not already answer.",
+      "ordinality": 2,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "fcd699eb-e040-58a1-8f11-75e8d5aef1b8",
+      "code": "WI-20",
+      "workflow_id": "31d2bb69-6e5e-5114-a296-4850068cd3b2",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "The buyer says yes",
+      "description": "Says yes: the buyer, with a date to collect from the farm; until then the ask has no answer.",
+      "prompt": "Says yes: the buyer, with a date to collect from the farm; until then the ask has no answer.",
+      "ordinality": 3,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "73ae92b9-842d-5edc-9258-551c886ae2a8",
+      "code": "WI-21",
+      "workflow_id": "63877f8f-a7ab-53d6-aee8-28b3b8a16e96",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "Start the group sale",
+      "description": "Says yes: the group coordinator starts it from the buyer's posted bulk price and sets the minimum.",
+      "prompt": "Says yes: the group coordinator starts it from the buyer's posted bulk price and sets the minimum.",
+      "ordinality": 1,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "653becbf-35ce-57c3-9208-6a4c375c225c",
+      "code": "WI-22",
+      "workflow_id": "63877f8f-a7ab-53d6-aee8-28b3b8a16e96",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "Farmers join with their bags",
+      "description": "Each farmer joins with her bags under the terms the sale started with and sees only her own line.",
+      "prompt": "Each farmer joins with her bags under the terms the sale started with and sees only her own line.",
+      "ordinality": 2,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "8d99d571-8d45-563b-9c90-3e7e6d58276b",
+      "code": "WI-23",
+      "workflow_id": "63877f8f-a7ab-53d6-aee8-28b3b8a16e96",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "Send the group sale",
+      "description": "Says yes: the group coordinator sends it to the buyer once the minimum is met.",
+      "prompt": "Says yes: the group coordinator sends it to the buyer once the minimum is met.",
+      "ordinality": 3,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "063349d1-8ce4-50a9-955e-8b9ed4b438e8",
+      "code": "WI-24",
+      "workflow_id": "63877f8f-a7ab-53d6-aee8-28b3b8a16e96",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "title": "The buyer says yes",
+      "description": "Says yes: the buyer, for the whole sale, with a date to collect from each farm.",
+      "prompt": "Says yes: the buyer, for the whole sale, with a date to collect from each farm.",
+      "ordinality": 4,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3a01edde-7d56-5e20-928c-6df49271362f",
+      "code": "WI-25",
+      "workflow_id": "654075f2-7e8b-5436-b568-26cc9f9614df",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Change or cancel my share",
+      "description": "The farmer edits her bags or takes them out while the group order is open. The group coordinator is told and nobody approves. Once the group coordinator has sent the order, only the coordinator calls it off.",
+      "prompt": "The farmer edits her bags or takes them out while the group order is open. The group coordinator is told and nobody approves. Once the group coordinator has sent the order, only the coordinator calls it off.",
+      "ordinality": 1,
+      "created_at": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "work_plans": [],
+  "role_assignments": [
+    {
+      "id": "216aeaec-2f04-511c-9816-c11b077cb9e6",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "label": "accountable",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1a22e17c-31eb-56b7-a4a7-17c6e2caacd7",
+      "role_id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "label": "responsible",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "22506d67-baa2-5e87-becc-f31dde19c021",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "label": "consulted",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7598e812-e34b-50be-9297-967206d8b03f",
+      "role_id": "ff60e4c9-04a6-5b93-8fcb-a61941d291bb",
+      "objective_id": "ee855aca-30cb-50de-823b-6e31ef93a138",
+      "label": "informed",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0f5163bc-55dd-58fc-b53d-7df9ad9a06cf",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "objective_id": "ca9012e6-6812-56f2-9b66-1c23aad0d4b6",
+      "label": "accountable",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4560b7f0-4a00-5c8f-9740-910cefa94af2",
+      "role_id": "ff60e4c9-04a6-5b93-8fcb-a61941d291bb",
+      "objective_id": "ca9012e6-6812-56f2-9b66-1c23aad0d4b6",
+      "label": "responsible",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c84e3d5b-0a0e-5997-91a1-3b0437bd631b",
+      "role_id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "objective_id": "ca9012e6-6812-56f2-9b66-1c23aad0d4b6",
+      "label": "responsible",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4f53a6ba-0f73-53d9-a87f-aa7b168e4730",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "objective_id": "ca9012e6-6812-56f2-9b66-1c23aad0d4b6",
+      "label": "informed",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "8c180d93-ef7b-5998-97ef-d5ce07765ead",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "label": "accountable",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9da59dc8-17ad-555c-a659-b10e4f917dac",
+      "role_id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "label": "responsible",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "39adf207-b160-540e-b139-35f474ed318d",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "label": "consulted",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9255ba0e-7194-59d0-9f6f-0c932d2c5588",
+      "role_id": "7c80ae1e-428c-564b-a00a-8648146b5495",
+      "objective_id": "7641e18b-ffbb-5c8e-85f8-3f171d84df07",
+      "label": "consulted",
+      "created_at": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "fece1f3f-10ca-530b-8db1-bcbc9deb1f9f",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "label": "accountable",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3a1f6c5f-5f29-5bb2-935d-c4bdda68c282",
+      "role_id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "label": "responsible",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f1a1435f-ef47-50a9-a639-6251640fed3a",
+      "role_id": "f3be31f4-df41-50e1-a976-4c02b28abbbc",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "label": "responsible",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7212ef3a-f881-5b44-b0b8-e681a9239919",
+      "role_id": "ff60e4c9-04a6-5b93-8fcb-a61941d291bb",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "label": "consulted",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "89f73ef9-fa1e-5192-8bb7-8ea13f60c3f2",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "label": "consulted",
+      "created_at": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "drafts": [],
+  "publications": [],
+  "records": [
+    {
+      "id": "b1f0c7a4-5d36-5e0a-9b52-3c7a1e8f4d60",
+      "code": "RC-1",
+      "workflow_id": "15cb700d-0703-5fa1-90e9-a34fc0ba067f",
+      "name": "Payments",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "form_name": "Payment",
+      "questions": [
+        {
+          "prompt": "Select the farmer",
+          "answer_type": "single_choice",
+          "required": true,
+          "options_from": "Farmer"
+        },
+        {
+          "prompt": "Enter the amount paid",
+          "answer_type": "currency",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

@@ -7,6 +7,9 @@ they cover; there is no separate test corpus.
 go test ./...        # in-memory SQLite (glebarez/sqlite), no database needed
 ```
 
+The fixtures the tests read, and where they were copied from, are in
+[test-fixtures.md](test-fixtures.md).
+
 `go test ./...` is green apart from the deliberate red listed under Red by
 design. As of 2026-10-03 (confirmed by the integration sweep with `grep -rc
 "^func Test" *.go mcp/*.go routes/*.go`) there were

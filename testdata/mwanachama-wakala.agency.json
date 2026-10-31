@@ -1,0 +1,1058 @@
+{
+  "_template": {
+    "sector": "large-enterprise",
+    "archetype": "Agency Catalog Operator",
+    "mined_at": "2026-09-22T00:00:00Z",
+    "research_mode": "first-party"
+  },
+  "agency": {
+    "id": "af24c1b4-13bc-5294-9d56-c19c7c334a46",
+    "name": "Mwanachama-Wakala",
+    "description": "The company that operates the agency catalog: it mines organizational archetypes into importable templates, publishes and features them on a storefront, launches a chosen one into a customer's own database, keeps that customer working, and funds and protects the whole of it — with one human seat and a fleet of scheduled agents holding the rest. Building the software is out of scope here by design.",
+    "enabled": false,
+    "default_failure_pipeline_budget": 0,
+    "inactivity_timeout_seconds": 0,
+    "created_at": "2026-09-22T00:00:00Z",
+    "last_updated": "2026-09-22T00:00:00Z",
+    "deleted": false
+  },
+  "modules": [
+    {
+      "id": "d225af45-e9f6-525c-b971-82a9a774f49c",
+      "code": "auth",
+      "name": "auth",
+      "description": "",
+      "enabled": true,
+      "locked": true,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9b80bb37-a2a3-5cc3-ad3c-319453f57fa4",
+      "code": "git",
+      "name": "git",
+      "description": "",
+      "enabled": false,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4d220ab4-019b-5fac-af04-517c8667d11c",
+      "code": "taskmanager",
+      "name": "taskmanager",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f8ce0601-9567-510f-9e70-48519e317670",
+      "code": "agency",
+      "name": "agency",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "41c41b51-120b-5d9b-8c3a-466737cbb371",
+      "code": "actor",
+      "name": "actor",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "02b234bc-a7f4-5321-a31c-02fdbeb769f3",
+      "code": "comm",
+      "name": "comm",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ba0a6c74-14ac-5d9c-ae7c-b6c98ca1daab",
+      "code": "custody",
+      "name": "custody",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0e424c92-a1d1-59d7-b9c4-93bc4a5b9a01",
+      "code": "forms",
+      "name": "forms",
+      "description": "",
+      "enabled": false,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f36c7beb-1b80-5747-bd86-d4968e191c98",
+      "code": "digitaltwin",
+      "name": "digitaltwin",
+      "description": "",
+      "enabled": false,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "03adf3ac-44dc-5858-bf04-22233fedea64",
+      "code": "accounting",
+      "name": "accounting",
+      "description": "",
+      "enabled": true,
+      "locked": false,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "roles": [
+    {
+      "id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "code": "R-1",
+      "name": "Founder / Owner",
+      "description": "The one human seat. Accountable for every objective here: approves what gets mined, approves what goes public, consents to a launch's scope, and signs for what the company spends.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7e6ad59b-bae4-596d-b317-9dee3e6a61ca",
+      "code": "R-2",
+      "name": "Catalog Miner",
+      "description": "Researches organizational archetypes across sectors, files proposals for the Owner to approve, and builds approved ones into full templates with their README, the sales.md naming real institutions, and a config per enabled module. Runs as a scheduled routine every six hours; never builds an archetype nobody approved.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ea669133-cb89-55cb-bd7d-743aed7a8c7c",
+      "code": "R-3",
+      "name": "Catalog Publisher",
+      "description": "The quality gate between a built template and the storefront: checks an agency is importable and usable the same day, then moves it to public, or private behind a share token, or sends it back. Not automated today — the Owner clicks.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "b6a8c8ca-dbc3-52d0-b058-4f95bbb60887",
+      "code": "R-4",
+      "name": "Showcase Curator",
+      "description": "Chooses which agencies the home page features, from what visitors actually open, how recently each was published, and whether the set spans more than one sector. Not automated today — the picker is a random shuffle and the view counts it should read go unused.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "eab4e517-af6f-5708-b787-592836fddb59",
+      "code": "R-5",
+      "name": "Launch Operator",
+      "description": "Takes a customer from a chosen agency to a running studio on a project they own: created, locked down, migrated, seeded, ready. Owns every launch that fell short of ready until it is resumed or retired, so no orphaned billable project is left behind.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1a5cf162-9311-5987-aea6-e0820a8ecf94",
+      "code": "R-6",
+      "name": "Customer Success",
+      "description": "Meets the customer after the launch: hands over the studio URL and the first things worth doing, answers what they ask, and files what the product could not do rather than promising it. Checks back before the customer goes quiet.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3d8b6128-be97-5bf0-a5fc-3f83778ff383",
+      "code": "R-7",
+      "name": "Growth & Sales",
+      "description": "Works the named prospects each archetype's sales.md already lists, runs the demo, answers a first contact from the storefront, and keeps the public site and the deck describing only what the product does today.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5c304f76-8205-5ace-8d35-fc2a74b32ddf",
+      "code": "R-8",
+      "name": "Finance Steward",
+      "description": "Tracks what the cluster, the databases and the model usage cost against what the company takes in and has raised, attributes spend to the routine that caused it, and says plainly when something is not earning its cost.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "91105a7a-9238-59d9-89ab-35d7ccb3e0bd",
+      "code": "R-9",
+      "name": "Trust & Data Protection",
+      "description": "Holds the standing questions about customer data: what a launch consent actually grants, where a customer's database credential sits, who can read it, and how many systems must fall before one is readable. Reviews before a change ships, not after.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "goals": [
+    {
+      "id": "94584044-8a04-5ac4-b969-3b68cd820f07",
+      "code": "G-1",
+      "title": "Keep a catalog organizations recognize as their own",
+      "description": "Every published archetype is a shape many real organizations share, is usable the day it is imported, and names the institutions that would buy it. The catalog grows into the sectors with the fewest entries, and what has gone stale is fixed or withdrawn.",
+      "ordinality": 0,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0314d6b5-57d5-5f56-9911-f818aa5df011",
+      "code": "G-2",
+      "title": "Turn a visitor into a customer running their own agency",
+      "description": "A visitor finds the shape that matches their organization, launches it into a project they own, and is still using it a month later. The company reaches the prospects it has already researched rather than waiting to be found.",
+      "ordinality": 1,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "2f016835-79dc-50d4-a02c-701ffdb6cb3e",
+      "code": "G-3",
+      "title": "Run the company so it can keep going",
+      "description": "Money in exceeds money out or the gap is known and funded; every customer's credentials and consent are held deliberately; and nothing is claimed anywhere that the product cannot be shown doing.",
+      "ordinality": 2,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "objectives": [
+    {
+      "id": "d1ffcb1f-a603-5799-b62d-0397ed439674",
+      "code": "O-1",
+      "goal_id": "94584044-8a04-5ac4-b969-3b68cd820f07",
+      "title": "Mine archetypes worth selling, favouring the sectors with the fewest",
+      "description": "Propose shapes many institutions share, spread across the target sectors, and build only the ones the Owner approved.",
+      "ordinality": 0,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "565a5b99-4a3e-5f2a-b20f-1c30a153bb47",
+      "code": "O-2",
+      "goal_id": "94584044-8a04-5ac4-b969-3b68cd820f07",
+      "title": "Publish only agencies an operator could import and start assigning people the same day",
+      "description": "A template earns the storefront when its roles, objectives, workflows and work items are concrete enough to run on, and its README names who buys it.",
+      "ordinality": 1,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "85ce728b-df15-585f-9846-4c128f333f48",
+      "code": "O-3",
+      "goal_id": "94584044-8a04-5ac4-b969-3b68cd820f07",
+      "title": "Feature the agencies most likely to hold a first-time visitor",
+      "description": "The home page showcase is chosen from what visitors open, what was published recently, and sector spread — not at random.",
+      "ordinality": 2,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "88b6cf9d-e8ad-5082-9dd5-330566b03c2a",
+      "code": "O-4",
+      "goal_id": "94584044-8a04-5ac4-b969-3b68cd820f07",
+      "title": "Keep what is already published true",
+      "description": "A template that no longer matches the product, the modules or the sector it claims is corrected or withdrawn, rather than left selling something we cannot deliver.",
+      "ordinality": 3,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4c6d63cd-14e3-5b5c-bc4e-39ff664f60f7",
+      "code": "O-5",
+      "goal_id": "0314d6b5-57d5-5f56-9911-f818aa5df011",
+      "title": "Launch a chosen agency into the customer's own project, to ready, without manual repair",
+      "description": "Every launch either reaches ready or is visible and resumable; none leaves an orphaned billable project behind.",
+      "ordinality": 4,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "2abdd224-d179-5cb3-92cc-f74b43c6036c",
+      "code": "O-6",
+      "goal_id": "0314d6b5-57d5-5f56-9911-f818aa5df011",
+      "title": "Reach the named prospects each archetype's sales.md lists",
+      "description": "Selling starts from institutions already researched and named per archetype, in the home market and outside it, at the buying role the template identifies.",
+      "ordinality": 5,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "b4366af5-7600-5fee-88ba-8d3a004504c0",
+      "code": "O-7",
+      "goal_id": "0314d6b5-57d5-5f56-9911-f818aa5df011",
+      "title": "Keep a launched customer working",
+      "description": "They are onboarded into their own agency, their questions are answered, and what the storefront promised is what they find.",
+      "ordinality": 6,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f7728628-c65b-57f5-96a2-97f349f477e9",
+      "code": "O-8",
+      "goal_id": "2f016835-79dc-50d4-a02c-701ffdb6cb3e",
+      "title": "Fund the company",
+      "description": "Open calls and grants are tracked and answered before their deadlines, and what was committed in an application is what the company actually does.",
+      "ordinality": 7,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c39a91d1-e863-5460-b5b3-c8bb0129c890",
+      "code": "O-9",
+      "goal_id": "2f016835-79dc-50d4-a02c-701ffdb6cb3e",
+      "title": "Keep what it costs to run below what it brings in",
+      "description": "Cluster, database and model spend is attributed to the routine or customer that caused it, compared to income and runway, and acted on.",
+      "ordinality": 8,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "08485de4-b0ad-5459-a63e-6dddc252c96b",
+      "code": "O-10",
+      "goal_id": "2f016835-79dc-50d4-a02c-701ffdb6cb3e",
+      "title": "Hold customer credentials and consent so that one compromise is never enough",
+      "description": "What a launch consent grants, where a customer's database password sits and who can read it are decided deliberately and reviewed, not inherited by accident.",
+      "ordinality": 9,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "values": [
+    {
+      "id": "decda010-4e3d-51d1-904c-2362cd268d3d",
+      "code": "V-1",
+      "text": "We run the company on the product we sell. A capability we have not used ourselves is not ready to publish.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "70980a46-8895-5cad-8094-bacd1be1d3ca",
+      "code": "V-2",
+      "text": "A finding that lives only in a chat transcript does not exist. It goes on a board, written well enough that the next reader needs nothing else.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "032d0185-f1a0-5739-9c00-7ed774daa388",
+      "code": "V-3",
+      "text": "The customer's database is theirs. We hold the least we can, and never enough in one place for a single compromise to be sufficient.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "d05f74f1-74e7-5252-83fe-065d89a19ab2",
+      "code": "V-4",
+      "text": "Say what the screen shows. Nothing in a deck, a README or a sales page that the product cannot be shown doing today.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "f882caff-66d5-5671-87a6-0afd4b9397dc",
+      "code": "RU-1",
+      "text": "No agency becomes public before the Owner approves it: a built template stays pending, whoever built it.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "41036409-edc2-50a9-a959-b3e028942603",
+      "code": "RU-2",
+      "text": "A launch that does not reach ready is resumed or retired. None is left running and billable while nobody owns it.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "025f0c33-cceb-56bc-ad91-a0beddb677b3",
+      "code": "RU-3",
+      "text": "A customer launch is never consented for a provider organization that holds our own data.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "8ed30e66-390b-50b5-b079-74da1905f458",
+      "code": "RU-4",
+      "text": "A template is published only after someone has imported it and walked it. That it validates is not the test.",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "value_attachments": [
+    {
+      "id": "6194bb25-1290-5be7-bb6d-112e2eab90c4",
+      "value_code": "V-1",
+      "target_type": "objective",
+      "target_code": "O-2",
+      "created_at": "2026-09-22T00:00:00Z"
+    },
+    {
+      "id": "2d717f19-79b8-5c8f-80ab-d48f1adb31fc",
+      "value_code": "V-2",
+      "target_type": "objective",
+      "target_code": "O-7",
+      "created_at": "2026-09-22T00:00:00Z"
+    },
+    {
+      "id": "3ddc88e5-a4c8-5f86-98bb-5cbb1234bb50",
+      "value_code": "V-3",
+      "target_type": "objective",
+      "target_code": "O-10",
+      "created_at": "2026-09-22T00:00:00Z"
+    },
+    {
+      "id": "e9bb96b1-38cd-57c6-9945-cb58bbd89464",
+      "value_code": "V-4",
+      "target_type": "objective",
+      "target_code": "O-6",
+      "created_at": "2026-09-22T00:00:00Z"
+    }
+  ],
+  "rule_attachments": [
+    {
+      "id": "4cc878b9-2f4c-5845-b322-fde59bc06479",
+      "rule_code": "RU-1",
+      "target_type": "objective",
+      "target_code": "O-2",
+      "created_at": "2026-09-22T00:00:00Z"
+    },
+    {
+      "id": "47195bae-6edb-5279-8966-dde4a78432e7",
+      "rule_code": "RU-2",
+      "target_type": "objective",
+      "target_code": "O-5",
+      "created_at": "2026-09-22T00:00:00Z"
+    },
+    {
+      "id": "6f466afe-851f-5d6f-9570-5db1c7550e11",
+      "rule_code": "RU-3",
+      "target_type": "objective",
+      "target_code": "O-10",
+      "created_at": "2026-09-22T00:00:00Z"
+    },
+    {
+      "id": "a05ae077-de94-5639-a4f6-60839a6ddce1",
+      "rule_code": "RU-4",
+      "target_type": "objective",
+      "target_code": "O-4",
+      "created_at": "2026-09-22T00:00:00Z"
+    }
+  ],
+  "workflows": [
+    {
+      "id": "1789dc42-489c-5846-8015-5036ebc24645",
+      "code": "W-1",
+      "name": "Catalog pipeline",
+      "description": "From a proposed archetype to an agency on the storefront, and keeping it true afterwards.",
+      "ordinality": 0,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f57fa252-09af-5ca2-af23-d6e9573a06f7",
+      "code": "W-2",
+      "name": "Sell & launch",
+      "description": "From a named prospect to a customer running their own agency.",
+      "ordinality": 1,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "220f98b6-82b9-5053-a48d-25872efcace3",
+      "code": "W-3",
+      "name": "Customer care",
+      "description": "From launch day to a customer still working a month later.",
+      "ordinality": 2,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "45bfa683-224e-56b3-9c3f-8deee1ac4580",
+      "code": "W-4",
+      "name": "Money & trust",
+      "description": "Funding, spend and the standing questions about customer data.",
+      "ordinality": 3,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "work_items": [
+    {
+      "id": "cf3b184f-7221-594b-ade3-980a373c0d04",
+      "code": "WI-1",
+      "workflow_id": "1789dc42-489c-5846-8015-5036ebc24645",
+      "objective_id": "d1ffcb1f-a603-5799-b62d-0397ed439674",
+      "title": "Propose archetypes for the under-served sectors",
+      "description": "The cheap half of mining: candidate shapes filed for a decision, before any of the expensive research is done.",
+      "prompt": "Count what the catalog already holds per sector, pick the sectors with the fewest, and file one proposal per candidate archetype with a sketch of its goals, roles and objectives. An archetype earns a proposal only if many organizations share its shape and you can name three real ones that would buy it. Leave every proposal pending the Owner's decision.",
+      "ordinality": 0,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7c3dcedc-d677-5de0-865b-b462ec2e4d9f",
+      "code": "WI-2",
+      "workflow_id": "1789dc42-489c-5846-8015-5036ebc24645",
+      "objective_id": "d1ffcb1f-a603-5799-b62d-0397ed439674",
+      "title": "Decide a proposed archetype",
+      "description": "The Owner's gate on what gets built. Nothing is researched in full until it passes.",
+      "prompt": "Read the sketch and its named prospects, then approve or reject. Rejecting is cheap and keeps the catalog from filling with shapes nobody buys — say why, so the same archetype is not proposed again next run.",
+      "ordinality": 1,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "6eeda3dc-c836-55f3-8103-92a3a9bfb8b7",
+      "code": "WI-3",
+      "workflow_id": "1789dc42-489c-5846-8015-5036ebc24645",
+      "objective_id": "d1ffcb1f-a603-5799-b62d-0397ed439674",
+      "title": "Build an approved archetype into a full template",
+      "description": "The expensive half: one approved archetype researched and written into a complete, importable template with its private material.",
+      "prompt": "Research the shape, then write the agency document — roles, goals, objectives, workflows, work items, values, rules and full RACI — plus the private README, the sales.md naming real institutions and their buying role, and a config per enabled module stating both what it maps to and what that module cannot enforce today.",
+      "ordinality": 2,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e3c124bb-d8a2-5825-a585-d1947728c00f",
+      "code": "WI-4",
+      "workflow_id": "1789dc42-489c-5846-8015-5036ebc24645",
+      "objective_id": "565a5b99-4a3e-5f2a-b20f-1c30a153bb47",
+      "title": "Publish a built agency to the storefront",
+      "description": "The gate between a built template and the storefront, and the only step that makes an agency visible to a prospect.",
+      "prompt": "Check it against the usable-the-same-day test: named roles, a real structure, concrete work items, one accountable and at least one responsible on every objective, and a README that names the buyer. Import it and walk it before deciding. Then set it public, or private with a share token, or send it back.",
+      "ordinality": 3,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "48e54ba0-207b-5f9e-9e3c-3f0894f7852f",
+      "code": "WI-5",
+      "workflow_id": "1789dc42-489c-5846-8015-5036ebc24645",
+      "objective_id": "85ce728b-df15-585f-9846-4c128f333f48",
+      "title": "Refresh the featured agencies",
+      "description": "Deciding what a first-time visitor sees, from evidence rather than chance.",
+      "prompt": "Choose what the home page shows from what visitors have actually opened, how recently each was published, and whether the set covers more than one sector. Record why the set changed, so the effect of a change is readable next time.",
+      "ordinality": 4,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "870f90c1-cf9a-59fd-97eb-ff0dd8380652",
+      "code": "WI-6",
+      "workflow_id": "1789dc42-489c-5846-8015-5036ebc24645",
+      "objective_id": "88b6cf9d-e8ad-5082-9dd5-330566b03c2a",
+      "title": "Review a published template that has gone stale",
+      "description": "Catalog maintenance: finding where a published template has drifted from what the product actually does, and closing the gap.",
+      "prompt": "Re-read a template against what the product does now — the modules it claims, the roles it promises, the sectors it names — and correct it or withdraw it. A template selling something we cannot deliver costs more than an empty sector.",
+      "ordinality": 5,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4614e7bf-4278-5d04-978a-c470fbb6cea7",
+      "code": "WI-7",
+      "workflow_id": "f57fa252-09af-5ca2-af23-d6e9573a06f7",
+      "objective_id": "2abdd224-d179-5cb3-92cc-f74b43c6036c",
+      "title": "Work a named prospect from an archetype's sales.md",
+      "description": "Outbound selling into an archetype's own researched prospect list.",
+      "prompt": "Take the institutions already researched for that archetype, reach the buying role the template names, and show them the shape built for their kind of organization. Describe what the screens do; claim nothing the demo cannot show.",
+      "ordinality": 6,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "78a84401-bad3-51cf-868c-691e727d66a0",
+      "code": "WI-8",
+      "workflow_id": "f57fa252-09af-5ca2-af23-d6e9573a06f7",
+      "objective_id": "4c6d63cd-14e3-5b5c-bc4e-39ff664f60f7",
+      "title": "Take a launch request and check its consent scope",
+      "description": "The check before anything is created — the one step that cannot be undone by a rollback.",
+      "prompt": "Confirm what the customer is consenting to and for which provider organization before anything is created. A launch consented for an organization holding our own data is refused, not worked around.",
+      "ordinality": 7,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e945fa38-bec1-5387-a291-cf00a2db318e",
+      "code": "WI-9",
+      "workflow_id": "f57fa252-09af-5ca2-af23-d6e9573a06f7",
+      "objective_id": "4c6d63cd-14e3-5b5c-bc4e-39ff664f60f7",
+      "title": "Run the launch to ready",
+      "description": "The launch itself, from an empty provider project to a studio the customer can open.",
+      "prompt": "Create the customer's project, lock it down, migrate it, seed the chosen agency, and record the launch before the slow steps so one that dies half-way is visible rather than an orphaned billable project. Hand back the studio URL when it is ready.",
+      "ordinality": 8,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "41c44216-11fb-5e88-9c82-decf78451528",
+      "code": "WI-10",
+      "workflow_id": "f57fa252-09af-5ca2-af23-d6e9573a06f7",
+      "objective_id": "4c6d63cd-14e3-5b5c-bc4e-39ff664f60f7",
+      "title": "Recover a failed or half-finished launch",
+      "description": "Cleanup for launches that stopped short, so none is left running, billable and unowned.",
+      "prompt": "Find the launches stuck short of ready, resume the step that failed or retire the project, and record the cause. A launch left failing costs the customer's trust and our money at once.",
+      "ordinality": 9,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5ea957fd-d873-5e6d-ad6f-26983138456d",
+      "code": "WI-11",
+      "workflow_id": "220f98b6-82b9-5053-a48d-25872efcace3",
+      "objective_id": "b4366af5-7600-5fee-88ba-8d3a004504c0",
+      "title": "Onboard the customer into their own agency",
+      "description": "The customer's first hour in their own agency.",
+      "prompt": "Give them the studio URL, what their agency already contains, and the first three things worth doing in it. Be specific to the archetype they chose, not generic.",
+      "ordinality": 10,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "db383ee1-13e8-5eb9-a539-ba8e505f2be8",
+      "code": "WI-12",
+      "workflow_id": "220f98b6-82b9-5053-a48d-25872efcace3",
+      "objective_id": "b4366af5-7600-5fee-88ba-8d3a004504c0",
+      "title": "Answer a customer question",
+      "description": "Support: answering what was asked, and turning what we could not do into a row rather than a promise.",
+      "prompt": "Answer what was asked. Where the product cannot do what they expected, say so plainly and file it as a row with their case attached — never as a promise.",
+      "ordinality": 11,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ac651380-484d-5486-b948-e040a72be9a3",
+      "code": "WI-13",
+      "workflow_id": "220f98b6-82b9-5053-a48d-25872efcace3",
+      "objective_id": "b4366af5-7600-5fee-88ba-8d3a004504c0",
+      "title": "Check in on a launched customer",
+      "description": "Retention: finding out what stopped being used before the customer stops altogether.",
+      "prompt": "Before they go quiet, ask what they have actually used and what they stopped using. What they stopped using is the more useful half.",
+      "ordinality": 12,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3a666de9-726d-5128-bbff-a1c948b82cce",
+      "code": "WI-14",
+      "workflow_id": "45bfa683-224e-56b3-9c3f-8deee1ac4580",
+      "objective_id": "f7728628-c65b-57f5-96a2-97f349f477e9",
+      "title": "Answer an open funding call",
+      "description": "Fundraising against the open calls that fit what the company already does.",
+      "prompt": "Track the open calls and their deadlines, answer the ones that fit what the company already does, and keep what was committed in an application matched to what is actually being built.",
+      "ordinality": 13,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "05557476-a965-5535-952c-adba8fed0044",
+      "code": "WI-15",
+      "workflow_id": "45bfa683-224e-56b3-9c3f-8deee1ac4580",
+      "objective_id": "c39a91d1-e863-5460-b5b3-c8bb0129c890",
+      "title": "Review spend against what the company has and earns",
+      "description": "The money review: what was spent, on what, against what came in and what is left.",
+      "prompt": "Attribute the cost of the cluster, the databases and the scheduled routines to what caused them, compare against income and remaining runway, and say plainly which routine is not earning its cost.",
+      "ordinality": 14,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "411ecb52-c590-5feb-a697-cc7943a3a937",
+      "code": "WI-16",
+      "workflow_id": "45bfa683-224e-56b3-9c3f-8deee1ac4580",
+      "objective_id": "08485de4-b0ad-5459-a63e-6dddc252c96b",
+      "title": "Review where customer credentials sit and who can read them",
+      "description": "The standing credential review — the path a customer's password takes, and who can read it along the way.",
+      "prompt": "Walk the path a customer's database password takes from launch to storage to use, name every party that can read it, and state how many independent systems must fall before one is readable. File the gap with its blast radius spelled out, not as a note.",
+      "ordinality": 15,
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "work_plans": [],
+  "role_assignments": [
+    {
+      "id": "946d2ec2-8f46-5456-9e20-f6b9bed60d7f",
+      "role_id": "7e6ad59b-bae4-596d-b317-9dee3e6a61ca",
+      "objective_id": "d1ffcb1f-a603-5799-b62d-0397ed439674",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "69568a3d-0408-5f31-aaa9-6e8a1fd8055c",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "d1ffcb1f-a603-5799-b62d-0397ed439674",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1155ef40-9cac-5a0c-a97d-06f2e9301d20",
+      "role_id": "3d8b6128-be97-5bf0-a5fc-3f83778ff383",
+      "objective_id": "d1ffcb1f-a603-5799-b62d-0397ed439674",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7eff6b25-07ac-530c-a85f-a6e5e924333e",
+      "role_id": "ea669133-cb89-55cb-bd7d-743aed7a8c7c",
+      "objective_id": "565a5b99-4a3e-5f2a-b20f-1c30a153bb47",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5fa5ca37-940a-52a6-9ec5-d4373871fc4c",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "565a5b99-4a3e-5f2a-b20f-1c30a153bb47",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0fb49a88-171d-5700-a91a-1bc2aad23279",
+      "role_id": "7e6ad59b-bae4-596d-b317-9dee3e6a61ca",
+      "objective_id": "565a5b99-4a3e-5f2a-b20f-1c30a153bb47",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ccfce06f-ea68-594b-bf98-7173be1da005",
+      "role_id": "3d8b6128-be97-5bf0-a5fc-3f83778ff383",
+      "objective_id": "565a5b99-4a3e-5f2a-b20f-1c30a153bb47",
+      "label": "informed",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0df39138-6dcd-5362-a2c7-c85fd6218f50",
+      "role_id": "b6a8c8ca-dbc3-52d0-b058-4f95bbb60887",
+      "objective_id": "85ce728b-df15-585f-9846-4c128f333f48",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "82f8d899-ab41-57b9-a1d9-d54fc0d1742d",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "85ce728b-df15-585f-9846-4c128f333f48",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c455f328-d0cd-5782-b3dd-3e904fa32517",
+      "role_id": "3d8b6128-be97-5bf0-a5fc-3f83778ff383",
+      "objective_id": "85ce728b-df15-585f-9846-4c128f333f48",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5fe199e4-7db5-52ab-85a0-229389633740",
+      "role_id": "ea669133-cb89-55cb-bd7d-743aed7a8c7c",
+      "objective_id": "88b6cf9d-e8ad-5082-9dd5-330566b03c2a",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "240f5146-a6ac-530c-aae6-b14e6a41dbab",
+      "role_id": "7e6ad59b-bae4-596d-b317-9dee3e6a61ca",
+      "objective_id": "88b6cf9d-e8ad-5082-9dd5-330566b03c2a",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "56c036dc-8250-5db5-a942-69320ba236fe",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "88b6cf9d-e8ad-5082-9dd5-330566b03c2a",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0b6dafee-eec6-57c6-8744-ebb6064d015c",
+      "role_id": "1a5cf162-9311-5987-aea6-e0820a8ecf94",
+      "objective_id": "88b6cf9d-e8ad-5082-9dd5-330566b03c2a",
+      "label": "informed",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "979f1453-3d63-5f0a-b81c-1c1745287894",
+      "role_id": "eab4e517-af6f-5708-b787-592836fddb59",
+      "objective_id": "4c6d63cd-14e3-5b5c-bc4e-39ff664f60f7",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9492d653-b6ae-57ee-8612-117aaaddf1e7",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "4c6d63cd-14e3-5b5c-bc4e-39ff664f60f7",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ba5c0a33-8ca3-522f-b585-8c7484973225",
+      "role_id": "91105a7a-9238-59d9-89ab-35d7ccb3e0bd",
+      "objective_id": "4c6d63cd-14e3-5b5c-bc4e-39ff664f60f7",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "78f2a08b-96c8-53f7-86e0-295a9bb45141",
+      "role_id": "1a5cf162-9311-5987-aea6-e0820a8ecf94",
+      "objective_id": "4c6d63cd-14e3-5b5c-bc4e-39ff664f60f7",
+      "label": "informed",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f387df44-d7ec-5777-ac4b-e99808821ed1",
+      "role_id": "3d8b6128-be97-5bf0-a5fc-3f83778ff383",
+      "objective_id": "2abdd224-d179-5cb3-92cc-f74b43c6036c",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "144151bf-8f7e-58b0-be21-bae923ad3f6b",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "2abdd224-d179-5cb3-92cc-f74b43c6036c",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f595e60a-412a-5a9d-8ed6-17b2508264a0",
+      "role_id": "7e6ad59b-bae4-596d-b317-9dee3e6a61ca",
+      "objective_id": "2abdd224-d179-5cb3-92cc-f74b43c6036c",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1571083b-569b-5242-bfd6-4b73a5be77da",
+      "role_id": "1a5cf162-9311-5987-aea6-e0820a8ecf94",
+      "objective_id": "b4366af5-7600-5fee-88ba-8d3a004504c0",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "913c662b-7a48-5ae0-ba29-1b4a2c12df6a",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "b4366af5-7600-5fee-88ba-8d3a004504c0",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "d68ba532-ce96-5ffc-a3b8-6d738a59f757",
+      "role_id": "eab4e517-af6f-5708-b787-592836fddb59",
+      "objective_id": "b4366af5-7600-5fee-88ba-8d3a004504c0",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0138acc4-84f0-5d81-87c5-29a5bb663539",
+      "role_id": "3d8b6128-be97-5bf0-a5fc-3f83778ff383",
+      "objective_id": "b4366af5-7600-5fee-88ba-8d3a004504c0",
+      "label": "informed",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e3d08c1b-05a9-59b3-ac71-eac90091a6d2",
+      "role_id": "3d8b6128-be97-5bf0-a5fc-3f83778ff383",
+      "objective_id": "f7728628-c65b-57f5-96a2-97f349f477e9",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "21376972-e6ea-5396-8aaa-9e623076df60",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "f7728628-c65b-57f5-96a2-97f349f477e9",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c3bef376-7ad1-5fee-939f-36da13275501",
+      "role_id": "5c304f76-8205-5ace-8d35-fc2a74b32ddf",
+      "objective_id": "f7728628-c65b-57f5-96a2-97f349f477e9",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4b779b26-02b3-595b-b34d-8391b40b8142",
+      "role_id": "5c304f76-8205-5ace-8d35-fc2a74b32ddf",
+      "objective_id": "c39a91d1-e863-5460-b5b3-c8bb0129c890",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ccc28ea4-d029-53da-a5f9-816eb4fc0320",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "c39a91d1-e863-5460-b5b3-c8bb0129c890",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7ff89afb-c258-58c7-bcfb-d4457dddfc9e",
+      "role_id": "eab4e517-af6f-5708-b787-592836fddb59",
+      "objective_id": "c39a91d1-e863-5460-b5b3-c8bb0129c890",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9e1e04a9-e6f5-5112-96de-7c60ccf0a813",
+      "role_id": "91105a7a-9238-59d9-89ab-35d7ccb3e0bd",
+      "objective_id": "08485de4-b0ad-5459-a63e-6dddc252c96b",
+      "label": "responsible",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4eaf4aa2-5d46-51ef-aa2a-dcd83b9720fd",
+      "role_id": "927d5bd5-a218-5b9a-b667-31fbbf0d8108",
+      "objective_id": "08485de4-b0ad-5459-a63e-6dddc252c96b",
+      "label": "accountable",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "2eb1a98e-5eff-5099-9b5b-a64fd546cdcd",
+      "role_id": "eab4e517-af6f-5708-b787-592836fddb59",
+      "objective_id": "08485de4-b0ad-5459-a63e-6dddc252c96b",
+      "label": "consulted",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "30ffc76c-5e54-583b-8a23-0a52a6949a7c",
+      "role_id": "1a5cf162-9311-5987-aea6-e0820a8ecf94",
+      "objective_id": "08485de4-b0ad-5459-a63e-6dddc252c96b",
+      "label": "informed",
+      "created_at": "2026-09-22T00:00:00Z",
+      "last_updated": "2026-09-22T00:00:00Z",
+      "deleted": false
+    }
+  ],
+  "drafts": [],
+  "publications": []
+}
