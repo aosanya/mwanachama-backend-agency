@@ -140,6 +140,7 @@ type AgencyManager interface {
 	// publication currently serves channel ("" means
 	// [models.DefaultChannel]). [ErrPublicationNotFound] if none does.
 	GetPublicationForChannel(ctx context.Context, channel string) (models.AgencyPublication, error)
+	ChangedEnforcedControls(ctx context.Context, draftID string) ([]models.Control, error)
 	ListPublications(ctx context.Context, filter PublicationFilter) ([]models.AgencyPublication, error)
 	// SetPublicationChannel moves a channel onto version, taking it off
 	// whichever publication held it; [models.ChannelArchived] archives
@@ -241,6 +242,15 @@ type AgencyManager interface {
 	CreateRuleAttachment(ctx context.Context, ruleID string, targetType models.TargetType, targetID string) (models.RuleAttachment, error)
 	ListRuleAttachments(ctx context.Context, ruleID string) ([]models.RuleAttachment, error)
 	DeleteRuleAttachment(ctx context.Context, id string) error
+	CreateControl(ctx context.Context, c models.Control) (models.Control, error)
+	GetControl(ctx context.Context, id string) (models.Control, error)
+	ListControls(ctx context.Context, draftID string, filter ControlFilter) ([]models.Control, error)
+	UpdateControl(ctx context.Context, c models.Control) (models.Control, error)
+	DeleteControl(ctx context.Context, id string) error
+	CreateControlAttachment(ctx context.Context, controlID string, targetType models.TargetType, targetID string) (models.ControlAttachment, error)
+	ListControlAttachments(ctx context.Context, controlID string) ([]models.ControlAttachment, error)
+	DeleteControlAttachment(ctx context.Context, id string) error
+	UnguardedPathways(ctx context.Context, draftID string) ([]models.RiskPathway, error)
 
 	// Issue. A system-detected diagnostics list (info/warning/error) — a
 	// dangling reference, a Workflow with no Objective, a Goal with

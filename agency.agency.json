@@ -106,6 +106,18 @@
       "description": "One place a requirement of this organization applies."
     },
     {
+      "role": "control",
+      "name": "control",
+      "table": "controls",
+      "description": "What the agency commits to, advisory or enforced."
+    },
+    {
+      "role": "control_attachment",
+      "name": "control_attachment",
+      "table": "control_attachments",
+      "description": "One place a control stands."
+    },
+    {
       "role": "issue",
       "name": "issue",
       "table": "issues",

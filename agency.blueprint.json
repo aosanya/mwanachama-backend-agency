@@ -349,6 +349,49 @@
       ]
     },
     {
+      "role": "control",
+      "description": "What the agency commits to. Advisory when it only says so, enforced when it names an action, a condition and what happens on a breach.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as C-1. Attachments reference it by this, because a row id does not survive publishing.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "text", "type": "text", "description": "The commitment itself, in plain words. The agent reads it in its role brief.", "required": true},
+        {"name": "action", "type": "string", "description": "The permission catalogue action this control guards, such as payments.release. Empty means advisory."},
+        {"name": "cond_field", "type": "string", "description": "The argument of the guarded call the condition tests."},
+        {"name": "cond_operator", "type": "string", "description": "How the argument is compared: eq, ne, gt, gte, lt or lte."},
+        {"name": "cond_value", "type": "string", "description": "What the argument is compared with."},
+        {"name": "on_breach", "type": "string", "description": "What happens when the condition holds: block, hold_for_approval, flag or run_workflow."},
+        {"name": "workflow_id", "type": "string", "description": "The workflow a run_workflow outcome starts, in the same draft."},
+        {"name": "severity", "type": "string", "description": "How much a breach matters: low, medium or high."},
+        {"name": "created_at", "type": "timestamp", "description": "When it was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds one by the handle its attachments quote.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "action", "description": "Reads the controls that guard one action.", "fields": ["action"]}
+      ]
+    },
+    {
+      "role": "control_attachment",
+      "description": "One place a control stands. None at all means it applies to the whole organization.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "control_code", "type": "string", "description": "The control being attached, by its stable handle rather than its row id.", "required": true},
+        {"name": "target_type", "type": "enum", "description": "What kind of thing it is attached to.", "required": true, "values": ["role", "goal", "objective", "workflow", "work_item", "risk_pathway"]},
+        {"name": "target_code", "type": "string", "description": "The thing itself, by its stable handle.", "required": true},
+        {"name": "created_at", "type": "timestamp", "description": "When the attachment was made.", "immutable": true}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "control_code", "description": "Reads everywhere one control stands.", "fields": ["control_code"]},
+        {"name": "target", "description": "Reads every control that stands on one thing.", "fields": ["target_type", "target_code"]},
+        {"name": "ctl_target_unique", "description": "Refuses a second link between one control and one thing in a draft, so two writers racing cannot both add it.", "fields": ["draft_id", "control_code", "target_type", "target_code"], "unique": true}
+      ]
+    },
+    {
       "role": "issue",
       "description": "Something the validation scan found wrong, and what stands between a draft and publishing.",
       "fields": [

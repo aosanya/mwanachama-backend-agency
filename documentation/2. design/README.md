@@ -17,6 +17,7 @@ they disagree.
 | [AGD-007](todo_details/AGD-007.md) | the objects are declared in `agency.blueprint.json`, not written as row structs |
 | [AGD-008](todo_details/AGD-008.md) | a module is switched on by a switch or a workflow step, not by an objective link |
 | [AGD-009](todo_details/AGD-009.md) | objectives attach to workflows, RACI is a label on a step with no limit on any label, and a step has no objective |
+| [AGD-011](todo_details/AGD-011.md) | a control replaces rule and value: advisory or enforced, attached to a pathway, managed through permissions |
 
 AGD-006 and AGD-007 describe the code as it ships today. The porting notes in
 the repo's `CLAUDE.md` up to AG30 describe a nullable `DraftID`, a live row

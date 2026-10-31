@@ -241,6 +241,29 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		}))
 	}
 
+	controls, err := list[models.Control](m, scoped(roleControl), roleControl)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	for _, r := range controls {
+		records = append(records, hashRecord("Control", map[string]any{
+			"id": r.ID, "text": r.Text, "action": r.Action, "cond_field": r.CondField,
+			"cond_operator": string(r.CondOperator), "cond_value": r.CondValue,
+			"on_breach": string(r.OnBreach), "workflow_id": r.WorkflowID,
+			"severity": string(r.Severity), "deleted": r.Deleted,
+		}))
+	}
+
+	controlAttachments, err := list[models.ControlAttachment](m, scoped(roleControlAttachment), roleControlAttachment)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	for _, r := range controlAttachments {
+		records = append(records, hashRecord("ControlAttachment", map[string]any{
+			"control_code": r.ControlCode, "target_type": string(r.TargetType), "target_code": r.TargetCode,
+		}))
+	}
+
 	agency, err := m.findAgency(ctx, tx)
 	if err != nil {
 		return "", err

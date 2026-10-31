@@ -63,7 +63,11 @@
     "ErrReviewAreaNotFound": 404,
     "ErrReviewAreaRecorded": 409,
     "ErrFindingNotFound": 404,
-    "ErrInvalidReview": 400
+    "ErrInvalidReview": 400,
+    "ErrInvalidControl": 400,
+    "ErrControlNotFound": 404,
+    "ErrControlAttachmentNotFound": 404,
+    "ErrDuplicateControlAttachment": 409
   },
   "operations": {
     "create_agency": {
@@ -1522,6 +1526,209 @@
         }
       ],
       "tool": "agency_detach_rule"
+    },
+    "create_control": {
+      "method": "POST",
+      "path": "/controls",
+      "call": "CreateControl",
+      "action": "agency.control.create",
+      "status": 201,
+      "title": "Create control",
+      "description": "Write down what the agency commits to. Give it an action, an outcome and optionally a condition to make it enforced; leave them out and it is advisory. Attaching it somewhere is a separate call.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_control"
+    },
+    "list_controls": {
+      "method": "GET",
+      "path": "/controls",
+      "call": "ListControls",
+      "action": "agency.control.list",
+      "title": "List controls",
+      "description": "List one draft's controls, narrowed by code, text or the action they guard.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose controls to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_controls"
+    },
+    "get_control": {
+      "method": "GET",
+      "path": "/controls/{control_id}",
+      "call": "GetControl",
+      "action": "agency.control.read",
+      "title": "Read control",
+      "description": "Read one control by its id: its code, its text and, when enforced, the action, condition and outcome.",
+      "args": [
+        {
+          "from": "path",
+          "as": "control_id",
+          "refers": "agency.control",
+          "description": "The control to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_control"
+    },
+    "update_control": {
+      "method": "PATCH",
+      "path": "/controls/{control_id}",
+      "call": "UpdateControl",
+      "action": "agency.control.update",
+      "title": "Update control",
+      "description": "Rewrite a control. Setting or clearing the action, condition and outcome moves it between advisory and enforced.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "control_id",
+          "refers": "agency.control",
+          "into": "ID",
+          "description": "The control to rewrite."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_control"
+    },
+    "delete_control": {
+      "method": "DELETE",
+      "path": "/controls/{control_id}",
+      "call": "DeleteControl",
+      "action": "agency.control.delete",
+      "status": 204,
+      "title": "Delete control",
+      "description": "Remove a control and everywhere it was attached in its draft.",
+      "args": [
+        {
+          "from": "path",
+          "as": "control_id",
+          "refers": "agency.control",
+          "description": "The control to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_control"
+    },
+    "attach_control": {
+      "method": "POST",
+      "path": "/controls/{control_id}/attachments",
+      "call": "CreateControlAttachment",
+      "action": "agency.control.attach",
+      "status": 201,
+      "title": "Attach control",
+      "description": "Say where a control stands: on a role, goal, objective, workflow, work item or risk pathway of the same draft. A control on a threat pathway prevents; on a consequence pathway it mitigates.",
+      "args": [
+        {
+          "from": "path",
+          "as": "control_id",
+          "refers": "agency.control",
+          "description": "The control being attached."
+        },
+        {
+          "from": "body",
+          "as": "target_type",
+          "required": true,
+          "field": "ControlAttachment.target_type"
+        },
+        {
+          "from": "body",
+          "as": "target_id",
+          "required": true,
+          "description": "The thing it is attached to, by id."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_attach_control"
+    },
+    "list_control_attachments": {
+      "method": "GET",
+      "path": "/controls/{control_id}/attachments",
+      "call": "ListControlAttachments",
+      "action": "agency.control.list_attachments",
+      "title": "List where a control stands",
+      "description": "List everywhere one control is attached.",
+      "args": [
+        {
+          "from": "path",
+          "as": "control_id",
+          "refers": "agency.control",
+          "description": "The control whose attachments to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_control_attachments"
+    },
+    "detach_control": {
+      "method": "DELETE",
+      "path": "/controls/{control_id}/attachments/{attachment_id}",
+      "call": "DeleteControlAttachment",
+      "action": "agency.control.detach",
+      "status": 204,
+      "title": "Detach control",
+      "description": "Remove one attachment, leaving the control itself in place.",
+      "args": [
+        {
+          "from": "path",
+          "as": "control_id",
+          "ignored": true,
+          "description": "The control the attachment hangs off. Part of the address, not of the call."
+        },
+        {
+          "from": "path",
+          "as": "attachment_id",
+          "description": "The attachment to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_detach_control"
     },
     "publish_agency": {
       "method": "POST",

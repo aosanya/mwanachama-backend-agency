@@ -8,8 +8,7 @@ type RoleBrief struct {
 	Name               string           `json:"name"`
 	Description        string           `json:"description"`
 	Objectives         []BriefObjective `json:"objectives"`
-	Values             []BriefStatement `json:"values"`
-	Rules              []BriefStatement `json:"rules"`
+	Controls           []BriefStatement `json:"controls"`
 	WorkItems          []BriefWorkItem  `json:"work_items"`
 	Text               string           `json:"text"`
 }

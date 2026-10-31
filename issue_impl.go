@@ -32,6 +32,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkAttachments,
 		s.checkModuleSettings,
 		s.checkPermissions,
+		s.checkControls,
 		s.checkScenarios,
 	} {
 		if err := check(); err != nil {

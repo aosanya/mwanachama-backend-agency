@@ -116,8 +116,8 @@ func TestRoleBrief_EveryPartAppears(t *testing.T) {
 	if len(b.Objectives) != 1 || b.Objectives[0].GoalTitle != "Grow adoption" || b.Objectives[0].Label != string(models.RACILabelAccountable) {
 		t.Errorf("objectives part wrong: %+v", b.Objectives)
 	}
-	if len(b.Rules) != 2 || len(b.Values) != 2 || len(b.WorkItems) != 1 {
-		t.Errorf("parts wrong: rules=%d values=%d work_items=%d", len(b.Rules), len(b.Values), len(b.WorkItems))
+	if len(b.Controls) != 4 || len(b.WorkItems) != 1 {
+		t.Errorf("parts wrong: controls=%d work_items=%d", len(b.Controls), len(b.WorkItems))
 	}
 }
 

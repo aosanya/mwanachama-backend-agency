@@ -28,6 +28,8 @@ const (
 	roleValueAttachment   = "value_attachment"
 	roleRule              = "rule"
 	roleRuleAttachment    = "rule_attachment"
+	roleControl           = "control"
+	roleControlAttachment = "control_attachment"
 	roleIssue             = "issue"
 	rolePublication       = "agency_publication"
 	roleCodeSequence      = "code_sequence"
@@ -80,6 +82,8 @@ func carriers() map[string]any {
 		roleValueAttachment:   models.ValueAttachment{},
 		roleRule:              models.Rule{},
 		roleRuleAttachment:    models.RuleAttachment{},
+		roleControl:           models.Control{},
+		roleControlAttachment: models.ControlAttachment{},
 		roleIssue:             models.Issue{},
 		rolePublication:       publication{},
 		roleCodeSequence:      codeSequence{},

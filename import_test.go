@@ -104,7 +104,7 @@ func TestImportDocument_MwanachamaWakala(t *testing.T) {
 			v, err := mgr.ListRoleAssignments(ctx, draftID, mwanachamaagency.RoleAssignmentFilter{})
 			return len(v), err
 		}), stepScopedAssignments(doc)},
-		{"attachments", out.Attachments, len(doc.ValueAttachments) + len(doc.RuleAttachments)},
+		{"attachments", out.Attachments, len(doc.ValueAttachments) + len(doc.RuleAttachments) + len(doc.ControlAttachments)},
 	} {
 		if tc.got != tc.want {
 			t.Errorf("%s = %d, want %d", tc.what, tc.got, tc.want)
@@ -193,8 +193,8 @@ func TestImportDocument_Twice(t *testing.T) {
 	if first.Draft.ID == second.Draft.ID {
 		t.Fatal("the second import reused the first draft")
 	}
-	if second.Attachments != 0 {
-		t.Errorf("attachments written again = %d, want none", second.Attachments)
+	if second.Attachments != first.Attachments {
+		t.Errorf("second import attachments = %d, want %d", second.Attachments, first.Attachments)
 	}
 }
 

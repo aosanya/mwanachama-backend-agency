@@ -252,3 +252,30 @@ and the test skips when it is absent.
 The module is not in the module catalog and is not mounted: the mount is
 HS95 on the hub project's board and RM1 on the risk manager's, and waits on the
 owner's go-ahead. Until it is mounted the permission names actions no route serves.
+
+## Controls (AG105, AGD-011)
+
+Two unlocked permissions, module `agency`, held by roles like any other:
+
+| Code | Name | Actions |
+|---|---|---|
+| `controls.edit` | Edit controls | `agency.control.create`, `agency.control.update`, `agency.control.delete`, `agency.control.attach`, `agency.control.detach` |
+| `controls.approve` | Approve control changes | `agency.publication.create` |
+
+Authoring and approving are separate codes so an agency can give them to different
+roles. That is the maker and checker an auditor asks for. A role holding only
+`controls.edit` drafts a control and cannot publish a change to an enforced one.
+
+`ChangedEnforcedControls(ctx, draftID)` is what tells the host whether a publish needs
+`controls.approve`. It returns the draft's enforced controls (those with an `action`)
+that are new, or whose action, condition, outcome or workflow differ from the document
+of the publication on the production channel. A workflow is compared by its code, not
+its id, because a fork mints new ids. With no production publication every enforced
+control counts as changed. An advisory control is never returned, and neither is an
+enforced control that is unchanged since it was published.
+
+The library does not know who is publishing. The host reads the caller's permissions:
+when `ChangedEnforcedControls` is non-empty it demands `controls.approve` of the
+publisher, and when it is empty publishing needs only the ordinary publish
+permission. `control_changes_test.go` covers the library side; the host check belongs
+on the wakala-api board.

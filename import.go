@@ -35,6 +35,7 @@ func (m *agencyManager) ImportDocument(ctx context.Context, description string, 
 		if err := m.copyRow(ctx, tx, roleDraft, draft); err != nil {
 			return err
 		}
+		doc = convertLegacyStatements(doc)
 		if err := applyDocumentToDraft(ctx, m, tx, draft.ID, doc, now); err != nil {
 			return err
 		}
@@ -42,14 +43,10 @@ func (m *agencyManager) ImportDocument(ctx context.Context, description string, 
 			return err
 		}
 
-		attached, err := m.applyAttachments(ctx, tx, doc, now)
-		if err != nil {
-			return err
-		}
 		if err := m.advanceCodeSequences(ctx, tx, draft.ID); err != nil {
 			return err
 		}
-		out = ImportResult{Draft: draft, Attachments: attached}
+		out = ImportResult{Draft: draft, Attachments: len(doc.ControlAttachments)}
 		return nil
 	})
 	if err != nil {
@@ -114,57 +111,46 @@ func (m *agencyManager) ensureAgency(ctx context.Context, tx *gorm.DB, from mode
 	})
 }
 
-// applyAttachments writes the value and rule attachments the document
-// carries. applyDocumentToDraft leaves them alone because an attachment is
-// not draft-scoped — it names both ends by their stable code, so a draft's
-// copies are already covered by whatever is attached. A document arriving
-// from outside has nothing covering it yet, which is what this writes.
-func (m *agencyManager) applyAttachments(ctx context.Context, tx *gorm.DB, doc models.AgencyDocument, now string) (int, error) {
-	written := 0
-
+func convertLegacyStatements(doc models.AgencyDocument) models.AgencyDocument {
+	held := make(map[string]bool, len(doc.Controls))
+	for _, c := range doc.Controls {
+		held[c.Code] = true
+	}
+	for _, statements := range [][]models.DocumentStatement{doc.Values, doc.Rules} {
+		for _, st := range statements {
+			if held[st.Code] {
+				continue
+			}
+			held[st.Code] = true
+			doc.Controls = append(doc.Controls, models.DocumentControl{ID: st.ID, Code: st.Code, Text: st.Text})
+		}
+	}
 	for _, a := range doc.ValueAttachments {
-		held, err := m.attachmentHeld(ctx, tx, roleValueAttachment, "value_code", a.ValueCode, a.TargetType, a.TargetCode)
-		if err != nil || held {
-			if err != nil {
-				return written, err
-			}
-			continue
-		}
-		row := models.ValueAttachment{
-			ID:         newID(),
-			ValueCode:  a.ValueCode,
-			TargetType: models.TargetType(a.TargetType),
-			TargetCode: a.TargetCode,
-			CreatedAt:  now,
-		}
-		if err := m.copyRow(ctx, tx, roleValueAttachment, row); err != nil {
-			return written, err
-		}
-		written++
+		doc.ControlAttachments = append(doc.ControlAttachments, models.DocumentControlAttachment{
+			ControlCode: a.ValueCode, TargetType: a.TargetType, TargetCode: a.TargetCode,
+		})
 	}
-
 	for _, a := range doc.RuleAttachments {
-		held, err := m.attachmentHeld(ctx, tx, roleRuleAttachment, "rule_code", a.RuleCode, a.TargetType, a.TargetCode)
-		if err != nil || held {
-			if err != nil {
-				return written, err
-			}
+		doc.ControlAttachments = append(doc.ControlAttachments, models.DocumentControlAttachment{
+			ControlCode: a.RuleCode, TargetType: a.TargetType, TargetCode: a.TargetCode,
+		})
+	}
+	doc.Values, doc.Rules, doc.ValueAttachments, doc.RuleAttachments = nil, nil, nil, nil
+	doc.ControlAttachments = distinctControlAttachments(doc.ControlAttachments)
+	return doc
+}
+
+func distinctControlAttachments(in []models.DocumentControlAttachment) []models.DocumentControlAttachment {
+	seen := make(map[models.DocumentControlAttachment]bool, len(in))
+	var out []models.DocumentControlAttachment
+	for _, a := range in {
+		if seen[a] {
 			continue
 		}
-		row := models.RuleAttachment{
-			ID:         newID(),
-			RuleCode:   a.RuleCode,
-			TargetType: models.TargetType(a.TargetType),
-			TargetCode: a.TargetCode,
-			CreatedAt:  now,
-		}
-		if err := m.copyRow(ctx, tx, roleRuleAttachment, row); err != nil {
-			return written, err
-		}
-		written++
+		seen[a] = true
+		out = append(out, a)
 	}
-
-	return written, nil
+	return out
 }
 
 // advanceCodeSequences moves each counter past the codes the document
@@ -230,15 +216,4 @@ func raiseSequence(ctx context.Context, tx *gorm.DB, table, entityType string, n
 		return fmt.Errorf("raiseSequence: %w", err)
 	}
 	return nil
-}
-
-func (m *agencyManager) attachmentHeld(ctx context.Context, tx *gorm.DB, role, codeColumn, code, targetType, targetCode string) (bool, error) {
-	var count int64
-	err := tx.WithContext(ctx).Table(m.table(role)).
-		Where(codeColumn+" = ? AND target_type = ? AND target_code = ?", code, targetType, targetCode).
-		Count(&count).Error
-	if err != nil {
-		return false, fmt.Errorf("attachmentHeld: %w", err)
-	}
-	return count > 0, nil
 }

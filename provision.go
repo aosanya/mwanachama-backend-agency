@@ -424,7 +424,7 @@ func mustObject(s *spec.Spec, role string) spec.Object {
 var draftScopedRoles = []string{
 	roleGoal, roleObjective, roleWorkflow, roleWorkItem, roleEventFlowStep,
 	roleRole, roleRoleAssignment, roleWorkflowObjective, roleModule,
-	roleValue, roleRule, roleIssue, roleRecord, roleMeasure, roleRisk, roleRiskPathway,
+	roleValue, roleRule, roleControl, roleControlAttachment, roleIssue, roleRecord, roleMeasure, roleRisk, roleRiskPathway,
 }
 
 var codedRoles = []struct {
@@ -439,6 +439,7 @@ var codedRoles = []struct {
 	{roleWorkItem, "workitem", "WI"},
 	{roleValue, "value", "V"},
 	{roleRule, "rule", "RU"},
+	{roleControl, "control", "C"},
 	{roleRecord, "record", "RC"},
 	{roleRisk, "risk", "RK"},
 	{roleRiskPathway, "risk_pathway", "RP"},

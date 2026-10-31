@@ -113,8 +113,7 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 		}
 	}
 
-	brief.Values = briefStatements(doc.Values, doc.ValueAttachments, func(a models.DocumentAttachment) string { return a.ValueCode }, scopeByTarget)
-	brief.Rules = briefStatements(doc.Rules, doc.RuleAttachments, func(a models.DocumentAttachment) string { return a.RuleCode }, scopeByTarget)
+	brief.Controls = briefControls(doc, scopeByTarget)
 
 	for _, w := range doc.WorkItems {
 		if labelsByStep[w.ID] == nil || w.Prompt == "" {
@@ -152,6 +151,21 @@ func orderedLabels(held map[string]bool) []string {
 
 func joinLabels(held map[string]bool) string {
 	return strings.Join(orderedLabels(held), ", ")
+}
+
+func briefControls(doc models.AgencyDocument, scopeByTarget map[string]string) []models.BriefStatement {
+	controls := make([]models.DocumentStatement, 0, len(doc.Controls))
+	for _, c := range doc.Controls {
+		controls = append(controls, models.DocumentStatement{ID: c.ID, Code: c.Code, Text: c.Text})
+	}
+	attachments := make([]models.DocumentAttachment, 0, len(doc.ControlAttachments))
+	for _, a := range doc.ControlAttachments {
+		attachments = append(attachments, models.DocumentAttachment{ValueCode: a.ControlCode, TargetType: a.TargetType, TargetCode: a.TargetCode})
+	}
+	codeOfControl := func(a models.DocumentAttachment) string { return a.ValueCode }
+	out := briefStatements(controls, attachments, codeOfControl, scopeByTarget)
+	out = append(out, briefStatements(doc.Values, doc.ValueAttachments, func(a models.DocumentAttachment) string { return a.ValueCode }, scopeByTarget)...)
+	return append(out, briefStatements(doc.Rules, doc.RuleAttachments, func(a models.DocumentAttachment) string { return a.RuleCode }, scopeByTarget)...)
 }
 
 func briefStatements(items []models.DocumentStatement, attachments []models.DocumentAttachment, codeOf func(models.DocumentAttachment) string, scopeByTarget map[string]string) []models.BriefStatement {
@@ -192,8 +206,7 @@ func renderBrief(b models.RoleBrief) string {
 	for _, o := range b.Objectives {
 		fmt.Fprintf(&s, "- %s %s [%s] under goal %s %s\n", o.Code, o.Title, o.Label, o.GoalCode, o.GoalTitle)
 	}
-	writeStatements(&s, "Values", b.Values)
-	writeStatements(&s, "Rules", b.Rules)
+	writeStatements(&s, "Controls", b.Controls)
 	s.WriteString("\nWork items:\n")
 	if len(b.WorkItems) == 0 {
 		s.WriteString("- none\n")

@@ -21,6 +21,8 @@ type TableNames struct {
 	ValueAttachments   string
 	Rules              string
 	RuleAttachments    string
+	Controls           string
+	ControlAttachments string
 	Issues             string
 	CodeSequences      string
 	Records            string
@@ -63,6 +65,8 @@ func TablesFor(s *spec.Spec) TableNames {
 		ValueAttachments:   table(roleValueAttachment),
 		Rules:              table(roleRule),
 		RuleAttachments:    table(roleRuleAttachment),
+		Controls:           table(roleControl),
+		ControlAttachments: table(roleControlAttachment),
 		Issues:             table(roleIssue),
 		CodeSequences:      table(roleCodeSequence),
 		Records:            table(roleRecord),

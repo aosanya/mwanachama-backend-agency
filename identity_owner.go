@@ -22,6 +22,7 @@ var codePrefixes = map[string]string{
 	roleWorkItem:  "WI",
 	roleRole:      "R",
 	roleRule:      "RU",
+	roleControl:   "C",
 	roleRecord:    "RC",
 	roleValue:     "V",
 }

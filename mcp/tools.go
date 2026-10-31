@@ -38,6 +38,8 @@ var carriers = map[string]string{
 	"value_attachment":   "ValueAttachment",
 	"rule":               "Rule",
 	"rule_attachment":    "RuleAttachment",
+	"control":            "Control",
+	"control_attachment": "ControlAttachment",
 	"issue":              "Issue",
 	"agency_publication": "AgencyPublication",
 	"record":             "Record",

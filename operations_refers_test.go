@@ -15,6 +15,7 @@ var markedReferences = map[string]string{
 	"role_id":         "agency.role",
 	"value_id":        "agency.value",
 	"rule_id":         "agency.rule",
+	"control_id":      "agency.control",
 	"risk_id":         "agency.risk",
 	"risk_pathway_id": "agency.risk_pathway",
 }

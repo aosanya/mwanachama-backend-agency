@@ -329,6 +329,28 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 			return err
 		}
 	}
+	controls, err := list[models.Control](m, scopeQuery(tx.Table(m.table(roleControl)), sourceScope).Order("created_at"), roleControl)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, c := range controls {
+		c.ID, c.DraftID, c.CreatedAt, c.LastUpdated = newID(), newDraftID, now, now
+		c.WorkflowID = remap(workflowIDs, c.WorkflowID)
+		if err := m.copyRow(ctx, tx, roleControl, c); err != nil {
+			return err
+		}
+	}
+
+	controlAttachments, err := list[models.ControlAttachment](m, scopeQuery(tx.Table(m.table(roleControlAttachment)), sourceScope).Order("created_at"), roleControlAttachment)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, a := range controlAttachments {
+		a.ID, a.DraftID, a.CreatedAt = newID(), newDraftID, now
+		if err := m.copyRow(ctx, tx, roleControlAttachment, a); err != nil {
+			return err
+		}
+	}
 	return m.forkScenarios(ctx, tx, sourceScope, newDraftID, now, scenarioRemap{workflows: workflowIDs, roles: roleIDs, steps: stepIDs})
 }
 

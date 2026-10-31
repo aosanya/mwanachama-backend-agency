@@ -22,6 +22,27 @@ type AgencyDocument struct {
 	Scenarios          []DocumentScenario          `json:"scenarios,omitempty"`
 	Risks              []DocumentRisk              `json:"risks,omitempty"`
 	RiskPathways       []DocumentRiskPathway       `json:"risk_pathways,omitempty"`
+	Controls           []DocumentControl           `json:"controls,omitempty"`
+	ControlAttachments []DocumentControlAttachment `json:"control_attachments,omitempty"`
+}
+
+type DocumentControl struct {
+	ID           string          `json:"id"`
+	Code         string          `json:"code"`
+	Text         string          `json:"text"`
+	Action       string          `json:"action,omitempty"`
+	CondField    string          `json:"cond_field,omitempty"`
+	CondOperator ControlOperator `json:"cond_operator,omitempty"`
+	CondValue    string          `json:"cond_value,omitempty"`
+	OnBreach     ControlOnBreach `json:"on_breach,omitempty"`
+	WorkflowID   string          `json:"workflow_id,omitempty"`
+	Severity     ControlSeverity `json:"severity,omitempty"`
+}
+
+type DocumentControlAttachment struct {
+	ControlCode string `json:"control_code"`
+	TargetType  string `json:"target_type"`
+	TargetCode  string `json:"target_code"`
 }
 
 type DocumentAgency struct {

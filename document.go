@@ -190,6 +190,28 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		})
 	}
 
+	controls, err := list[models.Control](m, scoped(roleControl).Order("created_at"), roleControl)
+	if err != nil {
+		return fail(err)
+	}
+	for _, c := range controls {
+		doc.Controls = append(doc.Controls, models.DocumentControl{
+			ID: c.ID, Code: c.Code, Text: c.Text, Action: c.Action, CondField: c.CondField,
+			CondOperator: c.CondOperator, CondValue: c.CondValue, OnBreach: c.OnBreach,
+			WorkflowID: c.WorkflowID, Severity: c.Severity,
+		})
+	}
+
+	controlAttachments, err := list[models.ControlAttachment](m, scoped(roleControlAttachment).Order("created_at"), roleControlAttachment)
+	if err != nil {
+		return fail(err)
+	}
+	for _, a := range controlAttachments {
+		doc.ControlAttachments = append(doc.ControlAttachments, models.DocumentControlAttachment{
+			ControlCode: a.ControlCode, TargetType: string(a.TargetType), TargetCode: a.TargetCode,
+		})
+	}
+
 	modules, err := list[models.Module](m, scoped(roleModule).Order("code"), roleModule)
 	if err != nil {
 		return fail(err)
@@ -386,6 +408,28 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleRule, row); err != nil {
+			return fail(err)
+		}
+	}
+
+	for _, c := range doc.Controls {
+		row := models.Control{
+			ID: newID(), Code: c.Code, DraftID: draftID, Text: c.Text, Action: c.Action,
+			CondField: c.CondField, CondOperator: c.CondOperator, CondValue: c.CondValue,
+			OnBreach: c.OnBreach, WorkflowID: remap(workflowIDs, c.WorkflowID), Severity: c.Severity,
+			CreatedAt: now, LastUpdated: now,
+		}
+		if err := m.copyRow(ctx, tx, roleControl, row); err != nil {
+			return fail(err)
+		}
+	}
+
+	for _, a := range doc.ControlAttachments {
+		row := models.ControlAttachment{
+			ID: newID(), DraftID: draftID, ControlCode: a.ControlCode,
+			TargetType: models.TargetType(a.TargetType), TargetCode: a.TargetCode, CreatedAt: now,
+		}
+		if err := m.copyRow(ctx, tx, roleControlAttachment, row); err != nil {
 			return fail(err)
 		}
 	}
