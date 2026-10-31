@@ -82,13 +82,23 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	}
 	for _, wi := range workItems {
 		doc.WorkItems = append(doc.WorkItems, models.DocumentWorkItem{
-			ID: wi.ID, Code: wi.Code, WorkflowID: wi.WorkflowID, ObjectiveID: wi.ObjectiveID,
+			ID: wi.ID, Code: wi.Code, WorkflowID: wi.WorkflowID,
 			Title: wi.Title, Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
 			Kind: wi.Kind, RoleID: wi.RoleID, RunWorkflowID: wi.RunWorkflowID,
 			FormName: wi.FormName, Questions: wi.Questions,
 			RecipientRoleID: wi.RecipientRoleID, SentStepID: wi.SentStepID,
 			Routes: wi.Routes, OtherwiseStepID: wi.OtherwiseStepID,
 			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: wi.CancelWorkflowID,
+		})
+	}
+
+	workflowObjectives, err := list[models.WorkflowObjective](m, scoped(roleWorkflowObjective).Order("created_at"), roleWorkflowObjective)
+	if err != nil {
+		return fail(err)
+	}
+	for _, wo := range workflowObjectives {
+		doc.WorkflowObjectives = append(doc.WorkflowObjectives, models.DocumentWorkflowObjective{
+			ID: wo.ID, WorkflowID: wo.WorkflowID, ObjectiveID: wo.ObjectiveID,
 		})
 	}
 
@@ -120,7 +130,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	}
 	for _, ra := range assignments {
 		doc.RoleAssignments = append(doc.RoleAssignments, models.DocumentRoleAssignment{
-			RoleID: ra.RoleID, ObjectiveID: ra.ObjectiveID, Label: string(ra.Label),
+			ID: ra.ID, WorkItemID: ra.WorkItemID, RoleID: ra.RoleID, Label: string(ra.Label),
 		})
 	}
 
@@ -247,8 +257,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	for _, wi := range doc.WorkItems {
 		row := models.WorkItem{
 			ID: stepIDs[wi.ID], Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
-			ObjectiveID: objectiveIDs[wi.ObjectiveID], Title: wi.Title,
-			Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
+			Title: wi.Title, Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
 			Kind: wi.Kind, RoleID: remap(roleIDs, wi.RoleID), RunWorkflowID: workflowIDs[wi.RunWorkflowID],
 			FormName: wi.FormName, Questions: wi.Questions,
 			RecipientRoleID: remap(roleIDs, wi.RecipientRoleID), SentStepID: remap(stepIDs, wi.SentStepID),
@@ -284,11 +293,31 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		}
 	}
 
-	for _, ra := range doc.RoleAssignments {
-		row := models.RoleAssignment{
-			ID: newID(), DraftID: draftID, RoleID: roleIDs[ra.RoleID],
-			ObjectiveID: objectiveIDs[ra.ObjectiveID], Label: models.RACILabel(ra.Label),
+	for _, link := range documentWorkflowObjectives(doc, workflowIDs, objectiveIDs) {
+		row := models.WorkflowObjective{
+			ID: newID(), DraftID: draftID, WorkflowID: link.workflowID, ObjectiveID: link.objectiveID,
 			CreatedAt: now, LastUpdated: now,
+		}
+		if err := m.copyRow(ctx, tx, roleWorkflowObjective, row); err != nil {
+			return fail(err)
+		}
+	}
+
+	assigned := make(map[[3]string]bool, len(doc.RoleAssignments))
+	for _, ra := range doc.RoleAssignments {
+		stepID, stepKnown := stepIDs[ra.WorkItemID]
+		roleID, roleKnown := roleIDs[ra.RoleID]
+		if ra.WorkItemID == "" || !stepKnown || !roleKnown {
+			continue
+		}
+		key := [3]string{stepID, roleID, ra.Label}
+		if assigned[key] {
+			continue
+		}
+		assigned[key] = true
+		row := models.RoleAssignment{
+			ID: newID(), DraftID: draftID, WorkItemID: stepID, RoleID: roleID,
+			Label: models.RACILabel(ra.Label), CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleRoleAssignment, row); err != nil {
 			return fail(err)
@@ -347,4 +376,34 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	}
 	remap := scenarioRemap{workflows: workflowIDs, roles: roleIDs, steps: stepIDs}
 	return m.applyScenarioDocuments(ctx, tx, draftID, doc.Scenarios, now, remap)
+}
+
+type workflowObjectiveLink struct {
+	workflowID  string
+	objectiveID string
+}
+
+func documentWorkflowObjectives(doc models.AgencyDocument, workflowIDs, objectiveIDs map[string]string) []workflowObjectiveLink {
+	seen := make(map[workflowObjectiveLink]bool)
+	var links []workflowObjectiveLink
+	add := func(documentWorkflowID, documentObjectiveID string) {
+		workflowID, workflowKnown := workflowIDs[documentWorkflowID]
+		objectiveID, objectiveKnown := objectiveIDs[documentObjectiveID]
+		if !workflowKnown || !objectiveKnown {
+			return
+		}
+		link := workflowObjectiveLink{workflowID: workflowID, objectiveID: objectiveID}
+		if seen[link] {
+			return
+		}
+		seen[link] = true
+		links = append(links, link)
+	}
+	for _, wo := range doc.WorkflowObjectives {
+		add(wo.WorkflowID, wo.ObjectiveID)
+	}
+	for _, wi := range doc.WorkItems {
+		add(wi.WorkflowID, wi.LegacyObjectiveID)
+	}
+	return links
 }

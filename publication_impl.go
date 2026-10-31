@@ -92,13 +92,23 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		}))
 	}
 
+	workflowObjectives, err := list[models.WorkflowObjective](m, scoped(roleWorkflowObjective), roleWorkflowObjective)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	for _, r := range workflowObjectives {
+		records = append(records, hashRecord("WorkflowObjective", map[string]any{
+			"id": r.ID, "workflow_id": r.WorkflowID, "objective_id": r.ObjectiveID, "deleted": r.Deleted,
+		}))
+	}
+
 	workItems, err := list[models.WorkItem](m, scoped(roleWorkItem), roleWorkItem)
 	if err != nil {
 		return "", fmt.Errorf("contentHashFor: %w", err)
 	}
 	for _, r := range workItems {
 		records = append(records, hashRecord("WorkItem", map[string]any{
-			"id": r.ID, "workflow_id": r.WorkflowID, "objective_id": r.ObjectiveID,
+			"id": r.ID, "workflow_id": r.WorkflowID,
 			"title": r.Title, "description": r.Description, "ordinality": r.Ordinality,
 			"prompt": r.Prompt, "deleted": r.Deleted,
 		}))
@@ -184,7 +194,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 	}
 	for _, r := range assignments {
 		records = append(records, hashRecord("RoleAssignment", map[string]any{
-			"id": r.ID, "role_id": r.RoleID, "objective_id": r.ObjectiveID,
+			"id": r.ID, "work_item_id": r.WorkItemID, "role_id": r.RoleID,
 			"label": string(r.Label), "deleted": r.Deleted,
 		}))
 	}

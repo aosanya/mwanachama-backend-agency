@@ -2,39 +2,24 @@ package models
 
 import "encoding/json"
 
-// AgencyDocument is a whole Agency serialized into one value — what an
-// [AgencyPublication] carries, and what production reads to operate
-// (AGD-005). Nothing running resolves the working rows; it resolves the
-// document on the tag published to its channel.
-//
-// The shape deliberately mirrors mwanachama-wakala-api's
-// `POST /instances/import` document field-for-field, so a publication can
-// be fed straight back to import and the 52 mined agency templates are
-// already written in it. Two additions that import does not itself apply:
-// EventFlowSteps (kept when WorkPlan/ContextSource were retired — AGD-005
-// #7) and the Agency's own non-identity settings. Import decodes leniently,
-// so those extra sections pass through it harmlessly.
-//
-// Every reference between sections is by the id the row carried when it
-// was published, with Code alongside it. An importer may resolve either;
-// Code is the one that survives a promotion unchanged (AG16).
 type AgencyDocument struct {
-	Agency           DocumentAgency           `json:"agency"`
-	Roles            []DocumentRole           `json:"roles"`
-	Goals            []DocumentGoal           `json:"goals"`
-	Objectives       []DocumentObjective      `json:"objectives"`
-	Workflows        []DocumentWorkflow       `json:"workflows"`
-	WorkItems        []DocumentWorkItem       `json:"work_items"`
-	RoleAssignments  []DocumentRoleAssignment `json:"role_assignments"`
-	Values           []DocumentStatement      `json:"values"`
-	Rules            []DocumentStatement      `json:"rules"`
-	ValueAttachments []DocumentAttachment     `json:"value_attachments"`
-	RuleAttachments  []DocumentAttachment     `json:"rule_attachments"`
-	Modules          []DocumentModule         `json:"modules"`
-	EventFlowSteps   []EventFlowStep          `json:"event_flow_steps"`
-	Records          []DocumentRecord         `json:"records,omitempty"`
-	Measures         []DocumentMeasure        `json:"measures,omitempty"`
-	Scenarios        []DocumentScenario       `json:"scenarios,omitempty"`
+	Agency             DocumentAgency              `json:"agency"`
+	Roles              []DocumentRole              `json:"roles"`
+	Goals              []DocumentGoal              `json:"goals"`
+	Objectives         []DocumentObjective         `json:"objectives"`
+	Workflows          []DocumentWorkflow          `json:"workflows"`
+	WorkflowObjectives []DocumentWorkflowObjective `json:"workflow_objectives"`
+	WorkItems          []DocumentWorkItem          `json:"work_items"`
+	RoleAssignments    []DocumentRoleAssignment    `json:"role_assignments"`
+	Values             []DocumentStatement         `json:"values"`
+	Rules              []DocumentStatement         `json:"rules"`
+	ValueAttachments   []DocumentAttachment        `json:"value_attachments"`
+	RuleAttachments    []DocumentAttachment        `json:"rule_attachments"`
+	Modules            []DocumentModule            `json:"modules"`
+	EventFlowSteps     []EventFlowStep             `json:"event_flow_steps"`
+	Records            []DocumentRecord            `json:"records,omitempty"`
+	Measures           []DocumentMeasure           `json:"measures,omitempty"`
+	Scenarios          []DocumentScenario          `json:"scenarios,omitempty"`
 }
 
 type DocumentAgency struct {
@@ -85,11 +70,12 @@ type DocumentWorkItem struct {
 	ID          string `json:"id"`
 	Code        string `json:"code"`
 	WorkflowID  string `json:"workflow_id"`
-	ObjectiveID string `json:"objective_id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Ordinality  int    `json:"ordinality"`
 	Prompt      string `json:"prompt"`
+
+	LegacyObjectiveID string `json:"objective_id,omitempty"`
 
 	Kind          StepKind       `json:"kind,omitempty"`
 	RoleID        string         `json:"role_id,omitempty"`
@@ -106,10 +92,19 @@ type DocumentWorkItem struct {
 	CancelWorkflowID string `json:"cancel_workflow_id,omitempty"`
 }
 
-type DocumentRoleAssignment struct {
-	RoleID      string `json:"role_id"`
+type DocumentWorkflowObjective struct {
+	ID          string `json:"id"`
+	WorkflowID  string `json:"workflow_id"`
 	ObjectiveID string `json:"objective_id"`
-	Label       string `json:"label"`
+}
+
+type DocumentRoleAssignment struct {
+	ID         string `json:"id,omitempty"`
+	WorkItemID string `json:"work_item_id"`
+	RoleID     string `json:"role_id"`
+	Label      string `json:"label"`
+
+	LegacyObjectiveID string `json:"objective_id,omitempty"`
 }
 
 type DocumentStatement struct {
@@ -117,10 +112,6 @@ type DocumentStatement struct {
 	Code string `json:"code"`
 	Text string `json:"text"`
 }
-
-// DocumentAttachment carries both the id and the Code of each end, matching
-// the import shape's own both-accepted convention (AG22 stores Codes; an
-// export written by id resolves through the same maps).
 type DocumentAttachment struct {
 	ValueID    string `json:"value_id,omitempty"`
 	ValueCode  string `json:"value_code,omitempty"`
