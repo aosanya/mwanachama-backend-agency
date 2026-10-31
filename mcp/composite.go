@@ -187,7 +187,7 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 			for _, objectiveID := range objectiveIDs {
 				link, err := m.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: p.DraftID, WorkflowID: row.ID, ObjectiveID: objectiveID})
 				if err != nil {
-					out.Errors = append(out.Errors, fmt.Sprintf("workflow %q: objective %s: %v", w.Key, objectiveID, err))
+					out.Errors = append(out.Errors, fmt.Sprintf("workflow %q: objective %s: %v", w.Key, mwanachamaagency.QuoteIfUnsafe(objectiveID), err))
 					continue
 				}
 				out.WorkflowLinks = append(out.WorkflowLinks, link.ID)
@@ -213,6 +213,14 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 		}
 
 		for i, ra := range p.RACI {
+			if ra.RoleKey != "" && ra.RoleID != "" {
+				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: set role_key or role_id, not both", i))
+				continue
+			}
+			if ra.WorkItemKey != "" && ra.WorkItemID != "" {
+				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: set work_item_key or work_item_id, not both", i))
+				continue
+			}
 			roleID := ra.RoleID
 			if ra.RoleKey != "" {
 				id, ok := out.Roles[ra.RoleKey]

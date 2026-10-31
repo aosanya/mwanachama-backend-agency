@@ -52,15 +52,23 @@ func (m *agencyManager) CreateRoleAssignment(ctx context.Context, a models.RoleA
 	if err := m.validateOpenDraftID(ctx, a.DraftID); err != nil {
 		return models.RoleAssignment{}, err
 	}
-	if err := m.validateRoleAssignment(ctx, m.db, a, ""); err != nil {
-		return models.RoleAssignment{}, err
-	}
 	a.ID = newID()
 	a.Deleted = false
 	a.CreatedAt = models.NowRFC3339()
 	a.LastUpdated = a.CreatedAt
 
-	if err := m.insert(ctx, roleRoleAssignment, a); err != nil {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := m.validateRoleAssignment(ctx, tx, a, ""); err != nil {
+			return err
+		}
+		row, err := m.encode(roleRoleAssignment, a)
+		if err != nil {
+			return err
+		}
+		return tx.Table(m.table(roleRoleAssignment)).Create(row).Error
+	})
+	err = duplicateOr(err, ErrDuplicateRoleAssignment)
+	if err != nil {
 		return models.RoleAssignment{}, fmt.Errorf("CreateRoleAssignment: %w", err)
 	}
 	return a, nil
@@ -118,6 +126,7 @@ func (m *agencyManager) UpdateRoleAssignment(ctx context.Context, a models.RoleA
 		out = a
 		return nil
 	})
+	err = duplicateOr(err, ErrDuplicateRoleAssignment)
 	if err != nil {
 		return models.RoleAssignment{}, fmt.Errorf("UpdateRoleAssignment: %w", err)
 	}
