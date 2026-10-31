@@ -91,6 +91,11 @@ func (m *agencyManager) UpdateRisk(ctx context.Context, r models.Risk) (models.R
 		if err := m.requireHazardCode(ctx, tx, existing.DraftID, r.HazardCode); err != nil {
 			return err
 		}
+		if r.HazardCode != existing.HazardCode {
+			if err := m.requireLinkedConsequencesFit(ctx, tx, existing.DraftID, existing.Code, r.HazardCode); err != nil {
+				return err
+			}
+		}
 		r.Code = existing.Code
 		r.DraftID = existing.DraftID
 		r.CreatedAt = existing.CreatedAt

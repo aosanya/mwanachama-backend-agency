@@ -14,6 +14,7 @@ type composeWorld struct {
 	ctx         context.Context
 	draftID     string
 	otherDraft  string
+	hazard      models.Hazard
 	risk        models.Risk
 	threat      models.Threat
 	consequence models.Consequence
@@ -24,7 +25,11 @@ func newComposeWorld(t *testing.T) composeWorld {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
-	risk, err := mgr.CreateRisk(ctx, models.Risk{DraftID: o.DraftID, Title: "Unsold harvest", TopEvent: "A harvest goes unsold"})
+	hazard, err := mgr.CreateHazard(ctx, models.Hazard{DraftID: o.DraftID, Title: "Perishable produce"})
+	if err != nil {
+		t.Fatalf("CreateHazard: %v", err)
+	}
+	risk, err := mgr.CreateRisk(ctx, models.Risk{DraftID: o.DraftID, Title: "Unsold harvest", TopEvent: "A harvest goes unsold", HazardCode: hazard.Code})
 	if err != nil {
 		t.Fatalf("CreateRisk: %v", err)
 	}
@@ -32,11 +37,11 @@ func newComposeWorld(t *testing.T) composeWorld {
 	if err != nil {
 		t.Fatalf("CreateThreat: %v", err)
 	}
-	consequence, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, Title: "Produce spoils"})
+	consequence, err := mgr.CreateConsequence(ctx, models.Consequence{DraftID: o.DraftID, HazardCode: hazard.Code, Title: "Produce spoils"})
 	if err != nil {
 		t.Fatalf("CreateConsequence: %v", err)
 	}
-	return composeWorld{mgr: mgr, ctx: ctx, draftID: o.DraftID, risk: risk, threat: threat, consequence: consequence}
+	return composeWorld{mgr: mgr, ctx: ctx, draftID: o.DraftID, hazard: hazard, risk: risk, threat: threat, consequence: consequence}
 }
 
 func TestCreateRiskThreat_LinksByCodeAndRefusesAStrangerOrAFourthCopy(t *testing.T) {
@@ -151,10 +156,7 @@ func TestListAndDeleteRiskLinks(t *testing.T) {
 
 func TestRisk_HazardCodeMustNameAHazardInTheDraft(t *testing.T) {
 	w := newComposeWorld(t)
-	hazard, err := w.mgr.CreateHazard(w.ctx, models.Hazard{DraftID: w.draftID, Title: "Perishable produce"})
-	if err != nil {
-		t.Fatalf("CreateHazard: %v", err)
-	}
+	hazard := w.hazard
 	if _, err := w.mgr.CreateRisk(w.ctx, models.Risk{DraftID: w.draftID, Title: "A", TopEvent: "B", HazardCode: "H-99"}); !errors.Is(err, mwanachamaagency.ErrHazardNotFound) {
 		t.Fatalf("CreateRisk with unknown hazard = %v, want ErrHazardNotFound", err)
 	}

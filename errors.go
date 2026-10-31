@@ -169,6 +169,7 @@ var (
 	ErrLibraryPartInUse         = errors.New("mwanachamaagency: a risk still uses this part")
 	ErrDuplicateRiskThreat      = errors.New("mwanachamaagency: risk already uses this threat")
 	ErrDuplicateRiskConsequence = errors.New("mwanachamaagency: risk already uses this consequence")
+	ErrConsequenceOutsideHazard = errors.New("mwanachamaagency: a risk links only consequences of its own hazard")
 	ErrLibraryTitleTaken        = errors.New("mwanachamaagency: a part of this kind already has this title")
 )
 
