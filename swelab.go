@@ -7,9 +7,6 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// SWELabPersonas is the full persona catalog from
-// NeoLabHQ/context-engineering-kit's agents/ directory — the seed source
-// for SWELab's Roles. Every persona here is software-development-specific.
 var SWELabPersonas = []string{
 	"bug-hunter", "business-analyst", "change-expectation-agent",
 	"change-failure-agent", "change-impact-agent", "change-story-agent",
@@ -20,32 +17,19 @@ var SWELabPersonas = []string{
 	"test-coverage-reviewer",
 }
 
-// SWELabSeed is everything [SeedSWELab] creates, so a caller doesn't
-// need to re-query it.
 type SWELabSeed struct {
-	Agency          models.Agency
-	Draft           models.Draft             // every row below belongs to this Draft (AGD-006) — publish it to make the seed live
-	Roles           map[string]models.Role   // keyed by persona name
-	Modules         map[string]models.Module // keyed by module code
-	Goals           []models.Goal
-	Objectives      []models.Objective // index-aligned with Goals — this seed creates one Objective per Goal, not a model requirement
-	Workflows       []models.Workflow
-	WorkItems       []models.WorkItem
-	RoleAssignments []models.RoleAssignment
+	Agency             models.Agency
+	Draft              models.Draft
+	Roles              map[string]models.Role
+	Modules            map[string]models.Module
+	Goals              []models.Goal
+	Objectives         []models.Objective
+	Workflows          []models.Workflow
+	WorkflowObjectives []models.WorkflowObjective
+	WorkItems          []models.WorkItem
+	RoleAssignments    []models.RoleAssignment
 }
 
-// SeedSWELab creates a test Agency ("SWELab"): all 21
-// [SWELabPersonas] as Roles (unscoped — this repo carries no org-chart type
-// to scope them to since AGD-017 moved that concept to
-// mwanachama-backend-actor) plus a small illustrative
-// Goal/Objective/Workflow/WorkItem set with RoleAssignments exercising every
-// RACI label. Three
-// separate Goal/Objective pairs, one per illustrative WorkItem — RACI
-// moved to Objective-scoped 2026-09-10 (AGD-001), so three distinct RACI
-// sets need three distinct Objectives, not three WorkItems sharing one.
-// Everything is created
-// inside one Draft this function opens itself ([CreateDraft] with
-// forkedFromType ""); publishing that Draft is left to the caller.
 func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 	var seed SWELabSeed
 
@@ -139,8 +123,16 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 		}
 		seed.Objectives = append(seed.Objectives, objective)
 
+		link, err := m.CreateWorkflowObjective(ctx, models.WorkflowObjective{
+			DraftID: draftID, WorkflowID: workflow.ID, ObjectiveID: objective.ID,
+		})
+		if err != nil {
+			return SWELabSeed{}, fmt.Errorf("SeedSWELab: link objective %q to the workflow: %w", item.goalTitle, err)
+		}
+		seed.WorkflowObjectives = append(seed.WorkflowObjectives, link)
+
 		workItem, err := m.CreateWorkItem(ctx, models.WorkItem{
-			DraftID: draftID, WorkflowID: workflow.ID, ObjectiveID: objective.ID, Title: item.workItem,
+			DraftID: draftID, WorkflowID: workflow.ID, Title: item.workItem,
 		})
 		if err != nil {
 			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create work item %q: %w", item.workItem, err)
@@ -153,7 +145,7 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 				return SWELabSeed{}, fmt.Errorf("SeedSWELab: %q is not a seeded persona", a.persona)
 			}
 			ra, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{
-				DraftID: draftID, RoleID: role.ID, ObjectiveID: objective.ID, Label: a.label,
+				DraftID: draftID, WorkItemID: workItem.ID, RoleID: role.ID, Label: a.label,
 			})
 			if err != nil {
 				return SWELabSeed{}, fmt.Errorf("SeedSWELab: assign %q to %q: %w", a.persona, item.workItem, err)

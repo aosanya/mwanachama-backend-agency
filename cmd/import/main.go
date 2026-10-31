@@ -93,13 +93,37 @@ func counts(doc models.AgencyDocument) []countOf {
 		{"objectives", len(doc.Objectives)},
 		{"workflows", len(doc.Workflows)},
 		{"work items", len(doc.WorkItems)},
-		{"RACI links", len(doc.RoleAssignments)},
+		{"workflow objectives", workflowObjectiveCount(doc)},
+		{"RACI links", stepRaciCount(doc)},
 		{"values", len(doc.Values)},
 		{"rules", len(doc.Rules)},
 		{"attachments", len(doc.ValueAttachments) + len(doc.RuleAttachments)},
 		{"modules", len(doc.Modules)},
 		{"event flow steps", len(doc.EventFlowSteps)},
 	}
+}
+
+func workflowObjectiveCount(doc models.AgencyDocument) int {
+	pairs := map[[2]string]bool{}
+	for _, l := range doc.WorkflowObjectives {
+		pairs[[2]string{l.WorkflowID, l.ObjectiveID}] = true
+	}
+	for _, w := range doc.WorkItems {
+		if w.LegacyObjectiveID != "" {
+			pairs[[2]string{w.WorkflowID, w.LegacyObjectiveID}] = true
+		}
+	}
+	return len(pairs)
+}
+
+func stepRaciCount(doc models.AgencyDocument) int {
+	n := 0
+	for _, a := range doc.RoleAssignments {
+		if a.WorkItemID != "" {
+			n++
+		}
+	}
+	return n
 }
 
 func fail(err error) {
