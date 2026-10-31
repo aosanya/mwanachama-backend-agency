@@ -192,10 +192,6 @@ func TestListModules_Filter(t *testing.T) {
 
 func addStep(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string, kind models.StepKind) models.WorkItem {
 	t.Helper()
-	objectives, err := mgr.ListObjectives(ctx, draftID, mwanachamaagency.ObjectiveFilter{})
-	if err != nil || len(objectives) == 0 {
-		t.Fatalf("ListObjectives: %+v %v", objectives, err)
-	}
 	workflows, err := mgr.ListWorkflows(ctx, draftID, mwanachamaagency.WorkflowFilter{})
 	if err != nil || len(workflows) == 0 {
 		t.Fatalf("ListWorkflows: %+v %v", workflows, err)
@@ -209,7 +205,7 @@ func addStep(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Conte
 		roleID = role.ID
 	}
 	item := models.WorkItem{
-		DraftID: draftID, WorkflowID: workflows[0].ID, ObjectiveID: objectives[0].ID,
+		DraftID: draftID, WorkflowID: workflows[0].ID,
 		Title: "step " + string(kind), Ordinality: 50, Kind: kind, RoleID: roleID, FormName: "A form",
 		Questions: []models.StepQuestion{{Prompt: "Write the message", AnswerType: models.AnswerFreeText, Required: true}},
 	}

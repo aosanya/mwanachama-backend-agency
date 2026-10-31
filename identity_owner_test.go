@@ -33,7 +33,7 @@ func seedOwnedThings(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx conte
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
-	workItem, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: workflow.ID, ObjectiveID: objective.ID, Title: "Charter"})
+	workItem, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: workflow.ID, Title: "Charter"})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}

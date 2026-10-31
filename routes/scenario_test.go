@@ -28,9 +28,12 @@ func newScenarioRoutes(t *testing.T) scenarioRoutes {
 	g, _ := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Sell"})
 	o, _ := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Sell"})
 	flow, _ := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Buy now"})
+	if _, err := mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draftID, WorkflowID: flow.ID, ObjectiveID: o.ID}); err != nil {
+		t.Fatalf("CreateWorkflowObjective: %v", err)
+	}
 	farmer, _ := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "Farmer"})
 	ask, err := mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: draftID, WorkflowID: flow.ID, ObjectiveID: o.ID, Title: "Ask", Kind: models.StepKindFillForm,
+		DraftID: draftID, WorkflowID: flow.ID, Title: "Ask", Kind: models.StepKindFillForm,
 		RoleID: farmer.ID, FormName: "Buy now form",
 		Questions: []models.StepQuestion{{Prompt: "Enter the product", AnswerType: models.AnswerFreeText, Required: true}},
 	})

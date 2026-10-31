@@ -69,13 +69,13 @@ func newScenarioWorld(t *testing.T, opts ...mwanachamaagency.Option) scenarioWor
 		t.Fatalf("NewAgencyManager: %v", err)
 	}
 	ctx := context.Background()
-	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, _, o, _, firstStep := seedLiveAgency(t, mgr, ctx)
 	owner, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "owner"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, RoleID: owner.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: o.DraftID, WorkItemID: firstStep.ID, RoleID: owner.ID, Label: models.RACILabelAccountable,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}

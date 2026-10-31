@@ -42,14 +42,16 @@ func TestEveryDraftScopedCreateRefusesAnArchivedMissingOrAbsentDraft(t *testing.
 	objective := create("/objectives", `{"title":"O","goal_id":"`+goal+`","draft_id":"`+open+`"}`)
 	workflow := create("/workflows", `{"name":"W","draft_id":"`+open+`"}`)
 	role := create("/roles", `{"name":"R","draft_id":"`+open+`"}`)
+	step := create("/work-items", `{"title":"S","workflow_id":"`+workflow+`","draft_id":"`+open+`"}`)
 
 	bodies := []struct{ path, body string }{
 		{"/goals", `{"title":"late","draft_id":%q}`},
 		{"/objectives", `{"title":"late","goal_id":"` + goal + `","draft_id":%q}`},
 		{"/workflows", `{"name":"late","draft_id":%q}`},
-		{"/work-items", `{"title":"late","workflow_id":"` + workflow + `","objective_id":"` + objective + `","draft_id":%q}`},
+		{"/work-items", `{"title":"late","workflow_id":"` + workflow + `","draft_id":%q}`},
+		{"/workflow-objectives", `{"workflow_id":"` + workflow + `","objective_id":"` + objective + `","draft_id":%q}`},
 		{"/roles", `{"name":"late","draft_id":%q}`},
-		{"/role-assignments", `{"role_id":"` + role + `","objective_id":"` + objective + `","label":"consulted","draft_id":%q}`},
+		{"/role-assignments", `{"role_id":"` + role + `","work_item_id":"` + step + `","label":"consulted","draft_id":%q}`},
 		{"/values", `{"text":"late","draft_id":%q}`},
 		{"/rules", `{"text":"late","draft_id":%q}`},
 	}

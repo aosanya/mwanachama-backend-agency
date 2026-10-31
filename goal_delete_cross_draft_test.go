@@ -35,9 +35,17 @@ func TestAG75_DeleteGoalLeavesAnotherDraftsWorkItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateWorkflow B: %v", err)
 	}
-	wiB, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftB.ID, WorkflowID: wfB.ID, ObjectiveID: objA.ID, Title: "Work Item B"})
+	objB, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftB.ID, GoalID: goalA.ID, Title: "Objective B"})
 	if err != nil {
-		t.Fatalf("CreateWorkItem (draft B naming draft A's objective): %v", err)
+		t.Fatalf("CreateObjective B: %v", err)
+	}
+	linkB, err := mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draftB.ID, WorkflowID: wfB.ID, ObjectiveID: objB.ID})
+	if err != nil {
+		t.Fatalf("CreateWorkflowObjective B: %v", err)
+	}
+	wiB, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftB.ID, WorkflowID: wfB.ID, Title: "Work Item B"})
+	if err != nil {
+		t.Fatalf("CreateWorkItem B: %v", err)
 	}
 
 	if err := mgr.DeleteGoal(ctx, goalA.ID); err != nil {
@@ -46,6 +54,15 @@ func TestAG75_DeleteGoalLeavesAnotherDraftsWorkItem(t *testing.T) {
 
 	if _, err := mgr.GetWorkItem(ctx, wiB.ID); err != nil {
 		t.Errorf("AG75 open bug: deleting Goal %q in draft A cascaded into Work Item %q, which was created in — and belongs to — draft B; GetWorkItem now answers %v, want the Work Item untouched since it was never part of draft A's content to begin with", goalA.ID, wiB.ID, err)
+	}
+	if _, err := mgr.GetObjective(ctx, objA.ID); err == nil {
+		t.Errorf("deleting Goal %q in draft A left its own Objective %q behind", goalA.ID, objA.ID)
+	}
+	if _, err := mgr.GetObjective(ctx, objB.ID); err != nil {
+		t.Errorf("deleting Goal %q in draft A removed draft B's Objective %q: %v", goalA.ID, objB.ID, err)
+	}
+	if _, err := mgr.GetWorkflowObjective(ctx, linkB.ID); err != nil {
+		t.Errorf("deleting Goal %q in draft A removed draft B's WorkflowObjective %q: %v", goalA.ID, linkB.ID, err)
 	}
 }
 
@@ -84,11 +101,15 @@ func TestAG75_DeleteObjectiveAndWorkflowLeaveAnotherDraftsWorkItem(t *testing.T)
 	if err != nil {
 		t.Fatalf("CreateObjective B: %v", err)
 	}
-	viaObjective, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftB.ID, WorkflowID: wfB.ID, ObjectiveID: objA.ID, Title: "names A's objective"})
+	linkB, err := mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draftB.ID, WorkflowID: wfB.ID, ObjectiveID: objB.ID})
+	if err != nil {
+		t.Fatalf("CreateWorkflowObjective B: %v", err)
+	}
+	inB, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftB.ID, WorkflowID: wfB.ID, Title: "in B's workflow"})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	viaWorkflow, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftB.ID, WorkflowID: wfA.ID, ObjectiveID: objB.ID, Title: "names A's workflow"})
+	viaWorkflow, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftB.ID, WorkflowID: wfA.ID, Title: "names A's workflow"})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
@@ -100,8 +121,11 @@ func TestAG75_DeleteObjectiveAndWorkflowLeaveAnotherDraftsWorkItem(t *testing.T)
 		t.Fatalf("DeleteWorkflow(A): %v", err)
 	}
 
-	if _, err := mgr.GetWorkItem(ctx, viaObjective.ID); err != nil {
-		t.Errorf("deleting Objective %q in draft A removed draft B's Work Item %q: %v", objA.ID, viaObjective.ID, err)
+	if _, err := mgr.GetWorkItem(ctx, inB.ID); err != nil {
+		t.Errorf("deleting Objective %q in draft A removed draft B's Work Item %q: %v", objA.ID, inB.ID, err)
+	}
+	if _, err := mgr.GetWorkflowObjective(ctx, linkB.ID); err != nil {
+		t.Errorf("deleting Objective %q and Workflow %q in draft A removed draft B's WorkflowObjective %q: %v", objA.ID, wfA.ID, linkB.ID, err)
 	}
 	if _, err := mgr.GetWorkItem(ctx, viaWorkflow.ID); err != nil {
 		t.Errorf("deleting Workflow %q in draft A removed draft B's Work Item %q: %v", wfA.ID, viaWorkflow.ID, err)

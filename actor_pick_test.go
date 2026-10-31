@@ -237,13 +237,14 @@ func TestGroupActors_AnImportedDocumentKeepsTheGroupThatActsOnAStep(t *testing.T
 	w := newStepWorldWithGroups(t, groupsOffered(farmersGroupID))
 	ctx := context.Background()
 	doc := models.AgencyDocument{
-		Agency:     models.DocumentAgency{Name: "Ward office"},
-		Goals:      []models.DocumentGoal{{ID: "g1", Code: "G-1", Title: "Hear residents"}},
-		Objectives: []models.DocumentObjective{{ID: "o1", Code: "O-1", GoalID: "g1", Title: "Ask residents"}},
-		Roles:      []models.DocumentRole{{ID: "r1", Code: "R-1", Name: "Clerk"}},
-		Workflows:  []models.DocumentWorkflow{{ID: "w1", Code: "W-1", Name: "Order"}},
+		Agency:             models.DocumentAgency{Name: "Ward office"},
+		Goals:              []models.DocumentGoal{{ID: "g1", Code: "G-1", Title: "Hear residents"}},
+		Objectives:         []models.DocumentObjective{{ID: "o1", Code: "O-1", GoalID: "g1", Title: "Ask residents"}},
+		Roles:              []models.DocumentRole{{ID: "r1", Code: "R-1", Name: "Clerk"}},
+		Workflows:          []models.DocumentWorkflow{{ID: "w1", Code: "W-1", Name: "Order"}},
+		WorkflowObjectives: []models.DocumentWorkflowObjective{{ID: "wo1", WorkflowID: "w1", ObjectiveID: "o1"}},
 		WorkItems: []models.DocumentWorkItem{{
-			ID: "s1", Code: "S-1", WorkflowID: "w1", ObjectiveID: "o1", Title: "Ask", Ordinality: 1,
+			ID: "s1", Code: "S-1", WorkflowID: "w1", Title: "Ask", Ordinality: 1,
 			Kind: models.StepKindFillForm, RoleID: farmersGroupID, FormName: "Ask form",
 			Questions: []models.StepQuestion{ask("Enter the number of bags", models.AnswerNumber)},
 		}},

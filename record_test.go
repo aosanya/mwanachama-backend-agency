@@ -332,7 +332,7 @@ func TestRecord_APublicationKeepsTheRecordAndTheRoutingAndForksBack(t *testing.T
 	ctx := context.Background()
 	w := o.world
 	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, RoleID: w.roles[coordinator].ID, ObjectiveID: w.objective.ID, Label: models.RACILabelAccountable,
+		DraftID: w.draftID, WorkItemID: o.steps["Open"].ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
@@ -362,7 +362,7 @@ func TestRecord_ChangingOnlyARecordIsAChangeToPublish(t *testing.T) {
 	ctx := context.Background()
 	w := o.world
 	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, RoleID: w.roles[coordinator].ID, ObjectiveID: w.objective.ID, Label: models.RACILabelAccountable,
+		DraftID: w.draftID, WorkItemID: o.steps["Open"].ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}

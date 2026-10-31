@@ -91,14 +91,14 @@ func TestWidenedAgencyVocabularyOpensNoGate(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	_, _, obj, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, _, obj, _, step := seedLiveAgency(t, mgr, ctx)
 	role, err := mgr.CreateRole(ctx, models.Role{DraftID: obj.DraftID, Name: "Owner"})
 	if err != nil {
 		t.Fatalf("precondition: CreateRole: %v", err)
 	}
 
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: obj.DraftID, RoleID: role.ID, ObjectiveID: obj.ID, Label: models.RACILabel(leadLabel),
+		DraftID: obj.DraftID, WorkItemID: step.ID, RoleID: role.ID, Label: models.RACILabel(leadLabel),
 	}); !errors.Is(err, mwanachamaagency.ErrInvalidRACILabel) {
 		t.Errorf("a RACI link under the domain-declared label %q was accepted: err = %v, want ErrInvalidRACILabel", leadLabel, err)
 	}

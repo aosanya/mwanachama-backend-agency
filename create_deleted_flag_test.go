@@ -28,7 +28,7 @@ func TestAG57_EveryCreateMintsItsOwnDeletedFlag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
-	workItem, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: workflow.ID, ObjectiveID: objective.ID, Title: "WI", Deleted: true})
+	workItem, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: workflow.ID, Title: "WI", Deleted: true})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}

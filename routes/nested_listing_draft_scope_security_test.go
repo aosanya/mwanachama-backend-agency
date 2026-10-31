@@ -11,7 +11,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestObjectiveNestedListingsNeverReachAnotherDraftsRows(t *testing.T) {
+func TestWorkItemNestedListingsNeverReachAnotherDraftsRows(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := t.Context()
 	draftA := bootstrapDraftID(t, mgr)
@@ -59,10 +59,12 @@ func TestObjectiveNestedListingsNeverReachAnotherDraftsRows(t *testing.T) {
 	goal := create("/goals", `{"title":"GA","draft_id":"`+draftA+`"}`)
 	objective := create("/objectives", `{"title":"OA","goal_id":"`+goal+`","draft_id":"`+draftA+`"}`)
 	role := create("/roles", `{"name":"RA","draft_id":"`+draftA+`"}`)
-	create("/role-assignments", `{"role_id":"`+role+`","objective_id":"`+objective+`","label":"accountable","draft_id":"`+draftA+`"}`)
+	workflow := create("/workflows", `{"name":"WA","draft_id":"`+draftA+`"}`)
+	step := create("/work-items", `{"title":"SA","workflow_id":"`+workflow+`","draft_id":"`+draftA+`"}`)
+	create("/role-assignments", `{"role_id":"`+role+`","work_item_id":"`+step+`","label":"accountable","draft_id":"`+draftA+`"}`)
 
 	for _, nested := range []string{"role-assignments"} {
-		base := "/objectives/" + objective + "/" + nested
+		base := "/work-items/" + step + "/" + nested
 		if got := rows(base + "?draft_id=" + draftA); len(got) != 1 || got[0]["draft_id"] != draftA {
 			t.Fatalf("precondition: GET %s?draft_id=<A> -> %v, want the one row of draft A", base, got)
 		}
@@ -80,7 +82,7 @@ func TestObjectiveNestedListingsNeverReachAnotherDraftsRows(t *testing.T) {
 	if _, err := mgr.GetObjective(ctx, objective); err != nil {
 		t.Fatalf("postcondition: GetObjective: %v", err)
 	}
-	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, objective, draftA, mwanachamaagency.RoleAssignmentFilter{})
+	assignments, err := mgr.ListRoleAssignmentsForWorkItem(ctx, step, draftA, mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil || len(assignments) != 1 {
 		t.Fatalf("postcondition: draft A's assignment changed: %+v %v", assignments, err)
 	}

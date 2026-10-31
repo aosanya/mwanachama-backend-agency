@@ -78,21 +78,34 @@ func TestDeleteGoal_NotFound(t *testing.T) {
 	}
 }
 
-// TestDeleteGoal_CascadesObjectivesAndRoleAssignments asserts DeleteGoal
-// takes its Objectives (and those Objectives' RoleAssignments) down with
-// it (see AgencyManager's DeleteGoal doc).
-func TestDeleteGoal_CascadesObjectivesAndRoleAssignments(t *testing.T) {
+func TestDeleteGoal_CascadesObjectivesAndWorkflowObjectives(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, g, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	_, g, o, wf, step := seedLiveAgency(t, mgr, ctx)
 	draftID := g.DraftID
 
+	otherGoal, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Other goal"})
+	if err != nil {
+		t.Fatalf("CreateGoal: %v", err)
+	}
+	otherObjective, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: otherGoal.ID, Title: "Other objective"})
+	if err != nil {
+		t.Fatalf("CreateObjective: %v", err)
+	}
+	kept, err := mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draftID, WorkflowID: wf.ID, ObjectiveID: otherObjective.ID})
+	if err != nil {
+		t.Fatalf("CreateWorkflowObjective: %v", err)
+	}
+	doomed, err := mgr.ListWorkflowObjectives(ctx, draftID, mwanachamaagency.WorkflowObjectiveFilter{ObjectiveID: o.ID})
+	if err != nil || len(doomed) != 1 {
+		t.Fatalf("ListWorkflowObjectives before delete = %+v, %v", doomed, err)
+	}
 	role, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: draftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: draftID, WorkItemID: step.ID, RoleID: role.ID, Label: models.RACILabelAccountable,
 	})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
@@ -108,11 +121,21 @@ func TestDeleteGoal_CascadesObjectivesAndRoleAssignments(t *testing.T) {
 	if _, err := mgr.GetObjective(ctx, o.ID); !errors.Is(err, mwanachamaagency.ErrObjectiveNotFound) {
 		t.Fatalf("expected the cascaded Objective to be gone, got %v", err)
 	}
-	if _, err := mgr.GetRoleAssignment(ctx, assignment.ID); !errors.Is(err, mwanachamaagency.ErrRoleAssignmentNotFound) {
-		t.Fatalf("expected the cascaded RoleAssignment to be gone, got %v", err)
+	if _, err := mgr.GetWorkflowObjective(ctx, doomed[0].ID); !errors.Is(err, mwanachamaagency.ErrWorkflowObjectiveNotFound) {
+		t.Fatalf("expected the WorkflowObjective of the Goal's Objective to be gone, got %v", err)
 	}
-	// The Role itself is a separate entity, only referenced by the
-	// assignment — it must survive the Goal's deletion untouched.
+	if _, err := mgr.GetWorkflowObjective(ctx, kept.ID); err != nil {
+		t.Fatalf("expected the link to another Goal's Objective to survive, got %v", err)
+	}
+	if _, err := mgr.GetWorkflow(ctx, wf.ID); err != nil {
+		t.Fatalf("expected the Workflow to survive the Goal's deletion, got %v", err)
+	}
+	if _, err := mgr.GetWorkItem(ctx, step.ID); err != nil {
+		t.Fatalf("expected the step to survive the Goal's deletion, got %v", err)
+	}
+	if _, err := mgr.GetRoleAssignment(ctx, assignment.ID); err != nil {
+		t.Fatalf("expected the step's RoleAssignment to survive the Goal's deletion, got %v", err)
+	}
 	if _, err := mgr.GetRole(ctx, role.ID); err != nil {
 		t.Fatalf("expected the Role to survive the Goal's deletion, got %v", err)
 	}
