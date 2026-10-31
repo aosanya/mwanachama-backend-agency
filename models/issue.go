@@ -19,8 +19,8 @@ func (s IssueSeverity) Valid() bool {
 	}
 }
 
-// Issue is a system-detected problem found while scanning a Draft — e.g. an
-// Objective with no Accountable role, or a Goal with no Objectives. Net
+// Issue is a system-detected problem found while scanning a Draft — e.g. a
+// Workflow with no Objective, or a Goal with no Objectives. Net
 // new, added 2026-09-14 (AG20).
 //
 // Always Draft-scoped (DraftID is required; an Issue never exists against

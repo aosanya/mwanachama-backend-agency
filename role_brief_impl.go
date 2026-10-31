@@ -176,7 +176,7 @@ func renderBrief(b models.RoleBrief) string {
 	if b.Description != "" {
 		fmt.Fprintf(&s, "%s\n", b.Description)
 	}
-	s.WriteString("\nObjectives you are answerable for:\n")
+	s.WriteString("\nObjectives your work items serve:\n")
 	if len(b.Objectives) == 0 {
 		s.WriteString("- none\n")
 	}
@@ -190,7 +190,7 @@ func renderBrief(b models.RoleBrief) string {
 		s.WriteString("- none\n")
 	}
 	for _, w := range b.WorkItems {
-		fmt.Fprintf(&s, "- %s %s (objective %s): %s\n", w.Code, w.Title, w.ObjectiveCode, w.Prompt)
+		fmt.Fprintf(&s, "- %s %s (serves objective %s): %s\n", w.Code, w.Title, w.ObjectiveCode, w.Prompt)
 	}
 	return s.String()
 }

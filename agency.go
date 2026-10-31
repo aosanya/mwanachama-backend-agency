@@ -41,9 +41,9 @@ type AgencyManager interface {
 	// deleted too.
 	DeleteGoal(ctx context.Context, id string) error
 
-	// Objective. A Goal may have several — each one a granular unit a
-	// single Role is RACI-assigned to via RoleAssignment. Same
-	// Draft-scoping/list convention as Goal.
+	// Objective. A Goal may have several — each one a granular unit that
+	// workflows serve through WorkflowObjective. Same Draft-scoping/list
+	// convention as Goal.
 	CreateObjective(ctx context.Context, o models.Objective) (models.Objective, error)
 	GetObjective(ctx context.Context, id string) (models.Objective, error)
 	ListObjectives(ctx context.Context, draftID string, filter ObjectiveFilter) ([]models.Objective, error)
@@ -231,7 +231,7 @@ type AgencyManager interface {
 	DeleteRuleAttachment(ctx context.Context, id string) error
 
 	// Issue. A system-detected diagnostics list (info/warning/error) — a
-	// dangling reference, an Objective with no Accountable, a Goal with
+	// dangling reference, a Workflow with no Objective, a Goal with
 	// no Objectives. draftID selects which Draft to scan, like every
 	// other scoped read. ListIssues re-scans on every call: it deletes
 	// that scope's existing
