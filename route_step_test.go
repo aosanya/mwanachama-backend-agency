@@ -183,7 +183,7 @@ func TestAnsweringStep_AnswersASentFormOfItsWorkflow(t *testing.T) {
 	}
 	elsewhere := w.workflow(t, "Another order")
 	otherSend, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: w.draftID, WorkflowID: elsewhere.ID, ObjectiveID: w.objective.ID, Title: "Send",
+		DraftID: w.draftID, WorkflowID: elsewhere.ID, Title: "Send",
 		Kind: models.StepKindSendForm, FormName: "Invitation", Questions: groupOrderSteps[1].questions,
 	})
 	if err != nil {
@@ -240,11 +240,6 @@ func TestRouteStep_PublishingIsRefusedWhileATargetIsGone(t *testing.T) {
 	o := buildRoutedOrder(t)
 	ctx := context.Background()
 	w := o.world
-	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, RoleID: w.roles[coordinator].ID, ObjectiveID: w.objective.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
 	if err := w.mgr.DeleteWorkItem(ctx, o.steps["Open"].ID); err != nil {
 		t.Fatalf("DeleteWorkItem: %v", err)
 	}
@@ -303,7 +298,7 @@ func TestRouteStep_AStepWithNoKindHasNoLinks(t *testing.T) {
 	ctx := context.Background()
 	w := o.world
 	plain, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: w.draftID, WorkflowID: o.workflow.ID, ObjectiveID: w.objective.ID, Title: "Write it down",
+		DraftID: w.draftID, WorkflowID: o.workflow.ID, Title: "Write it down",
 	})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)

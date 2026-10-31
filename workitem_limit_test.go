@@ -70,7 +70,7 @@ func TestStepLimit_RefusesWhatCannotWait(t *testing.T) {
 	notify.TimeLimitMinutes, notify.CancelWorkflowID = 5, l.cancel.ID
 	send := l.item(l.ride, 1, groupOrderSteps[1])
 	send.TimeLimitMinutes, send.CancelWorkflowID = 5, l.cancel.ID
-	bare := models.WorkItem{DraftID: l.draftID, WorkflowID: l.ride.ID, ObjectiveID: l.objective.ID, Title: "Do it", TimeLimitMinutes: 5, CancelWorkflowID: l.cancel.ID}
+	bare := models.WorkItem{DraftID: l.draftID, WorkflowID: l.ride.ID, Title: "Do it", TimeLimitMinutes: 5, CancelWorkflowID: l.cancel.ID}
 	negative := l.waiting(-3)
 	noCancel := l.waiting(5)
 	noCancel.CancelWorkflowID = ""
@@ -171,11 +171,6 @@ func TestStepLimit_AForkCarriesTheLimitOntoTheForkedCancelWorkflow(t *testing.T)
 func TestStepLimit_APublicationKeepsTheLimitAndForksBackOntoTheRemappedWorkflow(t *testing.T) {
 	l := newLimitWorld(t)
 	ctx := context.Background()
-	if _, err := l.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: l.draftID, RoleID: l.roles[coordinator].ID, ObjectiveID: l.objective.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
 	if _, err := l.mgr.CreateWorkItem(ctx, l.waiting(15)); err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
@@ -218,11 +213,6 @@ func cancelWorkflowOf(t *testing.T, l limitWorld, draftID string) models.Workflo
 func TestStepLimit_ALimitChangeIsAChangeToPublish(t *testing.T) {
 	l := newLimitWorld(t)
 	ctx := context.Background()
-	if _, err := l.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: l.draftID, RoleID: l.roles[coordinator].ID, ObjectiveID: l.objective.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
 	made, err := l.mgr.CreateWorkItem(ctx, l.item(l.ride, 1, buyNowSteps[1]))
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)

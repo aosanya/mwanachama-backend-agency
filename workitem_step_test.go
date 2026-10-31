@@ -108,12 +108,22 @@ func (w stepWorld) workflow(t *testing.T, name string) models.Workflow {
 	if err != nil {
 		t.Fatalf("CreateWorkflow %s: %v", name, err)
 	}
+	linkWorkflowToObjective(t, w.mgr, w.draftID, wf.ID, w.objective.ID)
 	return wf
+}
+
+func linkWorkflowToObjective(t *testing.T, mgr mwanachamaagency.AgencyManager, draftID, workflowID, objectiveID string) models.WorkflowObjective {
+	t.Helper()
+	link, err := mgr.CreateWorkflowObjective(context.Background(), models.WorkflowObjective{DraftID: draftID, WorkflowID: workflowID, ObjectiveID: objectiveID})
+	if err != nil {
+		t.Fatalf("CreateWorkflowObjective: %v", err)
+	}
+	return link
 }
 
 func (w stepWorld) item(workflow models.Workflow, position int, s stepSpec) models.WorkItem {
 	return models.WorkItem{
-		DraftID: w.draftID, WorkflowID: workflow.ID, ObjectiveID: w.objective.ID,
+		DraftID: w.draftID, WorkflowID: workflow.ID,
 		Title: s.title, Ordinality: position, Kind: s.kind, RoleID: w.roles[s.role].ID,
 		FormName: s.form, Questions: s.questions,
 	}
@@ -267,7 +277,6 @@ func TestWorkItemStep_RoleMustExistInTheStepsDraft(t *testing.T) {
 	}
 	in = w.item(otherWorkflow, 1, buyNowSteps[0])
 	in.DraftID = other.ID
-	in.ObjectiveID = w.objective.ID
 	if _, err := w.mgr.CreateWorkItem(ctx, in); !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
 		t.Fatalf("a role from another draft: want ErrRoleNotFound, got %v", err)
 	}
@@ -293,7 +302,7 @@ func TestWorkItemStep_RunWorkflowNamesOneThatExists(t *testing.T) {
 	cancel := w.workflow(t, "Cancel after the Supplier says yes")
 
 	run := models.WorkItem{
-		DraftID: w.draftID, WorkflowID: groupOrder.ID, ObjectiveID: w.objective.ID,
+		DraftID: w.draftID, WorkflowID: groupOrder.ID,
 		Title: "Cancel", Kind: models.StepKindRunWorkflow, RoleID: w.roles[farmer].ID, RunWorkflowID: cancel.ID,
 	}
 	made, err := w.mgr.CreateWorkItem(ctx, run)
@@ -378,7 +387,7 @@ func TestWorkItemStep_AnInstructionOnlyStepStillWorks(t *testing.T) {
 	ctx := context.Background()
 	wf := w.workflow(t, "Onboarding")
 	made, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: w.draftID, WorkflowID: wf.ID, ObjectiveID: w.objective.ID, Title: "Write charter", Prompt: "Draft it",
+		DraftID: w.draftID, WorkflowID: wf.ID, Title: "Write charter", Prompt: "Draft it",
 	})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
@@ -395,7 +404,7 @@ func TestWorkItemStep_AForkCarriesTheStepOntoTheForkedRolesAndWorkflows(t *testi
 	cancel := w.workflow(t, "Cancel before the Supplier says yes")
 	w.build(t, groupOrder, groupOrderSteps[:3])
 	if _, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: w.draftID, WorkflowID: groupOrder.ID, ObjectiveID: w.objective.ID, Ordinality: 4,
+		DraftID: w.draftID, WorkflowID: groupOrder.ID, Ordinality: 4,
 		Title: "Cancel", Kind: models.StepKindRunWorkflow, RoleID: w.roles[farmer].ID, RunWorkflowID: cancel.ID,
 	}); err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
@@ -447,17 +456,12 @@ func TestWorkItemStep_AForkCarriesTheStepOntoTheForkedRolesAndWorkflows(t *testi
 func TestWorkItemStep_APublicationKeepsTheStepAndForksBackIntoADraft(t *testing.T) {
 	w := newStepWorld(t)
 	ctx := context.Background()
-	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, RoleID: w.roles[coordinator].ID, ObjectiveID: w.objective.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
 	groupOrder := w.workflow(t, "Group order")
 	cancel := w.workflow(t, "Cancel before the Supplier says yes")
 	w.build(t, cancel, buyNowSteps[:1])
 	w.build(t, groupOrder, groupOrderSteps[:3])
 	if _, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: w.draftID, WorkflowID: groupOrder.ID, ObjectiveID: w.objective.ID, Ordinality: 4,
+		DraftID: w.draftID, WorkflowID: groupOrder.ID, Ordinality: 4,
 		Title: "Cancel", Kind: models.StepKindRunWorkflow, RoleID: w.roles[farmer].ID, RunWorkflowID: cancel.ID,
 	}); err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
@@ -509,7 +513,7 @@ func TestWorkItemStep_TheIssueScanNamesAStepWhoseRoleOrWorkflowIsGone(t *testing
 	w.build(t, cancel, buyNowSteps[:1])
 	w.build(t, groupOrder, groupOrderSteps[:1])
 	if _, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: w.draftID, WorkflowID: groupOrder.ID, ObjectiveID: w.objective.ID, Ordinality: 2,
+		DraftID: w.draftID, WorkflowID: groupOrder.ID, Ordinality: 2,
 		Title: "Cancel", Kind: models.StepKindRunWorkflow, RunWorkflowID: cancel.ID,
 	}); err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
@@ -556,5 +560,26 @@ func TestWorkItemStep_UpdateKeepsTheStepInItsDraft(t *testing.T) {
 	listed := w.stepsOf(t, w.draftID, wf)
 	if len(listed) != 1 || listed[0].Title != "Ask for bags" {
 		t.Fatalf("the step left its draft: %+v", listed)
+	}
+}
+
+func TestWorkItemStep_AStepIsCreatedWithoutAnObjective(t *testing.T) {
+	w := newStepWorld(t)
+	ctx := context.Background()
+	unlinked, err := w.mgr.CreateWorkflow(ctx, models.Workflow{DraftID: w.draftID, Name: "No objective yet"})
+	if err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	made, err := w.mgr.CreateWorkItem(ctx, w.item(unlinked, 1, buyNowSteps[0]))
+	if err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
+	}
+	got, err := w.mgr.GetWorkItem(ctx, made.ID)
+	if err != nil || got.WorkflowID != unlinked.ID {
+		t.Fatalf("GetWorkItem = %+v, %v", got, err)
+	}
+	links, err := w.mgr.ListWorkflowObjectives(ctx, w.draftID, mwanachamaagency.WorkflowObjectiveFilter{WorkflowID: unlinked.ID})
+	if err != nil || len(links) != 0 {
+		t.Fatalf("creating a step linked the workflow to an objective: %+v, %v", links, err)
 	}
 }

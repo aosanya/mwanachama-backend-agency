@@ -16,10 +16,8 @@ func TestCreateWorkItem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
 
-	body := `{"workflow_id":"` + w.ID + `","objective_id":"` + o.ID + `","title":"Write charter","draft_id":"` + draftID + `"}`
+	body := `{"workflow_id":"` + w.ID + `","title":"Write charter","draft_id":"` + draftID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/work-items", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	serve(mgr, rec, req)
@@ -36,7 +34,7 @@ func TestCreateWorkItem(t *testing.T) {
 	}
 }
 
-func TestCreateWorkItem_RequiresObjective(t *testing.T) {
+func TestCreateWorkItem_NeedsNoObjective(t *testing.T) {
 	mgr, draftID := newTestManagerWithDraft(t)
 	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{DraftID: draftID, Name: "Onboarding"})
 
@@ -45,7 +43,7 @@ func TestCreateWorkItem_RequiresObjective(t *testing.T) {
 	rec := httptest.NewRecorder()
 	serve(mgr, rec, req)
 
-	if rec.Code != http.StatusBadRequest {
+	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 }
@@ -65,14 +63,12 @@ func TestGetWorkItem_NotFound(t *testing.T) {
 func TestUpdateWorkItem(t *testing.T) {
 	mgr, draftID := newTestManagerWithDraft(t)
 	w, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{DraftID: draftID, Name: "Onboarding"})
-	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})
-	o, _ := mgr.CreateObjective(t.Context(), models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"})
-	wi, err := mgr.CreateWorkItem(t.Context(), models.WorkItem{DraftID: draftID, WorkflowID: w.ID, ObjectiveID: o.ID, Title: "Write charter"})
+	wi, err := mgr.CreateWorkItem(t.Context(), models.WorkItem{DraftID: draftID, WorkflowID: w.ID, Title: "Write charter"})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
 
-	updateReq := httptest.NewRequest(http.MethodPatch, "/work-items/"+wi.ID, strings.NewReader(`{"workflow_id":"`+w.ID+`","objective_id":"`+o.ID+`","title":"Write charter v2"}`))
+	updateReq := httptest.NewRequest(http.MethodPatch, "/work-items/"+wi.ID, strings.NewReader(`{"workflow_id":"`+w.ID+`","title":"Write charter v2"}`))
 	updateReq.SetPathValue("workItemID", wi.ID)
 	updateRec := httptest.NewRecorder()
 	serve(mgr, updateRec, updateReq)

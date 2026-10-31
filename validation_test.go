@@ -10,8 +10,6 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// findIssue returns the first Issue of entityType naming entityID scoped
-// to draftID, and whether one was found.
 func findIssue(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID, entityType, entityID string) (models.Issue, bool) {
 	t.Helper()
 	issues, err := mgr.ListIssues(ctx, draftID, mwanachamaagency.IssueFilter{EntityType: entityType})
@@ -26,73 +24,74 @@ func findIssue(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Con
 	return models.Issue{}, false
 }
 
-// --- AG27: the delete cascades that used to produce the orphans below ---
-
-// TestDeleteObjective_CascadesWorkItems covers the gap AGD-004 found:
-// WorkItem.ObjectiveID is required, so a surviving WorkItem is
-// unreachable, not merely untagged.
-func TestDeleteObjective_CascadesWorkItems(t *testing.T) {
-	mgr := newTestManager(t)
-	ctx := context.Background()
-	_, _, o, _, wi := seedLiveAgency(t, mgr, ctx)
-
-	if err := mgr.DeleteObjective(ctx, o.ID); err != nil {
-		t.Fatalf("DeleteObjective: %v", err)
-	}
-	if _, err := mgr.GetWorkItem(ctx, wi.ID); !errors.Is(err, mwanachamaagency.ErrWorkItemNotFound) {
-		t.Fatalf("expected the cascaded WorkItem to be gone, got %v", err)
-	}
+type linkedWorld struct {
+	draftID   string
+	goal      models.Goal
+	objective models.Objective
+	workflow  models.Workflow
+	step      models.WorkItem
+	role      models.Role
+	link      models.WorkflowObjective
 }
 
-// TestDeleteGoal_CascadesWorkItems is the same cascade one level up — the
-// Goal's Objectives go, and so must the WorkItems under them.
-func TestDeleteGoal_CascadesWorkItems(t *testing.T) {
-	mgr := newTestManager(t)
-	ctx := context.Background()
-	_, g, _, _, wi := seedLiveAgency(t, mgr, ctx)
-
-	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
-		t.Fatalf("DeleteGoal: %v", err)
+func newLinkedWorld(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) linkedWorld {
+	t.Helper()
+	w := linkedWorld{draftID: newDraftAgency(t, mgr, ctx)}
+	var err error
+	if w.goal, err = mgr.CreateGoal(ctx, models.Goal{DraftID: w.draftID, Title: "Grow adoption"}); err != nil {
+		t.Fatalf("CreateGoal: %v", err)
 	}
-	if _, err := mgr.GetWorkItem(ctx, wi.ID); !errors.Is(err, mwanachamaagency.ErrWorkItemNotFound) {
-		t.Fatalf("expected the cascaded WorkItem to be gone, got %v", err)
+	if w.objective, err = mgr.CreateObjective(ctx, models.Objective{DraftID: w.draftID, GoalID: w.goal.ID, Title: "Grow adoption"}); err != nil {
+		t.Fatalf("CreateObjective: %v", err)
 	}
-}
-
-// TestDeleteRole_CascadesRoleAssignments is DeleteObjective's cascade seen
-// from the other side of the same join table: deleting a Role must not
-// leave assignments naming it behind.
-func TestDeleteRole_CascadesRoleAssignments(t *testing.T) {
-	mgr := newTestManager(t)
-	ctx := context.Background()
-	d, _, o := seedDraftForIssues(t, mgr, ctx)
-
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "bug-hunter", DraftID: d.ID})
-	if err != nil {
+	if w.workflow, err = mgr.CreateWorkflow(ctx, models.Workflow{DraftID: w.draftID, Name: "Onboarding"}); err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	w.link = linkWorkflowToObjective(t, mgr, w.draftID, w.workflow.ID, w.objective.ID)
+	if w.step, err = mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: w.draftID, WorkflowID: w.workflow.ID, Title: "Write charter"}); err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
+	}
+	if w.role, err = mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "bug-hunter"}); err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable, DraftID: d.ID,
-	})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
+	return w
+}
 
-	if err := mgr.DeleteRole(ctx, role.ID); err != nil {
-		t.Fatalf("DeleteRole: %v", err)
+func TestDeleteObjective_RemovesItsWorkflowObjectivesAndKeepsTheWorkflow(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	w := newLinkedWorld(t, mgr, ctx)
+
+	if err := mgr.DeleteObjective(ctx, w.objective.ID); err != nil {
+		t.Fatalf("DeleteObjective: %v", err)
 	}
-	if _, err := mgr.GetRoleAssignment(ctx, assignment.ID); !errors.Is(err, mwanachamaagency.ErrRoleAssignmentNotFound) {
-		t.Fatalf("expected the cascaded RoleAssignment to be gone, got %v", err)
+	if _, err := mgr.GetWorkflowObjective(ctx, w.link.ID); !errors.Is(err, mwanachamaagency.ErrWorkflowObjectiveNotFound) {
+		t.Fatalf("expected the cascaded WorkflowObjective to be gone, got %v", err)
 	}
-	// The Objective is a separate entity — only the assignment referenced
-	// the Role, so it must survive.
-	if _, err := mgr.GetObjective(ctx, o.ID); err != nil {
-		t.Fatalf("expected the Objective to survive the Role's deletion, got %v", err)
+	if _, err := mgr.GetWorkflow(ctx, w.workflow.ID); err != nil {
+		t.Fatalf("expected the Workflow to survive the Objective's deletion, got %v", err)
+	}
+	if _, err := mgr.GetWorkItem(ctx, w.step.ID); err != nil {
+		t.Fatalf("expected the step to survive the Objective's deletion, got %v", err)
 	}
 }
 
-// TestDeleteRole_NoRoleAssignments asserts the cascade's delete call does
-// not choke on a Role nothing references.
+func TestDeleteGoal_RemovesTheWorkflowObjectivesOfItsObjectives(t *testing.T) {
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	w := newLinkedWorld(t, mgr, ctx)
+
+	if err := mgr.DeleteGoal(ctx, w.goal.ID); err != nil {
+		t.Fatalf("DeleteGoal: %v", err)
+	}
+	if _, err := mgr.GetWorkflowObjective(ctx, w.link.ID); !errors.Is(err, mwanachamaagency.ErrWorkflowObjectiveNotFound) {
+		t.Fatalf("expected the cascaded WorkflowObjective to be gone, got %v", err)
+	}
+	if _, err := mgr.GetWorkflow(ctx, w.workflow.ID); err != nil {
+		t.Fatalf("expected the Workflow to survive the Goal's deletion, got %v", err)
+	}
+}
+
 func TestDeleteRole_NoRoleAssignments(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -107,63 +106,57 @@ func TestDeleteRole_NoRoleAssignments(t *testing.T) {
 	}
 }
 
-// --- AG26: the dangling-reference checks, driven through the one delete
-// path that can still strand a row ---
-
-// TestScan_DanglingWorkItem uses the path that is still open after AG27:
-// CreateWorkItem only rejects an *empty* ObjectiveID, so a caller can
-// still name one that does not exist.
-func TestScan_DanglingWorkItem(t *testing.T) {
-	mgr := newTestManager(t)
+func TestScan_DanglingWorkflowObjective(t *testing.T) {
+	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
-	_, _, _, w, _ := seedLiveAgency(t, mgr, ctx)
+	w := newLinkedWorld(t, mgr, ctx)
 
-	orphan, err := mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: w.DraftID, WorkflowID: w.ID, ObjectiveID: "no-such-objective", Title: "Orphan",
-	})
-	if err != nil {
-		t.Fatalf("CreateWorkItem: %v", err)
+	if err := db.Exec("delete from "+tableOf(t, s, "workflow")+" where id = ?", w.workflow.ID).Error; err != nil {
+		t.Fatalf("deleting the Workflow row directly: %v", err)
 	}
-
-	issue, ok := findIssue(t, mgr, ctx, w.DraftID, "work_item", orphan.ID)
+	issue, ok := findIssue(t, mgr, ctx, w.draftID, "workflow_objective", w.link.ID)
 	if !ok {
-		t.Fatalf("expected a dangling-Objective issue for work item %s", orphan.ID)
+		t.Fatalf("expected a dangling-Workflow issue for link %s", w.link.ID)
 	}
-	if issue.Severity != models.IssueSeverityError {
-		t.Errorf("expected error severity, got %q", issue.Severity)
-	}
-	if !strings.Contains(issue.Message, "does not exist") {
-		t.Errorf("unexpected message %q", issue.Message)
+	if issue.Severity != models.IssueSeverityError || !strings.Contains(issue.Message, "does not exist") {
+		t.Errorf("unexpected issue %+v", issue)
 	}
 }
 
-// TestScan_DanglingRoleAssignment covers the other half of the same
-// family: an assignment whose Role row is gone. CreateRoleAssignment
-// validates both ends and AG27 now cascades, so the only way to produce
-// one is the way it was produced before AG27 — the Role row vanishing
-// underneath it. That data still exists in any database that ran the old
-// DeleteRole, which is exactly what the scan is for.
+func TestScan_WorkflowObjectiveWhoseObjectiveIsGone(t *testing.T) {
+	mgr, db, s := newTestManagerDB(t)
+	ctx := context.Background()
+	w := newLinkedWorld(t, mgr, ctx)
+
+	if err := db.Exec("delete from "+tableOf(t, s, "objective")+" where id = ?", w.objective.ID).Error; err != nil {
+		t.Fatalf("deleting the Objective row directly: %v", err)
+	}
+	issue, ok := findIssue(t, mgr, ctx, w.draftID, "workflow_objective", w.link.ID)
+	if !ok {
+		t.Fatalf("expected a dangling-Objective issue for link %s", w.link.ID)
+	}
+	if issue.Severity != models.IssueSeverityError || !strings.Contains(issue.Message, "Objective") {
+		t.Errorf("unexpected issue %+v", issue)
+	}
+}
+
 func TestScan_DanglingRoleAssignment(t *testing.T) {
 	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
-	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+	w := newLinkedWorld(t, mgr, ctx)
 
-	role, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "owner"})
-	if err != nil {
-		t.Fatalf("CreateRole: %v", err)
-	}
 	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: w.draftID, WorkItemID: w.step.ID, RoleID: w.role.ID, Label: models.RACILabelAccountable,
 	})
 	if err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
-	if err := db.Exec("delete from "+tableOf(t, s, "role")+" where id = ?", role.ID).Error; err != nil {
+	if err := db.Exec("delete from "+tableOf(t, s, "role")+" where id = ?", w.role.ID).Error; err != nil {
 		t.Fatalf("deleting the Role row directly: %v", err)
 	}
 
-	issue, ok := findIssue(t, mgr, ctx, o.DraftID, "role_assignment", assignment.ID)
+	issue, ok := findIssue(t, mgr, ctx, w.draftID, "role_assignment", assignment.ID)
 	if !ok {
 		t.Fatalf("expected a dangling-Role issue for assignment %s", assignment.ID)
 	}
@@ -172,9 +165,31 @@ func TestScan_DanglingRoleAssignment(t *testing.T) {
 	}
 }
 
-// TestScan_DanglingAttachment covers AG22's Code-keyed attachments: the
-// attachment row outlives its target, since attaching is live-editable and
-// sits outside the fork lifecycle entirely.
+func TestScan_RoleAssignmentWhoseStepIsGone(t *testing.T) {
+	mgr, db, s := newTestManagerDB(t)
+	ctx := context.Background()
+	w := newLinkedWorld(t, mgr, ctx)
+
+	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		DraftID: w.draftID, WorkItemID: w.step.ID, RoleID: w.role.ID, Label: models.RACILabelResponsible,
+	})
+	if err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+
+	if err := db.Exec("delete from "+tableOf(t, s, "work_item")+" where id = ?", w.step.ID).Error; err != nil {
+		t.Fatalf("deleting the step row directly: %v", err)
+	}
+
+	issue, ok := findIssue(t, mgr, ctx, w.draftID, "role_assignment", assignment.ID)
+	if !ok {
+		t.Fatalf("expected a dangling-step issue for assignment %s", assignment.ID)
+	}
+	if issue.Severity != models.IssueSeverityError || !strings.Contains(issue.Message, "Work item") {
+		t.Errorf("unexpected issue %+v", issue)
+	}
+}
+
 func TestScan_DanglingAttachment(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -202,8 +217,6 @@ func TestScan_DanglingAttachment(t *testing.T) {
 	}
 }
 
-// TestScan_EmptyWorkflowAndAgency covers the two structural checks that do
-// not involve a broken reference at all.
 func TestScan_EmptyWorkflowAndAgency(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
@@ -233,8 +246,6 @@ func TestScan_EmptyWorkflowAndAgency(t *testing.T) {
 	}
 }
 
-// TestScan_DanglingEventFlowStep covers the workflow_code business-key
-// join, which nothing enforces at write time.
 func TestScan_DanglingEventFlowStep(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()

@@ -82,7 +82,8 @@ func TestListWorkflows_AWorkflowWithAnOrderUnderWayIsInUseOnTheVersionTheOrdersA
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
-	if _, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: o.DraftID, WorkflowID: idle.ID, ObjectiveID: o.ID, Title: "Ask"}); err != nil {
+	linkWorkflowToObjective(t, mgr, o.DraftID, idle.ID, o.ID)
+	if _, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: o.DraftID, WorkflowID: idle.ID, Title: "Ask"}); err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
 	if _, err := mgr.PublishAgency(ctx, o.DraftID, "", ""); err != nil {
