@@ -1791,19 +1791,19 @@
         }
       ]
     },
-    "list_powers": {
+    "list_permissions": {
       "method": "GET",
-      "path": "/powers",
-      "call": "ListPowers",
-      "action": "agency.power.list",
-      "title": "List powers",
-      "description": "List the power vocabulary a role may tick, each with the actions it allows and whether it is locked to owners.",
+      "path": "/permissions",
+      "call": "ListPermissions",
+      "action": "agency.permission.list",
+      "title": "List permissions",
+      "description": "List the permission vocabulary a role may tick, each with the actions it allows and whether it is locked to owners.",
       "returns": [
         {
           "body": true
         }
       ],
-      "tool": "agency_list_powers"
+      "tool": "agency_list_permissions"
     },
     "list_pickers": {
       "method": "GET",

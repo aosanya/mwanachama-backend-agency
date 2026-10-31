@@ -12,9 +12,9 @@ import (
 )
 
 type hubAgentCall struct {
-	tool   string
-	action string
-	powers []string
+	tool        string
+	action      string
+	permissions []string
 }
 
 var hubAgentCalls = []hubAgentCall{
@@ -38,21 +38,21 @@ var hubAgentCalls = []hubAgentCall{
 	{"ai_check_limits", "ai.limits.check", []string{"ai.use"}},
 }
 
-var approvalToolsNoPowerGates = []string{"agency_propose_write", "agency_list_approvals", "agency_amend_approval"}
+var approvalToolsNoPermissionGates = []string{"agency_propose_write", "agency_list_approvals", "agency_amend_approval"}
 
-func powerNamed(t *testing.T, code string) models.Power {
+func permissionNamed(t *testing.T, code string) models.Permission {
 	t.Helper()
-	p, ok := models.LookupPower(code)
+	p, ok := models.LookupPermission(code)
 	if !ok {
-		t.Fatalf("power %s is missing from the catalogue", code)
+		t.Fatalf("permission %s is missing from the catalogue", code)
 	}
 	if p.Locked {
-		t.Fatalf("power %s is locked to owners, so no agent role may hold it", code)
+		t.Fatalf("permission %s is locked to owners, so no agent role may hold it", code)
 	}
 	return p
 }
 
-func carries(p models.Power, action string) bool {
+func carries(p models.Permission, action string) bool {
 	for _, a := range p.Actions {
 		if a == action {
 			return true
@@ -61,20 +61,20 @@ func carries(p models.Power, action string) bool {
 	return false
 }
 
-func TestEveryCallTheHubAgentsMakeIsCarriedByAnUnlockedPower(t *testing.T) {
+func TestEveryCallTheHubAgentsMakeIsCarriedByAnUnlockedPermission(t *testing.T) {
 	for _, c := range hubAgentCalls {
 		t.Run(c.tool, func(t *testing.T) {
-			for _, code := range c.powers {
-				if !carries(powerNamed(t, code), c.action) {
-					t.Fatalf("power %s does not carry %s, so a Hub Steward agent linked to a role holding it is refused %s", code, c.action, c.tool)
+			for _, code := range c.permissions {
+				if !carries(permissionNamed(t, code), c.action) {
+					t.Fatalf("permission %s does not carry %s, so a Hub Steward agent linked to a role holding it is refused %s", code, c.action, c.tool)
 				}
 			}
 		})
 	}
 }
 
-func TestTheHubAgentPowersCarryExactlyTheirActions(t *testing.T) {
-	want := map[string]models.Power{
+func TestTheHubAgentPermissionsCarryExactlyTheirActions(t *testing.T) {
+	want := map[string]models.Permission{
 		"chat.thread": {
 			Code: "chat.thread", Name: "Open and keep up with chat threads", Module: "comm",
 			Actions: []string{"comm.chat_thread.list", "comm.chat_thread.create", "comm.chat_thread.mark_read"},
@@ -101,9 +101,9 @@ func TestTheHubAgentPowersCarryExactlyTheirActions(t *testing.T) {
 		},
 	}
 	for code, expected := range want {
-		got, ok := models.LookupPower(code)
+		got, ok := models.LookupPermission(code)
 		if !ok {
-			t.Fatalf("power %s is missing from the catalogue", code)
+			t.Fatalf("permission %s is missing from the catalogue", code)
 		}
 		if !reflect.DeepEqual(got, expected) {
 			t.Errorf("%s = %+v, want %+v", code, got, expected)
@@ -111,7 +111,7 @@ func TestTheHubAgentPowersCarryExactlyTheirActions(t *testing.T) {
 	}
 }
 
-func TestTheHubAgentPowersGrantNoWriteBeyondWhatTheAgentsDo(t *testing.T) {
+func TestTheHubAgentPermissionsGrantNoWriteBeyondWhatTheAgentsDo(t *testing.T) {
 	forbidden := map[string][]string{
 		"chat.thread":       {"comm.chat_thread.archive", "comm.chat_thread.unarchive", "comm.chat_thread.open", "comm.chat_thread.decline", "comm.chat_message.post"},
 		"form.compose":      {"forms.form.publish", "forms.answer.list_all", "forms.target.create", "forms.approval.approve"},
@@ -121,17 +121,17 @@ func TestTheHubAgentPowersGrantNoWriteBeyondWhatTheAgentsDo(t *testing.T) {
 		"member.read":       {"actor.actor.create", "actor.group.list", "actor.invitation.create"},
 	}
 	for code, actions := range forbidden {
-		p := powerNamed(t, code)
+		p := permissionNamed(t, code)
 		for _, a := range actions {
 			if carries(p, a) {
-				t.Errorf("power %s carries %s, which no hub agent needs from it", code, a)
+				t.Errorf("permission %s carries %s, which no hub agent needs from it", code, a)
 			}
 		}
 	}
 }
 
-func TestTheAIUsePowerLetsAnAgentResolveItsAgencyRoleButNotAnAIRoleByItsOwnIdOrMapOne(t *testing.T) {
-	p := powerNamed(t, "ai.use")
+func TestTheAIUsePermissionLetsAnAgentResolveItsAgencyRoleButNotAnAIRoleByItsOwnIdOrMapOne(t *testing.T) {
+	p := permissionNamed(t, "ai.use")
 	if !carries(p, "ai.role.resolve_agency_role") {
 		t.Fatalf("ai.use = %v, want it carrying ai.role.resolve_agency_role so a linked agent can read its role's instructions", p.Actions)
 	}
@@ -140,23 +140,23 @@ func TestTheAIUsePowerLetsAnAgentResolveItsAgencyRoleButNotAnAIRoleByItsOwnIdOrM
 			t.Errorf("ai.use carries %s, which only the AI role managers need", a)
 		}
 	}
-	manage := powerNamed(t, "ai.role.manage")
+	manage := permissionNamed(t, "ai.role.manage")
 	if !carries(manage, "ai.role.resolve_agency_role") {
 		t.Errorf("ai.role.manage lost ai.role.resolve_agency_role: %v", manage.Actions)
 	}
 }
 
-func TestEarlierPowerCodesAndTheActionsOfChatPostAndDocumentSearchStayAsTheyWere(t *testing.T) {
+func TestEarlierPermissionCodesAndTheActionsOfChatPostAndDocumentSearchStayAsTheyWere(t *testing.T) {
 	for _, code := range []string{
 		"report.publish", "form.approve", "join_request.decide", "member.invite", "promise.record_outcome", "poll.run",
 		"notice.post", "event.post", "volunteer_call.post", "form.send", "member.remove", "group.settings",
 		"board_item.reply", "board_item.hide", "board.manage", "register.edit", "map.edit", "task.assign",
 		"service.edit", "service.publish", "appointment.manage", "chat.post", "document.search", "asset.manage",
 		"ai.account.manage", "ai.role.manage", "ai.use", "ai.account.read",
-		"agent.manage", "api_key.manage", "agency.go_live", "agency.delete", "power.override",
+		"agent.manage", "api_key.manage", "agency.go_live", "agency.delete", "permission.override",
 	} {
-		if _, ok := models.LookupPower(code); !ok {
-			t.Errorf("power %s is gone from the catalogue; stored definitions that name it would be refused at publish", code)
+		if _, ok := models.LookupPermission(code); !ok {
+			t.Errorf("permission %s is gone from the catalogue; stored definitions that name it would be refused at publish", code)
 		}
 	}
 	wantActions := map[string][]string{
@@ -166,34 +166,34 @@ func TestEarlierPowerCodesAndTheActionsOfChatPostAndDocumentSearchStayAsTheyWere
 		"ai.use":          {"ai.account.list", "ai.usage.list", "ai.usage.record", "ai.limits.check", "ai.role.resolve_agency_role", "ai.account.chat", "ai.model.list"},
 	}
 	for code, actions := range wantActions {
-		if got := powerNamed(t, code).Actions; !reflect.DeepEqual(got, actions) {
+		if got := permissionNamed(t, code).Actions; !reflect.DeepEqual(got, actions) {
 			t.Errorf("%s actions = %v, want %v", code, got, actions)
 		}
 	}
 }
 
-func TestNoPowerClaimsToGateTheApprovalToolsBecauseNoActionGatesThem(t *testing.T) {
+func TestNoPermissionClaimsToGateTheApprovalToolsBecauseNoActionGatesThem(t *testing.T) {
 	gated := map[string]bool{}
-	for _, tool := range approvalToolsNoPowerGates {
+	for _, tool := range approvalToolsNoPermissionGates {
 		gated[tool] = true
 	}
-	for _, p := range models.PowerCatalog() {
+	for _, p := range models.PermissionCatalog() {
 		for _, a := range p.Actions {
 			if gated[strings.ReplaceAll(a, ".", "_")] {
-				t.Errorf("power %s carries %s, but wakala-api checks membership, not a power, before the approval tools", p.Code, a)
+				t.Errorf("permission %s carries %s, but wakala-api checks membership, not a permission, before the approval tools", p.Code, a)
 			}
 			if strings.HasPrefix(a, "agency.approval") {
-				t.Errorf("power %s carries %s, but the approval tools have no declared action", p.Code, a)
+				t.Errorf("permission %s carries %s, but the approval tools have no declared action", p.Code, a)
 			}
 		}
 	}
 }
 
-func TestARoleMayDeclareEveryHubAgentPowerAndStillPublish(t *testing.T) {
+func TestARoleMayDeclareEveryHubAgentPermissionAndStillPublish(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, o, role := seedPublishableAgency(t, mgr, ctx)
-	role.Powers = []string{
+	role.Permissions = []string{
 		"ai.use", "chat.post", "chat.thread", "form.compose", "form.send", "form.answers.read",
 		"document.search", "document.read", "group.read", "member.read",
 	}
@@ -202,26 +202,26 @@ func TestARoleMayDeclareEveryHubAgentPowerAndStillPublish(t *testing.T) {
 	}
 	pub, err := mgr.PublishAgency(ctx, o.DraftID, "hub-agent-1", "")
 	if err != nil {
-		t.Fatalf("PublishAgency refused a role holding the hub agent powers: %v", err)
+		t.Fatalf("PublishAgency refused a role holding the hub agent permissions: %v", err)
 	}
-	if len(pub.Document.Roles) != 1 || !reflect.DeepEqual(pub.Document.Roles[0].Powers, role.Powers) {
-		t.Fatalf("document roles = %+v, want powers %v", pub.Document.Roles, role.Powers)
+	if len(pub.Document.Roles) != 1 || !reflect.DeepEqual(pub.Document.Roles[0].Permissions, role.Permissions) {
+		t.Fatalf("document roles = %+v, want permissions %v", pub.Document.Roles, role.Permissions)
 	}
 }
 
-func TestThePowerListServesTheHubAgentPowers(t *testing.T) {
+func TestThePermissionListServesTheHubAgentPermissions(t *testing.T) {
 	mgr := newTestManager(t)
-	powers, err := mgr.ListPowers(context.Background())
+	permissions, err := mgr.ListPermissions(context.Background())
 	if err != nil {
-		t.Fatalf("ListPowers: %v", err)
+		t.Fatalf("ListPermissions: %v", err)
 	}
 	have := map[string]bool{}
-	for _, p := range powers {
+	for _, p := range permissions {
 		have[p.Code] = true
 	}
 	for _, code := range []string{"chat.thread", "form.compose", "form.answers.read", "document.read", "group.read", "member.read"} {
 		if !have[code] {
-			t.Errorf("GET /powers does not list %s", code)
+			t.Errorf("GET /permissions does not list %s", code)
 		}
 	}
 }
@@ -254,7 +254,7 @@ func toolNamesByAction(t *testing.T, path string) map[string]string {
 	return out
 }
 
-func TestEveryActionOfTheHubAgentPowersIsDeclaredByItsModuleUnderTheToolNameTheAgentsCall(t *testing.T) {
+func TestEveryActionOfTheHubAgentPermissionsIsDeclaredByItsModuleUnderTheToolNameTheAgentsCall(t *testing.T) {
 	declared := map[string]string{}
 	for _, file := range []string{
 		"testdata/operations/comm.operations.json",
@@ -280,9 +280,9 @@ func TestEveryActionOfTheHubAgentPowersIsDeclaredByItsModuleUnderTheToolNameTheA
 		}
 	}
 	for _, code := range []string{"chat.thread", "form.compose", "form.answers.read", "document.read", "group.read", "member.read"} {
-		for _, a := range powerNamed(t, code).Actions {
+		for _, a := range permissionNamed(t, code).Actions {
 			if _, ok := declared[a]; !ok {
-				t.Errorf("power %s lists %s, which no module declares", code, a)
+				t.Errorf("permission %s lists %s, which no module declares", code, a)
 			}
 		}
 	}
@@ -303,7 +303,7 @@ func TestTheAIActionsTheGatewayAndTheAgentsUseAreDeclaredByTheAIModule(t *testin
 			t.Errorf("%s is served as tool %s, want %s", c.action, tool, c.tool)
 		}
 	}
-	for _, a := range powerNamed(t, "ai.use").Actions {
+	for _, a := range permissionNamed(t, "ai.use").Actions {
 		if _, ok := declared[a]; !ok {
 			t.Errorf("ai.use lists %s, which the ai module does not declare", a)
 		}

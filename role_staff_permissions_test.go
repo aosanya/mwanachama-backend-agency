@@ -9,11 +9,11 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestRole_DuplicatePowerTickDroppedAndStaffPublished(t *testing.T) {
+func TestRole_DuplicatePermissionTickDroppedAndStaffPublished(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, o, role := seedPublishableAgency(t, mgr, ctx)
-	role.Powers = []string{"form.send", "member.invite", "form.send"}
+	role.Permissions = []string{"form.send", "member.invite", "form.send"}
 	role.Staff = true
 	if _, err := mgr.UpdateRole(ctx, role); err != nil {
 		t.Fatalf("UpdateRole: %v", err)
@@ -22,8 +22,8 @@ func TestRole_DuplicatePowerTickDroppedAndStaffPublished(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetRole: %v", err)
 	}
-	if want := []string{"form.send", "member.invite"}; !reflect.DeepEqual(got.Powers, want) || !got.Staff {
-		t.Fatalf("role = %+v, want powers %v and staff", got, want)
+	if want := []string{"form.send", "member.invite"}; !reflect.DeepEqual(got.Permissions, want) || !got.Staff {
+		t.Fatalf("role = %+v, want permissions %v and staff", got, want)
 	}
 	pub, err := mgr.PublishAgency(ctx, o.DraftID, "staff-1", "")
 	if err != nil {
@@ -42,16 +42,16 @@ func TestRole_DuplicatePowerTickDroppedAndStaffPublished(t *testing.T) {
 	}
 }
 
-func TestListPowers_ServesTheCatalogWithActions(t *testing.T) {
+func TestListPermissions_ServesTheCatalogWithActions(t *testing.T) {
 	mgr := newTestManager(t)
-	powers, err := mgr.ListPowers(context.Background())
+	permissions, err := mgr.ListPermissions(context.Background())
 	if err != nil {
-		t.Fatalf("ListPowers: %v", err)
+		t.Fatalf("ListPermissions: %v", err)
 	}
-	byCode := map[string]models.Power{}
-	for _, p := range powers {
+	byCode := map[string]models.Permission{}
+	for _, p := range permissions {
 		if p.Actions == nil {
-			t.Fatalf("power %s has nil actions", p.Code)
+			t.Fatalf("permission %s has nil actions", p.Code)
 		}
 		byCode[p.Code] = p
 	}

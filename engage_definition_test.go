@@ -8,7 +8,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-var engagePostingPowers = []string{"notice.post", "event.post", "volunteer_call.post"}
+var engagePostingPermissions = []string{"notice.post", "event.post", "volunteer_call.post"}
 
 func TestEngageDefinition_CatalogDeclaresTheModuleSwitchedOff(t *testing.T) {
 	for _, entry := range models.ModuleCatalog {
@@ -22,23 +22,23 @@ func TestEngageDefinition_CatalogDeclaresTheModuleSwitchedOff(t *testing.T) {
 	t.Fatal("engage is not in the module catalog")
 }
 
-func TestEngageDefinition_OnePostingPowerPerKind(t *testing.T) {
-	for _, code := range engagePostingPowers {
-		p, ok := models.LookupPower(code)
+func TestEngageDefinition_OnePostingPermissionPerKind(t *testing.T) {
+	for _, code := range engagePostingPermissions {
+		p, ok := models.LookupPermission(code)
 		if !ok {
-			t.Fatalf("power %q is not in the catalog", code)
+			t.Fatalf("permission %q is not in the catalog", code)
 		}
 		if p.Locked || p.Module != "engage" {
-			t.Fatalf("power %q = %+v, want unlocked and owned by engage", code, p)
+			t.Fatalf("permission %q = %+v, want unlocked and owned by engage", code, p)
 		}
 	}
 }
 
-func TestEngageDefinition_PostingPowersPublishWithTheRole(t *testing.T) {
+func TestEngageDefinition_PostingPermissionsPublishWithTheRole(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, o, role := seedPublishableAgency(t, mgr, ctx)
-	role.Powers = append([]string(nil), engagePostingPowers...)
+	role.Permissions = append([]string(nil), engagePostingPermissions...)
 	if _, err := mgr.UpdateRole(ctx, role); err != nil {
 		t.Fatalf("UpdateRole: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestEngageDefinition_PostingPowersPublishWithTheRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
-	if len(pub.Document.Roles) != 1 || !reflect.DeepEqual(pub.Document.Roles[0].Powers, engagePostingPowers) {
-		t.Fatalf("document roles = %+v, want powers %v", pub.Document.Roles, engagePostingPowers)
+	if len(pub.Document.Roles) != 1 || !reflect.DeepEqual(pub.Document.Roles[0].Permissions, engagePostingPermissions) {
+		t.Fatalf("document roles = %+v, want permissions %v", pub.Document.Roles, engagePostingPermissions)
 	}
 }

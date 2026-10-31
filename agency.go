@@ -175,7 +175,7 @@ type AgencyManager interface {
 	CreateModule(ctx context.Context, mod models.Module) (models.Module, error)
 	GetModule(ctx context.Context, id string) (models.Module, error)
 	ListModules(ctx context.Context, draftID string, filter ModuleFilter) ([]models.Module, error)
-	ListPowers(ctx context.Context) ([]models.Power, error)
+	ListPermissions(ctx context.Context) ([]models.Permission, error)
 	ListPickers(ctx context.Context, draftID string) (models.Pickers, error)
 	SetModuleSettings(ctx context.Context, id string, settings json.RawMessage) (models.Module, error)
 	SetModuleMounts(ctx context.Context, id string, mounts []models.ModuleMount) (models.Module, error)

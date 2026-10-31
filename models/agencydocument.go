@@ -36,7 +36,7 @@ type DocumentRole struct {
 	Code        string   `json:"code"`
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
-	Powers      []string `json:"powers,omitempty"`
+	Permissions []string `json:"permissions,omitempty"`
 	Staff       bool     `json:"staff,omitempty"`
 }
 

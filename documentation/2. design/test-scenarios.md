@@ -55,8 +55,8 @@ present and read only, so they are added on every read and never stored:
 
 - the System, id `system`, plays every step nobody takes (the agency's own
   steps: `send_form`, `route`, and any step with no role);
-- an agent is any role of the draft that holds the power `ai.use`, which is the
-  power a hub's agents are given (`role-powers.md`). Its id is the role's id.
+- an agent is any role of the draft that holds the permission `ai.use`, which is the
+  permission a hub's agents are given (`role-permissions.md`). Its id is the role's id.
 
 A name may not repeat a stored actor, the System or an agent. A step is played
 by the first stored actor (in the order they were added) that holds the step's

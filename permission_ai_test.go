@@ -6,14 +6,14 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func powerActions(t *testing.T, code string) map[string]bool {
+func permissionActions(t *testing.T, code string) map[string]bool {
 	t.Helper()
-	p, ok := models.LookupPower(code)
+	p, ok := models.LookupPermission(code)
 	if !ok {
-		t.Fatalf("power %s missing from the catalogue", code)
+		t.Fatalf("permission %s missing from the catalogue", code)
 	}
 	if p.Locked {
-		t.Fatalf("power %s = %+v, want unlocked", code, p)
+		t.Fatalf("permission %s = %+v, want unlocked", code, p)
 	}
 	have := map[string]bool{}
 	for _, a := range p.Actions {
@@ -23,7 +23,7 @@ func powerActions(t *testing.T, code string) map[string]bool {
 }
 
 func TestCatalogueNamesAIAccountManage(t *testing.T) {
-	have := powerActions(t, "ai.account.manage")
+	have := permissionActions(t, "ai.account.manage")
 	for _, a := range []string{"ai.account.create", "ai.account.update", "ai.account.delete", "ai.account.key_set", "ai.account.test"} {
 		if !have[a] {
 			t.Fatalf("ai.account.manage missing %s", a)
@@ -35,7 +35,7 @@ func TestCatalogueNamesAIAccountManage(t *testing.T) {
 }
 
 func TestCatalogueNamesAIRoleManage(t *testing.T) {
-	have := powerActions(t, "ai.role.manage")
+	have := permissionActions(t, "ai.role.manage")
 	for _, a := range []string{"ai.limits.set", "ai.role.create", "ai.role.update", "ai.role.delete", "ai.revision.list", "ai.revision.restore", "ai.role.map", "ai.role.resolve", "ai.account.test"} {
 		if !have[a] {
 			t.Fatalf("ai.role.manage missing %s", a)
@@ -47,7 +47,7 @@ func TestCatalogueNamesAIRoleManage(t *testing.T) {
 }
 
 func TestCatalogueNamesAIUseWithoutTest(t *testing.T) {
-	have := powerActions(t, "ai.use")
+	have := permissionActions(t, "ai.use")
 	for _, a := range []string{"ai.account.list", "ai.usage.list", "ai.usage.record", "ai.limits.check", "ai.role.resolve_agency_role"} {
 		if !have[a] {
 			t.Fatalf("ai.use missing %s", a)
@@ -58,13 +58,13 @@ func TestCatalogueNamesAIUseWithoutTest(t *testing.T) {
 	}
 }
 
-func TestSeatWithoutAIPowerIsRefused(t *testing.T) {
+func TestSeatWithoutAIPermissionIsRefused(t *testing.T) {
 	for _, code := range []string{"ai.account.manage", "ai.role.manage", "ai.use", "ai.account.read"} {
-		if _, ok := models.LookupPower(code); !ok {
-			t.Fatalf("power %s missing, so no seat can hold it", code)
+		if _, ok := models.LookupPermission(code); !ok {
+			t.Fatalf("permission %s missing, so no seat can hold it", code)
 		}
 	}
-	if _, ok := models.LookupPower("ai.unheld"); ok {
-		t.Fatal("an undeclared ai power must not resolve")
+	if _, ok := models.LookupPermission("ai.unheld"); ok {
+		t.Fatal("an undeclared ai permission must not resolve")
 	}
 }

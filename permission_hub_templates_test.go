@@ -34,7 +34,7 @@ func TestEveryHubDemoTemplateImportsAndPublishesWithTheAgentRoleHoldingAIUse(t *
 			var agent []string
 			for _, r := range roles {
 				if r.Name == tpl.agentRole {
-					agent = r.Powers
+					agent = r.Permissions
 				}
 			}
 			have := map[string]bool{}

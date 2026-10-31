@@ -6,16 +6,16 @@ import (
 	"testing"
 )
 
-func TestMarketModuleAndPowersAreCataloguedWithoutDecidingActions(t *testing.T) {
+func TestMarketModuleAndPermissionsAreCataloguedWithoutDecidingActions(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	powers, err := mgr.ListPowers(ctx)
+	permissions, err := mgr.ListPermissions(ctx)
 	if err != nil {
-		t.Fatalf("ListPowers: %v", err)
+		t.Fatalf("ListPermissions: %v", err)
 	}
 	forbidden := []string{"answer", "approve", "decline", "mark_paid", "withdraw", "remove", "cancel"}
 	found := 0
-	for _, p := range powers {
+	for _, p := range permissions {
 		if !strings.HasPrefix(p.Code, "market.") {
 			continue
 		}
@@ -38,6 +38,6 @@ func TestMarketModuleAndPowersAreCataloguedWithoutDecidingActions(t *testing.T) 
 		}
 	}
 	if found == 0 {
-		t.Fatal("no market powers in the catalog")
+		t.Fatal("no market permissions in the catalog")
 	}
 }

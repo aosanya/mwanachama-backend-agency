@@ -158,7 +158,7 @@
       "created_at": "2026-10-26T00:00:00Z",
       "last_updated": "2026-10-29T00:00:00Z",
       "deleted": false,
-      "powers": [
+      "permissions": [
         "market.browse",
         "market.offer"
       ]
@@ -167,7 +167,7 @@
       "id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
       "code": "R-5",
       "name": "Farmers' agent",
-      "powers": [
+      "permissions": [
         "ai.use",
         "chat.post",
         "chat.thread",
@@ -193,7 +193,7 @@
       "code": "R-6",
       "name": "Suppliers' agent",
       "description": "The group's AI role that speaks to the posters. Helps a supplier post his offers and keep his private stock list, and carries the one question a farmer picked him for. It holds no farmer threads, cannot open an order, and never says yes for a person.",
-      "powers": [
+      "permissions": [
         "ai.use",
         "chat.post",
         "chat.thread",

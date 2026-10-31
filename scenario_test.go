@@ -87,7 +87,7 @@ func newScenarioWorld(t *testing.T, opts ...mwanachamaagency.Option) scenarioWor
 		}
 		sw.roles[name] = r
 	}
-	agent, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "Farmers' agent", Powers: []string{"ai.use"}})
+	agent, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "Farmers' agent", Permissions: []string{"ai.use"}})
 	if err != nil {
 		t.Fatalf("CreateRole agent: %v", err)
 	}

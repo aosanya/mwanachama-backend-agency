@@ -52,10 +52,10 @@ func riskOperationsFromTestdata(t *testing.T) []riskOperation {
 	return out
 }
 
-func TestRiskReadPowerCarriesExactlyTheSixAnswersAndTheReadsThatFindThem(t *testing.T) {
-	p, ok := models.LookupPower("risk.read")
+func TestRiskReadPermissionCarriesExactlyTheSixAnswersAndTheReadsThatFindThem(t *testing.T) {
+	p, ok := models.LookupPermission("risk.read")
 	if !ok {
-		t.Fatal("risk.read is missing from the powers catalogue")
+		t.Fatal("risk.read is missing from the permissions catalogue")
 	}
 	if p.Locked {
 		t.Fatal("risk.read is locked to owners, so no agent role may hold it")
@@ -70,13 +70,13 @@ func TestRiskReadPowerCarriesExactlyTheSixAnswersAndTheReadsThatFindThem(t *test
 	}
 }
 
-func TestRiskReadPowerCarriesOnlyActionsTheRiskManagerServesAsReads(t *testing.T) {
+func TestRiskReadPermissionCarriesOnlyActionsTheRiskManagerServesAsReads(t *testing.T) {
 	ops := riskOperationsFromTestdata(t)
 	method := map[string]string{}
 	for _, op := range ops {
 		method[op.Action] = op.Method
 	}
-	p, _ := models.LookupPower("risk.read")
+	p, _ := models.LookupPermission("risk.read")
 	for _, a := range p.Actions {
 		m, declared := method[a]
 		if !declared {
@@ -89,31 +89,31 @@ func TestRiskReadPowerCarriesOnlyActionsTheRiskManagerServesAsReads(t *testing.T
 	}
 }
 
-func TestNoUnlockedPowerCarriesARiskManagerWrite(t *testing.T) {
+func TestNoUnlockedPermissionCarriesARiskManagerWrite(t *testing.T) {
 	ops := riskOperationsFromTestdata(t)
-	held := heldByAnUnlockedPower()
+	held := heldByAnUnlockedPermission()
 	for _, op := range ops {
 		if op.Method == "GET" {
 			continue
 		}
-		if power := held[op.Action]; power != "" {
-			t.Errorf("%s is a %s on the risk manager and %s, an unlocked power, carries it", op.Action, op.Method, power)
+		if permission := held[op.Action]; permission != "" {
+			t.Errorf("%s is a %s on the risk manager and %s, an unlocked permission, carries it", op.Action, op.Method, permission)
 		}
 	}
 }
 
 func TestRiskReadIsOfferedToARoleThroughTheManager(t *testing.T) {
 	mgr := newTestManager(t)
-	powers, err := mgr.ListPowers(context.Background())
+	permissions, err := mgr.ListPermissions(context.Background())
 	if err != nil {
-		t.Fatalf("ListPowers: %v", err)
+		t.Fatalf("ListPermissions: %v", err)
 	}
-	for _, p := range powers {
+	for _, p := range permissions {
 		if p.Code == "risk.read" {
 			return
 		}
 	}
-	t.Fatal("ListPowers does not offer risk.read to a role")
+	t.Fatal("ListPermissions does not offer risk.read to a role")
 }
 
 func TestOnlyTheLabsHubStewardHoldsRiskRead(t *testing.T) {
@@ -143,7 +143,7 @@ func TestOnlyTheLabsHubStewardHoldsRiskRead(t *testing.T) {
 				if r.Name != c.role {
 					continue
 				}
-				for _, p := range r.Powers {
+				for _, p := range r.Permissions {
 					if p == "risk.read" {
 						held = true
 					}

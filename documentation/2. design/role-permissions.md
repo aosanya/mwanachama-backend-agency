@@ -1,41 +1,41 @@
-# Role powers (AG82)
+# Role permissions (AG82)
 
 Member app decisions 263, 265, 267 and 269 (2026-10-22): what each role can
-do is a list of named powers, declared in the agency definition, drafted and
+do is a list of named permissions, declared in the agency definition, drafted and
 published with the rest of its design.
 
 ## Where it lives
 
-- `role.powers` (`agency.blueprint.json`, `models.Role.Powers`) is a JSON
-  list of power codes. Empty declares none; an agency whose roles declare
+- `role.permissions` (`agency.blueprint.json`, `models.Role.Permissions`) is a JSON
+  list of permission codes. Empty declares none; an agency whose roles declare
   none keeps today's behaviour (decision 267). It rides the role's create and
   update bodies unchanged, so routes and MCP tools carry it with no new
   address.
-- The vocabulary is one declared place: `models/powers_catalog.json`, read
-  through `models.PowerCatalog()` and `models.LookupPower(code)`. Each entry
+- The vocabulary is one declared place: `models/permissions_catalog.json`, read
+  through `models.PermissionCatalog()` and `models.LookupPermission(code)`. Each entry
   has a `code`, a display `name` and `locked`.
-- `models.DocumentRole.Powers` carries the list into the publication
-  document, and forking a draft from a publication restores it, so powers
+- `models.DocumentRole.Permissions` carries the list into the publication
+  document, and forking a draft from a publication restores it, so permissions
   version with the draft. The role list in the document is what wakala-api
   turns into held role kinds (decision 269, WK181).
 
 ## What the publish scan refuses
 
-`checkPowers` in the Issue scan raises an `error` (so publishing is refused
+`checkPermissions` in the Issue scan raises an `error` (so publishing is refused
 with `ErrPublishValidationFailed`) when a role declares:
 
 - a code not in the vocabulary, or
-- a power locked to owners (decision 265). Locked powers are held by owners
+- a permission locked to owners (decision 265). Locked permissions are held by owners
   whatever the definition says, so no role may claim one.
 
 ## The vocabulary, and what is not yet settled
 
-Decision 263 names powers by example ("publish a report, approve forms,
+Decision 263 names permissions by example ("publish a report, approve forms,
 decide join requests, invite, record a promise's outcome, …") and decision
-265 names the locked owner powers. The catalog holds exactly those, with
+265 names the locked owner permissions. The catalog holds exactly those, with
 codes chosen here:
 
-| Code | Power | Locked |
+| Code | Permission | Locked |
 | --- | --- | --- |
 | `report.publish` | Publish a report | no |
 | `form.approve` | Approve forms | no |
@@ -46,27 +46,27 @@ codes chosen here:
 | `api_key.manage` | Manage API keys | yes |
 | `agency.go_live` | Go live | yes |
 | `agency.delete` | Delete the agency | yes |
-| `power.override` | Change overrides on the powers page | yes |
+| `permission.override` | Change overrides on the permissions page | yes |
 
 Open: the full list (the "…" in decision 263) and whether these codes match
 what permissions PM21 and wakala-api WK179 will enforce. The catalog is the
 one file to change when that is settled. The owner, agent and member columns
 of decision 264 are not agency roles and are not modelled here.
 
-## Powers map to actions, and a role can be staff (AG88, decisions 410, 411)
+## Permissions map to actions, and a role can be staff (AG88, decisions 410, 411)
 
-Each power in `models/powers_catalog.json` lists the declared action ids it
+Each permission in `models/permissions_catalog.json` lists the declared action ids it
 allows (`actions`), so the permission check and the studio read one list.
-`GET /powers` (`agency.power.list`, tool `agency_list_powers`) serves the
-catalog. A power whose module has no matching declared action yet carries an
+`GET /permissions` (`agency.permission.list`, tool `agency_list_permissions`) serves the
+catalog. A permission whose module has no matching declared action yet carries an
 empty list: `register.edit`, `service.edit` and `appointment.manage`.
 `board.manage` maps to catalog's grouping (`catalog.raised_item.group`,
 `ungroup`) and `catalog.board_item.set_outcome`; `task.assign` to
 taskmanager's `task.assign`, `task.assign_holder` and `task.unassign`.
-`poll.run` names `"module": "voting"`, as the engage powers name `engage`.
+`poll.run` names `"module": "voting"`, as the engage permissions name `engage`.
 
 A duplicate tick is dropped on save: `CreateRole` and `UpdateRole` keep the
-first occurrence of each code, in order. `checkPowers` still refuses an
+first occurrence of each code, in order. `checkPermissions` still refuses an
 unknown or locked code at publish.
 
 `role.staff` is one tick per definition role. It is published in the
@@ -74,13 +74,13 @@ document and carried through a fork. Whoever holds a staff role counts as
 staff beside owners and agents, for tasks and for board replies; the check
 itself is the host's (wakala-api WK218).
 
-## The older powers list their actions (AG89, decisions 439–441, 451)
+## The older permissions list their actions (AG89, decisions 439–441, 451)
 
-Powers are added as a feature needs them (decision 439). The nine older
-powers now list the actions the sibling modules declare today, read from
+Permissions are added as a feature needs them (decision 439). The nine older
+permissions now list the actions the sibling modules declare today, read from
 their `*.operations.json`:
 
-| Power | Actions |
+| Permission | Actions |
 | --- | --- |
 | `member.invite` Invite | `actor.invitation.create`, `actor.invitation.check_batch`, `actor.invitation.send_batch` |
 | `join_request.decide` Decide join requests | `actor.join_request.approve`, `actor.join_request.decline` |
@@ -101,11 +101,11 @@ Why these and not fewer:
 - A poll is made by `voting.poll.create` and then given its choices with
   `voting.choice.create`; one without the other is not a poll.
 - engage declares one posting action for all three kinds. The kind is in
-  the body, so the host checks that the caller holds the power for the kind
+  the body, so the host checks that the caller holds the permission for the kind
   posted (engage's own rule, decision 348); the action list alone does not
   tell a notice from an event.
 
-The powers other than these keep the lists AG88 gave them, with two
+The permissions other than these keep the lists AG88 gave them, with two
 changes:
 
 - `board_item.hide` also allows `catalog.raised_item.remove`: removing a
@@ -113,7 +113,7 @@ changes:
 - `catalog_entry.publish` is now `service.publish`, "Publish services"
   (decision 440). Nothing in this repo or the studio carried the old code; a
   stored definition that still does is refused at publish as an unknown
-  power.
+  permission.
 
 Not listed, because nothing declares the action yet:
 
@@ -121,7 +121,7 @@ Not listed, because nothing declares the action yet:
   voting declares them.
 - engage's `engage.pick.create` and `engage.post.fill` are the poster's own
   steps on a volunteer call and are left to the host's poster check rather
-  than granted by the power.
+  than granted by the permission.
 - Recording a promise's outcome is wakala-api WK178's, not declared.
 - Acknowledging a raised item goes with Reply to board items once catalog
   CAT56 declares it (decision 441).
@@ -130,7 +130,7 @@ Not listed, because nothing declares the action yet:
 - Edit the register, Edit services and Manage appointments gain theirs in
   the rows that declare them (CAT50, CAT124, WK198).
 
-A power with no actions grants nothing; owners and agents act (decision
+A permission with no actions grants nothing; owners and agents act (decision
 439).
 
 ## Edit the map (AG93, decision 498)
@@ -148,31 +148,31 @@ It lists every write the twin declares in `digitaltwin.operations.json`:
 
 The reads (`node.read`, `node.list`, `link.list`, `metric.list`,
 `retention.list`, `observation.query`, `observation.latest`) are not in the
-power: staff read the twin without it (decision 498), and that check is the
+permission: staff read the twin without it (decision 498), and that check is the
 host's.
 
 ## asset.manage (HS89, decision 39)
 
-`asset.manage` lets an Assets Keeper register assets (`assetmanager.asset.create`, `.update`, `.list`, `.read`, `.balance`), look at locations, and allocate stock to a holder with `assetmanager.movement.post`. Accounting is deliberately not a power. No power exists yet for holding a seat or proposing a draft: `assetmanager.hold.create` reserves a quantity at a place until a time, which is not a seat, and `workspace.layout.propose` only previews a patch, so neither was invented into one.
+`asset.manage` lets an Assets Keeper register assets (`assetmanager.asset.create`, `.update`, `.list`, `.read`, `.balance`), look at locations, and allocate stock to a holder with `assetmanager.movement.post`. Accounting is deliberately not a permission. No permission exists yet for holding a seat or proposing a draft: `assetmanager.hold.create` reserves a quantity at a place until a time, which is not a seat, and `workspace.layout.propose` only previews a patch, so neither was invented into one.
 
 ## ai.account.manage, ai.role.manage, ai.use (HS128, decision 48)
 
-`ai.account.manage` adds, changes and removes AI accounts, sets their keys and tests them (`ai.account.create`, `.update`, `.delete`, `.key_set`, `.test`). It is held by owners; no role definition claims it by default. `ai.role.manage` covers AI roles, their fine-tuning and history, and the limits on accounts and roles (`ai.limits.set`, `ai.role.create`, `.update`, `.delete`, `.list`, `.read`, `.revision_list`, `.restore`, and `ai.account.test`); owners and staff seats hold it. `ai.use` lets an agent call through the AI gateway (`ai.account.list`, `ai.usage.list`, `ai.usage.record`, `ai.limits.check`, and `ai.role.resolve_agency_role`, HS176 step 2); agents hold it. `ai.account.test` is deliberately not in `ai.use`. The `ai.role.*` ids are listed explicitly because a power never carries a wildcard; they must be reconciled with the ai module's operations file when it declares its role addresses.
+`ai.account.manage` adds, changes and removes AI accounts, sets their keys and tests them (`ai.account.create`, `.update`, `.delete`, `.key_set`, `.test`). It is held by owners; no role definition claims it by default. `ai.role.manage` covers AI roles, their fine-tuning and history, and the limits on accounts and roles (`ai.limits.set`, `ai.role.create`, `.update`, `.delete`, `.list`, `.read`, `.revision_list`, `.restore`, and `ai.account.test`); owners and staff seats hold it. `ai.use` lets an agent call through the AI gateway (`ai.account.list`, `ai.usage.list`, `ai.usage.record`, `ai.limits.check`, and `ai.role.resolve_agency_role`, HS176 step 2); agents hold it. `ai.account.test` is deliberately not in `ai.use`. The `ai.role.*` ids are listed explicitly because a permission never carries a wildcard; they must be reconciled with the ai module's operations file when it declares its role addresses.
 
-## The powers a Hub Steward agent needs when it is linked to a role (HS176 step 2, W7)
+## The permissions a Hub Steward agent needs when it is linked to a role (HS176 step 2, W7)
 
 A hub's agents (dispatcher, farmers' coordinator, network watcher, the answers
 desk) reach the hub as one service identity that the owner links to one agency
 role. From then on wakala-api lets the agent call only the actions that role's
-powers list (`agentPowered`), on every actor, comm, forms, sources and ai route
+permissions list (`agentPowered`), on every actor, comm, forms, sources and ai route
 and tool. Before this change the catalog named none of the chat-thread, forms
 authoring, answers, group-listing or role-resolve calls the agents make, so a
-linked agent was refused all of them. The new powers are read from what the
+linked agent was refused all of them. The new permissions are read from what the
 agents call (`submission/code` of the Hub Steward repo) against the
 `*.operations.json` of the modules; a tool is its action id with the dots turned
 into underscores, except the actor tools, which declare their own name.
 
-| Power | Name | Module | Actions | Agent tools |
+| Permission | Name | Module | Actions | Agent tools |
 | --- | --- | --- | --- | --- |
 | `chat.thread` | Open and keep up with chat threads | `comm` | `comm.chat_thread.list`, `comm.chat_thread.create`, `comm.chat_thread.mark_read` | `comm_chat_thread_list`, `comm_chat_thread_create`, `comm_chat_thread_mark_read` |
 | `form.compose` | Compose forms | `forms` | `forms.form.create`, `forms.question.create`, `forms.question.list` | `forms_form_create`, `forms_question_create`, `forms_question_list` |
@@ -181,28 +181,28 @@ into underscores, except the actor tools, which declare their own name.
 | `group.read` | See the hub's rooms | none | `actor.group.list` | `actor_list_groups` |
 | `member.read` | See who is in the hub | none | `actor.actor.list` | `actor_list_actors` |
 
-The agent role also holds powers that already existed: `chat.post` (the chat
+The agent role also holds permissions that already existed: `chat.post` (the chat
 messages: `comm_chat_message_list`, `comm_chat_message_post`), `form.send`
 (`forms_form_publish`), `document.search` and `ai.use`.
 
 Why they are shaped this way:
 
-- Existing power ids and the actions of `chat.post`, `document.search` and
+- Existing permission ids and the actions of `chat.post`, `document.search` and
   `form.send` do not change, so a stored definition that names them keeps the
   same meaning. Widening `chat.post` or `document.search` would have given
   every current holder more without anyone choosing it; the new calls are new
-  powers a role takes on purpose.
-- Reading a form's answers is its own power, apart from composing a form,
+  permissions a role takes on purpose.
+- Reading a form's answers is its own permission, apart from composing a form,
   because the answers are what members typed. `forms.question.list` sits in
   both: a composer needs it to see the form it is building, and a reader needs
   it to know what each answer answers.
 - `document.read` repeats `sources.source.list` and `sources.source.read` from
   `document.search` so that a role that only reads documents (the answers desk
   lists the documents and walks their passages itself) does not also need
-  search. A power is a set of actions, so holding both is no wider than either.
+  search. A permission is a set of actions, so holding both is no wider than either.
 - `member.read` is separate from `group.read` because listing every person in a
   hub is wider than listing its rooms. No agent code calls `actor_list_actors`
-  today; the power exists because the service's allowed tool list names it, and
+  today; the permission exists because the service's allowed tool list names it, and
   a template that does not need it can leave it out.
 - `ai.use` gains `ai.role.resolve_agency_role` because every agent reads its
   role's instructions from `GET /instances/{id}/ai/agency-roles/{id}/resolve`
@@ -210,17 +210,17 @@ Why they are shaped this way:
   `ai.role.map` or any role writing action: those stay with `ai.role.manage`,
   which already held the resolve action.
 
-Calls no power gates, so no power is in the catalog for them. wakala-api checks
-that the caller is a member of the hub, not a power, before `agency_propose_write`,
+Calls no permission gates, so no permission is in the catalog for them. wakala-api checks
+that the caller is a member of the hub, not a permission, before `agency_propose_write`,
 `agency_list_approvals` and `agency_amend_approval` (and their REST routes under
 `/instances/{id}/approvals`); they have no action id, and amending is limited by
 the approvals store to the proposer or an owner. `agency_list_instances` and
 `GET /me` are also ungated. A catalog entry for them would promise a gate that
-does not exist. `TestNoPowerClaimsToGateTheApprovalToolsBecauseNoActionGatesThem`
+does not exist. `TestNoPermissionClaimsToGateTheApprovalToolsBecauseNoActionGatesThem`
 fails if one is added before the host gates them.
 
-Checked by `power_hub_agent_test.go`: every call the agents make is carried by an
-unlocked power; each new power lists exactly the actions above and nothing
+Checked by `permission_hub_agent_test.go`: every call the agents make is carried by an
+unlocked permission; each new permission lists exactly the actions above and nothing
 nearby (no archive, no target, no create beyond the agents' own); the earlier
 codes are all still present; a role may declare every one and still publish; and,
 when the sibling repos are checked out beside this one, every action is declared
@@ -241,14 +241,14 @@ reads a person asks the risk manager in the risk-owner journey:
 | What are the gaps | `riskmanager.gap.list` |
 | Finding what to ask about | `riskmanager.risk.list`, `riskmanager.risk.read`, `riskmanager.risk.bowtie`, `riskmanager.control.list`, `riskmanager.control.read` |
 
-No write action is carried by any unlocked power. The work that closes a gap is
+No write action is carried by any unlocked permission. The work that closes a gap is
 raised by the manager after approving a draft, never by the agent's own role.
-`risk_powers_test.go` fails if a non-GET action of the risk manager joins an
-unlocked power, if `risk.read` carries anything the risk manager does not
+`risk_permissions_test.go` fails if a non-GET action of the risk manager joins an
+unlocked permission, if `risk.read` carries anything the risk manager does not
 declare as a read, or if a demo template other than the lab's Hub Steward
 holds it. The risk manager's operations file is read from the sibling checkout
 and the test skips when it is absent.
 
 The module is not in the module catalog and is not mounted: the mount is
 HS95 on the hub project's board and RM1 on the risk manager's, and waits on the
-owner's go-ahead. Until it is mounted the power names actions no route serves.
+owner's go-ahead. Until it is mounted the permission names actions no route serves.

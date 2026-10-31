@@ -1,7 +1,7 @@
 # Voting in the definition (AG84)
 
-Member app decisions 341–343 (2026-10-22), on the shapes AG82 (powers,
-[role-powers.md](role-powers.md)) and AG83 (module settings,
+Member app decisions 341–343 (2026-10-22), on the shapes AG82 (permissions,
+[role-permissions.md](role-permissions.md)) and AG83 (module settings,
 [module-settings.md](module-settings.md)) set. Nothing new was built for
 voting: it is one entry in each of the two catalogs.
 
@@ -27,9 +27,9 @@ voting's own default.
 
 ## Run a poll
 
-`poll.run` ("Run a poll") is an unlocked entry in `models/powers_catalog.json`,
-ticked per role in `role.powers` (decision 342). It covers creating, closing
+`poll.run` ("Run a poll") is an unlocked entry in `models/permissions_catalog.json`,
+ticked per role in `role.permissions` (decision 342). It covers creating, closing
 and publishing polls. That owners and agents hold it when no role does
-(decision 270), and that a leader's power reaches the groups inside theirs
+(decision 270), and that a leader's permission reaches the groups inside theirs
 (decision 266), are the host's and permissions' to apply (PM23, WK207), not
 this module's.

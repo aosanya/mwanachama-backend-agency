@@ -6,9 +6,9 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func heldByAnUnlockedPower() map[string]string {
+func heldByAnUnlockedPermission() map[string]string {
 	out := map[string]string{}
-	for _, p := range models.PowerCatalog() {
+	for _, p := range models.PermissionCatalog() {
 		if p.Locked {
 			continue
 		}
@@ -19,7 +19,7 @@ func heldByAnUnlockedPower() map[string]string {
 	return out
 }
 
-func TestEveryActionOfTheCataloguePowerGapBelongsToAnUnlockedPower(t *testing.T) {
+func TestEveryActionOfTheCataloguePermissionGapBelongsToAnUnlockedPermission(t *testing.T) {
 	want := map[string]string{
 		"ai.account.chat":                      "ai.use",
 		"ai.model.list":                        "ai.use",
@@ -91,15 +91,15 @@ func TestEveryActionOfTheCataloguePowerGapBelongsToAnUnlockedPower(t *testing.T)
 		"actor.role_assignment.create":         "role.assign",
 		"actor.role_assignment.revoke":         "role.assign",
 	}
-	held := heldByAnUnlockedPower()
-	for action, power := range want {
+	held := heldByAnUnlockedPermission()
+	for action, permission := range want {
 		if held[action] == "" {
-			t.Errorf("%s belongs to no unlocked power, want %s", action, power)
+			t.Errorf("%s belongs to no unlocked permission, want %s", action, permission)
 			continue
 		}
-		p, _ := models.LookupPower(power)
+		p, _ := models.LookupPermission(permission)
 		if !carries(p, action) {
-			t.Errorf("%s is not carried by %s", action, power)
+			t.Errorf("%s is not carried by %s", action, permission)
 		}
 	}
 }

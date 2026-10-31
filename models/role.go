@@ -6,7 +6,7 @@ type Role struct {
 	DraftID     string   `json:"draft_id,omitempty"`
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
-	Powers      []string `json:"powers,omitempty"`
+	Permissions []string `json:"permissions,omitempty"`
 	Staff       bool     `json:"staff"`
 	CreatedAt   string   `json:"created_at"`
 	LastUpdated string   `json:"last_updated"`

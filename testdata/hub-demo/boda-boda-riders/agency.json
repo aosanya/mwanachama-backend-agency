@@ -187,7 +187,7 @@
       "created_at": "2026-10-26T00:00:00Z",
       "last_updated": "2026-10-29T00:00:00Z",
       "deleted": false,
-      "powers": [
+      "permissions": [
         "market.browse",
         "market.offer"
       ]
@@ -205,7 +205,7 @@
       "id": "b3f85171-147d-50bb-ad4a-025b99c9388c",
       "code": "R-5",
       "name": "Hub Steward",
-      "powers": [
+      "permissions": [
         "ai.use",
         "chat.post",
         "chat.thread",

@@ -87,7 +87,7 @@
       "id": "26e27223-8575-5f10-b335-86619874dd0f",
       "code": "R-3",
       "name": "Hub Steward",
-      "powers": ["ai.use", "chat.post", "chat.thread", "document.read", "document.search", "form.answers.read", "form.compose", "form.send", "group.read", "member.read", "risk.read"],
+      "permissions": ["ai.use", "chat.post", "chat.thread", "document.read", "document.search", "form.answers.read", "form.compose", "form.send", "group.read", "member.read", "risk.read"],
       "description": "The lab's AI agent. Answers members in the lab's chat from the lab's documents, in the language the member writes in (English, Swahili or German), at any time. Drafts access requests and seat bookings for the lab manager to approve, and watches the lab's network. It never approves its own drafts.",
       "created_at": "2026-10-21T00:00:00Z",
       "last_updated": "2026-10-21T00:00:00Z",

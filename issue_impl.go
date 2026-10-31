@@ -30,7 +30,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkEventFlowSteps,
 		s.checkAttachments,
 		s.checkModuleSettings,
-		s.checkPowers,
+		s.checkPermissions,
 		s.checkScenarios,
 	} {
 		if err := check(); err != nil {
@@ -349,19 +349,19 @@ func (m *agencyManager) rescanIssues(ctx context.Context, tx *gorm.DB, draftID s
 	return found, nil
 }
 
-func (s *issueScan) checkPowers() error {
+func (s *issueScan) checkPermissions() error {
 	roles, err := list[models.Role](s.m, s.scoped(roleRole), roleRole)
 	if err != nil {
 		return err
 	}
 	for _, r := range roles {
-		for _, code := range r.Powers {
-			power, known := models.LookupPower(code)
+		for _, code := range r.Permissions {
+			permission, known := models.LookupPermission(code)
 			switch {
 			case !known:
-				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q declares unknown power %q", r.Code, r.Name, code)
-			case power.Locked:
-				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q declares power %q, which is locked to owners", r.Code, r.Name, code)
+				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q declares unknown permission %q", r.Code, r.Name, code)
+			case permission.Locked:
+				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q declares permission %q, which is locked to owners", r.Code, r.Name, code)
 			}
 		}
 	}

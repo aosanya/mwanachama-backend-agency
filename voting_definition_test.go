@@ -39,9 +39,9 @@ func TestVotingIsAModuleTheDefinitionCanSwitchOn(t *testing.T) {
 	if !found {
 		t.Fatal("voting is missing from the module catalog")
 	}
-	power, ok := models.LookupPower("poll.run")
-	if !ok || power.Locked || power.Name != "Run a poll" {
-		t.Fatalf("poll.run = %+v, %v; want an unlocked Run a poll", power, ok)
+	permission, ok := models.LookupPermission("poll.run")
+	if !ok || permission.Locked || permission.Name != "Run a poll" {
+		t.Fatalf("poll.run = %+v, %v; want an unlocked Run a poll", permission, ok)
 	}
 }
 
@@ -57,7 +57,7 @@ func TestVotingDefinition_SettingsAndRunAPollPublishAndForkTogether(t *testing.T
 	if _, err := mgr.SetModuleEnabled(ctx, o.DraftID, voting.ID, true); err != nil {
 		t.Fatalf("SetModuleEnabled: %v", err)
 	}
-	role.Powers = []string{"poll.run"}
+	role.Permissions = []string{"poll.run"}
 	if _, err := mgr.UpdateRole(ctx, role); err != nil {
 		t.Fatalf("UpdateRole: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestVotingDefinition_SettingsAndRunAPollPublishAndForkTogether(t *testing.T
 	if published == nil || string(published.Settings) != defaults {
 		t.Fatalf("published voting module = %+v, want settings %s", published, defaults)
 	}
-	if len(pub.Document.Roles) != 1 || !reflect.DeepEqual(pub.Document.Roles[0].Powers, []string{"poll.run"}) {
+	if len(pub.Document.Roles) != 1 || !reflect.DeepEqual(pub.Document.Roles[0].Permissions, []string{"poll.run"}) {
 		t.Fatalf("document roles = %+v, want Run a poll", pub.Document.Roles)
 	}
 
@@ -105,7 +105,7 @@ func TestVotingDefinition_SettingsAndRunAPollPublishAndForkTogether(t *testing.T
 	if err != nil {
 		t.Fatalf("ListRoles: %v", err)
 	}
-	if len(roles) != 1 || !reflect.DeepEqual(roles[0].Powers, []string{"poll.run"}) {
+	if len(roles) != 1 || !reflect.DeepEqual(roles[0].Permissions, []string{"poll.run"}) {
 		t.Fatalf("forked roles = %+v, want Run a poll", roles)
 	}
 }

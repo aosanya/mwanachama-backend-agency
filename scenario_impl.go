@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const agentPower = "ai.use"
+const agentPermission = "ai.use"
 
 type ScenarioFilter struct {
 	Name   string `query:"name"`
@@ -72,8 +72,8 @@ func (m *agencyManager) draftRoles(ctx context.Context, tx *gorm.DB, draftID str
 func agentRoles(roles []models.Role) []models.Role {
 	var out []models.Role
 	for _, r := range roles {
-		for _, p := range r.Powers {
-			if p == agentPower {
+		for _, p := range r.Permissions {
+			if p == agentPermission {
 				out = append(out, r)
 				break
 			}

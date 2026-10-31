@@ -18,7 +18,7 @@ func (m *agencyManager) CreateRole(ctx context.Context, r models.Role) (models.R
 	if err := m.validateOpenDraftID(ctx, r.DraftID); err != nil {
 		return models.Role{}, err
 	}
-	r.Powers = models.DistinctPowers(r.Powers)
+	r.Permissions = models.DistinctPermissions(r.Permissions)
 	r.ID = newID()
 	r.Deleted = false
 	r.CreatedAt = models.NowRFC3339()
@@ -66,7 +66,7 @@ func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.R
 		}
 		r.Code = existing.Code
 		r.DraftID = existing.DraftID
-		r.Powers = models.DistinctPowers(r.Powers)
+		r.Permissions = models.DistinctPermissions(r.Permissions)
 		r.CreatedAt = existing.CreatedAt
 		r.LastUpdated = models.NowRFC3339()
 

@@ -7,12 +7,12 @@ import (
 )
 
 func TestCatalogueNamesAssetManage(t *testing.T) {
-	p, ok := models.LookupPower("asset.manage")
+	p, ok := models.LookupPermission("asset.manage")
 	if !ok {
-		t.Fatal("power asset.manage missing from the catalogue")
+		t.Fatal("permission asset.manage missing from the catalogue")
 	}
 	if p.Locked {
-		t.Fatalf("power asset.manage = %+v, want unlocked", p)
+		t.Fatalf("permission asset.manage = %+v, want unlocked", p)
 	}
 	have := map[string]bool{}
 	for _, a := range p.Actions {
@@ -20,7 +20,7 @@ func TestCatalogueNamesAssetManage(t *testing.T) {
 	}
 	for _, a := range []string{"assetmanager.asset.create", "assetmanager.movement.post"} {
 		if !have[a] {
-			t.Fatalf("power asset.manage = %+v, want it carrying %s", p, a)
+			t.Fatalf("permission asset.manage = %+v, want it carrying %s", p, a)
 		}
 	}
 }

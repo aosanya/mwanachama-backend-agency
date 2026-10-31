@@ -8,19 +8,19 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestListPowers_EditTheMapListsTheTwinsWriteActions(t *testing.T) {
+func TestListPermissions_EditTheMapListsTheTwinsWriteActions(t *testing.T) {
 	mgr := newTestManager(t)
-	powers, err := mgr.ListPowers(context.Background())
+	permissions, err := mgr.ListPermissions(context.Background())
 	if err != nil {
-		t.Fatalf("ListPowers: %v", err)
+		t.Fatalf("ListPermissions: %v", err)
 	}
-	var got models.Power
-	for _, p := range powers {
+	var got models.Permission
+	for _, p := range permissions {
 		if p.Code == "map.edit" {
 			got = p
 		}
 	}
-	want := models.Power{
+	want := models.Permission{
 		Code:   "map.edit",
 		Name:   "Edit the map",
 		Module: "digitaltwin",
