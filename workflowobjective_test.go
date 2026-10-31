@@ -308,7 +308,7 @@ func TestWorkflowObjective_DeletingTheObjectiveTakesItsLinksOnly(t *testing.T) {
 }
 
 func TestConcurrentCreateWorkflowObjectiveWithOnePairStoresOneAndClassifiesTheRest(t *testing.T) {
-	mgr := newSharedCacheManager(t, "raceworkflowobjective")
+	mgr := newSharedCacheManager(t, "rw")
 	ctx := context.Background()
 	s := seedWorkflowObjectives(t, mgr, ctx)
 

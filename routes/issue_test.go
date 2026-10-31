@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
@@ -21,6 +22,9 @@ func TestListIssues_ScopedToDraft(t *testing.T) {
 	if _, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"}); err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
+	if _, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Unlinked"}); err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/drafts/"+draftID+"/issues", nil)
 	req.SetPathValue("draftID", draftID)
@@ -33,12 +37,21 @@ func TestListIssues_ScopedToDraft(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if len(out) != 1 || out[0].EntityType != "objective" || out[0].DraftID != draftID {
-		t.Fatalf("expected one draft-scoped objective issue, got %+v", out)
+	unlinked := 0
+	for _, i := range out {
+		if i.DraftID != draftID {
+			t.Fatalf("issue from another draft: %+v", i)
+		}
+		if i.EntityType == "workflow" && strings.Contains(i.Message, "has no Objective") {
+			unlinked++
+		}
+	}
+	if unlinked != 1 {
+		t.Fatalf("expected one draft-scoped workflow issue, got %+v", out)
 	}
 }
 
-func TestListIssues_ObjectiveWithNoAccountable(t *testing.T) {
+func TestListIssues_WorkflowWithNoObjective(t *testing.T) {
 	mgr, draftID := newTestManagerWithDraft(t)
 	ctx := t.Context()
 	g, err := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Grow adoption"})
@@ -47,6 +60,9 @@ func TestListIssues_ObjectiveWithNoAccountable(t *testing.T) {
 	}
 	if _, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Grow adoption"}); err != nil {
 		t.Fatalf("CreateObjective: %v", err)
+	}
+	if _, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Unlinked"}); err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/drafts/"+draftID+"/issues", nil)
@@ -62,12 +78,12 @@ func TestListIssues_ObjectiveWithNoAccountable(t *testing.T) {
 	}
 	found := false
 	for _, i := range out {
-		if i.EntityType == "objective" && i.Severity == models.IssueSeverityError {
+		if i.EntityType == "workflow" && i.Severity == models.IssueSeverityError {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("expected an error for the unassigned objective, got %+v", out)
+		t.Fatalf("expected an error for the workflow with no objective, got %+v", out)
 	}
 }
 

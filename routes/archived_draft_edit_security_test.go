@@ -34,9 +34,10 @@ func TestAG72_RowsInAnArchivedDraftRefuseUpdatesAndDeletes(t *testing.T) {
 	goal := create("/goals", `{"title":"G","draft_id":"`+draft+`"}`)
 	objective := create("/objectives", `{"title":"O","goal_id":"`+goal+`","draft_id":"`+draft+`"}`)
 	workflow := create("/workflows", `{"name":"W","draft_id":"`+draft+`"}`)
-	workItem := create("/work-items", `{"title":"WI","workflow_id":"`+workflow+`","objective_id":"`+objective+`","draft_id":"`+draft+`"}`)
+	link := create("/workflow-objectives", `{"workflow_id":"`+workflow+`","objective_id":"`+objective+`","draft_id":"`+draft+`"}`)
+	workItem := create("/work-items", `{"title":"WI","workflow_id":"`+workflow+`","draft_id":"`+draft+`"}`)
 	role := create("/roles", `{"name":"R","draft_id":"`+draft+`"}`)
-	assignment := create("/role-assignments", `{"role_id":"`+role+`","objective_id":"`+objective+`","label":"consulted","draft_id":"`+draft+`"}`)
+	assignment := create("/role-assignments", `{"role_id":"`+role+`","work_item_id":"`+workItem+`","label":"consulted","draft_id":"`+draft+`"}`)
 
 	if _, err := mgr.ArchiveDraft(t.Context(), draft); err != nil {
 		t.Fatalf("ArchiveDraft: %v", err)
@@ -51,6 +52,7 @@ func TestAG72_RowsInAnArchivedDraftRefuseUpdatesAndDeletes(t *testing.T) {
 	cases := []struct{ name, method, path, body, readBack string }{
 		{"rename a role", http.MethodPatch, "/roles/" + role, `{"name":"R-edited"}`, "/roles/" + role},
 		{"delete a RACI link", http.MethodDelete, "/role-assignments/" + assignment, ``, "/role-assignments/" + assignment},
+		{"unlink an objective", http.MethodDelete, "/workflow-objectives/" + link, ``, "/workflow-objectives/" + link},
 		{"delete a work item", http.MethodDelete, "/work-items/" + workItem, ``, "/work-items/" + workItem},
 		{"delete a role", http.MethodDelete, "/roles/" + role, ``, "/roles/" + role},
 		{"delete a goal", http.MethodDelete, "/goals/" + goal, ``, "/goals/" + goal},

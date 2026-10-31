@@ -16,11 +16,14 @@ func TestWorkItemStepRoutes(t *testing.T) {
 	wf, _ := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Buy now"})
 	g, _ := mgr.CreateGoal(ctx, models.Goal{DraftID: draftID, Title: "Sell"})
 	o, _ := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: g.ID, Title: "Sell"})
+	if _, err := mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draftID, WorkflowID: wf.ID, ObjectiveID: o.ID}); err != nil {
+		t.Fatalf("CreateWorkflowObjective: %v", err)
+	}
 	farmer, _ := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "Farmer"})
 	supplier, _ := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "Supplier"})
 
 	body := func(role string) string {
-		return `{"workflow_id":"` + wf.ID + `","objective_id":"` + o.ID + `","draft_id":"` + draftID + `","title":"Ask",` +
+		return `{"workflow_id":"` + wf.ID + `","draft_id":"` + draftID + `","title":"Ask",` +
 			`"kind":"fill_form","role_id":` + role + `,"form_name":"Buy now form",` +
 			`"questions":[{"prompt":"Enter the number of bags","answer_type":"number","required":true}]}`
 	}

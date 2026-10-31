@@ -45,13 +45,13 @@ func TestAG48_UpdateKeepsARowInItsDraft(t *testing.T) {
 	goal := create("/goals", `{"title":"G","draft_id":"`+openDraft+`"}`)
 	objective := create("/objectives", `{"title":"O","goal_id":"`+goal+`","draft_id":"`+openDraft+`"}`)
 	workflow := create("/workflows", `{"name":"W","draft_id":"`+openDraft+`"}`)
-	workItem := create("/work-items", `{"title":"WI","workflow_id":"`+workflow+`","objective_id":"`+objective+`","draft_id":"`+openDraft+`"}`)
+	workItem := create("/work-items", `{"title":"WI","workflow_id":"`+workflow+`","draft_id":"`+openDraft+`"}`)
 
 	cases := []struct{ name, path, body string }{
 		{"goal", "/goals/" + goal, `{"title":"G2","draft_id":"` + archived.ID + `"}`},
 		{"objective", "/objectives/" + objective, `{"title":"O2","goal_id":"` + goal + `","draft_id":"` + archived.ID + `"}`},
 		{"workflow", "/workflows/" + workflow, `{"name":"W2","draft_id":"` + archived.ID + `"}`},
-		{"work item", "/work-items/" + workItem, `{"title":"WI2","workflow_id":"` + workflow + `","objective_id":"` + objective + `","draft_id":"` + archived.ID + `"}`},
+		{"work item", "/work-items/" + workItem, `{"title":"WI2","workflow_id":"` + workflow + `","draft_id":"` + archived.ID + `"}`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
