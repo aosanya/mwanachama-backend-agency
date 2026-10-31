@@ -68,6 +68,16 @@ var (
 	// ErrObjectiveNotFound is returned when an Objective id has no match
 	// in the expected scope.
 	ErrObjectiveNotFound = errors.New("mwanachamaagency: objective not found")
+	// ErrRiskNotFound is returned when a Risk id has no match.
+	ErrRiskNotFound = errors.New("mwanachamaagency: risk not found")
+	// ErrRiskPathwayNotFound is returned when a RiskPathway id has no match.
+	ErrRiskPathwayNotFound = errors.New("mwanachamaagency: risk pathway not found")
+	// ErrInvalidRisk is returned by CreateRisk/UpdateRisk for a risk that
+	// fails validation.
+	ErrInvalidRisk = errors.New("mwanachamaagency: invalid risk")
+	// ErrInvalidRiskPathway is returned by CreateRiskPathway/
+	// UpdateRiskPathway for a pathway that fails validation.
+	ErrInvalidRiskPathway = errors.New("mwanachamaagency: invalid risk pathway")
 	// ErrInvalidWorkItem is returned by CreateWorkItem/UpdateWorkItem for a
 	// step that fails validation.
 	ErrInvalidWorkItem = errors.New("mwanachamaagency: invalid work item")

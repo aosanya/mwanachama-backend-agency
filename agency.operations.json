@@ -41,6 +41,10 @@
     "ErrWorkItemNotFound": 404,
     "ErrWorkflowNotFound": 404,
     "ErrInvalidMeasure": 400,
+    "ErrRiskNotFound": 404,
+    "ErrRiskPathwayNotFound": 404,
+    "ErrInvalidRisk": 400,
+    "ErrInvalidRiskPathway": 400,
     "ErrInvalidRecord": 400,
     "ErrInvalidRecordRow": 400,
     "ErrRecordNotFound": 404,
@@ -2596,6 +2600,242 @@
         }
       ],
       "tool": "agency_record_review_area"
+    },
+    "create_risk": {
+      "method": "POST",
+      "path": "/risks",
+      "call": "CreateRisk",
+      "action": "agency.risk.create",
+      "title": "Create risk",
+      "description": "Add a risk to a draft, named by its title and the top event at its centre, with an optional hazard and owner. Its threats and consequences are added as pathways.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_risk",
+      "status": 201
+    },
+    "get_risk": {
+      "method": "GET",
+      "path": "/risks/{risk_id}",
+      "call": "GetRisk",
+      "action": "agency.risk.read",
+      "title": "Read risk",
+      "description": "Read one risk by its id: its code, title, top event, hazard, owner and the draft it belongs to.",
+      "args": [
+        {
+          "from": "path",
+          "as": "risk_id",
+          "refers": "agency.risk",
+          "description": "The risk to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_risk"
+    },
+    "update_risk": {
+      "method": "PATCH",
+      "path": "/risks/{risk_id}",
+      "call": "UpdateRisk",
+      "action": "agency.risk.update",
+      "title": "Update risk",
+      "description": "Replace a risk's title, top event, hazard and owner.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "risk_id",
+          "refers": "agency.risk",
+          "description": "The risk to update.",
+          "into": "ID"
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_risk"
+    },
+    "delete_risk": {
+      "method": "DELETE",
+      "path": "/risks/{risk_id}",
+      "call": "DeleteRisk",
+      "action": "agency.risk.delete",
+      "title": "Delete risk",
+      "description": "Remove a risk and every threat and consequence that hangs off it.",
+      "args": [
+        {
+          "from": "path",
+          "as": "risk_id",
+          "refers": "agency.risk",
+          "description": "The risk to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_risk",
+      "status": 204
+    },
+    "list_risks": {
+      "method": "GET",
+      "path": "/risks",
+      "call": "ListRisks",
+      "action": "agency.risk.list",
+      "title": "List risks",
+      "description": "List one draft's risks, oldest first, narrowed by the filter.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose risks to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_risks"
+    },
+    "create_risk_pathway": {
+      "method": "POST",
+      "path": "/risk-pathways",
+      "call": "CreateRiskPathway",
+      "action": "agency.risk_pathway.create",
+      "title": "Create risk pathway",
+      "description": "Add a threat or a consequence to a risk: the side says which, the title names it and the scenario says how it plays out. The risk must exist in the same draft.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_risk_pathway",
+      "status": 201
+    },
+    "get_risk_pathway": {
+      "method": "GET",
+      "path": "/risk-pathways/{risk_pathway_id}",
+      "call": "GetRiskPathway",
+      "action": "agency.risk_pathway.read",
+      "title": "Read risk pathway",
+      "description": "Read one threat or consequence by its id.",
+      "args": [
+        {
+          "from": "path",
+          "as": "risk_pathway_id",
+          "refers": "agency.risk_pathway",
+          "description": "The pathway to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_get_risk_pathway"
+    },
+    "update_risk_pathway": {
+      "method": "PATCH",
+      "path": "/risk-pathways/{risk_pathway_id}",
+      "call": "UpdateRiskPathway",
+      "action": "agency.risk_pathway.update",
+      "title": "Update risk pathway",
+      "description": "Replace a pathway's side, title and scenario.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        },
+        {
+          "from": "path",
+          "as": "risk_pathway_id",
+          "refers": "agency.risk_pathway",
+          "description": "The pathway to update.",
+          "into": "ID"
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_update_risk_pathway"
+    },
+    "delete_risk_pathway": {
+      "method": "DELETE",
+      "path": "/risk-pathways/{risk_pathway_id}",
+      "call": "DeleteRiskPathway",
+      "action": "agency.risk_pathway.delete",
+      "title": "Delete risk pathway",
+      "description": "Remove one threat or consequence.",
+      "args": [
+        {
+          "from": "path",
+          "as": "risk_pathway_id",
+          "refers": "agency.risk_pathway",
+          "description": "The pathway to remove."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_delete_risk_pathway",
+      "status": 204
+    },
+    "list_risk_pathways": {
+      "method": "GET",
+      "path": "/risk-pathways",
+      "call": "ListRiskPathways",
+      "action": "agency.risk_pathway.list",
+      "title": "List risk pathways",
+      "description": "List one draft's threats and consequences, narrowed by risk_id, side or title.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose threats and consequences to read."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_risk_pathways"
     }
   }
 }

@@ -51,6 +51,17 @@ type RecordFilter struct {
 	WorkflowID string `query:"workflow_id"`
 }
 
+type RiskFilter struct {
+	Code  string `query:"code"`
+	Title string `query:"title"`
+}
+
+type RiskPathwayFilter struct {
+	RiskID string `query:"risk_id"`
+	Side   string `query:"side"`
+	Title  string `query:"title"`
+}
+
 type MeasureFilter struct {
 	ObjectiveID string `query:"objective_id"`
 }

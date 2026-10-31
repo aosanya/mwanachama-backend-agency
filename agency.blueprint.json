@@ -75,6 +75,47 @@
       ]
     },
     {
+      "role": "risk",
+      "description": "Something that could go wrong, named by the event at its centre, with the threats that lead to it and the consequences that follow.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as RK-1, minted once and never edited.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "title", "type": "string", "description": "The risk in one line.", "required": true},
+        {"name": "top_event", "type": "text", "description": "The event at the centre of the risk, such as a harvest going unsold.", "required": true},
+        {"name": "hazard", "type": "text", "description": "What could cause harm, where that is worth naming."},
+        {"name": "owner", "type": "string", "description": "The role, by code or name, answerable for the risk."},
+        {"name": "created_at", "type": "timestamp", "description": "When the risk was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds a risk by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
+      ]
+    },
+    {
+      "role": "risk_pathway",
+      "description": "One arm of a risk's bow-tie: a threat that leads to the top event, or a consequence that follows it.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "code", "type": "string", "description": "Stable human-readable handle such as RP-1, minted once and never edited.", "immutable": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "risk_id", "type": "string", "description": "The risk this arm belongs to, in the same draft.", "required": true},
+        {"name": "side", "type": "string", "description": "threat for what leads to the top event, consequence for what follows it.", "required": true},
+        {"name": "title", "type": "string", "description": "The threat or consequence in one line.", "required": true},
+        {"name": "scenario", "type": "text", "description": "How it plays out, in a sentence or two."},
+        {"name": "created_at", "type": "timestamp", "description": "When the pathway was written.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "code", "description": "Finds a pathway by the handle a person quotes.", "fields": ["code"]},
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "risk", "description": "Reads the arms of one risk, and backs its delete cascade.", "fields": ["risk_id"]}
+      ]
+    },
+    {
       "role": "workflow",
       "description": "A named sequence of work the organization performs, made of work items.",
       "fields": [

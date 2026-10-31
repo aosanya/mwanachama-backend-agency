@@ -43,6 +43,8 @@ var carriers = map[string]string{
 	"record":             "Record",
 	"record_row":         "RecordRow",
 	"measure":            "Measure",
+	"risk":               "Risk",
+	"risk_pathway":       "RiskPathway",
 	"scenario":           "Scenario",
 	"scenario_actor":     "ScenarioActor",
 	"scenario_input":     "ScenarioInput",

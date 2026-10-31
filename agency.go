@@ -62,6 +62,18 @@ type AgencyManager interface {
 	// deleted step removes its RoleAssignment rows, in the same transaction.
 	DeleteWorkflow(ctx context.Context, id string) error
 
+	CreateRisk(ctx context.Context, r models.Risk) (models.Risk, error)
+	GetRisk(ctx context.Context, id string) (models.Risk, error)
+	ListRisks(ctx context.Context, draftID string, filter RiskFilter) ([]models.Risk, error)
+	UpdateRisk(ctx context.Context, r models.Risk) (models.Risk, error)
+	DeleteRisk(ctx context.Context, id string) error
+
+	CreateRiskPathway(ctx context.Context, p models.RiskPathway) (models.RiskPathway, error)
+	GetRiskPathway(ctx context.Context, id string) (models.RiskPathway, error)
+	ListRiskPathways(ctx context.Context, draftID string, filter RiskPathwayFilter) ([]models.RiskPathway, error)
+	UpdateRiskPathway(ctx context.Context, p models.RiskPathway) (models.RiskPathway, error)
+	DeleteRiskPathway(ctx context.Context, id string) error
+
 	SetMeasure(ctx context.Context, m models.Measure) (models.Measure, error)
 	ListMeasures(ctx context.Context, draftID string, filter MeasureFilter) ([]models.Measure, error)
 

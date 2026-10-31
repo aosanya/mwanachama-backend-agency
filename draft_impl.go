@@ -242,6 +242,32 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		}
 	}
 
+	risks, err := list[models.Risk](m, scopeQuery(tx.Table(m.table(roleRisk)), sourceScope).Order("created_at"), roleRisk)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	riskIDs := make(map[string]string, len(risks))
+	for _, risk := range risks {
+		old := risk.ID
+		risk.ID, risk.DraftID, risk.CreatedAt, risk.LastUpdated = newID(), newDraftID, now, now
+		if err := m.copyRow(ctx, tx, roleRisk, risk); err != nil {
+			return err
+		}
+		riskIDs[old] = risk.ID
+	}
+
+	pathways, err := list[models.RiskPathway](m, scopeQuery(tx.Table(m.table(roleRiskPathway)), sourceScope).Order("created_at"), roleRiskPathway)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	for _, pathway := range pathways {
+		pathway.ID, pathway.DraftID, pathway.CreatedAt, pathway.LastUpdated = newID(), newDraftID, now, now
+		pathway.RiskID = remap(riskIDs, pathway.RiskID)
+		if err := m.copyRow(ctx, tx, roleRiskPathway, pathway); err != nil {
+			return err
+		}
+	}
+
 	steps, err := list[models.EventFlowStep](m, scopeQuery(tx.Table(m.table(roleEventFlowStep)), sourceScope), roleEventFlowStep)
 	if err != nil {
 		return fmt.Errorf("CreateDraft: %w", err)

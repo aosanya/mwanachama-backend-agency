@@ -27,6 +27,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkWorkItems,
 		s.checkStepLinks,
 		s.checkRecords,
+		s.checkRiskPathways,
 		s.checkEventFlowSteps,
 		s.checkAttachments,
 		s.checkModuleSettings,
@@ -363,6 +364,28 @@ func (s *issueScan) checkPermissions() error {
 			case permission.Locked:
 				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q declares permission %q, which is locked to owners", r.Code, r.Name, code)
 			}
+		}
+	}
+	return nil
+}
+
+func (s *issueScan) checkRiskPathways() error {
+	risks, err := list[models.Risk](s.m, s.scoped(roleRisk), roleRisk)
+	if err != nil {
+		return err
+	}
+	pathways, err := list[models.RiskPathway](s.m, s.scoped(roleRiskPathway), roleRiskPathway)
+	if err != nil {
+		return err
+	}
+	riskIDs := make(map[string]bool, len(risks))
+	for _, r := range risks {
+		riskIDs[r.ID] = true
+	}
+	for _, p := range pathways {
+		if !riskIDs[p.RiskID] {
+			s.add(models.IssueSeverityError, "risk_pathway", p.ID,
+				"Risk pathway %s refers to Risk %s, which does not exist", p.Code, QuoteIfUnsafe(p.RiskID))
 		}
 	}
 	return nil

@@ -188,6 +188,28 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		}))
 	}
 
+	risks, err := list[models.Risk](m, scoped(roleRisk), roleRisk)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	for _, r := range risks {
+		records = append(records, hashRecord("Risk", map[string]any{
+			"id": r.ID, "title": r.Title, "top_event": r.TopEvent, "hazard": r.Hazard,
+			"owner": r.Owner, "deleted": r.Deleted,
+		}))
+	}
+
+	pathways, err := list[models.RiskPathway](m, scoped(roleRiskPathway), roleRiskPathway)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	for _, r := range pathways {
+		records = append(records, hashRecord("RiskPathway", map[string]any{
+			"id": r.ID, "risk_id": r.RiskID, "side": string(r.Side), "title": r.Title,
+			"scenario": r.Scenario, "deleted": r.Deleted,
+		}))
+	}
+
 	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment), roleRoleAssignment)
 	if err != nil {
 		return "", fmt.Errorf("contentHashFor: %w", err)

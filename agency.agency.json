@@ -28,6 +28,18 @@
       "description": "One granular thing under a goal, and the unit a seat is answerable for."
     },
     {
+      "role": "risk",
+      "name": "risk",
+      "table": "risks",
+      "description": "Something that could go wrong for the organization, named by the event at its centre."
+    },
+    {
+      "role": "risk_pathway",
+      "name": "risk_pathway",
+      "table": "risk_pathways",
+      "description": "One way a risk comes about, or one consequence it leads to."
+    },
+    {
       "role": "workflow",
       "name": "workflow",
       "table": "workflows",

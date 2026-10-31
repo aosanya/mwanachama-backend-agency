@@ -20,6 +20,8 @@ type AgencyDocument struct {
 	Records            []DocumentRecord            `json:"records,omitempty"`
 	Measures           []DocumentMeasure           `json:"measures,omitempty"`
 	Scenarios          []DocumentScenario          `json:"scenarios,omitempty"`
+	Risks              []DocumentRisk              `json:"risks,omitempty"`
+	RiskPathways       []DocumentRiskPathway       `json:"risk_pathways,omitempty"`
 }
 
 type DocumentAgency struct {

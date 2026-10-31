@@ -124,6 +124,26 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		})
 	}
 
+	risks, err := list[models.Risk](m, scoped(roleRisk).Order("created_at"), roleRisk)
+	if err != nil {
+		return fail(err)
+	}
+	for _, r := range risks {
+		doc.Risks = append(doc.Risks, models.DocumentRisk{
+			ID: r.ID, Code: r.Code, Title: r.Title, TopEvent: r.TopEvent, Hazard: r.Hazard, Owner: r.Owner,
+		})
+	}
+
+	pathways, err := list[models.RiskPathway](m, scoped(roleRiskPathway).Order("created_at"), roleRiskPathway)
+	if err != nil {
+		return fail(err)
+	}
+	for _, p := range pathways {
+		doc.RiskPathways = append(doc.RiskPathways, models.DocumentRiskPathway{
+			ID: p.ID, Code: p.Code, RiskID: p.RiskID, Side: p.Side, Title: p.Title, Scenario: p.Scenario,
+		})
+	}
+
 	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment).Order("created_at"), roleRoleAssignment)
 	if err != nil {
 		return fail(err)
@@ -289,6 +309,32 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleMeasure, row); err != nil {
+			return fail(err)
+		}
+	}
+
+	riskIDs := make(map[string]string, len(doc.Risks))
+	for _, r := range doc.Risks {
+		row := models.Risk{
+			ID: newID(), Code: r.Code, DraftID: draftID, Title: r.Title, TopEvent: r.TopEvent,
+			Hazard: r.Hazard, Owner: r.Owner, CreatedAt: now, LastUpdated: now,
+		}
+		if err := m.copyRow(ctx, tx, roleRisk, row); err != nil {
+			return fail(err)
+		}
+		riskIDs[r.ID] = row.ID
+	}
+
+	for _, p := range doc.RiskPathways {
+		riskID, known := riskIDs[p.RiskID]
+		if !known {
+			continue
+		}
+		row := models.RiskPathway{
+			ID: newID(), Code: p.Code, DraftID: draftID, RiskID: riskID, Side: p.Side, Title: p.Title,
+			Scenario: p.Scenario, CreatedAt: now, LastUpdated: now,
+		}
+		if err := m.copyRow(ctx, tx, roleRiskPathway, row); err != nil {
 			return fail(err)
 		}
 	}
