@@ -143,3 +143,180 @@ func TestImportDocument_ImportedLibraryForks(t *testing.T) {
 		t.Fatalf("the imported library must fork")
 	}
 }
+
+func hazardousPathwayDocument() models.AgencyDocument {
+	return models.AgencyDocument{
+		Agency: models.DocumentAgency{Name: "Old", Enabled: true},
+		Hazards: []models.DocumentHazard{
+			{ID: "h1", Code: "H-1", Title: "Fire"},
+			{ID: "h2", Code: "H-2", Title: "Flood"},
+		},
+		Risks: []models.DocumentRisk{
+			{ID: "r1", Code: "RK-1", Title: "Barn fire", TopEvent: "Barn burns", HazardCode: "H-1"},
+			{ID: "r2", Code: "RK-2", Title: "River flood", TopEvent: "River rises", HazardCode: "H-2"},
+			{ID: "r3", Code: "RK-3", Title: "Second barn fire", TopEvent: "Barn burns again", HazardCode: "H-1"},
+			{ID: "r4", Code: "RK-4", Title: "Loose risk", TopEvent: "Something"},
+		},
+		RiskPathways: []models.DocumentRiskPathway{
+			{ID: "p1", Code: "RP-1", RiskID: "r1", Side: models.RiskSideConsequence, Title: "Produce spoils"},
+			{ID: "p2", Code: "RP-2", RiskID: "r2", Side: models.RiskSideConsequence, Title: "Produce spoils"},
+			{ID: "p3", Code: "RP-3", RiskID: "r3", Side: models.RiskSideConsequence, Title: "Produce spoils"},
+			{ID: "p4", Code: "RP-4", RiskID: "r4", Side: models.RiskSideConsequence, Title: "Stock lost"},
+		},
+		Controls: []models.DocumentControl{{ID: "c1", Code: "C-1", Text: "Cold storage"}, {ID: "c2", Code: "C-2", Text: "Insure stock"}},
+		ControlAttachments: []models.DocumentControlAttachment{
+			{ControlCode: "C-1", TargetType: "risk_pathway", TargetCode: "RP-1"},
+			{ControlCode: "C-1", TargetType: "risk_pathway", TargetCode: "RP-2"},
+			{ControlCode: "C-2", TargetType: "risk_pathway", TargetCode: "RP-4"},
+		},
+	}
+}
+
+func consequenceOf(t *testing.T, rows []map[string]any, hazard, title string) map[string]any {
+	t.Helper()
+	for _, r := range rows {
+		if r["hazard_code"] == hazard && r["title"] == title {
+			return r
+		}
+	}
+	t.Fatalf("no consequence %q under hazard %q in %+v", title, hazard, rows)
+	return nil
+}
+
+func TestImportDocument_PathwayConsequenceTakesTheHazardOfItsRisk(t *testing.T) {
+	mgr, db, s := newTestManagerDB(t)
+	f := libraryFixture{db: db, s: s}
+	doc := hazardousPathwayDocument()
+	doc.RiskPathways = doc.RiskPathways[:1]
+	doc.ControlAttachments = nil
+
+	out, err := mgr.ImportDocument(context.Background(), "old", doc)
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+	rows := f.rows(t, "consequence", out.Draft.ID)
+	if len(rows) != 1 || rows[0]["hazard_code"] != "H-1" {
+		t.Fatalf("consequence must take H-1 from its risk: %+v", rows)
+	}
+}
+
+func TestImportDocument_SharedPathwayTitleSplitsPerHazard(t *testing.T) {
+	ctx := context.Background()
+	mgr, db, s := newTestManagerDB(t)
+	f := libraryFixture{db: db, s: s}
+
+	out, err := mgr.ImportDocument(ctx, "old", hazardousPathwayDocument())
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+	draftID := out.Draft.ID
+	rows := f.rows(t, "consequence", draftID)
+	if len(rows) != 3 {
+		t.Fatalf("Produce spoils under H-1 and H-2 plus Stock lost: %+v", rows)
+	}
+	fire := consequenceOf(t, rows, "H-1", "Produce spoils")["code"]
+	flood := consequenceOf(t, rows, "H-2", "Produce spoils")["code"]
+	if fire == flood {
+		t.Fatalf("one consequence per hazard, got %v twice", fire)
+	}
+
+	linked := map[string]string{}
+	var fireLinks int
+	for _, l := range f.rows(t, "risk_consequence", draftID) {
+		linked[l["risk_code"].(string)] = l["consequence_code"].(string)
+		if l["consequence_code"] == fire {
+			fireLinks++
+		}
+	}
+	if linked["RK-1"] != fire || linked["RK-3"] != fire || linked["RK-2"] != flood || fireLinks != 2 {
+		t.Fatalf("each risk must link the consequence of its own hazard: %+v", linked)
+	}
+
+	controls := controlsByCode(t, mgr, draftID)
+	attached, err := mgr.ListControlAttachments(ctx, controls["C-1"].ID)
+	if err != nil {
+		t.Fatalf("ListControlAttachments: %v", err)
+	}
+	targets := map[string]bool{}
+	for _, a := range attached {
+		if a.TargetType != models.TargetTypeConsequence {
+			t.Fatalf("attachment must target a consequence: %+v", a)
+		}
+		targets[a.TargetCode] = true
+	}
+	if len(attached) != 2 || !targets[fire.(string)] || !targets[flood.(string)] {
+		t.Fatalf("C-1 must stand on both new consequences: %+v", attached)
+	}
+}
+
+func TestImportDocument_PathwayOfRiskWithoutHazardImportsWithoutOne(t *testing.T) {
+	ctx := context.Background()
+	mgr, db, s := newTestManagerDB(t)
+	f := libraryFixture{db: db, s: s}
+
+	out, err := mgr.ImportDocument(ctx, "old", hazardousPathwayDocument())
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+	stock := consequenceOf(t, f.rows(t, "consequence", out.Draft.ID), "", "Stock lost")
+	if hazards := f.rows(t, "hazard", out.Draft.ID); len(hazards) != 2 {
+		t.Fatalf("no hazard may be invented: %+v", hazards)
+	}
+	controls := controlsByCode(t, mgr, out.Draft.ID)
+	attached, err := mgr.ListControlAttachments(ctx, controls["C-2"].ID)
+	if err != nil {
+		t.Fatalf("ListControlAttachments: %v", err)
+	}
+	if len(attached) != 1 || attached[0].TargetCode != stock["code"] {
+		t.Fatalf("C-2 must follow the hazardless consequence: %+v", attached)
+	}
+}
+
+func TestImportDocument_LibraryConsequenceOfSameTitleAndHazardWinsOverPathway(t *testing.T) {
+	mgr, db, s := newTestManagerDB(t)
+	f := libraryFixture{db: db, s: s}
+	doc := hazardousPathwayDocument()
+	doc.RiskPathways = doc.RiskPathways[:2]
+	doc.ControlAttachments = nil
+	doc.Consequences = []models.DocumentConsequence{{ID: "q1", Code: "Q-9", Title: "produce spoils", HazardCode: "H-1"}}
+
+	out, err := mgr.ImportDocument(context.Background(), "old", doc)
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+	rows := f.rows(t, "consequence", out.Draft.ID)
+	if len(rows) != 2 {
+		t.Fatalf("Q-9 plus one new consequence for H-2: %+v", rows)
+	}
+	links := map[string]any{}
+	for _, l := range f.rows(t, "risk_consequence", out.Draft.ID) {
+		links[l["risk_code"].(string)] = l["consequence_code"]
+	}
+	if links["RK-1"] != "Q-9" || links["RK-2"] == "Q-9" || links["RK-2"] == nil {
+		t.Fatalf("the pathway only adds its link to Q-9: %+v", links)
+	}
+}
+
+func TestImportDocument_ConsequenceWithHazardCodeImportsAsWritten(t *testing.T) {
+	mgr, db, s := newTestManagerDB(t)
+	f := libraryFixture{db: db, s: s}
+	doc := hazardousPathwayDocument()
+	doc.RiskPathways, doc.ControlAttachments = nil, nil
+	doc.Consequences = []models.DocumentConsequence{
+		{ID: "q1", Code: "Q-1", Title: "Produce spoils", HazardCode: "H-1"},
+		{ID: "q2", Code: "Q-2", Title: "Produce spoils", HazardCode: "H-2"},
+	}
+	doc.RiskConsequences = []models.DocumentRiskConsequence{{RiskCode: "RK-1", ConsequenceCode: "Q-1"}}
+
+	out, err := mgr.ImportDocument(context.Background(), "new", doc)
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+	rows := f.rows(t, "consequence", out.Draft.ID)
+	if len(rows) != 2 {
+		t.Fatalf("both consequences, one per hazard: %+v", rows)
+	}
+	if consequenceOf(t, rows, "H-1", "Produce spoils")["code"] != "Q-1" || consequenceOf(t, rows, "H-2", "Produce spoils")["code"] != "Q-2" {
+		t.Fatalf("hazard_code must survive as written: %+v", rows)
+	}
+}
