@@ -194,7 +194,7 @@
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
         {"name": "role", "description": "Answers which steps one seat is labelled on, and backs its delete cascade.", "fields": ["role_id"]},
         {"name": "work_item", "description": "Reads the labels of one step, and backs its delete cascade.", "fields": ["work_item_id"]},
-        {"name": "role_label_unique", "description": "Refuses a second copy of one label for one seat on one step, so two writers racing cannot both add it.", "fields": ["work_item_id", "role_id", "label"], "unique": true}
+        {"name": "role_label_unique", "description": "Refuses a second copy of one label for one seat on one step, so two writers racing cannot both add it. Rows kept from before AGD-009 name no step and are left out.", "fields": ["work_item_id", "role_id", "label"], "unique": true, "where": [{"field": "work_item_id", "op": "not_empty"}]}
       ]
     },
     {
