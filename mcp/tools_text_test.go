@@ -9,17 +9,17 @@ import (
 
 func TestARoleAssignmentLineNamesBothEndsOfTheLink(t *testing.T) {
 	got := describe([]models.RoleAssignment{{
-		ID:          "assignment-1",
-		DraftID:     "draft-1",
-		RoleID:      "role-7",
-		ObjectiveID: "objective-3",
-		Label:       models.RACILabelAccountable,
-		CreatedAt:   "2026-09-25T10:00:00Z",
+		ID:         "assignment-1",
+		DraftID:    "draft-1",
+		RoleID:     "role-7",
+		WorkItemID: "item-3",
+		Label:      models.RACILabelAccountable,
+		CreatedAt:  "2026-09-25T10:00:00Z",
 	}})
 
-	for _, want := range []string{"accountable", "role id: role-7", "objective id: objective-3", "id: assignment-1"} {
+	for _, want := range []string{"accountable", "role id: role-7", "work item id: item-3", "id: assignment-1"} {
 		if !strings.Contains(got, want) {
-			t.Errorf("a RACI line without %q cannot be correlated to a role or an objective:\n%s", want, got)
+			t.Errorf("a RACI line without %q cannot be correlated to a role or a step:\n%s", want, got)
 		}
 	}
 	if strings.Contains(got, "draft-1") {
@@ -30,19 +30,40 @@ func TestARoleAssignmentLineNamesBothEndsOfTheLink(t *testing.T) {
 	}
 }
 
-func TestAWorkItemLineNamesItsWorkflowAndObjective(t *testing.T) {
+func TestAWorkItemLineNamesItsWorkflowAndNoObjective(t *testing.T) {
 	got := describe([]models.WorkItem{{
-		ID:          "item-1",
-		Code:        "WI-4",
-		Title:       "Draft the release notes",
-		WorkflowID:  "workflow-2",
-		ObjectiveID: "objective-3",
+		ID:         "item-1",
+		Code:       "WI-4",
+		Title:      "Draft the release notes",
+		WorkflowID: "workflow-2",
 	}})
 
-	for _, want := range []string{`WI-4 "Draft the release notes"`, "workflow id: workflow-2", "objective id: objective-3"} {
+	for _, want := range []string{`WI-4 "Draft the release notes"`, "workflow id: workflow-2"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q:\n%s", want, got)
 		}
+	}
+	if strings.Contains(got, "objective") {
+		t.Errorf("a step serves no objective of its own:\n%s", got)
+	}
+}
+
+func TestAWorkflowObjectiveLineNamesBothEndsOfTheLink(t *testing.T) {
+	got := describe([]models.WorkflowObjective{{
+		ID:          "link-1",
+		DraftID:     "draft-1",
+		WorkflowID:  "workflow-2",
+		ObjectiveID: "objective-3",
+		CreatedAt:   "2026-09-25T10:00:00Z",
+	}})
+
+	for _, want := range []string{"workflow id: workflow-2", "objective id: objective-3", "id: link-1"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("a workflow objective line without %q cannot be correlated to its workflow or objective:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "draft-1") || strings.Contains(got, "2026-09-25") {
+		t.Errorf("a draft or a timestamp says nothing about which link this is:\n%s", got)
 	}
 }
 

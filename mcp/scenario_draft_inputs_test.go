@@ -30,9 +30,10 @@ func TestScenarioTools_ACreateCarriesActorsInputsAndThensWithoutIdsOfARowThatDoe
 	goal, _ := mgr.CreateGoal(ctx, models.Goal{DraftID: draft.ID, Title: "Sell"})
 	objective, _ := mgr.CreateObjective(ctx, models.Objective{DraftID: draft.ID, GoalID: goal.ID, Title: "Sell"})
 	flow, _ := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draft.ID, Name: "Buy now"})
+	_, _ = mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draft.ID, WorkflowID: flow.ID, ObjectiveID: objective.ID})
 	farmer, _ := mgr.CreateRole(ctx, models.Role{DraftID: draft.ID, Name: "Farmer"})
 	ask, err := mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: draft.ID, WorkflowID: flow.ID, ObjectiveID: objective.ID, Title: "Ask", Kind: models.StepKindFillForm,
+		DraftID: draft.ID, WorkflowID: flow.ID, Title: "Ask", Kind: models.StepKindFillForm,
 		RoleID: farmer.ID, FormName: "Buy now form",
 		Questions: []models.StepQuestion{{Prompt: "Enter the product", AnswerType: models.AnswerFreeText, Required: true}},
 	})
@@ -83,9 +84,10 @@ func TestScenarioTools_AnUpdateCarriesActorsAndInputsWithoutTheScenarioAndDraftI
 	goal, _ := mgr.CreateGoal(ctx, models.Goal{DraftID: draft.ID, Title: "Sell"})
 	objective, _ := mgr.CreateObjective(ctx, models.Objective{DraftID: draft.ID, GoalID: goal.ID, Title: "Sell"})
 	flow, _ := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draft.ID, Name: "Buy now"})
+	_, _ = mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draft.ID, WorkflowID: flow.ID, ObjectiveID: objective.ID})
 	farmer, _ := mgr.CreateRole(ctx, models.Role{DraftID: draft.ID, Name: "Farmer"})
 	ask, _ := mgr.CreateWorkItem(ctx, models.WorkItem{
-		DraftID: draft.ID, WorkflowID: flow.ID, ObjectiveID: objective.ID, Title: "Ask", Kind: models.StepKindFillForm,
+		DraftID: draft.ID, WorkflowID: flow.ID, Title: "Ask", Kind: models.StepKindFillForm,
 		RoleID: farmer.ID, FormName: "Buy now form",
 		Questions: []models.StepQuestion{{Prompt: "Enter the product", AnswerType: models.AnswerFreeText, Required: true}},
 	})

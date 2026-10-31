@@ -38,7 +38,7 @@ func TestAG68_PublishRefusalForgesLinesFromAStoredReference(t *testing.T) {
 		Name: "agency_create_work_item",
 		Arguments: map[string]any{
 			"instance_id": "any", "draft_id": draft.ID, "title": "WI",
-			"workflow_id": workflow.ID, "objective_id": forged,
+			"workflow_id": workflow.ID, "kind": "run_workflow", "run_workflow_id": forged,
 		},
 	})
 	if err != nil {
@@ -69,6 +69,6 @@ func TestAG68_PublishRefusalForgesLinesFromAStoredReference(t *testing.T) {
 		t.Fatalf("precondition: the refusal should name the dangling Work Item; got %q", text)
 	}
 	if lines := strings.Split(text, "\n"); len(lines) != 1 {
-		t.Errorf("AG68 (P2): a publish refusal should reach the model as one line, the caller-written objective reference quoted the way agency_list_issues quotes it; got %d lines, the writer's text forging a work item and an instruction in the publisher's context:\n%s", len(lines), text)
+		t.Errorf("AG68 (P2): a publish refusal should reach the model as one line, the caller-written workflow reference quoted the way agency_list_issues quotes it; got %d lines, the writer's text forging a work item and an instruction in the publisher's context:\n%s", len(lines), text)
 	}
 }

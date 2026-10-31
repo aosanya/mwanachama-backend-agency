@@ -38,7 +38,7 @@ func TestAG59_ReferenceFieldForgesLinesInAnotherCallersToolText(t *testing.T) {
 		Name: "agency_create_work_item",
 		Arguments: map[string]any{
 			"instance_id": "any", "draft_id": draft.ID, "title": "WI",
-			"workflow_id": workflow.ID, "objective_id": forged,
+			"workflow_id": workflow.ID, "kind": "run_workflow", "run_workflow_id": forged,
 		},
 	})
 	if err != nil {
@@ -63,6 +63,6 @@ func TestAG59_ReferenceFieldForgesLinesInAnotherCallersToolText(t *testing.T) {
 		}
 	}
 	if lines := strings.Split(listing, "\n"); len(lines) != 1 {
-		t.Errorf("AG59 (P2): one stored work item should list as one line, its caller-set objective_id quoted; got %d lines, the writer's text forging a work item and an instruction in the reader's context:\n%s", len(lines), listing)
+		t.Errorf("AG59 (P2): one stored work item should list as one line, its caller-set run_workflow_id quoted; got %d lines, the writer's text forging a work item and an instruction in the reader's context:\n%s", len(lines), listing)
 	}
 }

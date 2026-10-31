@@ -33,15 +33,19 @@ func TestAG71_PublicationChannelForgesLinesInEveryPublicationListing(t *testing.
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, ObjectiveID: objective.ID, Label: models.RACILabelAccountable, DraftID: draft.ID}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
 	workflow, err := mgr.CreateWorkflow(ctx, models.Workflow{Name: "W", DraftID: draft.ID})
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
-	if _, err := mgr.CreateWorkItem(ctx, models.WorkItem{Title: "WI", WorkflowID: workflow.ID, ObjectiveID: objective.ID, DraftID: draft.ID}); err != nil {
+	if _, err := mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{WorkflowID: workflow.ID, ObjectiveID: objective.ID, DraftID: draft.ID}); err != nil {
+		t.Fatalf("CreateWorkflowObjective: %v", err)
+	}
+	workItem, err := mgr.CreateWorkItem(ctx, models.WorkItem{Title: "WI", WorkflowID: workflow.ID, DraftID: draft.ID})
+	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
+	}
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, WorkItemID: workItem.ID, Label: models.RACILabelAccountable, DraftID: draft.ID}); err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
 	server := newTestServer(mgr)

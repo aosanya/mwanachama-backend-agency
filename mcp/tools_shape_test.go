@@ -38,9 +38,6 @@ type toolShape struct {
 	Required    []string       `json:"required"`
 }
 
-// The names in here are published: the Studio's chat wiring and
-// wakala-api's own tests call them by name, so a rename is a breaking
-// change and is declared rather than derived.
 func TestPublishedToolNamesSurvive(t *testing.T) {
 	got := map[string]bool{}
 	for _, tool := range declaredTools(t) {
@@ -48,7 +45,9 @@ func TestPublishedToolNamesSurvive(t *testing.T) {
 	}
 	for _, name := range []string{
 		"agency_create_goal", "agency_list_goals", "agency_update_goal", "agency_delete_goal",
-		"agency_set_raci", "agency_list_role_assignments_for_objective",
+		"agency_set_raci", "agency_list_role_assignments_for_work_item",
+		"agency_link_workflow_objective", "agency_list_workflow_objectives",
+		"agency_get_workflow_objective", "agency_delete_workflow_objective",
 		"agency_set_module_enabled", "agency_set_module_mounts",
 		"agency_publish_agency", "agency_set_publication_channel",
 		"agency_lookup_event_flow_step", "agency_list_issues",
@@ -61,8 +60,6 @@ func TestPublishedToolNamesSurvive(t *testing.T) {
 	}
 }
 
-// Every tool takes the instance it operates on, because one mount serves
-// many Agencies and the manager is resolved per call.
 func TestEveryToolTakesAnInstance(t *testing.T) {
 	for _, tool := range declaredTools(t) {
 		if _, ok := tool.Properties[instanceArg]; !ok {
@@ -80,8 +77,6 @@ func TestEveryToolTakesAnInstance(t *testing.T) {
 	}
 }
 
-// A value the store owns is not a value a model may set: offering it is an
-// invitation to write something the manager will overwrite.
 func TestStoreOwnedValuesAreNotArguments(t *testing.T) {
 	for _, tool := range declaredTools(t) {
 		for _, owned := range []string{"id", "code", "created_at", "last_updated", "deleted"} {
@@ -95,11 +90,8 @@ func TestStoreOwnedValuesAreNotArguments(t *testing.T) {
 	}
 }
 
-// writes reports whether a tool asks the store to change something. A read
-// offers a store-owned value as a filter, which is not the same as offering
-// to write it.
 func writes(name string) bool {
-	for _, prefix := range []string{"agency_create_", "agency_update_", "agency_set_", "agency_attach_"} {
+	for _, prefix := range []string{"agency_create_", "agency_update_", "agency_set_", "agency_attach_", "agency_link_"} {
 		if strings.HasPrefix(name, prefix) {
 			return true
 		}
@@ -107,7 +99,6 @@ func writes(name string) bool {
 	return false
 }
 
-// Prose reaches a model as the whole of what it knows about a call.
 func TestEveryToolIsDescribed(t *testing.T) {
 	for _, tool := range declaredTools(t) {
 		if len(strings.Fields(tool.Description)) < 5 {
@@ -137,4 +128,90 @@ func TestSetMeasureOffersNoCurrentReading(t *testing.T) {
 		return
 	}
 	t.Fatal("agency_set_measure is not declared")
+}
+
+func toolNamed(t *testing.T, name string) toolShape {
+	t.Helper()
+	for _, tool := range declaredTools(t) {
+		if tool.Name == name {
+			return tool
+		}
+	}
+	t.Fatalf("%s is not declared", name)
+	return toolShape{}
+}
+
+func requires(tool toolShape, arg string) bool {
+	for _, r := range tool.Required {
+		if r == arg {
+			return true
+		}
+	}
+	return false
+}
+
+func TestTheObjectiveListOfAStepIsGone(t *testing.T) {
+	for _, tool := range declaredTools(t) {
+		if tool.Name == "agency_list_role_assignments_for_objective" {
+			t.Errorf("%s is still published, but a seat is on a step and no longer on an objective", tool.Name)
+		}
+	}
+}
+
+func TestSetRaciNamesAStepAndNoObjective(t *testing.T) {
+	tool := toolNamed(t, "agency_set_raci")
+	for _, want := range []string{"work_item_id", "role_id", "label", "draft_id"} {
+		if _, ok := tool.Properties[want]; !ok {
+			t.Errorf("agency_set_raci offers no %s", want)
+		}
+	}
+	if _, offered := tool.Properties["objective_id"]; offered {
+		t.Errorf("agency_set_raci still offers objective_id")
+	}
+}
+
+func TestStepToolsOfferNoObjective(t *testing.T) {
+	for _, name := range []string{"agency_create_work_item", "agency_update_work_item"} {
+		if _, offered := toolNamed(t, name).Properties["objective_id"]; offered {
+			t.Errorf("%s still offers objective_id", name)
+		}
+	}
+}
+
+func TestListRoleAssignmentsForWorkItemTakesTheStep(t *testing.T) {
+	tool := toolNamed(t, "agency_list_role_assignments_for_work_item")
+	if _, ok := tool.Properties["work_item_id"]; !ok {
+		t.Errorf("agency_list_role_assignments_for_work_item offers no work_item_id")
+	}
+	if !requires(tool, "work_item_id") {
+		t.Errorf("agency_list_role_assignments_for_work_item does not require work_item_id")
+	}
+	if _, ok := tool.Properties["draft_id"]; !ok {
+		t.Errorf("agency_list_role_assignments_for_work_item offers no draft_id")
+	}
+}
+
+func TestWorkflowObjectiveToolsTakeBothEnds(t *testing.T) {
+	link := toolNamed(t, "agency_link_workflow_objective")
+	for _, want := range []string{"workflow_id", "objective_id", "draft_id"} {
+		if _, ok := link.Properties[want]; !ok {
+			t.Errorf("agency_link_workflow_objective offers no %s", want)
+		}
+	}
+	for _, want := range []string{"workflow_id", "objective_id"} {
+		if !requires(link, want) {
+			t.Errorf("agency_link_workflow_objective does not require %s", want)
+		}
+	}
+	list := toolNamed(t, "agency_list_workflow_objectives")
+	for _, want := range []string{"workflow_id", "objective_id", "draft_id"} {
+		if _, ok := list.Properties[want]; !ok {
+			t.Errorf("agency_list_workflow_objectives offers no %s", want)
+		}
+	}
+	for _, name := range []string{"agency_get_workflow_objective", "agency_delete_workflow_objective"} {
+		if !requires(toolNamed(t, name), "workflow_objective_id") {
+			t.Errorf("%s does not require workflow_objective_id", name)
+		}
+	}
 }

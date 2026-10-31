@@ -39,10 +39,10 @@ func TestAG60_DesignFromSpecRefusesADuplicateKeyNamingIt(t *testing.T) {
 		{"work_items", "work_items", "wi1", map[string]any{
 			"goals":      []map[string]any{{"key": "g1", "title": "Goal"}},
 			"objectives": []map[string]any{{"key": "o1", "goal_key": "g1", "title": "Objective"}},
-			"workflows":  []map[string]any{{"key": "w1", "name": "Flow"}},
+			"workflows":  []map[string]any{{"key": "w1", "name": "Flow", "objective_keys": []string{"o1"}}},
 			"work_items": []map[string]any{
-				{"key": "wi1", "workflow_key": "w1", "objective_key": "o1", "title": "First"},
-				{"key": "wi1", "workflow_key": "w1", "objective_key": "o1", "title": "Second"},
+				{"key": "wi1", "workflow_key": "w1", "title": "First"},
+				{"key": "wi1", "workflow_key": "w1", "title": "Second"},
 			},
 		}},
 	}

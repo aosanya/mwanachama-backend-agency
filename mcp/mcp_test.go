@@ -23,11 +23,6 @@ func ctxT(t *testing.T) context.Context {
 	return ctx
 }
 
-// newTestServer registers every tool onto a fresh mcp.Server, resolving
-// every id to the same single manager — this package has no notion of
-// multiple Agencies itself (that's a mounting host's own concern, e.g.
-// mwanachama-wakala-api's Registry), so a single-manager resolver is
-// enough to prove the tools work.
 func newTestServer(mgr mwanachamaagency.AgencyManager) *gosdkmcp.Server {
 	server := gosdkmcp.NewServer(&gosdkmcp.Implementation{Name: "test", Version: "0.0.0"}, nil)
 	agencymcp.RegisterTools(server, func(ctx context.Context, id string) (mwanachamaagency.AgencyManager, error) {
@@ -151,8 +146,6 @@ func TestDesignFromSpec(t *testing.T) {
 
 	cs := mcpConnect(t, srv.URL)
 
-	// The spec's own "agency" section — creates it since none exists yet.
-	// This step alone needs no draft_id: CreateAgency isn't Draft-scoped.
 	result, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name: "agency_design_from_spec",
 		Arguments: map[string]any{
@@ -171,8 +164,6 @@ func TestDesignFromSpec(t *testing.T) {
 		t.Fatalf("agency_design_from_spec structured content = %+v", result.StructuredContent)
 	}
 
-	// Everything else — Goal/Objective — belongs to a Draft (AGD-006), so
-	// that needs one forked first.
 	result, err = cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name:      "agency_create_draft",
 		Arguments: map[string]any{"instance_id": "any", "description": "seed"},
@@ -211,12 +202,7 @@ func TestDesignFromSpec(t *testing.T) {
 	}
 }
 
-// TestDesignFromSpec_RaciAgainstExistingObjective covers the raci
-// section's escape hatch from the key-only rule: a new Role, RACI'd
-// against an Objective that already existed before this call (referenced
-// by its real id, not a spec key) — the one-call replacement for the
-// separate agency_create_role + agency_set_raci round trip.
-func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
+func TestDesignFromSpec_RaciAgainstExistingWorkItem(t *testing.T) {
 	mgr := newTestManager(t)
 	server := newTestServer(mgr)
 	mux := http.NewServeMux()
@@ -245,6 +231,17 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
+	workflow, err := mgr.CreateWorkflow(ctxT(t), models.Workflow{DraftID: draft.ID, Name: "Release"})
+	if err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	if _, err := mgr.CreateWorkflowObjective(ctxT(t), models.WorkflowObjective{DraftID: draft.ID, WorkflowID: workflow.ID, ObjectiveID: objective.ID}); err != nil {
+		t.Fatalf("CreateWorkflowObjective: %v", err)
+	}
+	workItem, err := mgr.CreateWorkItem(ctxT(t), models.WorkItem{DraftID: draft.ID, WorkflowID: workflow.ID, Title: "Cut the release"})
+	if err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
+	}
 
 	result, err := cs.CallTool(ctxT(t), &gosdkmcp.CallToolParams{
 		Name: "agency_design_from_spec",
@@ -252,7 +249,7 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 			"instance_id": "any",
 			"draft_id":    draft.ID,
 			"roles":       []map[string]any{{"key": "r1", "name": "wire-check-role"}},
-			"raci":        []map[string]any{{"role_key": "r1", "objective_id": objective.ID, "label": "informed"}},
+			"raci":        []map[string]any{{"role_key": "r1", "work_item_id": workItem.ID, "label": "informed"}},
 		},
 	})
 	if err != nil {
@@ -270,12 +267,12 @@ func TestDesignFromSpec_RaciAgainstExistingObjective(t *testing.T) {
 		t.Fatalf("agency_design_from_spec role_assignments = %+v", got["role_assignments"])
 	}
 
-	list, err := mgr.ListRoleAssignmentsForObjective(ctxT(t), objective.ID, draft.ID, mwanachamaagency.RoleAssignmentFilter{})
+	list, err := mgr.ListRoleAssignmentsForWorkItem(ctxT(t), workItem.ID, draft.ID, mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
-		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
+		t.Fatalf("ListRoleAssignmentsForWorkItem: %v", err)
 	}
-	if len(list) != 1 || list[0].Label != models.RACILabelInformed {
-		t.Fatalf("ListRoleAssignmentsForObjective = %+v", list)
+	if len(list) != 1 || list[0].Label != models.RACILabelInformed || list[0].WorkItemID != workItem.ID {
+		t.Fatalf("ListRoleAssignmentsForWorkItem = %+v", list)
 	}
 }
 
