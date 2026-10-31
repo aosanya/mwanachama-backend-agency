@@ -13,7 +13,7 @@ func TestScan_ABowtieNamesItsGapsAsWarnings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRisk: %v", err)
 	}
-	got := messagesFor(t, w.scenarioWorld, "risk")
+	got := warningsFor(t, w, "risk")
 	for _, want := range []string{"names no hazard", "has no owner", "has no threat", "has no consequence"} {
 		if !anyContains(got, want) {
 			t.Fatalf("risk %s issues = %v, want %q", risk.Code, got, want)
@@ -39,11 +39,23 @@ func TestScan_ACompleteBowtieRaisesNoBowtieWarning(t *testing.T) {
 	if _, err := w.mgr.CreateRiskConsequence(context.Background(), models.RiskConsequence{DraftID: w.draftID, RiskCode: risk.Code, ConsequenceCode: consequence.Code}); err != nil {
 		t.Fatalf("CreateRiskConsequence: %v", err)
 	}
-	if got := messagesFor(t, w.scenarioWorld, "risk"); len(got) != 0 {
+	if got := warningsFor(t, w, "risk"); len(got) != 0 {
 		t.Fatalf("risk issues = %v, want none", got)
 	}
-	got := messagesFor(t, w.scenarioWorld, "control_gap")
+	got := warningsFor(t, w, "control_gap")
 	if len(got) != 2 || !anyContains(got, "threat "+threat.Code) || !anyContains(got, "consequence "+consequence.Code) {
 		t.Fatalf("control gaps = %v, want the threat and the consequence", got)
 	}
+}
+
+func warningsFor(t *testing.T, w hazardScanWorld, entity string) []string {
+	t.Helper()
+	var out []string
+	for _, issue := range issuesFor(t, w.mgr, context.Background(), w.draftID, entity) {
+		if issue.Severity != models.IssueSeverityWarning {
+			t.Fatalf("issue %+v is not a warning", issue)
+		}
+		out = append(out, issue.Message)
+	}
+	return out
 }
