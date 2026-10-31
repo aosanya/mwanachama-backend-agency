@@ -32,7 +32,7 @@ type ReviewFindingInput struct {
 }
 
 var ReviewAreaOrder = []ReviewAreaName{
-	ReviewAreaGoals, ReviewAreaObjectives, ReviewAreaRolesAgents,
+	ReviewAreaProfile, ReviewAreaGoals, ReviewAreaObjectives, ReviewAreaRolesAgents,
 	ReviewAreaWorkflows, ReviewAreaRisks, ReviewAreaTests,
 }
 

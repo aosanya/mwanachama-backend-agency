@@ -521,7 +521,7 @@
       "fields": [
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "review_id", "type": "string", "description": "The review this part belongs to.", "required": true},
-        {"name": "area", "type": "enum", "description": "The part of the draft the reviewer reads.", "required": true, "values": ["goals", "objectives", "roles_agents", "workflows", "risks", "tests"]},
+        {"name": "area", "type": "enum", "description": "The part of the draft the reviewer reads.", "required": true, "values": ["profile", "goals", "objectives", "roles_agents", "workflows", "risks", "tests"]},
         {"name": "status", "type": "enum", "description": "Whether the reviewer is still reading, has finished, or could not finish.", "default": "reading", "values": ["reading", "done", "failed"]},
         {"name": "failure_reason", "type": "text", "description": "The sentence shown on a Failed tab."},
         {"name": "summary", "type": "text", "description": "The two sentences at the top of the tab."},

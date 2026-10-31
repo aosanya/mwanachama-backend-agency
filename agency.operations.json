@@ -2527,7 +2527,7 @@
           "from": "query",
           "as": "area",
           "required": true,
-          "description": "The part: goals, objectives, roles_agents, workflows, risks or tests."
+          "description": "The part: profile, goals, objectives, roles_agents, workflows, risks or tests."
         }
       ],
       "returns": [
@@ -2553,7 +2553,7 @@
         {
           "from": "path",
           "as": "area",
-          "description": "The part: goals, objectives, roles_agents, workflows, risks or tests."
+          "description": "The part: profile, goals, objectives, roles_agents, workflows, risks or tests."
         },
         {
           "from": "body",

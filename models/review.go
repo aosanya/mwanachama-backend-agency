@@ -11,6 +11,7 @@ const (
 type ReviewAreaName string
 
 const (
+	ReviewAreaProfile     ReviewAreaName = "profile"
 	ReviewAreaGoals       ReviewAreaName = "goals"
 	ReviewAreaObjectives  ReviewAreaName = "objectives"
 	ReviewAreaRolesAgents ReviewAreaName = "roles_agents"

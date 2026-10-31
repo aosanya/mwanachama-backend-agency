@@ -135,7 +135,7 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 			string(models.ReviewRunning), string(models.ReviewDone), string(models.ReviewFailed),
 		},
 		"review_area.area": {
-			string(models.ReviewAreaGoals), string(models.ReviewAreaObjectives), string(models.ReviewAreaRolesAgents),
+			string(models.ReviewAreaProfile), string(models.ReviewAreaGoals), string(models.ReviewAreaObjectives), string(models.ReviewAreaRolesAgents),
 			string(models.ReviewAreaWorkflows), string(models.ReviewAreaRisks), string(models.ReviewAreaTests),
 		},
 		"review_area.status": {

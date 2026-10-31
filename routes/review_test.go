@@ -28,7 +28,7 @@ func TestReviewRoutes_StartRecordAndReadOverHTTP(t *testing.T) {
 			Area string `json:"area"`
 		} `json:"areas"`
 	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &started); err != nil || started.Review.ID == "" || len(started.Areas) != 6 {
+	if err := json.Unmarshal(rec.Body.Bytes(), &started); err != nil || started.Review.ID == "" || len(started.Areas) != 7 {
 		t.Fatalf("started = %s, %v", rec.Body.String(), err)
 	}
 

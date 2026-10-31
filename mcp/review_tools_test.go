@@ -144,13 +144,13 @@ func TestReviewTools_StartWritesOneReadingPartPerReviewerAndRefusesASecondRun(t 
 		t.Fatalf("review = %+v", review)
 	}
 	areas := areasOf(started)
-	for _, name := range []string{"goals", "objectives", "roles_agents", "workflows", "risks", "tests"} {
+	for _, name := range []string{"profile", "goals", "objectives", "roles_agents", "workflows", "risks", "tests"} {
 		if areas[name] == nil || areas[name]["status"] != "reading" {
 			t.Fatalf("area %s = %+v, want a reading part", name, areas[name])
 		}
 	}
-	if len(areas) != 6 {
-		t.Fatalf("areas = %d, want 6", len(areas))
+	if len(areas) != 7 {
+		t.Fatalf("areas = %d, want 7", len(areas))
 	}
 
 	_, text, failed := d.call("agency_start_review", map[string]any{"draft_id": d.draftID})
@@ -178,14 +178,14 @@ func TestReviewTools_RecordingDoneAndFailedPartsFinishesTheReviewAndSumsTokens(t
 	d := newReviewDesk(t)
 	id := reviewOf(d.start())["id"].(string)
 
-	for i, area := range []string{"goals", "objectives", "roles_agents", "workflows", "risks"} {
+	for i, area := range []string{"profile", "goals", "objectives", "roles_agents", "workflows", "risks"} {
 		out := d.record(id, area, "done", 100)
 		if out["review_status"] != "running" {
 			t.Fatalf("after part %d review_status = %v, want running", i+1, out["review_status"])
 		}
 	}
 	mid := d.ok("agency_get_review", map[string]any{"review_id": id})
-	if reviewOf(mid)["finished_at"] != "" || reviewOf(mid)["tokens"].(float64) != 500 {
+	if reviewOf(mid)["finished_at"] != "" || reviewOf(mid)["tokens"].(float64) != 600 {
 		t.Fatalf("mid-run review = %+v", reviewOf(mid))
 	}
 
@@ -200,8 +200,8 @@ func TestReviewTools_RecordingDoneAndFailedPartsFinishesTheReviewAndSumsTokens(t
 
 	done := d.ok("agency_get_review", map[string]any{"draft_id": d.draftID})
 	review := reviewOf(done)
-	if review["status"] != "done" || review["finished_at"] == "" || review["tokens"].(float64) != 507 {
-		t.Fatalf("finished review = %+v, want done with finished_at and 507 tokens", review)
+	if review["status"] != "done" || review["finished_at"] == "" || review["tokens"].(float64) != 607 {
+		t.Fatalf("finished review = %+v, want done with finished_at and 607 tokens", review)
 	}
 	if areasOf(done)["goals"]["summary"] != "Two sentences. Here." {
 		t.Fatalf("goals area = %+v", areasOf(done)["goals"])
@@ -218,7 +218,7 @@ func TestReviewTools_RecordRefusesWhatCannotBeRecorded(t *testing.T) {
 
 	cases := map[string]map[string]any{
 		"unknown review":    {"review_id": "nope", "area": "goals", "status": "done"},
-		"unknown part":      {"review_id": id, "area": "profile", "status": "done"},
+		"unknown part":      {"review_id": id, "area": "budget", "status": "done"},
 		"status reading":    {"review_id": id, "area": "goals", "status": "reading"},
 		"negative tokens":   {"review_id": id, "area": "goals", "status": "done", "tokens": -1},
 		"untitled finding":  {"review_id": id, "area": "goals", "status": "done", "findings": []any{map[string]any{"detail": "x"}}},
@@ -412,7 +412,7 @@ func TestReviewTools_ReviewInputHoldsTheEarlierFindingsOfThatPartOnly(t *testing
 	if commented != 1 {
 		t.Fatalf("commented findings = %d, want 1", commented)
 	}
-	if _, _, failed := d.call("agency_review_input", map[string]any{"review_id": second, "area": "profile"}); !failed {
+	if _, _, failed := d.call("agency_review_input", map[string]any{"review_id": second, "area": "budget"}); !failed {
 		t.Fatal("an unknown part was accepted")
 	}
 	if _, _, failed := d.call("agency_review_input", map[string]any{"review_id": "nope", "area": "goals"}); !failed {

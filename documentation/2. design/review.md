@@ -52,4 +52,4 @@ The area's tokens are added to the review. When no area is left `reading` the re
 
 ## Order
 
-Areas are returned in the order goals, objectives, roles_agents, workflows, risks, tests. Findings are returned by title, then id, because a finding stores no position. Comments are returned oldest first.
+Areas are returned in the order profile, goals, objectives, roles_agents, workflows, risks, tests. Findings are returned by title, then id, because a finding stores no position. Comments are returned oldest first.
