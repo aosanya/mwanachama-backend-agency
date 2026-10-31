@@ -1,8 +1,10 @@
 package mcp_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	gosdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -26,6 +28,13 @@ func TestListIssues_ViaMCP(t *testing.T) {
 	}
 	if _, err := mgr.CreateObjective(ctx, models.Objective{DraftID: d.ID, GoalID: g.ID, Title: "Grow adoption"}); err != nil {
 		t.Fatalf("CreateObjective: %v", err)
+	}
+	flow, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: d.ID, Name: "Onboard"})
+	if err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	if _, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: d.ID, WorkflowID: flow.ID, Title: "Welcome"}); err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
 	}
 
 	server := newTestServer(mgr)
@@ -53,11 +62,12 @@ func TestListIssues_ViaMCP(t *testing.T) {
 	if !ok || len(items) != 1 {
 		t.Fatalf("expected exactly 1 issue, got %+v", sc["items"])
 	}
+	issue, _ := items[0].(map[string]any)
+	if issue["entity_type"] != "workflow" || !strings.Contains(fmt.Sprint(issue["message"]), "has no Objective") {
+		t.Fatalf("the one issue should be the workflow that serves no objective, got %+v", issue)
+	}
 }
 
-// TestListIssues_ViaMCP_OmittedDraftIDIsError asserts draft_id is genuinely
-// required now (AGD-006 — there is no live scope left to default into):
-// omitting it fails cleanly rather than silently scanning nothing.
 func TestListIssues_ViaMCP_OmittedDraftIDIsError(t *testing.T) {
 	mgr := newTestManager(t)
 	server := newTestServer(mgr)

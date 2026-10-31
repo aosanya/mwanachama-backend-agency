@@ -74,8 +74,9 @@ func TestImportDocument_AFillFormStepNeedsFormsCatalogAndGit(t *testing.T) {
 	doc := formsOnlyDocument(false)
 	doc.Workflows = []models.DocumentWorkflow{{ID: "w1", Code: "W-1", Name: "Ask"}}
 	doc.Roles = []models.DocumentRole{{ID: "r1", Code: "R-1", Name: "Resident"}}
+	doc.WorkflowObjectives = []models.DocumentWorkflowObjective{{ID: "wo1", WorkflowID: "w1", ObjectiveID: "o1"}}
 	doc.WorkItems = []models.DocumentWorkItem{{
-		ID: "wi1", Code: "WI-1", WorkflowID: "w1", ObjectiveID: "o1", Title: "Answer", Ordinality: 1,
+		ID: "wi1", Code: "WI-1", WorkflowID: "w1", Title: "Answer", Ordinality: 1,
 		Kind: models.StepKindFillForm, RoleID: "r1", FormName: "Survey",
 		Questions: []models.StepQuestion{{Prompt: "Write the message", AnswerType: models.AnswerFreeText, Required: true}},
 	}}

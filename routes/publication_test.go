@@ -11,10 +11,6 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-// seedPublishableAgency builds the smallest Agency that passes
-// publish-time validation: one Goal, one Objective under it, and an
-// Accountable Role on that Objective, inside a fresh Draft — returns that
-// Draft's id.
 func seedPublishableAgency(t *testing.T, mgr mwanachamaagency.AgencyManager) string {
 	t.Helper()
 	ctx := t.Context()
@@ -33,21 +29,29 @@ func seedPublishableAgency(t *testing.T, mgr mwanachamaagency.AgencyManager) str
 	if err != nil {
 		t.Fatalf("CreateObjective: %v", err)
 	}
+	w, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: d.ID, Name: "Onboarding"})
+	if err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	if _, err := mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: d.ID, WorkflowID: w.ID, ObjectiveID: o.ID}); err != nil {
+		t.Fatalf("CreateWorkflowObjective: %v", err)
+	}
+	step, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: d.ID, WorkflowID: w.ID, Title: "Write charter"})
+	if err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
+	}
 	role, err := mgr.CreateRole(ctx, models.Role{DraftID: d.ID, Name: "owner"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: d.ID, RoleID: role.ID, ObjectiveID: o.ID, Label: models.RACILabelAccountable,
+		DraftID: d.ID, RoleID: role.ID, WorkItemID: step.ID, Label: models.RACILabelAccountable,
 	}); err != nil {
 		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 	return d.ID
 }
 
-// TestPublishAgency_ValidationFailureIsConflict asserts a Draft with an
-// error-severity Issue (here: no Goals at all) is refused with a 409
-// naming what is wrong, rather than a bare 500.
 func TestPublishAgency_ValidationFailureIsConflict(t *testing.T) {
 	mgr := newTestManager(t)
 	if _, err := mgr.CreateAgency(t.Context(), models.Agency{Name: "SWELab"}); err != nil {
@@ -69,8 +73,6 @@ func TestPublishAgency_ValidationFailureIsConflict(t *testing.T) {
 	}
 }
 
-// TestPublishAgency_Tag covers the request body's new tag field, and the
-// 409 a duplicate earns.
 func TestPublishAgency_Tag(t *testing.T) {
 	mgr := newTestManager(t)
 	draftID := seedPublishableAgency(t, mgr)
@@ -118,7 +120,6 @@ func TestPublishAgencyAndGetPublication(t *testing.T) {
 		t.Fatalf("expected version 1, got %d", pub.Version)
 	}
 
-	// Republishing unchanged content is refused.
 	req2 := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":"`+draftID+`"}`))
 	rec2 := httptest.NewRecorder()
 	serve(mgr, rec2, req2)
@@ -159,5 +160,61 @@ func TestGetPublication_BadVersion(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPublishAgency_WorkflowWithNoObjectiveIsConflict(t *testing.T) {
+	mgr := newTestManager(t)
+	draftID := seedPublishableAgency(t, mgr)
+	w, err := mgr.CreateWorkflow(t.Context(), models.Workflow{DraftID: draftID, Name: "Orphan flow"})
+	if err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	if _, err := mgr.CreateWorkItem(t.Context(), models.WorkItem{DraftID: draftID, WorkflowID: w.ID, Title: "Orphan step"}); err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":"`+draftID+`"}`))
+	rec := httptest.NewRecorder()
+	serve(mgr, rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "no Objective") {
+		t.Errorf("expected the body to name the finding, got %s", rec.Body.String())
+	}
+}
+
+func TestPublishAgency_DocumentCarriesBothJoins(t *testing.T) {
+	mgr := newTestManager(t)
+	draftID := seedPublishableAgency(t, mgr)
+
+	req := httptest.NewRequest(http.MethodPost, "/publications", strings.NewReader(`{"draft_id":"`+draftID+`"}`))
+	rec := httptest.NewRecorder()
+	serve(mgr, rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("publish status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Document struct {
+			WorkflowObjectives []map[string]any `json:"workflow_objectives"`
+			RoleAssignments    []map[string]any `json:"role_assignments"`
+			WorkItems          []map[string]any `json:"work_items"`
+		} `json:"document"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(body.Document.WorkflowObjectives) != 1 {
+		t.Fatalf("expected one workflow objective in the document, got %s", rec.Body.String())
+	}
+	if len(body.Document.RoleAssignments) != 1 || body.Document.RoleAssignments[0]["work_item_id"] == nil {
+		t.Fatalf("expected one step-scoped role assignment in the document, got %+v", body.Document.RoleAssignments)
+	}
+	if _, has := body.Document.RoleAssignments[0]["objective_id"]; has {
+		t.Errorf("a role assignment must not carry an objective_id any more: %+v", body.Document.RoleAssignments[0])
+	}
+	if _, has := body.Document.WorkItems[0]["objective_id"]; has {
+		t.Errorf("a work item must not carry an objective_id any more: %+v", body.Document.WorkItems[0])
 	}
 }

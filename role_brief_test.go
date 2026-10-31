@@ -32,14 +32,10 @@ func newBriefFixture(t *testing.T) briefFixture {
 	goal := goalOf(t, mgr, ctx, f.draftID, o.GoalID)
 	f.objectiveOther, err = mgr.CreateObjective(ctx, models.Objective{DraftID: f.draftID, GoalID: goal.ID, Title: "Audit the books"})
 	must(t, err)
-	_, err = mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: f.draftID, RoleID: f.other.ID, ObjectiveID: f.objectiveOther.ID, Label: models.RACILabelAccountable})
-	must(t, err)
-	wf, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: f.draftID, Name: "Flow"})
-	must(t, err)
-	_, err = mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: f.draftID, WorkflowID: wf.ID, ObjectiveID: o.ID, Title: "Mine", Prompt: "PROMPT-MINE"})
-	must(t, err)
-	_, err = mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: f.draftID, WorkflowID: wf.ID, ObjectiveID: f.objectiveOther.ID, Title: "Theirs", Prompt: "PROMPT-THEIRS"})
-	must(t, err)
+	_, mineStep := flowWithStep(t, mgr, ctx, f.draftID, "Mine flow", "Mine", "PROMPT-MINE", o)
+	assignOn(t, mgr, ctx, f.draftID, seat, mineStep, models.RACILabelAccountable)
+	_, theirStep := flowWithStep(t, mgr, ctx, f.draftID, "Theirs flow", "Theirs", "PROMPT-THEIRS", f.objectiveOther)
+	assignOn(t, mgr, ctx, f.draftID, f.other, theirStep, models.RACILabelAccountable)
 
 	f.seatRule, err = mgr.CreateRule(ctx, models.Rule{DraftID: f.draftID, Text: "RULE-SEAT"})
 	must(t, err)
@@ -67,6 +63,25 @@ func newBriefFixture(t *testing.T) briefFixture {
 	_, err = mgr.PublishAgency(ctx, f.draftID, "", "")
 	must(t, err)
 	return f
+}
+
+func flowWithStep(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID, flowName, stepTitle, prompt string, objectives ...models.Objective) (models.Workflow, models.WorkItem) {
+	t.Helper()
+	wf, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: flowName})
+	must(t, err)
+	for _, o := range objectives {
+		_, err = mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draftID, WorkflowID: wf.ID, ObjectiveID: o.ID})
+		must(t, err)
+	}
+	step, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: stepTitle, Prompt: prompt})
+	must(t, err)
+	return wf, step
+}
+
+func assignOn(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string, role models.Role, step models.WorkItem, label models.RACILabel) {
+	t.Helper()
+	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: draftID, RoleID: role.ID, WorkItemID: step.ID, Label: label})
+	must(t, err)
 }
 
 func must(t *testing.T, err error) {
@@ -166,5 +181,103 @@ func TestRoleBrief_UnknownSeatAndNothingPublished(t *testing.T) {
 	empty := newTestManager(t)
 	if _, err := empty.GetRoleBrief(context.Background(), "x"); !errors.Is(err, mwanachamaagency.ErrPublicationNotFound) {
 		t.Errorf("nothing published: %v", err)
+	}
+}
+
+func TestRoleBrief_ObjectivesComeThroughTheWorkflowsOfMySteps(t *testing.T) {
+	ctx := context.Background()
+	mgr := newTestManager(t)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
+	goal := goalOf(t, mgr, ctx, draftID, o.GoalID)
+	second, err := mgr.CreateObjective(ctx, models.Objective{DraftID: draftID, GoalID: goal.ID, Title: "Second aim"})
+	must(t, err)
+	scribe, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "scribe"})
+	must(t, err)
+
+	_, drafting := flowWithStep(t, mgr, ctx, draftID, "Drafting", "Draft it", "PROMPT-DRAFT", o, second)
+	_, filing := flowWithStep(t, mgr, ctx, draftID, "Filing", "File it", "PROMPT-FILE", second)
+	assignOn(t, mgr, ctx, draftID, scribe, drafting, models.RACILabelResponsible)
+	assignOn(t, mgr, ctx, draftID, scribe, drafting, models.RACILabelAccountable)
+	assignOn(t, mgr, ctx, draftID, scribe, filing, models.RACILabelConsulted)
+	_, err = mgr.PublishAgency(ctx, draftID, "", "")
+	must(t, err)
+
+	b, err := mgr.GetRoleBrief(ctx, scribe.ID)
+	must(t, err)
+	labels := map[string]string{}
+	for _, bo := range b.Objectives {
+		labels[bo.Title] = bo.Label
+	}
+	if len(b.Objectives) != 2 {
+		t.Fatalf("expected both objectives reached through the two workflows, got %+v", b.Objectives)
+	}
+	if labels["Grow adoption"] != "responsible, accountable" {
+		t.Errorf("the objective reached through one workflow should carry both labels held on its step, got %q", labels["Grow adoption"])
+	}
+	if labels["Second aim"] != "responsible, accountable, consulted" {
+		t.Errorf("the objective linked to both workflows should merge the labels of both, got %q", labels["Second aim"])
+	}
+	if len(b.WorkItems) != 2 {
+		t.Errorf("expected a work item per workflow the seat has a step in, got %+v", b.WorkItems)
+	}
+	for _, want := range []string{"PROMPT-DRAFT", "PROMPT-FILE"} {
+		if !strings.Contains(b.Text, want) {
+			t.Errorf("brief text lacks %q:\n%s", want, b.Text)
+		}
+	}
+}
+
+func TestRoleBrief_NoAssignmentMeansNoObjectives(t *testing.T) {
+	ctx := context.Background()
+	mgr := newTestManager(t)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	idle, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "idle"})
+	must(t, err)
+	_, err = mgr.PublishAgency(ctx, o.DraftID, "", "")
+	must(t, err)
+
+	b, err := mgr.GetRoleBrief(ctx, idle.ID)
+	must(t, err)
+	if len(b.Objectives) != 0 || len(b.WorkItems) != 0 {
+		t.Errorf("a seat with no step assignment answers for nothing, got objectives=%+v work_items=%+v", b.Objectives, b.WorkItems)
+	}
+}
+
+func TestRoleBrief_FollowsAStepAssignmentMovedInANewPublication(t *testing.T) {
+	f := newBriefFixture(t)
+	ctx := context.Background()
+	pub, err := f.mgr.GetPublicationForChannel(ctx, "")
+	must(t, err)
+	d, err := f.mgr.CreateDraft(ctx, "move the work", pub.Tag, "publication")
+	must(t, err)
+
+	roles, err := f.mgr.ListRoles(ctx, d.ID, mwanachamaagency.RoleFilter{})
+	must(t, err)
+	var otherInDraft models.Role
+	for _, r := range roles {
+		if r.Code == f.other.Code {
+			otherInDraft = r
+		}
+	}
+	items, err := f.mgr.ListWorkItems(ctx, d.ID, mwanachamaagency.WorkItemFilter{})
+	must(t, err)
+	var mineInDraft models.WorkItem
+	for _, it := range items {
+		if it.Title == "Mine" {
+			mineInDraft = it
+		}
+	}
+	if otherInDraft.ID == "" || mineInDraft.ID == "" {
+		t.Fatalf("forked draft lacks the auditor or the Mine step: %+v %+v", roles, items)
+	}
+	assignOn(t, f.mgr, ctx, d.ID, otherInDraft, mineInDraft, models.RACILabelInformed)
+	_, err = f.mgr.PublishAgency(ctx, d.ID, "", "")
+	must(t, err)
+
+	b, err := f.mgr.GetRoleBrief(ctx, f.other.Code)
+	must(t, err)
+	if !strings.Contains(b.Text, "PROMPT-MINE") || !strings.Contains(b.Text, "Grow adoption") {
+		t.Errorf("auditor, now informed on Mine, should see its prompt and objective:\n%s", b.Text)
 	}
 }

@@ -13,6 +13,29 @@ import (
 
 const wakalaDocument = "../developer/documentation/4. qa/mwanachama-wakala/agency.json"
 
+func distinctWorkflowObjectivePairs(doc models.AgencyDocument) map[[2]string]bool {
+	pairs := map[[2]string]bool{}
+	for _, wo := range doc.WorkflowObjectives {
+		pairs[[2]string{wo.WorkflowID, wo.ObjectiveID}] = true
+	}
+	for _, wi := range doc.WorkItems {
+		if wi.LegacyObjectiveID != "" {
+			pairs[[2]string{wi.WorkflowID, wi.LegacyObjectiveID}] = true
+		}
+	}
+	return pairs
+}
+
+func stepScopedAssignments(doc models.AgencyDocument) int {
+	n := 0
+	for _, ra := range doc.RoleAssignments {
+		if ra.WorkItemID != "" {
+			n++
+		}
+	}
+	return n
+}
+
 func readDocument(t *testing.T, path string) models.AgencyDocument {
 	t.Helper()
 	raw, err := os.ReadFile(path)
@@ -73,10 +96,14 @@ func TestImportDocument_MwanachamaWakala(t *testing.T) {
 			v, err := mgr.ListWorkItems(ctx, draftID, mwanachamaagency.WorkItemFilter{})
 			return len(v), err
 		}), len(doc.WorkItems)},
+		{"workflow objectives", count(t, func() (int, error) {
+			v, err := mgr.ListWorkflowObjectives(ctx, draftID, mwanachamaagency.WorkflowObjectiveFilter{})
+			return len(v), err
+		}), len(distinctWorkflowObjectivePairs(doc))},
 		{"RACI links", count(t, func() (int, error) {
 			v, err := mgr.ListRoleAssignments(ctx, draftID, mwanachamaagency.RoleAssignmentFilter{})
 			return len(v), err
-		}), len(doc.RoleAssignments)},
+		}), stepScopedAssignments(doc)},
 		{"attachments", out.Attachments, len(doc.ValueAttachments) + len(doc.RuleAttachments)},
 	} {
 		if tc.got != tc.want {
@@ -85,9 +112,6 @@ func TestImportDocument_MwanachamaWakala(t *testing.T) {
 	}
 }
 
-// Every RACI link has to point at a seat and an objective that exist in the
-// draft it landed in — the ids in the document are the exporter's, and the
-// import mints its own.
 func TestImportDocument_ReferencesResolve(t *testing.T) {
 	doc := readDocument(t, wakalaDocument)
 	mgr := newTestManager(t)
@@ -107,6 +131,18 @@ func TestImportDocument_ReferencesResolve(t *testing.T) {
 	for _, o := range listObjectives(t, mgr, ctx, draftID) {
 		objectives[o.ID] = true
 	}
+	workflows := map[string]bool{}
+	workItems := map[string]bool{}
+	for _, w := range listWorkflows(t, mgr, ctx, draftID) {
+		workflows[w.ID] = true
+	}
+	items, err := mgr.ListWorkItems(ctx, draftID, mwanachamaagency.WorkItemFilter{})
+	if err != nil {
+		t.Fatalf("ListWorkItems: %v", err)
+	}
+	for _, wi := range items {
+		workItems[wi.ID] = true
+	}
 
 	assignments, err := mgr.ListRoleAssignments(ctx, draftID, mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
@@ -116,8 +152,18 @@ func TestImportDocument_ReferencesResolve(t *testing.T) {
 		if !roles[a.RoleID] {
 			t.Errorf("RACI link %s names a seat that is not in the draft", a.ID)
 		}
-		if !objectives[a.ObjectiveID] {
-			t.Errorf("RACI link %s names an objective that is not in the draft", a.ID)
+		if !workItems[a.WorkItemID] {
+			t.Errorf("RACI link %s names a step that is not in the draft", a.ID)
+		}
+	}
+
+	links, err := mgr.ListWorkflowObjectives(ctx, draftID, mwanachamaagency.WorkflowObjectiveFilter{})
+	if err != nil {
+		t.Fatalf("ListWorkflowObjectives: %v", err)
+	}
+	for _, l := range links {
+		if !workflows[l.WorkflowID] || !objectives[l.ObjectiveID] {
+			t.Errorf("workflow objective %s names a workflow or objective that is not in the draft: %+v", l.ID, l)
 		}
 	}
 
@@ -130,8 +176,6 @@ func TestImportDocument_ReferencesResolve(t *testing.T) {
 	}
 }
 
-// Importing the same document twice leaves the first draft alone and does
-// not attach anything a second time.
 func TestImportDocument_Twice(t *testing.T) {
 	doc := readDocument(t, wakalaDocument)
 	mgr := newTestManager(t)
@@ -172,6 +216,15 @@ func listRoles(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Con
 	return out
 }
 
+func listWorkflows(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string) []models.Workflow {
+	t.Helper()
+	out, err := mgr.ListWorkflows(ctx, draftID, mwanachamaagency.WorkflowFilter{})
+	if err != nil {
+		t.Fatalf("ListWorkflows: %v", err)
+	}
+	return out
+}
+
 func listObjectives(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string) []models.Objective {
 	t.Helper()
 	out, err := mgr.ListObjectives(ctx, draftID, mwanachamaagency.ObjectiveFilter{})
@@ -181,9 +234,6 @@ func listObjectives(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx contex
 	return out
 }
 
-// An imported row keeps the code it was exported with, so the counter has
-// to move past it: the next goal created in that draft must not be handed a
-// code the import already used.
 func TestImportDocument_NextCodeDoesNotCollide(t *testing.T) {
 	doc := readDocument(t, wakalaDocument)
 	mgr := newTestManager(t)
@@ -215,4 +265,184 @@ func listGoals(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Con
 		t.Fatalf("ListGoals: %v", err)
 	}
 	return out
+}
+
+const olderShapeDocument = `{
+	"agency": {"name": "Ward office"},
+	"goals": [{"id": "g1", "code": "G-1", "title": "Hear residents"}],
+	"objectives": [
+		{"id": "o1", "code": "O-1", "goal_id": "g1", "title": "Ask residents"},
+		{"id": "o2", "code": "O-2", "goal_id": "g1", "title": "Report back"}
+	],
+	"roles": [{"id": "r1", "code": "R-1", "name": "Clerk"}],
+	"workflows": [
+		{"id": "w1", "code": "W-1", "name": "Survey"},
+		{"id": "w2", "code": "W-2", "name": "Newsletter"}
+	],
+	"work_items": [
+		{"id": "s1", "code": "WI-1", "workflow_id": "w1", "objective_id": "o1", "title": "Ask", "ordinality": 1},
+		{"id": "s2", "code": "WI-2", "workflow_id": "w1", "objective_id": "o1", "title": "Collect", "ordinality": 2},
+		{"id": "s3", "code": "WI-3", "workflow_id": "w1", "objective_id": "o2", "title": "Summarise", "ordinality": 3},
+		{"id": "s4", "code": "WI-4", "workflow_id": "w2", "objective_id": "o2", "title": "Send", "ordinality": 1}
+	],
+	"role_assignments": [
+		{"id": "a1", "role_id": "r1", "objective_id": "o1", "label": "accountable"},
+		{"id": "a2", "role_id": "r1", "objective_id": "o2", "label": "responsible"}
+	],
+	"some_future_section": [{"anything": true}]
+}`
+
+func TestImportDocument_OlderShapeSeedsWorkflowObjectivesFromItsSteps(t *testing.T) {
+	var doc models.AgencyDocument
+	if err := json.Unmarshal([]byte(olderShapeDocument), &doc); err != nil {
+		t.Fatalf("an older document must still decode: %v", err)
+	}
+	mgr := newTestManager(t)
+	ctx := context.Background()
+
+	out, err := mgr.ImportDocument(ctx, "ward", doc)
+	if err != nil {
+		t.Fatalf("ImportDocument of an older document: %v", err)
+	}
+
+	links, err := mgr.ListWorkflowObjectives(ctx, out.Draft.ID, mwanachamaagency.WorkflowObjectiveFilter{})
+	if err != nil {
+		t.Fatalf("ListWorkflowObjectives: %v", err)
+	}
+	if len(links) != 3 {
+		t.Fatalf("expected one link per distinct (workflow, objective) pair, w1/o1 w1/o2 w2/o2, got %d: %+v", len(links), links)
+	}
+
+	workflowCode := map[string]string{}
+	for _, w := range listWorkflows(t, mgr, ctx, out.Draft.ID) {
+		workflowCode[w.ID] = w.Code
+	}
+	objectiveCode := map[string]string{}
+	for _, o := range listObjectives(t, mgr, ctx, out.Draft.ID) {
+		objectiveCode[o.ID] = o.Code
+	}
+	got := map[string]bool{}
+	for _, l := range links {
+		got[workflowCode[l.WorkflowID]+"/"+objectiveCode[l.ObjectiveID]] = true
+	}
+	for _, want := range []string{"W-1/O-1", "W-1/O-2", "W-2/O-2"} {
+		if !got[want] {
+			t.Errorf("missing link %s in %v", want, got)
+		}
+	}
+}
+
+func TestImportDocument_OlderShapeIgnoresObjectiveLevelAssignments(t *testing.T) {
+	var doc models.AgencyDocument
+	if err := json.Unmarshal([]byte(olderShapeDocument), &doc); err != nil {
+		t.Fatalf("an older document must still decode: %v", err)
+	}
+	mgr := newTestManager(t)
+	ctx := context.Background()
+
+	out, err := mgr.ImportDocument(ctx, "ward", doc)
+	if err != nil {
+		t.Fatalf("the old objective-level assignments must be ignored without an error, got %v", err)
+	}
+	assignments, err := mgr.ListRoleAssignments(ctx, out.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
+	if err != nil {
+		t.Fatalf("ListRoleAssignments: %v", err)
+	}
+	if len(assignments) != 0 {
+		t.Fatalf("expected the objective-level assignments dropped, got %+v", assignments)
+	}
+	if len(listWorkflows(t, mgr, ctx, out.Draft.ID)) != 2 || len(listObjectives(t, mgr, ctx, out.Draft.ID)) != 2 {
+		t.Fatal("the rest of the older document must still import")
+	}
+}
+
+func TestImportDocument_OlderShapeScansClean(t *testing.T) {
+	var doc models.AgencyDocument
+	if err := json.Unmarshal([]byte(olderShapeDocument), &doc); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	out, err := mgr.ImportDocument(ctx, "ward", doc)
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+	issues, err := mgr.ListIssues(ctx, out.Draft.ID, mwanachamaagency.IssueFilter{Severity: string(models.IssueSeverityError)})
+	if err != nil {
+		t.Fatalf("ListIssues: %v", err)
+	}
+	for _, i := range issues {
+		t.Errorf("an older document with objectives on its steps should scan clean once seeded: %s", i.Message)
+	}
+}
+
+func TestImportDocument_NewShapeCarriesBothJoins(t *testing.T) {
+	raw := `{
+		"agency": {"name": "Ward office"},
+		"goals": [{"id": "g1", "code": "G-1", "title": "Hear residents"}],
+		"objectives": [{"id": "o1", "code": "O-1", "goal_id": "g1", "title": "Ask residents"}],
+		"roles": [{"id": "r1", "code": "R-1", "name": "Clerk"}, {"id": "r2", "code": "R-2", "name": "Mayor"}],
+		"workflows": [{"id": "w1", "code": "W-1", "name": "Survey"}],
+		"workflow_objectives": [{"id": "wo1", "workflow_id": "w1", "objective_id": "o1"}],
+		"work_items": [
+			{"id": "s1", "code": "WI-1", "workflow_id": "w1", "title": "Ask", "ordinality": 1},
+			{"id": "s2", "code": "WI-2", "workflow_id": "w1", "title": "Collect", "ordinality": 2}
+		],
+		"role_assignments": [
+			{"id": "a1", "work_item_id": "s1", "role_id": "r1", "label": "responsible"},
+			{"id": "a2", "work_item_id": "s1", "role_id": "r2", "label": "accountable"},
+			{"id": "a3", "work_item_id": "s2", "role_id": "r2", "label": "accountable"},
+			{"id": "a4", "work_item_id": "s2", "role_id": "r1", "label": "accountable"}
+		]
+	}`
+	var doc models.AgencyDocument
+	if err := json.Unmarshal([]byte(raw), &doc); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	mgr := newTestManager(t)
+	ctx := context.Background()
+	out, err := mgr.ImportDocument(ctx, "ward", doc)
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+
+	links, err := mgr.ListWorkflowObjectives(ctx, out.Draft.ID, mwanachamaagency.WorkflowObjectiveFilter{})
+	if err != nil || len(links) != 1 {
+		t.Fatalf("ListWorkflowObjectives: %v, %+v", err, links)
+	}
+	assignments, err := mgr.ListRoleAssignments(ctx, out.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
+	if err != nil || len(assignments) != 4 {
+		t.Fatalf("expected all four step-scoped assignments, two Accountables on one step included, got %v, %+v", err, assignments)
+	}
+	issues, err := mgr.ListIssues(ctx, out.Draft.ID, mwanachamaagency.IssueFilter{Severity: string(models.IssueSeverityError)})
+	if err != nil || len(issues) != 0 {
+		t.Fatalf("expected a clean scan, got %v, %+v", err, issues)
+	}
+}
+
+func TestImportDocument_PublishedDocumentRoundTrips(t *testing.T) {
+	ctx := context.Background()
+	source := newTestManager(t)
+	_, o, _ := seedPublishableAgency(t, source, ctx)
+	pub, err := source.PublishAgency(ctx, o.DraftID, "", "")
+	if err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+
+	target := newTestManager(t)
+	out, err := target.ImportDocument(ctx, "copy", pub.Document)
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+	links, err := target.ListWorkflowObjectives(ctx, out.Draft.ID, mwanachamaagency.WorkflowObjectiveFilter{})
+	if err != nil || len(links) != len(pub.Document.WorkflowObjectives) || len(links) != 1 {
+		t.Fatalf("ListWorkflowObjectives: %v, %+v", err, links)
+	}
+	assignments, err := target.ListRoleAssignments(ctx, out.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
+	if err != nil || len(assignments) != len(pub.Document.RoleAssignments) || len(assignments) != 1 {
+		t.Fatalf("ListRoleAssignments: %v, %+v", err, assignments)
+	}
+	if _, err := target.PublishAgency(ctx, out.Draft.ID, "", ""); err != nil {
+		t.Fatalf("the imported copy should publish: %v", err)
+	}
 }

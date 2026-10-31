@@ -53,9 +53,9 @@ func TestSeedSWELab(t *testing.T) {
 		t.Fatal("expected a \"Review pull request\" work item to have been seeded")
 	}
 
-	assignments, err := mgr.ListRoleAssignmentsForObjective(ctx, reviewItem.ObjectiveID, seed.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
+	assignments, err := mgr.ListRoleAssignmentsForWorkItem(ctx, reviewItem.ID, seed.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
 	if err != nil {
-		t.Fatalf("ListRoleAssignmentsForObjective: %v", err)
+		t.Fatalf("ListRoleAssignmentsForWorkItem: %v", err)
 	}
 	if len(assignments) != 4 {
 		t.Fatalf("expected all four RACI labels on the review item, got %d assignments", len(assignments))
@@ -73,13 +73,25 @@ func TestSeedSWELab(t *testing.T) {
 		}
 	}
 
-	// The at-most-one-Accountable rule still holds against seeded data.
 	otherRole := seed.Roles["business-analyst"]
+	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		DraftID: seed.Draft.ID, RoleID: otherRole.ID, WorkItemID: reviewItem.ID, Label: models.RACILabelAccountable,
+	}); err != nil {
+		t.Fatalf("a second accountable on the review step must be allowed, got %v", err)
+	}
 	_, err = mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: seed.Draft.ID, RoleID: otherRole.ID, ObjectiveID: reviewItem.ObjectiveID, Label: models.RACILabelAccountable,
+		DraftID: seed.Draft.ID, RoleID: otherRole.ID, WorkItemID: reviewItem.ID, Label: models.RACILabelAccountable,
 	})
-	if !errors.Is(err, mwanachamaagency.ErrDuplicateAccountable) {
-		t.Fatalf("expected ErrDuplicateAccountable adding a second accountable, got %v", err)
+	if !errors.Is(err, mwanachamaagency.ErrDuplicateRoleAssignment) {
+		t.Fatalf("expected ErrDuplicateRoleAssignment repeating the same role and label on one step, got %v", err)
+	}
+
+	if len(seed.WorkflowObjectives) != len(seed.Objectives) {
+		t.Fatalf("expected the workflow linked to each of the %d objectives, got %+v", len(seed.Objectives), seed.WorkflowObjectives)
+	}
+	links, err := mgr.ListWorkflowObjectives(ctx, seed.Draft.ID, mwanachamaagency.WorkflowObjectiveFilter{})
+	if err != nil || len(links) != len(seed.Objectives) {
+		t.Fatalf("ListWorkflowObjectives: %v, %+v", err, links)
 	}
 
 	pub, err := mgr.PublishAgency(ctx, seed.Draft.ID, "", "")
