@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const declaredRoles = 24
+const declaredRoles = 25
 
 func TestBlueprintParses(t *testing.T) {
 	b, err := Blueprint()
@@ -31,25 +31,26 @@ func TestEveryDeclaredColumnHasACarrierField(t *testing.T) {
 	}
 
 	carriers := map[string]any{
-		"agency":           models.Agency{},
-		"draft":            models.Draft{},
-		"goal":             models.Goal{},
-		"objective":        models.Objective{},
-		"workflow":         models.Workflow{},
-		"work_item":        models.WorkItem{},
-		"event_flow_step":  models.EventFlowStep{},
-		"role":             models.Role{},
-		"role_assignment":  models.RoleAssignment{},
-		"module":           models.Module{},
-		"value":            models.Value{},
-		"value_attachment": models.ValueAttachment{},
-		"rule":             models.Rule{},
-		"rule_attachment":  models.RuleAttachment{},
-		"issue":            models.Issue{},
-		"scenario":         models.Scenario{},
-		"scenario_actor":   models.ScenarioActor{},
-		"scenario_input":   models.ScenarioInput{},
-		"test_run":         models.TestRun{},
+		"agency":             models.Agency{},
+		"draft":              models.Draft{},
+		"goal":               models.Goal{},
+		"objective":          models.Objective{},
+		"workflow":           models.Workflow{},
+		"work_item":          models.WorkItem{},
+		"event_flow_step":    models.EventFlowStep{},
+		"role":               models.Role{},
+		"workflow_objective": models.WorkflowObjective{},
+		"role_assignment":    models.RoleAssignment{},
+		"module":             models.Module{},
+		"value":              models.Value{},
+		"value_attachment":   models.ValueAttachment{},
+		"rule":               models.Rule{},
+		"rule_attachment":    models.RuleAttachment{},
+		"issue":              models.Issue{},
+		"scenario":           models.Scenario{},
+		"scenario_actor":     models.ScenarioActor{},
+		"scenario_input":     models.ScenarioInput{},
+		"test_run":           models.TestRun{},
 	}
 
 	for role, carrier := range carriers {

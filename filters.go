@@ -76,7 +76,7 @@ type RoleFilter struct {
 // [models.RACILabel]'s four values.
 type RoleAssignmentFilter struct {
 	Label      string `query:"label"`
-	WorkItemID string `query:"work_item_id"`
+	WorkItemID string `query:"-"`
 	RoleID     string `query:"role_id"`
 }
 

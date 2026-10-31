@@ -55,7 +55,13 @@
       "role": "role_assignment",
       "name": "role_assignment",
       "table": "role_assignments",
-      "description": "One RACI link between a seat and an objective."
+      "description": "One RACI label: which seat takes part in which step, and how."
+    },
+    {
+      "role": "workflow_objective",
+      "name": "workflow_objective",
+      "table": "workflow_objectives",
+      "description": "One link saying a workflow delivers an objective."
     },
     {
       "role": "module",
