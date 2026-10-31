@@ -10,11 +10,16 @@ import (
 )
 
 func ControlStrengthOf(ctx context.Context, mgr AgencyManager, draftID string, c models.Control) (models.ControlStrength, error) {
-	m, ok := mgr.(*agencyManager)
-	if !ok {
-		return "", fmt.Errorf("ControlStrengthOf: unsupported manager %T", mgr)
+	for {
+		switch m := mgr.(type) {
+		case *agencyManager:
+			return m.controlStrengthOf(ctx, draftID, c)
+		case interface{ Unwrap() AgencyManager }:
+			mgr = m.Unwrap()
+		default:
+			return "", fmt.Errorf("ControlStrengthOf: unsupported manager %T", mgr)
+		}
 	}
-	return m.controlStrengthOf(ctx, draftID, c)
 }
 
 func (m *agencyManager) controlStrengthOf(ctx context.Context, draftID string, c models.Control) (models.ControlStrength, error) {
