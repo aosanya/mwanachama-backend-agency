@@ -2,6 +2,9 @@
 
 | Task | Title | Completed | Notes |
 |------|-------|-----------|-------|
+| AG111 | 🧭 **Fork, document, hash and import for the library** (AGD-012): hazards, threats, consequences and links fork, travel in the publication document and the content hash; an older document's `risk_pathway` rows import as a library part plus a link; `codedRoles` | 2026-10-31 | 99ee87e (earlier library work in 6502005, tests 259e832); `go vet` clean, `go test ./...` passes except `TestAG74_OpenHole...`, left red on purpose |
+| AG110 | 🧭 **Controls attach to threats and consequences, not to a bowtie** | 2026-10-31 | 99ee87e; used-in counts `ThreatUsage` and `ConsequenceUsage`, `ListUnguardedParts` (operation `list_unguarded_parts`), deleting a part a risk links is refused and a deleted part's control attachments go with it (AGD-012); tests in `library_usage_test.go`, `go test ./...` passes |
+| AG109 | 🧭 **A library of hazards, threats, consequences and controls, bowties composed from links** | 2026-10-31 | 6502005, 99ee87e, tests 259e832; design record AGD-012.md; owner call settled: controls live on library parts only; `go test ./...` passes |
 | AG106 | 🧭 **Role brief reads controls** | 2026-10-31 | the role brief reads one Controls list; import turns rules and values into advisory controls keeping their codes |
 | AG105 | 🧭 **`controls.edit` and `controls.approve`** | 2026-10-31 | controls.edit and controls.approve in the catalogue, ChangedEnforcedControls for the host's publish gate; one test skipped until a scenario can cover an enforced control |
 | AG104 | 🧭 **Enforcement fields and the publish check** | 2026-10-31 | checkControls in the scan and ControlStrengthOf; a scenario passes against a control when the control is attached to the workflow the scenario mirrors (owner call open, see AG108) |
