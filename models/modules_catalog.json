@@ -12,5 +12,15 @@
   {"code": "catalog", "name": "catalog", "description": "", "enabled": false, "locked": false, "icon": "grid", "mount": "", "mountable": true},
   {"code": "voting", "name": "voting", "description": "Polls put to chosen groups, answered inside a window, counted and published.", "enabled": false, "locked": false, "icon": "check", "mount": "polls"},
   {"code": "engage", "name": "engage", "description": "", "enabled": false, "locked": false, "icon": "bell", "mount": "main"},
-  {"code": "market", "name": "market", "description": "Offers posted by approved posters, asks put to one poster, orders and group orders that wait for a named person's yes.", "enabled": false, "locked": false, "icon": "wheat", "mount": "market", "mountable": true}
+  {"code": "market", "name": "market", "description": "Offers posted by approved posters, asks put to one poster, orders and group orders that wait for a named person's yes.", "enabled": false, "locked": false, "icon": "wheat", "mount": "market", "mountable": true},
+  {
+    "code": "riskmanager",
+    "name": "riskmanager",
+    "description": "A risk register of bow-ties: threats, consequences and the safeguards between them.",
+    "enabled": false,
+    "locked": false,
+    "icon": "alert",
+    "mount": "risks",
+    "mountable": true
+  }
 ]
