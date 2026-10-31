@@ -87,7 +87,7 @@ func (s *issueScan) warnUnguarded(seen map[string]bool, guarded map[models.Targe
 		return
 	}
 	seen[key] = true
-	s.add(models.IssueSeverityWarning, string(kind), linkID, "%s %s has no control", kind, QuoteIfUnsafe(code))
+	s.add(models.IssueSeverityWarning, "control_gap", linkID, "%s %s has no control", kind, QuoteIfUnsafe(code))
 }
 
 func isLibraryPart(t models.TargetType) bool {

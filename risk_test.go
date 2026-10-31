@@ -297,7 +297,7 @@ func TestPublishAgency_AddingARiskIsAChange(t *testing.T) {
 	}
 }
 
-func TestScan_RiskWithoutAnArmIsNotBlockingButADanglingPathwayIs(t *testing.T) {
+func TestScan_RiskWithoutAnArmOnlyWarnsButADanglingPathwayIsAnError(t *testing.T) {
 	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
 	_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
@@ -305,8 +305,14 @@ func TestScan_RiskWithoutAnArmIsNotBlockingButADanglingPathwayIs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRisk: %v", err)
 	}
-	if got := issuesFor(t, mgr, ctx, o.DraftID, "risk"); len(got) != 0 {
-		t.Fatalf("risk issues = %+v, want none for a risk with no arms", got)
+	got := issuesFor(t, mgr, ctx, o.DraftID, "risk")
+	if len(got) != 4 {
+		t.Fatalf("risk issues = %+v, want four warnings for a bare bowtie", got)
+	}
+	for _, issue := range got {
+		if issue.Severity != models.IssueSeverityWarning {
+			t.Fatalf("risk issue %+v is not a warning", issue)
+		}
 	}
 	if got := issuesFor(t, mgr, ctx, o.DraftID, "risk_pathway"); len(got) != 0 {
 		t.Fatalf("pathway issues = %+v", got)
@@ -320,7 +326,7 @@ func TestScan_RiskWithoutAnArmIsNotBlockingButADanglingPathwayIs(t *testing.T) {
 	if err := db.Exec("delete from "+s.TableFor(risks)+" where id = ?", bare.ID).Error; err != nil {
 		t.Fatalf("plant a dangling pathway: %v", err)
 	}
-	got := issuesFor(t, mgr, ctx, o.DraftID, "risk_pathway")
+	got = issuesFor(t, mgr, ctx, o.DraftID, "risk_pathway")
 	if len(got) != 1 || got[0].Severity != models.IssueSeverityError || got[0].EntityID != arm.ID {
 		t.Fatalf("pathway issues = %+v, want one error on %s", got, arm.ID)
 	}
