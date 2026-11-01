@@ -164,7 +164,7 @@ host's.
 A hub's agents (dispatcher, farmers' coordinator, network watcher, the answers
 desk) reach the hub as one service identity that the owner links to one agency
 role. From then on wakala-api lets the agent call only the actions that role's
-permissions list (`agentPowered`), on every actor, comm, forms, sources and ai route
+permissions list (`agentPermissioned`), on every actor, comm, forms, sources and ai route
 and tool. Before this change the catalog named none of the chat-thread, forms
 authoring, answers, group-listing or role-resolve calls the agents make, so a
 linked agent was refused all of them. The new permissions are read from what the
