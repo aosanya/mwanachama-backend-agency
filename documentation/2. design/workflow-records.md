@@ -1,8 +1,9 @@
 # Workflow records, Send form and Route (HS295)
 
-Hub Steward decisions 87 and 89 (2026-10-29). A workflow keeps records beside
-its steps; a Send form step goes to a recipient and a later step answers it; a
-Route step sorts the answers. This extends [workflow-steps.md](workflow-steps.md).
+Hub Steward decisions 87 and 89 (2026-10-29), 110 and 111 (2026-11-01). A
+workflow keeps records beside its steps; a Send form step goes to a recipient
+and a later step answers it; a Route step sorts the answers. This extends
+[workflow-steps.md](workflow-steps.md).
 
 ## Records
 
@@ -60,20 +61,44 @@ the agency does not hold it.
 ### Order, corrections and double saves
 
 A row may carry `order_id`, the one group order it was added from (decision
-110). It is a stored column with an index on the record and the order, and
-`record_rows` can be narrowed by it. The agency does not check that the order
-exists or that the person named in the row belongs to it (open question Q100).
+110); a row that belongs to no order leaves it empty. It is a stored column of
+`record_row`, not an answer, with the index `record_order` on `record_id` and
+`order_id`, and `agency_list_record_rows` can be narrowed by `order_id`. The
+agency does not check that the order exists or that the person named in the
+row belongs to it (open question Q100).
 
 A saved row is never edited. A correction is a new row whose `replaces` names
 the row it corrects (decision 111). The replaced row stays and reads as
-history; the replacing row carries `corrected_on`, the moment it was added. A
-replacing row keeps the order of the row it replaces, a row can be corrected
-once, and a row that does not exist or belongs to another record is refused
-with `ErrInvalidRecordRow`.
+history; the replacing row carries `corrected_on`, the moment it was added.
+The replacing row takes the order of the row it replaces, and one that names
+another order is refused. A row can be corrected once, so a second correction
+names the replacing row. A row that does not exist, belongs to another record
+or was already corrected is refused. All of these are `ErrInvalidRecordRow`
+(400).
 
 A row whose answers equal those of a current row of the same record and order,
-saved less than a minute earlier, is refused with `ErrDuplicateRecordRow`
+saved less than 60 seconds earlier, is refused with `ErrDuplicateRecordRow`
 (409). A row that was corrected away no longer counts as current.
+
+## What the app reads
+
+wakala-api serves these to the member app from the draft behind the latest
+version published to the production channel (decisions 110 to 112). None of
+them is a studio tool. A draft that is still open and edited after publishing
+shows its edits at once (open question Q98).
+
+| Tool | Meaning |
+|---|---|
+| `agency_list_live_records` | Each record with its form and `can_add_rows`, true for the agency owner and for the person seated in the record's role. |
+| `agency_list_live_record_rows` | The current rows of one record by `record_code`, oldest first, narrowed by `order_id`; `history` true reads the rows a replacing row corrected instead. A role that adds rows sees every row, anyone else only the rows whose picked-from-a-list answer names them. |
+| `agency_add_live_record_row` | Adds a row with `answers`, an optional `order_id` and an optional `replaces`. A repeat within 60 seconds is refused, 409 on the route. |
+| `agency_get_my_roles` | The caller's `membership` (`owner`, `agent` or `resident`) and the one agency role her seat holds, if any. |
+| `agency_list_my_open_steps` | The workflow steps of the roles the caller holds, with each step's kind, role, form name and questions. It does not know whether a step has been done. A caller who holds no role gets none. |
+
+The Home card, the Inbox row, the Apps tile and the Start form read
+`agency_list_my_open_steps`; the order page shows Send only when
+`agency_get_my_roles` gives `owner`. For now an app is a workflow step, and
+every member gets the Apps tab (decision 113).
 
 ## Send form, the step that answers it, and the Route step
 
@@ -130,7 +155,8 @@ None of the deletes cascade into the steps that point at what they remove.
 
 ## Not here
 
-The Test pages' blocks over a record's rows are not settled (decision 89). The
-SQL mirror for the gateway's active migrations is not written: that repo hand
-maintains it, and the two new tables (`records`, `record_rows`) and the four new
-columns of `work_items`, on top of the five HS288 added, still need to be mirrored there.
+The Test pages' blocks over a record's rows are not settled (decision 89).
+
+There is no SQL to mirror. The tables, the `order_id`, `replaces` and
+`corrected_on` columns and the `record_order` index come from the blueprint when
+an agency is provisioned (`Provision`, through `spec.Migrate`).
