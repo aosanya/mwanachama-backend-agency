@@ -12,6 +12,7 @@ import (
 
 func (m *agencyManager) carriedFindings(ctx context.Context, tx *gorm.DB, review models.Review, area models.ReviewArea, in []models.ReviewFindingInput) ([]models.ReviewFinding, error) {
 	out := make([]models.ReviewFinding, 0, len(in))
+	at := map[string]int{}
 	for i, f := range in {
 		earlier, err := m.earlierFinding(ctx, tx, review, area.Area, f.CarriedFromID)
 		if err != nil {
@@ -21,6 +22,14 @@ func (m *agencyManager) carriedFindings(ctx context.Context, tx *gorm.DB, review
 		if err != nil {
 			return nil, invalidReview("finding %d: %v", i+1, err)
 		}
+		key := strings.ToLower(strings.Join(strings.Fields(stored.Title), " "))
+		if held, again := at[key]; again {
+			if out[held].Status != models.FindingOpen && stored.Status == models.FindingOpen {
+				out[held] = stored
+			}
+			continue
+		}
+		at[key] = len(out)
 		out = append(out, stored)
 	}
 	return out, nil

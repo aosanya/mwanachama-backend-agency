@@ -266,3 +266,18 @@ func TestReadingADraftWithNoReviewAnswersNone(t *testing.T) {
 		t.Fatalf("view = %+v, want none", view)
 	}
 }
+
+func TestFindingsWithTheSameTitleAreStoredOnceSoACarriedRepeatDoesNotGrow(t *testing.T) {
+	b := newReviewBench(t)
+	first := b.start("")
+	b.recordEveryPart(first, map[models.ReviewAreaName][]models.ReviewFindingInput{
+		models.ReviewAreaRolesAgents: {finding("Describe Farmer R-47"), finding("Describe  farmer r-47")},
+	})
+	view, err := b.mgr.GetReview(b.ctx, first.Review.ID, b.draft)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(partOf(view, models.ReviewAreaRolesAgents).Findings); got != 1 {
+		t.Fatalf("roles findings after a repeated title = %d, want 1", got)
+	}
+}
