@@ -229,8 +229,15 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 	row.ID = newID()
 	row.Deleted = false
 	row.RecordCode = record.Code
-	row.CreatedAt = models.NowRFC3339()
+	row.CreatedAt = rowClock().Format(models.TimeLayout)
 	row.LastUpdated = row.CreatedAt
+	row.CorrectedOn = ""
+	if err := m.settleReplacement(ctx, &row, record); err != nil {
+		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
+	}
+	if err := m.refuseDuplicate(ctx, row); err != nil {
+		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
+	}
 	if err := m.insert(ctx, roleRecordRow, row); err != nil {
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
 	}
@@ -241,6 +248,7 @@ func (m *agencyManager) ListRecordRows(ctx context.Context, draftID string, filt
 	q := scopeQuery(m.q(ctx, roleRecordRow).Order("created_at"), draftID)
 	q = eqFilter(q, "record_id", filter.RecordID)
 	q = eqFilter(q, "record_code", filter.RecordCode)
+	q = eqFilter(q, "order_id", filter.OrderID)
 
 	out, err := list[models.RecordRow](m, q, roleRecordRow)
 	if err != nil {

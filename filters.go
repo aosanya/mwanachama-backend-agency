@@ -69,6 +69,7 @@ type MeasureFilter struct {
 type RecordRowFilter struct {
 	RecordID   string `query:"record_id"`
 	RecordCode string `query:"record_code"`
+	OrderID    string `query:"order_id"`
 }
 
 type EventFlowStepFilter struct {

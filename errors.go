@@ -135,6 +135,8 @@ var (
 	ErrRecordNotFound   = errors.New("mwanachamaagency: record not found")
 	ErrInvalidRecordRow = errors.New("mwanachamaagency: invalid record row")
 	ErrRecordRowRefused = errors.New("mwanachamaagency: this role does not add rows to the record")
+
+	ErrDuplicateRecordRow = errors.New("mwanachamaagency: the same answers were saved a moment ago")
 )
 
 var (

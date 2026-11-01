@@ -62,6 +62,7 @@
     "ErrInvalidRecordRow": 400,
     "ErrRecordNotFound": 404,
     "ErrRecordRowRefused": 403,
+    "ErrDuplicateRecordRow": 409,
     "ErrScenarioNotFound": 404,
     "ErrInvalidScenario": 400,
     "ErrScenarioActorNotFound": 404,

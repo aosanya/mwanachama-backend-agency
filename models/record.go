@@ -22,6 +22,9 @@ type RecordRow struct {
 	RoleID      string            `json:"role_id"`
 	AddedBy     string            `json:"added_by"`
 	Answers     map[string]string `json:"answers,omitempty"`
+	OrderID     string            `json:"order_id,omitempty"`
+	Replaces    string            `json:"replaces,omitempty"`
+	CorrectedOn string            `json:"corrected_on,omitempty"`
 	CreatedAt   string            `json:"created_at"`
 	LastUpdated string            `json:"last_updated"`
 	Deleted     bool              `json:"deleted"`

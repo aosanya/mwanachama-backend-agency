@@ -57,6 +57,24 @@ date as `2006-01-02`, or one of the typed options of a pick-one question. The
 list a pick-one question names with `options_from` is not checked here, because
 the agency does not hold it.
 
+### Order, corrections and double saves
+
+A row may carry `order_id`, the one group order it was added from (decision
+110). It is a stored column with an index on the record and the order, and
+`record_rows` can be narrowed by it. The agency does not check that the order
+exists or that the person named in the row belongs to it (open question Q100).
+
+A saved row is never edited. A correction is a new row whose `replaces` names
+the row it corrects (decision 111). The replaced row stays and reads as
+history; the replacing row carries `corrected_on`, the moment it was added. A
+replacing row keeps the order of the row it replaces, a row can be corrected
+once, and a row that does not exist or belongs to another record is refused
+with `ErrInvalidRecordRow`.
+
+A row whose answers equal those of a current row of the same record and order,
+saved less than a minute earlier, is refused with `ErrDuplicateRecordRow`
+(409). A row that was corrected away no longer counts as current.
+
 ## Send form, the step that answers it, and the Route step
 
 Four fields join `models.WorkItem`:
