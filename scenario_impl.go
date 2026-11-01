@@ -252,7 +252,7 @@ func scenarioBlocks(steps []models.WorkItem, actors []models.ScenarioActor, role
 		block := models.ScenarioBlock{
 			StepID: step.ID, Code: step.Code, Title: step.Title, Kind: step.Kind,
 			Action: models.ActionOf(step.Kind, step.FormName, ""), Actor: actorFor(step, actors, roleNames),
-			Then: then[step.ID],
+			Then: then[step.ID], Tool: step.Tool,
 		}
 		for _, q := range step.Questions {
 			field := models.BlockField{Prompt: q.Prompt, Free: true}

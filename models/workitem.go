@@ -17,6 +17,7 @@ type WorkItem struct {
 	RunWorkflowID    string         `json:"run_workflow_id"`
 	FormName         string         `json:"form_name"`
 	Questions        []StepQuestion `json:"questions,omitempty"`
+	Tool             string         `json:"tool"`
 	RecipientRoleID  string         `json:"recipient_role_id"`
 	SentStepID       string         `json:"sent_step_id"`
 	Routes           []StepRoute    `json:"routes,omitempty"`

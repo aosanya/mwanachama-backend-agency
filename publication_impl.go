@@ -115,7 +115,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		if r.Kind != "" || r.HasLinks() {
 			records = append(records, hashRecord("WorkItemStep", map[string]any{
 				"id": r.ID, "kind": r.Kind, "role_id": r.RoleID, "run_workflow_id": r.RunWorkflowID,
-				"form_name": r.FormName, "questions": r.Questions, "recipient_role_id": r.RecipientRoleID,
+				"form_name": r.FormName, "questions": r.Questions, "tool": r.Tool, "recipient_role_id": r.RecipientRoleID,
 				"sent_step_id": r.SentStepID, "routes": r.Routes, "otherwise_step_id": r.OtherwiseStepID,
 			}))
 		}

@@ -28,6 +28,7 @@ type RunOutcome struct {
 	Steps      []models.RunStep
 	Tokens     int
 	Stored     []models.StoredRecord
+	Trail      []models.TrailLine
 }
 
 type ScenarioRunner interface {
@@ -59,7 +60,7 @@ func (m *agencyManager) scenarioRunner() ScenarioRunner {
 func settled(o RunOutcome, err error) RunOutcome {
 	switch {
 	case err != nil:
-		return RunOutcome{Result: models.TestRunStopped, StopReason: fmt.Sprintf("The executor failed: %v", err), Steps: o.Steps, Tokens: o.Tokens, Stored: o.Stored}
+		return RunOutcome{Result: models.TestRunStopped, StopReason: fmt.Sprintf("The executor failed: %v", err), Steps: o.Steps, Tokens: o.Tokens, Stored: o.Stored, Trail: o.Trail}
 	case !o.Result.Finished():
 		o.Result, o.StopReason = models.TestRunStopped, "The executor ended without a result"
 	}

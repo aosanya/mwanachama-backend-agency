@@ -100,6 +100,7 @@ type ScenarioBlock struct {
 	Actor  string       `json:"actor"`
 	Then   string       `json:"then,omitempty"`
 	Fields []BlockField `json:"fields,omitempty"`
+	Tool   string       `json:"tool,omitempty"`
 }
 
 type TestRunResult string
@@ -128,18 +129,32 @@ type RuleCheck struct {
 }
 
 type RunStep struct {
-	StepID   string      `json:"step_id"`
-	Step     string      `json:"step"`
-	Actor    string      `json:"actor"`
-	PlayedBy string      `json:"played_by,omitempty"`
-	Did      string      `json:"did"`
-	Recorded string      `json:"recorded"`
-	Rules    []RuleCheck `json:"rules,omitempty"`
-	Tokens   int         `json:"tokens"`
-	Failed   bool        `json:"failed,omitempty"`
-	Expected string      `json:"expected,omitempty"`
-	Found    string      `json:"found,omitempty"`
-	Waited   bool        `json:"waited"`
+	StepID   string         `json:"step_id"`
+	Step     string         `json:"step"`
+	Actor    string         `json:"actor"`
+	PlayedBy string         `json:"played_by,omitempty"`
+	Did      string         `json:"did"`
+	Recorded string         `json:"recorded"`
+	Rules    []RuleCheck    `json:"rules,omitempty"`
+	Tokens   int            `json:"tokens"`
+	Failed   bool           `json:"failed,omitempty"`
+	Expected string         `json:"expected,omitempty"`
+	Found    string         `json:"found,omitempty"`
+	Waited   bool           `json:"waited"`
+	Module   string         `json:"module,omitempty"`
+	Endpoint string         `json:"endpoint,omitempty"`
+	Sent     map[string]any `json:"sent,omitempty"`
+	Answer   map[string]any `json:"answer,omitempty"`
+	Trail    []TrailLine    `json:"trail,omitempty"`
+}
+
+type TrailLine struct {
+	StepID   string `json:"step_id"`
+	Step     string `json:"step,omitempty"`
+	Module   string `json:"module"`
+	Endpoint string `json:"endpoint"`
+	Text     string `json:"text"`
+	At       string `json:"at,omitempty"`
 }
 
 type StoredRecord struct {
@@ -158,6 +173,7 @@ type TestRun struct {
 	Tokens       int            `json:"tokens"`
 	Steps        []RunStep      `json:"steps,omitempty"`
 	Stored       []StoredRecord `json:"stored"`
+	Trail        []TrailLine    `json:"trail,omitempty"`
 	TokenBudget  int            `json:"token_budget"`
 	RunningStep  string         `json:"running_step"`
 	DraftLabel   string         `json:"draft_label" spec:"-"`

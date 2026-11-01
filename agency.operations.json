@@ -655,7 +655,7 @@
       "action": "agency.work_item.create",
       "status": 201,
       "title": "Create work item",
-      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route or run_workflow), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused.",
+      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route or run_workflow), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused.",
       "args": [
         {
           "from": "body",
@@ -675,7 +675,7 @@
       "call": "ListWorkItems",
       "action": "agency.work_item.list",
       "title": "List work items",
-      "description": "List one draft's work items in their listed order, narrowed by the filter. Each step reads back with its kind, role, form, questions and derived action, such as \"Fills the Group order form\".",
+      "description": "List one draft's work items in their listed order, narrowed by the filter. Each step reads back with its kind, role, form, questions, tool and derived action, such as \"Fills the Group order form\".",
       "args": [
         {
           "from": "query",

@@ -142,6 +142,7 @@ type DocumentWorkItem struct {
 	RunWorkflowID string         `json:"run_workflow_id,omitempty"`
 	FormName      string         `json:"form_name,omitempty"`
 	Questions     []StepQuestion `json:"questions,omitempty"`
+	Tool          string         `json:"tool,omitempty"`
 
 	RecipientRoleID string      `json:"recipient_role_id,omitempty"`
 	SentStepID      string      `json:"sent_step_id,omitempty"`

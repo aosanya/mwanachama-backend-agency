@@ -201,7 +201,7 @@ func (m *agencyManager) abandon(ctx context.Context, runID string, cause error) 
 	if err := m.find(ctx, m.db, roleTestRun, runID, &run, ErrTestRunNotFound); err == nil && !run.Result.Finished() {
 		m.finishRun(ctx, run, RunOutcome{
 			Result: models.TestRunStopped, StopReason: fmt.Sprintf("The run could not start: %v", cause),
-			Steps: run.Steps, Tokens: run.Tokens, Stored: run.Stored,
+			Steps: run.Steps, Tokens: run.Tokens, Stored: run.Stored, Trail: run.Trail,
 		})
 	}
 	m.board.release(runID)

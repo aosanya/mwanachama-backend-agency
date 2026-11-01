@@ -101,7 +101,7 @@ func (m *agencyManager) endRun(ctx context.Context, started startedRun, live *li
 
 func (m *agencyManager) finishRun(ctx context.Context, run models.TestRun, outcome RunOutcome) (models.TestRun, error) {
 	run.Result, run.StopReason, run.Steps, run.Tokens = outcome.Result, outcome.StopReason, outcome.Steps, outcome.Tokens
-	run.Stored, run.RunningStep = outcome.Stored, ""
+	run.Stored, run.Trail, run.RunningStep = outcome.Stored, outcome.Trail, ""
 	run.FinishedAt = models.NowRFC3339()
 	scenarioResult := run.Result.ScenarioResult()
 	if run.Result == models.TestRunStopped && run.StopReason == models.StoppedByDesigner {

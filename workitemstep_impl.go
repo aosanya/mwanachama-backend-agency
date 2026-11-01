@@ -22,7 +22,7 @@ func validateStepShape(wi models.WorkItem) error {
 		return err
 	}
 	if wi.Kind == "" {
-		if wi.RoleID != "" || wi.RunWorkflowID != "" || wi.FormName != "" || len(wi.Questions) > 0 || wi.HasLinks() {
+		if wi.RoleID != "" || wi.RunWorkflowID != "" || wi.FormName != "" || len(wi.Questions) > 0 || wi.Tool != "" || wi.HasLinks() {
 			return invalidStep("a step with a role, a form, a workflow to run or a link to another step needs a kind")
 		}
 		return nil
@@ -42,6 +42,9 @@ func validateStepShape(wi models.WorkItem) error {
 	if err := validateStepLinks(wi); err != nil {
 		return err
 	}
+	if err := validateStepTool(wi); err != nil {
+		return err
+	}
 	return validateStepForm(wi)
 }
 
@@ -57,6 +60,19 @@ func validateStepLimit(wi models.WorkItem) error {
 		return invalidStep("a step with a time limit names the cancel workflow that runs when it passes")
 	case !wi.WaitsOnPerson():
 		return invalidStep("only a fill_form or yes_no step that a role acts on waits on a person, so only it can carry a time limit")
+	}
+	return nil
+}
+
+func validateStepTool(wi models.WorkItem) error {
+	if wi.Tool == "" {
+		return nil
+	}
+	if wi.RoleID == "" {
+		return invalidStep("only a step that a role acts on names a tool, because only a person uses one")
+	}
+	if strings.ContainsAny(wi.Tool, " \t\r\n,;") {
+		return invalidStep("a step names one tool, by one word such as market_ask, got %q", wi.Tool)
 	}
 	return nil
 }
