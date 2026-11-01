@@ -127,7 +127,7 @@
       "id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
       "code": "R-1",
       "name": "Group coordinator",
-      "description": "Keeps the farmers' group going. Approves each supplier before he appears in the market, starts the group order and sets its minimum, decides for any farmer who stays silent, adds a row to the Group order's Payments record for each farmer who has paid, and answers for the group to suppliers and buyers. This role is held by a person.",
+      "description": "Keeps the farmers' group going. Approves each supplier before he appears in the market, starts the group order and sets its minimum, decides for any farmer who stays silent, adds a row to the group order's Payments record for each farmer who has paid, and answers for the group to suppliers and buyers. This role is held by a person.",
       "created_at": "2026-10-26T00:00:00Z",
       "last_updated": "2026-10-26T00:00:00Z",
       "deleted": false
@@ -741,11 +741,11 @@
     {
       "id": "64603fa9-a8c4-5544-810e-86ce5546ecdb",
       "code": "W-1",
-      "name": "Pooled input order",
+      "name": "Pool an input order",
       "description": "From the farmers' input questions to a supplier's filled order.",
       "ordinality": 1,
       "created_at": "2026-10-26T00:00:00Z",
-      "last_updated": "2026-10-26T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
       "deleted": false
     },
     {
@@ -781,11 +781,11 @@
     {
       "id": "15cb700d-0703-5fa1-90e9-a34fc0ba067f",
       "code": "W-5",
-      "name": "Group order",
+      "name": "Create group order",
       "description": "Farmers pool one order at a poster's bulk price. Says yes: each farmer for her own line, and the group coordinator for any who stays silent.",
       "ordinality": 5,
       "created_at": "2026-10-28T00:00:00Z",
-      "last_updated": "2026-10-28T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
       "deleted": false
     },
     {
@@ -811,11 +811,11 @@
     {
       "id": "63877f8f-a7ab-53d6-aee8-28b3b8a16e96",
       "code": "W-8",
-      "name": "Group sale",
+      "name": "Create group sale",
       "description": "Farmers pool one sale at a buyer's bulk price. Says yes: the coordinator starts and sends it, each farmer for her own line, and the buyer for the whole.",
       "ordinality": 8,
       "created_at": "2026-10-29T00:00:00Z",
-      "last_updated": "2026-10-29T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
       "deleted": false
     },
     {
@@ -996,8 +996,28 @@
       "prompt": "Says yes: the group coordinator starts it from the poster's posted bulk price and sets the minimum.",
       "ordinality": 1,
       "created_at": "2026-10-28T00:00:00Z",
-      "last_updated": "2026-10-28T00:00:00Z",
-      "deleted": false
+      "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "form_name": "Create group order",
+      "questions": [
+        {
+          "prompt": "Product",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Price a bag",
+          "answer_type": "currency",
+          "required": true
+        },
+        {
+          "prompt": "From",
+          "answer_type": "number",
+          "required": true
+        }
+      ]
     },
     {
       "id": "8bbfb2b6-5b3c-5154-a935-9bb74194ad27",
