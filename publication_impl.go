@@ -348,8 +348,8 @@ func hashRecord(typeName string, fields map[string]any, optional ...optionalFiel
 	return string(b)
 }
 
-func (m *agencyManager) validationErrors(ctx context.Context, tx *gorm.DB, draftID string) error {
-	found, err := m.rescanIssues(ctx, tx, draftID)
+func (m *agencyManager) validationErrors(ctx context.Context, tx *gorm.DB, draftID string, groups map[string]bool) error {
+	found, err := m.rescanIssues(ctx, tx, draftID, groups)
 	if err != nil {
 		return err
 	}
@@ -370,12 +370,17 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag, channel
 		channel = models.DefaultChannel
 	}
 
+	groups, err := m.groupIDs(ctx)
+	if err != nil {
+		return models.AgencyPublication{}, err
+	}
+
 	var out models.AgencyPublication
-	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err = m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if _, err := m.findDraft(ctx, tx, draftID); err != nil {
 			return err
 		}
-		if err := m.validationErrors(ctx, tx, draftID); err != nil {
+		if err := m.validationErrors(ctx, tx, draftID, groups); err != nil {
 			return err
 		}
 		document, err := m.buildDocument(ctx, tx, draftID)

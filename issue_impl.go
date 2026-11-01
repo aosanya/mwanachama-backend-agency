@@ -14,12 +14,13 @@ type issueScan struct {
 	m       *agencyManager
 	tx      *gorm.DB
 	draftID string
+	groups  map[string]bool
 	now     string
 	found   []models.Issue
 }
 
-func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID string) ([]models.Issue, error) {
-	s := issueScan{ctx: ctx, m: m, tx: tx, draftID: draftID, now: models.NowRFC3339()}
+func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID string, groups map[string]bool) ([]models.Issue, error) {
+	s := issueScan{ctx: ctx, m: m, tx: tx, draftID: draftID, groups: groups, now: models.NowRFC3339()}
 	for _, check := range []func() error{
 		s.checkStructure,
 		s.checkRoleAssignments,
@@ -314,11 +315,15 @@ func (s *issueScan) checkAttachments() error {
 }
 
 func (m *agencyManager) ListIssues(ctx context.Context, draftID string, filter IssueFilter) ([]models.Issue, error) {
-	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	groups, err := m.groupIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if _, err := m.findDraft(ctx, tx, draftID); err != nil {
 			return err
 		}
-		_, err := m.rescanIssues(ctx, tx, draftID)
+		_, err := m.rescanIssues(ctx, tx, draftID, groups)
 		return err
 	})
 	if err != nil {
@@ -337,11 +342,11 @@ func (m *agencyManager) ListIssues(ctx context.Context, draftID string, filter I
 	return out, nil
 }
 
-func (m *agencyManager) rescanIssues(ctx context.Context, tx *gorm.DB, draftID string) ([]models.Issue, error) {
+func (m *agencyManager) rescanIssues(ctx context.Context, tx *gorm.DB, draftID string, groups map[string]bool) ([]models.Issue, error) {
 	if err := m.deleteWhere(ctx, tx, roleIssue, "draft_id = ?", draftID); err != nil {
 		return nil, fmt.Errorf("rescanIssues: %w", err)
 	}
-	found, err := m.scanIssues(ctx, tx, draftID)
+	found, err := m.scanIssues(ctx, tx, draftID, groups)
 	if err != nil {
 		return nil, err
 	}

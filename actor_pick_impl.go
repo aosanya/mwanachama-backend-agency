@@ -43,11 +43,7 @@ func (m *agencyManager) groupIDs(ctx context.Context) (map[string]bool, error) {
 }
 
 func (s *issueScan) addGroupIDs(ids map[string]bool) error {
-	groups, err := s.m.groupIDs(s.ctx)
-	if err != nil {
-		return err
-	}
-	for id := range groups {
+	for id := range s.groups {
 		ids[id] = true
 	}
 	return nil
