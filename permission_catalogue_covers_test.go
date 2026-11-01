@@ -83,6 +83,7 @@ func TestEveryActionOfTheCataloguePermissionGapBelongsToAnUnlockedPermission(t *
 		"market.order.trail":                   "market.browse",
 		"market.kind.list":                     "market.browse",
 		"market.product.categorise":            "market.categorise",
+		"market.group_order.call_off":          "market.group_order",
 		"catalog.entry.list":                   "service.read",
 		"assetmanager.location.create":         "asset.manage",
 		"actor.join_request.list_for_group":    "join_request.operate",

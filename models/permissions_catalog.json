@@ -16,7 +16,7 @@
   {"code": "market.ask", "name": "Ask a poster a question", "locked": false, "module": "market", "actions": ["market.ask.create", "market.ask.list", "market.yes.list"]},
   {"code": "market.ask_answer", "name": "Answer an ask as the poster", "locked": false, "module": "market", "actions": ["market.ask.answer"]},
   {"code": "market.advise", "name": "Advise a farmer on the quotes to a notice", "locked": false, "module": "market", "actions": ["market.quote.list", "market.draft.create", "market.draft.list"]},
-  {"code": "market.group_order", "name": "Start and revise a group order", "locked": false, "module": "market", "actions": ["market.group_order.start", "market.group_order.ask_revision"]},
+  {"code": "market.group_order", "name": "Start, revise and call off a group order", "locked": false, "module": "market", "actions": ["market.group_order.start", "market.group_order.ask_revision", "market.group_order.call_off"]},
   {"code": "market.group_order_join", "name": "Join a group order", "locked": false, "module": "market", "actions": ["market.group_order.join"]},
   {"code": "market.group_order_send", "name": "Send a group order to the supplier", "locked": false, "module": "market", "actions": ["market.group_order.send"]},
   {"code": "market.group_order_promise", "name": "Answer a group order as the supplier", "locked": false, "module": "market", "actions": ["market.group_order.promise"]},
