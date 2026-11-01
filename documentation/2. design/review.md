@@ -60,6 +60,10 @@ The earlier finding must belong to the previous review. A carried finding cannot
 
 The area's tokens are added to the review. When no area is left `reading` the review becomes `done` and `finished_at` is written, even if every area failed; `failed` on a review is never written by these tools.
 
+## What the Workflows part checks
+
+The Workflows reviewer reads every workflow of the draft: steps in a sensible order, a person at each wait, time limits, and a name that starts with a verb that says what the person does (`Create group order`, `Buy now`, `Approve a poster`; not `Group order`, `Group sale`, `Pooled input order`). A name that does not is raised as a finding whose Apply is `agency_update_workflow` changing only `name`, to the workflow's own words with a verb in front. Standard: workflow names start with a verb.
+
 ## Order
 
 Areas are returned in the order profile, goals, objectives, roles_agents, workflows, risks, tests. Findings are returned by title, then id, because a finding stores no position. Comments are returned oldest first.
