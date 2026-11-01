@@ -163,7 +163,7 @@ func TestEarlierPermissionCodesAndTheActionsOfChatPostAndDocumentSearchStayAsThe
 		"chat.post":       {"comm.chat_message.post", "comm.chat_message.list", "comm.chat_message.read"},
 		"document.search": {"sources.chunk.search", "sources.source.list", "sources.source.read"},
 		"form.send":       {"forms.form.publish"},
-		"ai.use":          {"ai.account.list", "ai.usage.list", "ai.usage.record", "ai.limits.check", "ai.role.resolve_agency_role", "ai.account.chat", "ai.model.list"},
+		"ai.use":          {"ai.account.list", "ai.usage.list", "ai.usage.record", "ai.limits.check", "ai.role.resolve_agency_role", "ai.account.chat", "ai.model.list", "ai.chat_model.list", "ai.chat_model.pick"},
 	}
 	for code, actions := range wantActions {
 		if got := permissionNamed(t, code).Actions; !reflect.DeepEqual(got, actions) {
