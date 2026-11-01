@@ -1,15 +1,7 @@
 # mwanachama-backend-agency
 
-A standalone Go domain library, sibling to
-[mwanachama-backend-actor](../mwanachama-backend-actor), modeling an
-**Agency**: departments (e.g. a software team and a mechanical team) under
-one Agency, Goals/Workflows/WorkItems, and a real RACI matrix
-(Responsible/Accountable/Consulted/Informed) assigning Roles to WorkItems.
-Built as a plain
-Go library imported by the gateway, not a network service of its own,
-following `mwanachama-backend-actor`'s GORM-backed shape as closely as
-possible.
+A Go library, in the declared-domain shape of [mwanachama-backend-catalog](../mwanachama-backend-catalog), that models an **Agency**: goals, objectives, workflows, the work items that are their steps, roles, and the RACI labels (Responsible, Accountable, Consulted, Informed) that put a role on a step. Work happens in drafts; a publication is a tagged snapshot, and the issue scan reports what a draft is missing.
 
-Status: scoped, not yet built. See
-[documentation/1. requirements/requirements.md](documentation/1.%20requirements/requirements.md)
-for the decisions made so far and what's still open.
+The objects are declared in `agency.blueprint.json` (38 objects) and the route table in `agency.operations.json` (144 operations); storage goes through `mwanachama-backend-shared/specstore` and the routes and MCP tools through `dispatch`. It is a plain Go library with no service of its own; `mwanachama-wakala-api` mounts it per instance.
+
+See [CLAUDE.md](CLAUDE.md) for the current model and [documentation/](documentation/) for requirements, design and the task board.
