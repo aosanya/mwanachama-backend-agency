@@ -279,3 +279,23 @@ when `ChangedEnforcedControls` is non-empty it demands `controls.approve` of the
 publisher, and when it is empty publishing needs only the ordinary publish
 permission. `control_changes_test.go` covers the library side; the host check belongs
 on the wakala-api board.
+
+## The coordinator's and the member's actions (HS532, HS537)
+
+A seated agent is refused any action its role's permissions do not carry, so the actions the coordinator and member flows call are named here. `permission_catalogue_covers_test.go` lists each one against its permission.
+
+| Permission | Change | Actions |
+| --- | --- | --- |
+| `market.group_order` | now "Start, revise, run and call off a group order" | adds `market.group_order.poster`, `market.group_order.line_paid`, `market.group_order.decide_silent_line` |
+| `group.join` | new, module none | `actor.group.list_joinable`, `list_discoverable`, `find_by_code`, `join`, `join_by_code`, `actor.invitation.accept`, `decline` |
+| `chat.archive` | new, module `comm` | `comm.chat_thread.archive`, `unarchive`, `list_archived` |
+| `invitation.read` | new, module none | `actor.invitation.list_for_group`, `actor.invitation.read` |
+| `member.view` | adds | `actor.actor.read_screen_name_by_code` |
+| `group.view` | adds | `actor.assignment.home_counts` |
+
+Why this shape:
+
+- The coordinator's three steps are the default workflow's coordinator steps, so they ride with the permission that starts and calls off the order. A role that already holds `market.group_order` gains them.
+- `chat.thread` is pinned to what the hub agents do (`permission_hub_agent_test.go`), and `member.invite` to the actions AG89 listed, so archiving a thread and reading invitations are new permissions, not a widening of those two.
+- `market.group_order.answer_revision` is in no permission. It is the picker's own answer to revised terms, and the market test refuses any permission carrying an answer. The coordinator uses `decide_silent_line`.
+- The actions that read or write only the caller's own state (`actor.read_mine`, `group.list_mine`, `forms.form.list_waiting`, the live records and the like) are in no permission at all. The host lets every seated agent do them; the list is in wakala-api's `agent-role-permissions.md`.

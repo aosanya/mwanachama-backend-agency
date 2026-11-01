@@ -112,3 +112,42 @@ func TestEveryActionOfTheCataloguePermissionGapBelongsToAnUnlockedPermission(t *
 		}
 	}
 }
+
+func TestEveryActionTheCoordinatorAndMemberFlowsNeedBelongsToAnUnlockedPermission(t *testing.T) {
+	want := map[string]string{
+		"market.group_order.poster":             "market.group_order",
+		"market.group_order.line_paid":          "market.group_order",
+		"market.group_order.decide_silent_line": "market.group_order",
+		"actor.group.list_joinable":             "group.join",
+		"actor.group.list_discoverable":         "group.join",
+		"actor.group.find_by_code":              "group.join",
+		"actor.group.join":                      "group.join",
+		"actor.group.join_by_code":              "group.join",
+		"actor.invitation.accept":               "group.join",
+		"actor.invitation.decline":              "group.join",
+		"actor.invitation.list_for_group":       "invitation.read",
+		"actor.invitation.read":                 "invitation.read",
+		"actor.actor.read_screen_name_by_code":  "member.view",
+		"actor.assignment.home_counts":          "group.view",
+		"comm.chat_thread.archive":              "chat.archive",
+		"comm.chat_thread.unarchive":            "chat.archive",
+		"comm.chat_thread.list_archived":        "chat.archive",
+	}
+	held := heldByAnUnlockedPermission()
+	for action, permission := range want {
+		if held[action] == "" {
+			t.Errorf("%s belongs to no unlocked permission, want %s", action, permission)
+			continue
+		}
+		p, _ := models.LookupPermission(permission)
+		if !carries(p, action) {
+			t.Errorf("%s is not carried by %s", action, permission)
+		}
+	}
+}
+
+func TestNoPermissionCarriesAPickersOwnAnswerToARevisedGroupOrder(t *testing.T) {
+	if held := heldByAnUnlockedPermission(); held["market.group_order.answer_revision"] != "" {
+		t.Errorf("market.group_order.answer_revision is carried by %s, but it is the picker's own answer", held["market.group_order.answer_revision"])
+	}
+}
