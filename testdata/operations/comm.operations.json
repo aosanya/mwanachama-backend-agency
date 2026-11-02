@@ -27,7 +27,7 @@
       "action": "comm.chat_thread.list",
       "status": 200,
       "title": "A room's threads",
-      "description": "Every thread in one structure's room the caller may read, oldest first, each with its label, its audience, its unread count for the caller (the posts somebody else wrote after the caller's read point) and last_message_at, the time of its latest post, absent when nobody has posted, so a client orders rooms by the latest across the threads it may read. A thread still with the leads is listed only to the structure's leads and to the actor who asked for it. Only for a caller the mount says belongs to that structure. A structure the caller does not belong to and one that does not exist answer identically, as a not-found.",
+      "description": "Every thread in one structure's room the caller may read, oldest first, each with its label, its audience, its unread count for the caller (the posts somebody else wrote after the caller's read point) last_message_at, the time of its latest post, and last_message, that post itself (id, author_id, body, attachment_kind, attachment_id, created_at), both absent when nobody has posted, so a client orders rooms by the latest across the threads it may read and prints each row's preview from this list alone. A thread still with the leads is listed only to the structure's leads and to the actor who asked for it. Only for a caller the mount says belongs to that structure. A structure the caller does not belong to and one that does not exist answer identically, as a not-found.",
       "args": [
         {
           "from": "path",
@@ -39,6 +39,28 @@
           "from": "caller",
           "as": "caller_id",
           "description": "The caller, from the session."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ]
+    },
+    "list_person_chat_reach": {
+      "method": "GET",
+      "path": "/people/{actor_id}/chat/reach",
+      "call": "ChatReachOfPerson",
+      "action": "comm.person_reach.list",
+      "status": 200,
+      "title": "What one person can read",
+      "description": "Every thread, across every room the mount says one named person belongs to, that person may read, each with the structure it is in, its label, its audience, who asked for it when somebody did, and the reason she can read it: group when the thread is open to everybody who belongs, asked when it is still with the leads and she is the one who asked for it, leads when it is still with the leads and she is one of them. It carries no post, no unread count and no read point, and direct messages are never listed. A person who belongs to no room, one the mount does not know and an invented id all answer identically, as a not-found.",
+      "args": [
+        {
+          "from": "path",
+          "as": "actor_id",
+          "required": true,
+          "description": "The person whose reach this is."
         }
       ],
       "returns": [
@@ -155,7 +177,7 @@
       "action": "comm.chat_message.list",
       "status": 200,
       "title": "Posts in a thread",
-      "description": "Every post in one thread of a structure's room, oldest first, for a caller who belongs to that structure. An outsider, a thread that was never minted and a thread of another structure all answer the same not-found. Given after, only the posts that come after that one, so a reader asks for what is new since the last post it holds; an after naming no post of this thread answers the same not-found.",
+      "description": "Every post in one thread of a structure's room, oldest first, for a caller who belongs to that structure. An outsider, a thread that was never minted and a thread of another structure all answer the same not-found. Given after, only the posts that come after that one, so a reader asks for what is new since the last post it holds; given before, only the posts that come before that one. Given limit, only the newest that many of what remains, still oldest first, so a reader opens a long room on its last page and asks for the page before it. An after or a before naming no post of this thread answers the same not-found.",
       "args": [
         {
           "from": "path",
@@ -180,6 +202,17 @@
           "as": "after",
           "refers": "comm.chat_message",
           "description": "Optional. A post's id in this thread: only posts after it are returned. Omitted, every post is."
+        },
+        {
+          "from": "query",
+          "as": "before",
+          "refers": "comm.chat_message",
+          "description": "Optional. A post's id in this thread: only posts before it are returned."
+        },
+        {
+          "from": "query",
+          "as": "limit",
+          "description": "Optional. How many posts to return: the newest that the other arguments leave, still oldest first. Omitted or 0, all of them; negative is refused."
         }
       ],
       "returns": [
