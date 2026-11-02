@@ -74,6 +74,7 @@
     "ErrUsedByScenario": 409,
     "ErrDuplicateWorkflowObjective": 409,
     "ErrReviewRunning": 409,
+    "ErrNoReviewAreas": 409,
     "ErrReviewNotFound": 404,
     "ErrReviewAreaNotFound": 404,
     "ErrReviewAreaRecorded": 409,
@@ -2607,7 +2608,7 @@
       "action": "agency.review.start",
       "status": 201,
       "title": "Run review",
-      "description": "Start a review of one draft: write a review in status running with one part for each reviewer, or with just the one part named by area, all reading, and answer at once. previous_review_id is the latest earlier review of the draft. Refused with \"A review of this draft is already running.\" while one is running. The reviewers write their findings with agency_record_review_area.",
+      "description": "Start a review of one draft: write a review in status running with one part for each reviewer, or with just the one part named by area, all reading, and answer at once. previous_review_id is the latest earlier review of the draft. Refused with \"A review of this draft is already running.\" while one is running, and with \"There is no part of this draft to review.\" when no part is read for the draft. The reviewers write their findings with agency_record_review_area.",
       "args": [
         {
           "from": "body",

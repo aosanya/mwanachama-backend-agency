@@ -54,6 +54,9 @@ func (m *agencyManager) StartReview(ctx context.Context, draftID, startedBy, are
 	if errors.Is(err, ErrReviewRunning) {
 		return models.ReviewView{}, ErrReviewRunning
 	}
+	if errors.Is(err, ErrNoReviewAreas) {
+		return models.ReviewView{}, ErrNoReviewAreas
+	}
 	if err != nil {
 		return models.ReviewView{}, fmt.Errorf("StartReview: %w", err)
 	}
@@ -63,6 +66,9 @@ func (m *agencyManager) StartReview(ctx context.Context, draftID, startedBy, are
 func (m *agencyManager) areasForRun(ctx context.Context, draftID, area string) ([]models.ReviewAreaName, error) {
 	available := m.areasToRead(ctx, draftID)
 	if strings.TrimSpace(area) == "" {
+		if len(available) == 0 {
+			return nil, ErrNoReviewAreas
+		}
 		return available, nil
 	}
 	name := models.ReviewAreaName(strings.TrimSpace(area))

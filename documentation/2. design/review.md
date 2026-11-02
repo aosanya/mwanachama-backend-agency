@@ -34,6 +34,12 @@ Two starts at once for one draft cannot both pass the check: a review carries `r
 
 `StartReview(ctx, draftID, startedBy, area string)` takes an optional `area`. Empty reads every part the hub reads. A part name (`profile`, `goals`, `objectives`, `roles_agents`, `workflows`, `risks`, `tests`) writes only that one `reading` area; an unknown name, or one the hub does not read for the draft, is refused with `ErrInvalidReview`. The other parts are left as they were: they keep the findings, notes and dismissals of the last run that covered them.
 
+### A start with no part to read
+
+When the function given to `WithReviewAreas` returns no part for the draft and no `area` is named, `StartReview` refuses with `ErrNoReviewAreas`, the sentence `There is no part of this draft to review.`, and writes nothing. A review with no parts could never settle: `RecordReviewArea` has no part to find, so the review stayed `running`, every later start answered `ErrReviewRunning`, and `agency_list_running_reviews` returned it after every restart. `AllReviewAreas` never returns an empty list, and neither does wakala-api's `reviewruns.AreasFor`, so this only guards a hub function that does.
+
+The refusal is 409 on `POST /reviews` and an error result on `agency_start_review`, the same status as `ErrReviewRunning` and `ErrDraftNotOpen`: the request is well formed and the draft's state, not the caller's input, is what refuses it. Naming a part when none is read is a different refusal and stays `ErrInvalidReview`, 400.
+
 ### Which earlier part a part follows
 
 Because a review may hold one part, "the previous review" no longer says what a part follows. `coveringArea` in `review_cover_impl.go` walks `previous_review_id` from a review back to the newest review that holds the part. `ReviewInput` reads its `previous` findings from that part, and a carried finding must belong to that same part, not merely to the previous review.

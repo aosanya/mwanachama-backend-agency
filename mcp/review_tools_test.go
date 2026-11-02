@@ -18,9 +18,9 @@ type reviewDesk struct {
 	draftID string
 }
 
-func newReviewDesk(t *testing.T) *reviewDesk {
+func newReviewDesk(t *testing.T, opts ...mwanachamaagency.Option) *reviewDesk {
 	t.Helper()
-	mgr := newTestManager(t)
+	mgr := newTestManager(t, opts...)
 	mux := http.NewServeMux()
 	server := newTestServer(mgr)
 	mux.Handle("/mcp", gosdkmcp.NewStreamableHTTPHandler(func(*http.Request) *gosdkmcp.Server { return server }, nil))

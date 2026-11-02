@@ -153,6 +153,7 @@ var (
 
 var (
 	ErrReviewRunning      = errors.New("A review of this draft is already running.")
+	ErrNoReviewAreas      = errors.New("There is no part of this draft to review.")
 	ErrReviewNotFound     = errors.New("mwanachamaagency: review not found")
 	ErrReviewAreaNotFound = errors.New("mwanachamaagency: review part not found")
 	ErrReviewAreaRecorded = errors.New("mwanachamaagency: this part of the review has already been recorded")

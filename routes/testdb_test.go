@@ -12,9 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/routes"
 )
 
-// newTestManager builds an AgencyManager backed by a fresh in-memory
-// sqlite database, migrated the same way a real deployment would.
-func newTestManager(t *testing.T) mwanachamaagency.AgencyManager {
+func newTestManager(t *testing.T, opts ...mwanachamaagency.Option) mwanachamaagency.AgencyManager {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
@@ -35,7 +33,7 @@ func newTestManager(t *testing.T) mwanachamaagency.AgencyManager {
 		t.Fatalf("Provision: %v", err)
 	}
 
-	mgr, err := mwanachamaagency.NewAgencyManager(db, s)
+	mgr, err := mwanachamaagency.NewAgencyManager(db, s, opts...)
 	if err != nil {
 		t.Fatalf("NewAgencyManager: %v", err)
 	}

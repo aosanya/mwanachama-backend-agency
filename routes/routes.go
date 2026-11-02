@@ -82,6 +82,7 @@ var sentinels = map[string]error{
 	"ErrTestRunNotFound":            mwanachamaagency.ErrTestRunNotFound,
 	"ErrTestRunFinished":            mwanachamaagency.ErrTestRunFinished,
 	"ErrReviewRunning":              mwanachamaagency.ErrReviewRunning,
+	"ErrNoReviewAreas":              mwanachamaagency.ErrNoReviewAreas,
 	"ErrReviewNotFound":             mwanachamaagency.ErrReviewNotFound,
 	"ErrReviewAreaNotFound":         mwanachamaagency.ErrReviewAreaNotFound,
 	"ErrReviewAreaRecorded":         mwanachamaagency.ErrReviewAreaRecorded,
