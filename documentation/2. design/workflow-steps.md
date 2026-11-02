@@ -173,6 +173,9 @@ tag remap `agent_role_id` and `start_workflow_ids` onto the new draft's roles an
 workflows; the content hash adds each non-empty field to the step's record and
 `opens_in` to the workflow's, the same way `hazard_code` joined a risk's.
 
+`chat` is one of the `comm` module's `step_kinds` in `models/modules_catalog.json`, so
+a chat step keeps comm running while its switch is off, the way a notify step does.
+
 The wakala-api reviewer that renames a workflow or a step rewrites the fields it
 knows (`reviewruns/workflows.go`), so it has to keep `opens_in` on a workflow and
 `agent_role_id`, `topic`, `opening_line`, `prompts`, `tools` and

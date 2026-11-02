@@ -280,3 +280,24 @@ func TestChatFields_BelongOnlyToAChatStep(t *testing.T) {
 		t.Fatalf("a topic on a step with no kind: err = %v, want ErrInvalidWorkItem", err)
 	}
 }
+
+func TestModuleEnabled_ChatStepNeedsCommEvenWhenSwitchedOff(t *testing.T) {
+	w := newStepWorld(t)
+	ctx := context.Background()
+	comm := moduleByCode(t, w.mgr, ctx, w.draftID, "comm")
+	off, err := w.mgr.SetModuleEnabled(ctx, w.draftID, comm.ID, false)
+	if err != nil {
+		t.Fatalf("SetModuleEnabled: %v", err)
+	}
+	if off.Enabled || off.NeededBySteps {
+		t.Fatalf("expected comm off with no chat step, got %+v", off)
+	}
+	chat := w.chatWorkflow(t, "Buy inputs")
+	if _, err := w.mgr.CreateWorkItem(ctx, w.chatStep(chat, 1)); err != nil {
+		t.Fatalf("chat step: %v", err)
+	}
+	needed := moduleByCode(t, w.mgr, ctx, w.draftID, "comm")
+	if !needed.Enabled || needed.Explicit || !needed.NeededBySteps {
+		t.Fatalf("expected a chat step to keep comm running while its switch is off, got %+v", needed)
+	}
+}
