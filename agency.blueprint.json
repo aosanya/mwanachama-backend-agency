@@ -218,6 +218,7 @@
         {"name": "ordinality", "type": "int", "description": "Where it sits in the listed order."},
         {"name": "event_flows", "type": "text", "description": "This workflow's own raw event-flow definition; empty falls back to the organization's."},
         {"name": "opens_in", "type": "enum", "description": "Where the workflow starts for the person: in a chat with an agent, or in a form. Empty means a form, so a workflow that never says is unchanged.", "values": ["form", "chat"]},
+        {"name": "cancels_order", "type": "bool", "description": "Whether the workflow cancels an order. The picker on a waiting step lists the workflows that cancel and the built-in Cancel. Empty means it does not."},
         {"name": "created_at", "type": "timestamp", "description": "When the workflow was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}

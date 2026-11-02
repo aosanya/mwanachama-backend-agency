@@ -72,7 +72,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	for _, w := range workflows {
 		doc.Workflows = append(doc.Workflows, models.DocumentWorkflow{
 			ID: w.ID, Code: w.Code, Name: w.Name, Description: w.Description,
-			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn,
+			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn, CancelsOrder: w.CancelsOrder,
 		})
 	}
 
@@ -318,7 +318,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	for _, w := range doc.Workflows {
 		row := models.Workflow{
 			ID: newID(), Code: w.Code, DraftID: draftID, Name: w.Name, Description: w.Description,
-			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn, CreatedAt: now, LastUpdated: now,
+			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn, CancelsOrder: w.CancelsOrder, CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleWorkflow, row); err != nil {
 			return fail(err)

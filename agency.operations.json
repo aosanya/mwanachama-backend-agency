@@ -458,7 +458,7 @@
       "action": "agency.workflow.create",
       "status": 201,
       "title": "Create workflow",
-      "description": "Add a named sequence of work the organization performs. opens_in says where it starts for the person: chat, or form (the default, so leave it out for a form). A workflow that opens in a chat holds one chat step.",
+      "description": "Add a named sequence of work the organization performs. opens_in says where it starts for the person: chat, or form (the default, so leave it out for a form). A workflow that opens in a chat holds one chat step. cancels_order is true for a workflow that cancels an order, so the picker on a waiting step lists it beside the built-in Cancel (false by default).",
       "args": [
         {
           "from": "body",
@@ -540,7 +540,7 @@
       "call": "UpdateWorkflow",
       "action": "agency.workflow.update",
       "title": "Update workflow",
-      "description": "Replace a workflow's name, description, position, event-flow definition and opens_in (chat or form; a workflow that holds a chat step stays a chat).",
+      "description": "Replace a workflow's name, description, position, event-flow definition, opens_in (chat or form; a workflow that holds a chat step stays a chat) and cancels_order (true for a workflow that cancels an order).",
       "args": [
         {
           "from": "body",

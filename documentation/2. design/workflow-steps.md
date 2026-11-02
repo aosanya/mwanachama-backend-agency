@@ -183,6 +183,26 @@ knows (`reviewruns/workflows.go`), so it has to keep `opens_in` on a workflow an
 `agent_role_id`, `topic`, `opening_line`, `prompts`, `tools` and
 `start_workflow_ids` on a step, or a review's rename blanks them.
 
+## A workflow that cancels an order (HS674, Hub Steward decisions 144 and 146)
+
+A workflow says it cancels an order with `cancels_order`, a boolean that is false
+unless the designer ticks Cancels an order on the workflow's Workflow tab. The
+agency stores it and returns it on every read; nothing in the agency reads it
+when a step runs. It exists for the picker on a waiting step, "When it passes,
+run", which lists the workflows that cancel and the built-in Cancel and offers
+no other, so a workflow such as Check the delivery is never offered as a cancel.
+The built-in Cancel stays and is what a step with no pick still does.
+
+It follows `opens_in` through every copy. A true value is written to the
+publication document and added to the workflow's record in the content hash; a
+false value leaves both as they were, so an existing publication hashes the same.
+A draft fork and a fork from a tag carry it.
+
+An update replaces the whole workflow, so a body that leaves `cancels_order` out
+saves false, the same as it does for `ordinality`, `event_flows` and `opens_in`
+(the red probe in `update_keeps_unsent_fields_test.go`). The wakala-api reviewer
+that renames a workflow has to keep it, as it keeps `opens_in`.
+
 ## Not here
 
 Scenarios, their actors and their test runs are HS260. The SQL mirror for the

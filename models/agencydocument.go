@@ -125,6 +125,8 @@ type DocumentWorkflow struct {
 	Ordinality  int     `json:"ordinality"`
 	EventFlows  string  `json:"event_flows"`
 	OpensIn     OpensIn `json:"opens_in,omitempty"`
+
+	CancelsOrder bool `json:"cancels_order,omitempty"`
 }
 
 type DocumentWorkItem struct {
