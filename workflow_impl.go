@@ -9,10 +9,35 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+func invalidWorkflow(format string, args ...any) error {
+	return fmt.Errorf("%w: %s", ErrInvalidWorkflow, fmt.Sprintf(format, args...))
+}
+
+func validateWorkflowShape(w models.Workflow) error {
+	if !w.OpensIn.Valid() {
+		return invalidWorkflow("opens_in is %q, not chat or form", w.OpensIn)
+	}
+	return nil
+}
+
+func (m *agencyManager) chatStepsOf(ctx context.Context, tx *gorm.DB, draftID, workflowID, exceptID string) (int64, error) {
+	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkItem)), draftID).
+		Where("workflow_id = ? AND kind = ? AND deleted = ?", workflowID, string(models.StepKindChat), false)
+	if exceptID != "" {
+		q = q.Where("id <> ?", exceptID)
+	}
+	var count int64
+	return count, q.Count(&count).Error
+}
+
 func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error) {
+	if err := validateWorkflowShape(w); err != nil {
+		return models.Workflow{}, fmt.Errorf("CreateWorkflow: %w", err)
+	}
 	if err := m.validateOpenDraftID(ctx, w.DraftID); err != nil {
 		return models.Workflow{}, err
 	}
+	w.OpensIn = w.OpensIn.Normalized()
 	w.ID = newID()
 	w.Deleted = false
 	w.CreatedAt = models.NowRFC3339()
@@ -66,6 +91,19 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 		}
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
+		}
+		if err := validateWorkflowShape(w); err != nil {
+			return err
+		}
+		w.OpensIn = w.OpensIn.Normalized()
+		if existing.IsChat() && !w.IsChat() {
+			chatSteps, err := m.chatStepsOf(ctx, tx, existing.DraftID, existing.ID, "")
+			if err != nil {
+				return err
+			}
+			if chatSteps > 0 {
+				return invalidWorkflow("a workflow that holds a chat step opens in a chat; remove the chat step first")
+			}
 		}
 		w.Code = existing.Code
 		w.DraftID = existing.DraftID

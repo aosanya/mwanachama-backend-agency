@@ -125,9 +125,33 @@ func validateFormQuestion(invalid func(string, ...any) error, number int, q mode
 	return nil
 }
 
+func (m *agencyManager) validateChatPlacement(ctx context.Context, tx *gorm.DB, wi models.WorkItem) error {
+	var w models.Workflow
+	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), wi.DraftID).Where("id = ?", wi.WorkflowID)
+	if err := m.take(q, roleWorkflow, &w, ErrWorkflowNotFound); err != nil {
+		return err
+	}
+	if !w.IsChat() {
+		return invalidStep("a chat step belongs to a workflow that opens in a chat, and %s opens in a form", w.Code)
+	}
+	others, err := m.chatStepsOf(ctx, tx, wi.DraftID, wi.WorkflowID, wi.ID)
+	if err != nil {
+		return err
+	}
+	if others > 0 {
+		return invalidStep("a workflow has one chat step, and %s already has one", w.Code)
+	}
+	return nil
+}
+
 func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB, wi models.WorkItem) error {
 	if err := m.validateOwningWorkflow(ctx, tx, wi); err != nil {
 		return err
+	}
+	if wi.Kind == models.StepKindChat {
+		if err := m.validateChatPlacement(ctx, tx, wi); err != nil {
+			return err
+		}
 	}
 	if err := m.validateStepLinkReferences(ctx, tx, wi); err != nil {
 		return err

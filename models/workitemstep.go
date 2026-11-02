@@ -11,11 +11,12 @@ const (
 	StepKindYesNo       StepKind = "yes_no"
 	StepKindRoute       StepKind = "route"
 	StepKindRunWorkflow StepKind = "run_workflow"
+	StepKindChat        StepKind = "chat"
 )
 
 var stepKinds = []StepKind{
 	StepKindFillForm, StepKindSendForm, StepKindNotify,
-	StepKindYesNo, StepKindRoute, StepKindRunWorkflow,
+	StepKindYesNo, StepKindRoute, StepKindRunWorkflow, StepKindChat,
 }
 
 func StepKinds() []StepKind { return append([]StepKind(nil), stepKinds...) }
@@ -164,6 +165,8 @@ func ActionOf(kind StepKind, formName, runWorkflowName string) string {
 		return "Routes the answers"
 	case StepKindRunWorkflow:
 		return "Starts " + runWorkflowName
+	case StepKindChat:
+		return "Chats with an agent"
 	}
 	return ""
 }

@@ -75,6 +75,7 @@ var (
 	// ErrInvalidWorkItem is returned by CreateWorkItem/UpdateWorkItem for a
 	// step that fails validation.
 	ErrInvalidWorkItem = errors.New("mwanachamaagency: invalid work item")
+	ErrInvalidWorkflow = errors.New("mwanachamaagency: invalid workflow")
 	// ErrInvalidValue is returned by CreateValue/UpdateValue when Text is
 	// empty.
 	ErrInvalidValue = errors.New("mwanachamaagency: invalid value")

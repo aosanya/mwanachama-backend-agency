@@ -217,6 +217,7 @@
         {"name": "description", "type": "text", "description": "What the sequence accomplishes."},
         {"name": "ordinality", "type": "int", "description": "Where it sits in the listed order."},
         {"name": "event_flows", "type": "text", "description": "This workflow's own raw event-flow definition; empty falls back to the organization's."},
+        {"name": "opens_in", "type": "enum", "description": "Where the workflow starts for the person: in a chat with an agent, or in a form. Empty means a form, so a workflow that never says is unchanged.", "values": ["form", "chat"]},
         {"name": "created_at", "type": "timestamp", "description": "When the workflow was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
@@ -238,7 +239,7 @@
         {"name": "description", "type": "text", "description": "What doing it involves."},
         {"name": "ordinality", "type": "int", "description": "Where it sits within its workflow."},
         {"name": "prompt", "type": "text", "description": "The instruction handed to whoever or whatever performs this step."},
-        {"name": "kind", "type": "enum", "description": "What the step is: fill a form, send a form, notify, say yes or no, route the answers of a form that was sent, or run another workflow. Empty for a step that is only an instruction.", "values": ["fill_form", "send_form", "notify", "yes_no", "route", "run_workflow"]},
+        {"name": "kind", "type": "enum", "description": "What the step is: fill a form, send a form, notify, say yes or no, route the answers of a form that was sent, run another workflow, or chat with an agent. Empty for a step that is only an instruction.", "values": ["fill_form", "send_form", "notify", "yes_no", "route", "run_workflow", "chat"]},
         {"name": "role_id", "type": "string", "description": "The one role that acts on this step, in the same draft. Empty when the agency itself takes the step; a send-form or route step is always the agency's."},
         {"name": "run_workflow_id", "type": "string", "description": "The workflow a run-workflow step starts, in the same draft. Empty for every other kind."},
         {"name": "form_name", "type": "string", "description": "What the form this step takes is called. Empty for a route or run-workflow step, which take none."},

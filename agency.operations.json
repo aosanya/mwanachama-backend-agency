@@ -38,6 +38,7 @@
     "ErrInvalidTargetType": 400,
     "ErrInvalidValue": 400,
     "ErrInvalidWorkItem": 400,
+    "ErrInvalidWorkflow": 400,
     "ErrModuleLocked": 409,
     "ErrModuleNotFound": 404,
     "ErrNoChangesDetected": 409,
