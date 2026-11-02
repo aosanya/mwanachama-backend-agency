@@ -1013,7 +1013,7 @@
           "required": true
         },
         {
-          "prompt": "From",
+          "prompt": "Minimum bags",
           "answer_type": "number",
           "required": true
         }
