@@ -2688,8 +2688,14 @@
       "call": "ListRunningReviews",
       "action": "agency.review.list_running",
       "title": "List running reviews",
-      "description": "List every review still running, in any draft of this agency, newest first, without parts or findings. A restart reads this to resume the reviews it left running instead of walking every draft.",
-      "args": [],
+      "description": "List every review still running, in any draft of this agency, or only in the draft named by draft_id, newest first, without parts or findings. A draft with no running review, or one that does not exist, answers an empty list. A restart reads this to resume the reviews it left running instead of walking every draft.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "Only the running reviews of this draft. Omit it for every draft."
+        }
+      ],
       "returns": [
         {
           "body": true

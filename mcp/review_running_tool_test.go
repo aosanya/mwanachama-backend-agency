@@ -26,3 +26,39 @@ func TestReviewTools_ListRunningAnswersItemsAcrossDraftsAndDropsSettledOnes(t *t
 		t.Fatalf("running list after the review settled = %+v, want none", settled)
 	}
 }
+
+func TestReviewTools_ListRunningNarrowsToTheDraftNamed(t *testing.T) {
+	d := newReviewDesk(t)
+	other, err := d.mgr.CreateDraft(ctxT(t), "other", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	first := reviewOf(d.start())["id"].(string)
+	second := reviewOf(d.ok("agency_start_review", map[string]any{"draft_id": other.ID}))["id"].(string)
+
+	idsOf := func(args map[string]any) []string {
+		out := d.ok("agency_list_running_reviews", args)
+		items, ok := out["items"].([]any)
+		if !ok {
+			t.Fatalf("running list for %v = %+v, want {items: [...]}", args, out)
+		}
+		ids := []string{}
+		for _, item := range items {
+			ids = append(ids, item.(map[string]any)["id"].(string))
+		}
+		return ids
+	}
+
+	if got := idsOf(map[string]any{"draft_id": d.draftID}); len(got) != 1 || got[0] != first {
+		t.Fatalf("running list of the first draft = %v, want only %s", got, first)
+	}
+	if got := idsOf(map[string]any{"draft_id": other.ID}); len(got) != 1 || got[0] != second {
+		t.Fatalf("running list of the other draft = %v, want only %s", got, second)
+	}
+	if got := idsOf(map[string]any{"draft_id": "nope"}); len(got) != 0 {
+		t.Fatalf("running list of an unknown draft = %v, want none", got)
+	}
+	if got := idsOf(map[string]any{}); len(got) != 2 {
+		t.Fatalf("running list with no draft named = %v, want both", got)
+	}
+}

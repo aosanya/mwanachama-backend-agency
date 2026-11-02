@@ -309,7 +309,7 @@ type AgencyManager interface {
 	StartReview(ctx context.Context, draftID, startedBy, area string) (models.ReviewView, error)
 	GetReview(ctx context.Context, reviewID, draftID string) (models.ReviewView, error)
 	ListReviews(ctx context.Context, draftID string) ([]models.Review, error)
-	ListRunningReviews(ctx context.Context) ([]models.Review, error)
+	ListRunningReviews(ctx context.Context, draftID string) ([]models.Review, error)
 	SetFindingStatus(ctx context.Context, findingID string, status models.FindingStatus) (models.FindingView, error)
 	CommentFinding(ctx context.Context, findingID, body, author string) (models.ReviewComment, error)
 	ReviewInput(ctx context.Context, reviewID string, area models.ReviewAreaName) (models.ReviewInput, error)

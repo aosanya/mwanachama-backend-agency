@@ -58,7 +58,7 @@ func TestAStartRefusedForWantOfPartsLeavesNoReviewBehind(t *testing.T) {
 	if len(reviews) != 0 {
 		t.Fatalf("reviews after the refused start = %d, want none", len(reviews))
 	}
-	running, err := b.bare.ListRunningReviews(b.ctx)
+	running, err := b.bare.ListRunningReviews(b.ctx, "")
 	if err != nil {
 		t.Fatalf("ListRunningReviews: %v", err)
 	}

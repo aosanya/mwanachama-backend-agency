@@ -8,15 +8,16 @@ The hub's design is [agency-review.md](../../../projects/meta-global-ai-hackatho
 
 A finding's `then` list is stored in the column `then_steps` (Go field `ThenSteps`), because `then` is a reserved word and the migration writes column names unquoted. Everywhere else it is `then`: the tool and the HTTP body take and give an ordered array of `{tool, arguments}`, where `arguments` is a JSON object. The finding's own `arguments` is stored as JSON in the column of that name.
 
-## The seven operations
+## The eight operations
 
-All seven are declared in `agency.operations.json` and call a manager method; no hand-written tool exists. Every tool also takes `instance_id` from the connection, like the others.
+All eight are declared in `agency.operations.json` and call a manager method; no hand-written tool exists. Every tool also takes `instance_id` from the connection, like the others.
 
 | Tool | HTTP | Arguments | Returns |
 |---|---|---|---|
 | `agency_start_review` | `POST /reviews` | `draft_id`, optional `started_by`, optional `area` | `{review, areas}` |
 | `agency_get_review` | `GET /review` | `review_id`, or `draft_id` for the latest | `{review, areas}`; with `draft_id` each part is the newest run that covered it; `{review: null}` when the draft has none |
 | `agency_list_reviews` | `GET /reviews` | `draft_id` | `{items: [review]}`, newest first, no parts |
+| `agency_list_running_reviews` | `GET /running-reviews` | optional `draft_id` | `{items: [review]}`, only the reviews still `running`, newest first, no parts; the route answers the bare array |
 | `agency_set_finding_status` | `PATCH /review-findings/{finding_id}` | `finding_id`, `status` | the finding with its `comments` |
 | `agency_comment_finding` | `POST /review-findings/{finding_id}/comments` | `finding_id`, `body`, optional `author` | the comment |
 | `agency_review_input` | `GET /reviews/{review_id}/input` | `review_id`, `area` | `{previous: [finding]}` from the newest earlier review that covered the part |
@@ -25,6 +26,12 @@ All seven are declared in `agency.operations.json` and call a manager method; no
 A finding is `ReviewFinding` (with its `ordinal`) plus `comments`. An area is `ReviewArea` plus `findings`.
 
 Differences from the hub's table: a listing is `{items}` like every listing in this repo, not `{reviews}`; `started_by` and `author` are optional arguments because the MCP connection carries no caller here; a finding also carries `review_id`.
+
+### Listing the running reviews
+
+`ListRunningReviews(ctx, draftID)` lists the reviews whose status is `running`, newest first. With `draft_id` empty it lists them across every draft of the agency, which is what a restart reads to resume what it left running. With a `draft_id` it lists only that draft's, and a draft that has none, or does not exist, answers an empty list rather than `ErrDraftNotFound`, the way `ListReviews` does, which does not look the draft up either.
+
+The route `GET /running-reviews` answers the bare array. `agency_list_running_reviews` wraps the same list as `{items}`, like the other listing tools. The hub's table lists the tool as taking nothing; `draft_id` was never declared in `agency.operations.json` until HS717, so the filter was ignored and every running review came back.
 
 ## Starting a run
 

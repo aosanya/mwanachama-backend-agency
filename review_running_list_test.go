@@ -26,9 +26,17 @@ func (b reviewBench) startOn(draftID string) models.ReviewView {
 
 func (b reviewBench) runningIDs() []string {
 	b.t.Helper()
-	running, err := b.mgr.ListRunningReviews(b.ctx)
+	return b.runningIDsOf("")
+}
+
+func (b reviewBench) runningIDsOf(draftID string) []string {
+	b.t.Helper()
+	running, err := b.mgr.ListRunningReviews(b.ctx, draftID)
 	if err != nil {
-		b.t.Fatalf("ListRunningReviews: %v", err)
+		b.t.Fatalf("ListRunningReviews(%q): %v", draftID, err)
+	}
+	if running == nil {
+		b.t.Fatalf("ListRunningReviews(%q) = nil, want a list", draftID)
 	}
 	ids := make([]string, 0, len(running))
 	for _, r := range running {
@@ -55,7 +63,7 @@ func sameIDs(got, want []string) bool {
 func TestNoReviewIsRunningBeforeAnyStarts(t *testing.T) {
 	b := newReviewBench(t)
 
-	running, err := b.mgr.ListRunningReviews(b.ctx)
+	running, err := b.mgr.ListRunningReviews(b.ctx, "")
 	if err != nil {
 		t.Fatalf("ListRunningReviews: %v", err)
 	}
@@ -112,5 +120,47 @@ func TestAReviewWithOnePartStillReadingStaysInTheRunningList(t *testing.T) {
 
 	if !sameIDs(got, []string{started.Review.ID}) {
 		t.Fatalf("running reviews = %v, want %s", got, started.Review.ID)
+	}
+}
+
+func TestRunningReviewsOfOneDraftAreOnlyThatDraftsReviews(t *testing.T) {
+	b := newReviewBench(t)
+	other := b.draftNamed("other")
+	first := b.start("")
+	second := b.startOn(other)
+
+	if got := b.runningIDsOf(b.draft); !sameIDs(got, []string{first.Review.ID}) {
+		t.Fatalf("running reviews of the first draft = %v, want only %s", got, first.Review.ID)
+	}
+	if got := b.runningIDsOf(other); !sameIDs(got, []string{second.Review.ID}) {
+		t.Fatalf("running reviews of the other draft = %v, want only %s", got, second.Review.ID)
+	}
+	if got := b.runningIDsOf(""); !sameIDs(got, []string{second.Review.ID, first.Review.ID}) {
+		t.Fatalf("running reviews with no draft named = %v, want both, newest first", got)
+	}
+}
+
+func TestRunningReviewsOfADraftThatDoesNotExistAreAnEmptyList(t *testing.T) {
+	b := newReviewBench(t)
+	b.start("")
+
+	if got := b.runningIDsOf("nope"); len(got) != 0 {
+		t.Fatalf("running reviews of an unknown draft = %v, want none", got)
+	}
+}
+
+func TestADraftWhoseReviewSettledHasNoRunningReviewsWhileAnotherDraftStillHasOne(t *testing.T) {
+	b := newReviewBench(t)
+	other := b.draftNamed("other")
+	done := b.start("")
+	stillRunning := b.startOn(other)
+
+	b.recordEveryPart(done, nil)
+
+	if got := b.runningIDsOf(b.draft); len(got) != 0 {
+		t.Fatalf("running reviews of the settled draft = %v, want none", got)
+	}
+	if got := b.runningIDsOf(other); !sameIDs(got, []string{stillRunning.Review.ID}) {
+		t.Fatalf("running reviews of the other draft = %v, want only %s", got, stillRunning.Review.ID)
 	}
 }
