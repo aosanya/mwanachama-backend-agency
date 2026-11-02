@@ -25,3 +25,12 @@ The agency templates are in the AGD-009 shape: `workflow_objectives` link workfl
 ## Refreshing
 
 A fixture is a snapshot. When a source file changes in a way a test here should see, copy the file over its fixture from the path in the table, run `go test ./...` and commit the fixture with the change that needed it. Nothing refreshes them on its own, and no test reaches back to the source.
+
+The farmers template is kept in three places: the Hub Steward demo, `submission/demo/farmers/agency.json`, which is the source; this repo's `testdata/hub-demo/farmers/agency.json`; and wakala-api's `internal/api/http/testdata/agencies/farmers/agency.json`. A change to the demo is copied into the other two in the same sitting. To see whether a copy has drifted, from the container folder:
+
+```sh
+cmp projects/meta-global-ai-hackathon-community-hubs/submission/demo/farmers/agency.json mwanachama-backend-agency/testdata/hub-demo/farmers/agency.json
+cmp projects/meta-global-ai-hackathon-community-hubs/submission/demo/farmers/agency.json mwanachama-wakala-api/internal/api/http/testdata/agencies/farmers/agency.json
+```
+
+The Siaya lab template drifts the same way (`siaya-lab/agency.json` here against the demo's), so the same check applies to it.
