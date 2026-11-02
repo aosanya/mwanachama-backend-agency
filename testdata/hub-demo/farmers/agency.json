@@ -129,8 +129,14 @@
       "name": "Group coordinator",
       "description": "Keeps the farmers' group going. Approves each supplier before he appears in the market, starts the group order and sets its minimum, decides for any farmer who stays silent, adds a row to the group order's Payments record for each farmer who has paid, and answers for the group to suppliers and buyers. This role is held by a person.",
       "created_at": "2026-10-26T00:00:00Z",
-      "last_updated": "2026-10-26T00:00:00Z",
-      "deleted": false
+      "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false,
+      "permissions": [
+        "market.browse",
+        "market.group_order",
+        "market.group_order_send",
+        "notification.read"
+      ]
     },
     {
       "id": "cc54e044-bdda-58bb-b560-df8309a45960",
@@ -827,6 +833,26 @@
       "created_at": "2026-10-29T00:00:00Z",
       "last_updated": "2026-10-29T00:00:00Z",
       "deleted": false
+    },
+    {
+      "id": "a74a86c6-7e64-56b8-8653-349b521ffe0a",
+      "code": "W-10",
+      "name": "Join a group",
+      "description": "A farmer asks to join a group, with the group's code if she has one.",
+      "ordinality": 10,
+      "created_at": "2026-11-01T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "69a10883-0bb0-584e-ac88-9365f3861d13",
+      "code": "W-11",
+      "name": "Apply as a supplier",
+      "description": "A member applies to sell in the market, with his shop, his area and what he sells. Approve a poster decides it.",
+      "ordinality": 11,
+      "created_at": "2026-11-01T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false
     }
   ],
   "work_items": [
@@ -1174,6 +1200,62 @@
       "created_at": "2026-10-29T00:00:00Z",
       "last_updated": "2026-10-29T00:00:00Z",
       "deleted": false
+    },
+    {
+      "id": "73cc34e9-1068-53ef-88bc-6ec59b2daa40",
+      "code": "WI-26",
+      "workflow_id": "a74a86c6-7e64-56b8-8653-349b521ffe0a",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Join a group",
+      "description": "The farmer says which group she wants to join by its code. The code is optional.",
+      "prompt": "The farmer says which group she wants to join by its code. The code is optional.",
+      "ordinality": 1,
+      "created_at": "2026-11-01T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Join a group",
+      "questions": [
+        {
+          "prompt": "Group code",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "81cf1559-7a20-56ce-af97-0141caef2963",
+      "code": "WI-27",
+      "workflow_id": "69a10883-0bb0-584e-ac88-9365f3861d13",
+      "objective_id": "dfee1da9-3d7f-55ea-9dae-30fa8f3511f1",
+      "title": "Apply as a supplier",
+      "description": "The applicant gives the shop's name, and may add the area and what he sells. The group coordinator decides in Approve a poster.",
+      "prompt": "The applicant gives the shop's name, and may add the area and what he sells. The group coordinator decides in Approve a poster.",
+      "ordinality": 1,
+      "created_at": "2026-11-01T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Apply as a supplier",
+      "questions": [
+        {
+          "prompt": "Shop name",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Area",
+          "answer_type": "free_text",
+          "required": false
+        },
+        {
+          "prompt": "What you sell",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
     }
   ],
   "work_plans": [],
