@@ -2058,7 +2058,7 @@
       "call": "CreateRecord",
       "action": "agency.record.create",
       "title": "Create record",
-      "description": "Add a record to a workflow: a named list the workflow keeps beside its steps, the one role that adds rows, and the form each row is added with. The role and the workflow must be in the draft.",
+      "description": "Add a record to a workflow: a named list the workflow keeps beside its steps, the one role that adds rows, optionally the one role whose members each see their own row (viewer_role_id), and the form each row is added with. The roles and the workflow must be in the draft.",
       "args": [
         {
           "from": "body",
@@ -2104,7 +2104,7 @@
       "call": "GetRecord",
       "action": "agency.record.read",
       "title": "Read record",
-      "description": "Read one record by its id, with its role and its form.",
+      "description": "Read one record by its id, with the role that adds rows, the role that sees its own row, and its form.",
       "args": [
         {
           "from": "path",
@@ -2125,7 +2125,7 @@
       "call": "UpdateRecord",
       "action": "agency.record.update",
       "title": "Update record",
-      "description": "Replace a record's name, workflow, role and form. The same refusals as creating one apply.",
+      "description": "Replace a record's name, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. The same refusals as creating one apply.",
       "args": [
         {
           "from": "body",

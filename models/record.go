@@ -1,17 +1,18 @@
 package models
 
 type Record struct {
-	ID          string         `json:"id"`
-	Code        string         `json:"code"`
-	DraftID     string         `json:"draft_id,omitempty"`
-	WorkflowID  string         `json:"workflow_id"`
-	Name        string         `json:"name"`
-	RoleID      string         `json:"role_id"`
-	FormName    string         `json:"form_name"`
-	Questions   []StepQuestion `json:"questions,omitempty"`
-	CreatedAt   string         `json:"created_at"`
-	LastUpdated string         `json:"last_updated"`
-	Deleted     bool           `json:"deleted"`
+	ID           string         `json:"id"`
+	Code         string         `json:"code"`
+	DraftID      string         `json:"draft_id,omitempty"`
+	WorkflowID   string         `json:"workflow_id"`
+	Name         string         `json:"name"`
+	RoleID       string         `json:"role_id"`
+	ViewerRoleID string         `json:"viewer_role_id"`
+	FormName     string         `json:"form_name"`
+	Questions    []StepQuestion `json:"questions,omitempty"`
+	CreatedAt    string         `json:"created_at"`
+	LastUpdated  string         `json:"last_updated"`
+	Deleted      bool           `json:"deleted"`
 }
 
 type RecordRow struct {
@@ -31,11 +32,12 @@ type RecordRow struct {
 }
 
 type DocumentRecord struct {
-	ID         string         `json:"id"`
-	Code       string         `json:"code"`
-	WorkflowID string         `json:"workflow_id"`
-	Name       string         `json:"name"`
-	RoleID     string         `json:"role_id"`
-	FormName   string         `json:"form_name"`
-	Questions  []StepQuestion `json:"questions,omitempty"`
+	ID           string         `json:"id"`
+	Code         string         `json:"code"`
+	WorkflowID   string         `json:"workflow_id"`
+	Name         string         `json:"name"`
+	RoleID       string         `json:"role_id"`
+	ViewerRoleID string         `json:"viewer_role_id,omitempty"`
+	FormName     string         `json:"form_name"`
+	Questions    []StepQuestion `json:"questions,omitempty"`
 }

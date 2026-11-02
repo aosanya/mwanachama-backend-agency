@@ -568,6 +568,7 @@
         {"name": "workflow_id", "type": "string", "description": "The workflow that keeps this record, in the same draft.", "required": true},
         {"name": "name", "type": "string", "description": "What the record is called, such as Payments.", "required": true},
         {"name": "role_id", "type": "string", "description": "The one role that adds rows, in the same draft.", "required": true},
+        {"name": "viewer_role_id", "type": "string", "description": "The one role whose members each see their own row of the record, in the same draft. Empty when no role but the one that adds rows sees them."},
         {"name": "form_name", "type": "string", "description": "What the form each row is added with is called.", "required": true},
         {"name": "questions", "type": "json", "description": "The questions of the form each row is added with, in the order they are asked."},
         {"name": "created_at", "type": "timestamp", "description": "When the record was written.", "immutable": true},

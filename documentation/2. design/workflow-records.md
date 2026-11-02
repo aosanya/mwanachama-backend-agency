@@ -16,12 +16,29 @@ A record is `models.Record`, stored in the `record` object of
 | `workflow_id` | The workflow that keeps the record, in the same draft. |
 | `name` | What the record is called, such as Payments. Unique inside its workflow, ignoring case. |
 | `role_id` | The one role that adds rows, in the same draft. |
+| `viewer_role_id` | The one role whose members each see their own row of the record (decision 90, HS675), in the same draft. Empty when no role but the one that adds rows sees them. A group is accepted where a role is, as for `role_id`. |
 | `form_name`, `questions` | The form each row is added with, in the same shape as a step's form. |
 
 Create and update refuse with `ErrInvalidRecord` (400) a record with no name,
-no role, two roles, no workflow, no form name, no question, an invalid question
-or a name another record of the workflow already has. A role or a workflow that
-is not in the draft is `ErrRoleNotFound` or `ErrWorkflowNotFound` (404).
+no role, two roles, two viewer roles, no workflow, no form name, no question, an
+invalid question or a name another record of the workflow already has. A role
+(adding or viewing) or a workflow that is not in the draft is `ErrRoleNotFound`
+or `ErrWorkflowNotFound` (404). The viewer role is optional, and an update that
+sends it empty clears it, as the update replaces the whole record.
+
+`viewer_role_id` is declared the way `role_id` is: a column of `record` in
+`agency.blueprint.json`, a field of `models.Record` and `models.DocumentRecord`,
+checked in `validateRecord`, remapped onto the forked role in `CreateDraft` and
+in restoring a publication, and named by the Issue scan when its role is gone.
+`create_record`, `update_record` and `get_record` in `agency.operations.json`
+serve it as `viewer_role_id` on the tool and on `/records`; no handler is
+hand-written. The content hash adds it only when it is set, so an agency
+published before the field existed does not read as changed.
+
+Storing the field does not yet change who may read a row. The live read in
+wakala-api (`agency_list_live_record_rows`) still shows every row to the role
+that adds rows and to anyone else only the rows whose picked-from-a-list answer
+names them; making `viewer_role_id` the gate is open for the owner.
 
 A fork copies the records onto the forked roles and workflows. A publication
 document carries them as `records` on `AgencyDocument`, and forking a draft from
@@ -149,7 +166,7 @@ All are `error`, so none can be published:
 - a sent form, a route target or an otherwise target that no longer exists, or
   that now belongs to another workflow;
 - a recipient role that no longer exists;
-- a record whose role or workflow no longer exists.
+- a record whose role, viewer role or workflow no longer exists.
 
 None of the deletes cascade into the steps that point at what they remove.
 

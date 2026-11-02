@@ -80,6 +80,10 @@ func (s *issueScan) checkRecords() error {
 			s.add(models.IssueSeverityError, "record", r.ID,
 				"Record %s %q adds rows as Role %s, which does not exist", r.Code, r.Name, r.RoleID)
 		}
+		if r.ViewerRoleID != "" && !roleIDs[r.ViewerRoleID] {
+			s.add(models.IssueSeverityError, "record", r.ID,
+				"Record %s %q is seen by Role %s, which does not exist", r.Code, r.Name, r.ViewerRoleID)
+		}
 		if !workflowIDs[r.WorkflowID] {
 			s.add(models.IssueSeverityError, "record", r.ID,
 				"Record %s %q belongs to Workflow %s, which does not exist", r.Code, r.Name, r.WorkflowID)

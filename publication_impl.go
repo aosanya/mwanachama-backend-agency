@@ -136,7 +136,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		records = append(records, hashRecord("Record", map[string]any{
 			"id": r.ID, "workflow_id": r.WorkflowID, "name": r.Name, "role_id": r.RoleID,
 			"form_name": r.FormName, "questions": r.Questions, "deleted": r.Deleted,
-		}))
+		}, optionalField{"viewer_role_id", r.ViewerRoleID}))
 	}
 
 	steps, err := list[models.EventFlowStep](m, scoped(roleEventFlowStep), roleEventFlowStep)

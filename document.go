@@ -111,7 +111,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	for _, r := range records {
 		doc.Records = append(doc.Records, models.DocumentRecord{
 			ID: r.ID, Code: r.Code, WorkflowID: r.WorkflowID, Name: r.Name,
-			RoleID: r.RoleID, FormName: r.FormName, Questions: r.Questions,
+			RoleID: r.RoleID, ViewerRoleID: r.ViewerRoleID, FormName: r.FormName, Questions: r.Questions,
 		})
 	}
 
@@ -364,8 +364,8 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	for _, r := range doc.Records {
 		row := models.Record{
 			ID: newID(), Code: r.Code, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
-			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), FormName: r.FormName, Questions: r.Questions,
-			CreatedAt: now, LastUpdated: now,
+			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), ViewerRoleID: remap(roleIDs, r.ViewerRoleID),
+			FormName: r.FormName, Questions: r.Questions, CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleRecord, row); err != nil {
 			return fail(err)

@@ -31,6 +31,9 @@ func validateRecordShape(r models.Record) error {
 	if strings.ContainsAny(r.RoleID, ", \t\r\n;") {
 		return invalidRecord("a record has one role that adds rows, got %q", r.RoleID)
 	}
+	if strings.ContainsAny(r.ViewerRoleID, ", \t\r\n;") {
+		return invalidRecord("a record has at most one role that sees its rows, got %q", r.ViewerRoleID)
+	}
 	if r.WorkflowID == "" {
 		return invalidRecord("a record belongs to a workflow")
 	}
@@ -43,6 +46,11 @@ func (m *agencyManager) validateRecord(ctx context.Context, tx *gorm.DB, r model
 	}
 	if err := m.actorOfDraft(ctx, tx, r.DraftID, r.RoleID); err != nil {
 		return err
+	}
+	if r.ViewerRoleID != "" {
+		if err := m.actorOfDraft(ctx, tx, r.DraftID, r.ViewerRoleID); err != nil {
+			return err
+		}
 	}
 	var workflow models.Workflow
 	workflowQuery := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), r.DraftID).Where("id = ?", r.WorkflowID)
