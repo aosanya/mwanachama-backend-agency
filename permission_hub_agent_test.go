@@ -279,7 +279,7 @@ func TestEveryActionOfTheHubAgentPermissionsIsDeclaredByItsModuleUnderTheToolNam
 			t.Errorf("%s is served as tool %s, but the agents call %s", c.action, tool, c.tool)
 		}
 	}
-	for _, code := range []string{"chat.thread", "form.compose", "form.answers.read", "document.read", "group.read", "member.read"} {
+	for _, code := range []string{"chat.thread", "chat.reach", "form.compose", "form.answers.read", "document.read", "group.read", "member.read", "member.view"} {
 		for _, a := range permissionNamed(t, code).Actions {
 			if _, ok := declared[a]; !ok {
 				t.Errorf("permission %s lists %s, which no module declares", code, a)
