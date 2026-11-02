@@ -32,6 +32,9 @@ func (m *agencyManager) carriedFindings(ctx context.Context, tx *gorm.DB, review
 		at[key] = len(out)
 		out = append(out, stored)
 	}
+	for i := range out {
+		out[i].Ordinal = i + 1
+	}
 	return out, nil
 }
 

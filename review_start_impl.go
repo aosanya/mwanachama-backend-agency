@@ -33,14 +33,14 @@ func (m *agencyManager) StartReview(ctx context.Context, draftID, startedBy, are
 			return err
 		}
 		review := models.Review{
-			ID: newID(), DraftID: draftID, Status: models.ReviewRunning,
+			ID: newID(), DraftID: draftID, Status: models.ReviewRunning, Running: true,
 			StartedBy: strings.TrimSpace(startedBy), StartedAt: models.NowRFC3339(),
 		}
 		if latest != nil {
 			review.PreviousReviewID = latest.ID
 		}
 		if err := m.insertRow(ctx, tx, roleReview, review); err != nil {
-			return err
+			return duplicateOr(err, ErrReviewRunning)
 		}
 		for _, name := range names {
 			area := models.ReviewArea{ID: newID(), ReviewID: review.ID, Area: name, Status: models.ReviewAreaReading}

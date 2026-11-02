@@ -41,7 +41,7 @@ func (m *agencyManager) reviewAreaRows(ctx context.Context, tx *gorm.DB, reviewI
 }
 
 func (m *agencyManager) findingViews(ctx context.Context, tx *gorm.DB, where string, args ...any) ([]models.FindingView, error) {
-	q := tx.WithContext(ctx).Table(m.table(roleReviewFinding)).Where(where, args...).Order("title").Order("id")
+	q := tx.WithContext(ctx).Table(m.table(roleReviewFinding)).Where(where, args...).Order("ordinal").Order("title").Order("id")
 	findings, err := list[models.ReviewFinding](m, q, roleReviewFinding)
 	if err != nil {
 		return nil, err

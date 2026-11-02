@@ -202,8 +202,14 @@ func TestEveryReviewObjectIsFilteredByAnIndex(t *testing.T) {
 		if !ok {
 			t.Fatalf("the blueprint declares no %s", role)
 		}
-		if len(o.Indexes) != 1 || !reflect.DeepEqual(o.Indexes[0].Fields, []string{column}) {
-			t.Errorf("%s indexes = %+v, want one on %s", role, o.Indexes, column)
+		var filters [][]string
+		for _, idx := range o.Indexes {
+			if !idx.Unique {
+				filters = append(filters, idx.Fields)
+			}
+		}
+		if !reflect.DeepEqual(filters, [][]string{{column}}) {
+			t.Errorf("%s filter indexes = %v, want one on %s", role, filters, column)
 		}
 	}
 }

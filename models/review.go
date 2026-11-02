@@ -56,6 +56,7 @@ type Review struct {
 	Status           ReviewStatus `json:"status"`
 	PreviousReviewID string       `json:"previous_review_id"`
 	StartedBy        string       `json:"started_by"`
+	Running          bool         `json:"running"`
 	StartedAt        string       `json:"started_at"`
 	FinishedAt       string       `json:"finished_at"`
 	Tokens           int          `json:"tokens"`
@@ -75,6 +76,7 @@ type ReviewFinding struct {
 	ID            string         `json:"id"`
 	ReviewID      string         `json:"review_id"`
 	AreaID        string         `json:"area_id"`
+	Ordinal       int            `json:"ordinal"`
 	Title         string         `json:"title"`
 	Detail        string         `json:"detail"`
 	Tool          string         `json:"tool"`

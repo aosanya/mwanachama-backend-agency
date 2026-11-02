@@ -22,13 +22,15 @@ All seven are declared in `agency.operations.json` and call a manager method; no
 | `agency_review_input` | `GET /reviews/{review_id}/input` | `review_id`, `area` | `{previous: [finding]}` from the newest earlier review that covered the part |
 | `agency_record_review_area` | `PUT /reviews/{review_id}/areas/{area}` | `review_id`, `area`, `status`, `summary`, `failure_reason`, `tokens`, `findings` | `{area, review_status}` |
 
-A finding is `ReviewFinding` plus `comments`. An area is `ReviewArea` plus `findings`.
+A finding is `ReviewFinding` (with its `ordinal`) plus `comments`. An area is `ReviewArea` plus `findings`.
 
 Differences from the hub's table: a listing is `{items}` like every listing in this repo, not `{reviews}`; `started_by` and `author` are optional arguments because the MCP connection carries no caller here; a finding also carries `review_id`.
 
 ## Starting a run
 
 `StartReview` needs an open draft, refuses with the sentence `A review of this draft is already running.` while any review of the draft is `running`, sets `previous_review_id` to the latest earlier review, and writes one `reading` area per part.
+
+Two starts at once for one draft cannot both pass the check: a review carries `running`, true from its start until its last part is recorded, and the unique index `running_unique` on `draft_id` where `running` is true refuses a second one. The index cannot test the `status` column, because an index condition here can only ask whether a column is empty, true or false, so `running` mirrors `status` being `running`. `StartReview` reads a unique violation as `ErrReviewRunning`, the same sentence as the check. Reviews written before the column existed hold no value in it and are not covered by the index; the check on `status` still refuses a start beside them.
 
 `StartReview(ctx, draftID, startedBy, area string)` takes an optional `area`. Empty reads every part the hub reads. A part name (`profile`, `goals`, `objectives`, `roles_agents`, `workflows`, `risks`, `tests`) writes only that one `reading` area; an unknown name, or one the hub does not read for the draft, is refused with `ErrInvalidReview`. The other parts are left as they were: they keep the findings, notes and dismissals of the last run that covered them.
 
@@ -66,4 +68,4 @@ The Workflows reviewer reads every workflow of the draft: steps in a sensible or
 
 ## Order
 
-Areas are returned in the order profile, goals, objectives, roles_agents, workflows, risks, tests. Findings are returned by title, then id, because a finding stores no position. Comments are returned oldest first.
+Areas are returned in the order profile, goals, objectives, roles_agents, workflows, risks, tests. Findings are returned in the order the reviewer wrote them: each stores its `ordinal`, counting from 1 within its part, set when the part is recorded after a repeated title has been folded into its first place. Findings recorded before the column existed have no ordinal and are returned by title, then id. Comments are returned oldest first.
