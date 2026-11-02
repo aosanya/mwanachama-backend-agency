@@ -24,7 +24,11 @@ no role, two roles, two viewer roles, no workflow, no form name, no question, an
 invalid question or a name another record of the workflow already has. A role
 (adding or viewing) or a workflow that is not in the draft is `ErrRoleNotFound`
 or `ErrWorkflowNotFound` (404). The viewer role is optional, and an update that
-sends it empty clears it, as the update replaces the whole record.
+sends it empty, or leaves it out, clears it, as the update replaces the whole
+record and does not merge into it. `agency_update_record` says so in its
+description and `routes/record_viewer_test.go` pins it. Whether an update should
+keep what it leaves out is the owner's call (HS672); until then a client that
+means to keep the viewer sends it again.
 
 `viewer_role_id` is declared the way `role_id` is: a column of `record` in
 `agency.blueprint.json`, a field of `models.Record` and `models.DocumentRecord`,

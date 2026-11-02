@@ -2125,7 +2125,7 @@
       "call": "UpdateRecord",
       "action": "agency.record.update",
       "title": "Update record",
-      "description": "Replace a record's name, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. The same refusals as creating one apply.",
+      "description": "Replace a record's name, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. An update replaces the whole record and does not merge into it: a viewer_role_id left out clears it, so send the current one to keep it. The same refusals as creating one apply.",
       "args": [
         {
           "from": "body",
