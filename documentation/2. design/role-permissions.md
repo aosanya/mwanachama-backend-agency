@@ -32,8 +32,10 @@ with `ErrPublishValidationFailed`) when a role declares:
 
 Decision 263 names permissions by example ("publish a report, approve forms,
 decide join requests, invite, record a promise's outcome, …") and decision
-265 names the locked owner permissions. The catalog holds exactly those, with
-codes chosen here:
+265 names the locked owner permissions. These ten are the ones those two
+decisions name, with codes chosen here. The catalogue has grown since: later
+sections add some, the last table lists the rest, and
+`models/permissions_catalog.json` is the whole list:
 
 | Code | Permission | Locked |
 | --- | --- | --- |
@@ -222,9 +224,13 @@ fails if one is added before the host gates them.
 Checked by `permission_hub_agent_test.go`: every call the agents make is carried by an
 unlocked permission; each new permission lists exactly the actions above and nothing
 nearby (no archive, no target, no create beyond the agents' own); the earlier
-codes are all still present; a role may declare every one and still publish; and,
-when the sibling repos are checked out beside this one, every action is declared
-by its module under the tool name the agents call.
+codes are all still present; a role may declare every one and still publish; and
+every call the agents make is declared by its module under the tool name the
+agents call, as is every action of `chat.thread`, `chat.reach`, `form.compose`,
+`form.answers.read`, `document.read`, `group.read`, `member.read`, `member.view`
+and `ai.use`. The declarations are read from the copies under `testdata/operations/`,
+never from a sibling checkout: a missing copy fails the test, and
+`documentation/4. qa/test-fixtures.md` says where each copy came from.
 
 ## The risk manager's reads (HS97)
 
@@ -246,8 +252,8 @@ raised by the manager after approving a draft, never by the agent's own role.
 `risk_permissions_test.go` fails if a non-GET action of the risk manager joins an
 unlocked permission, if `risk.read` carries anything the risk manager does not
 declare as a read, or if a demo template other than the lab's Hub Steward
-holds it. The risk manager's operations file is read from the sibling checkout
-and the test skips when it is absent.
+holds it. The risk manager's operations file is read from the copy at
+`testdata/operations/riskmanager.operations.json`, and a missing copy fails the test.
 
 The module is not in the module catalog and is not mounted: the mount is
 HS95 on the hub project's board and RM1 on the risk manager's, and waits on the
