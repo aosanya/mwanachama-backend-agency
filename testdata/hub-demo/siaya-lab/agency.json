@@ -69,7 +69,7 @@
       "id": "6d2d8afd-0e8b-5597-a92c-8dcaa2089362",
       "code": "R-1",
       "name": "Lab manager",
-      "permissions": ["mount.list"],
+      "permissions": ["chat.archive", "group.join", "mount.list"],
       "description": "Runs the lab. Approves access requests, confirms seat bookings drafted by Hub Steward, may reserve seats for a course or a member group, and acts on network problems Hub Steward reports. Access requests and bookings made outside opening hours are confirmed on the next opening day. This role is held by a person.",
       "created_at": "2026-10-21T00:00:00Z",
       "last_updated": "2026-10-21T00:00:00Z",
@@ -79,7 +79,7 @@
       "id": "bd63bab3-d3dc-5eb5-93a2-98506d478b4a",
       "code": "R-2",
       "name": "Member",
-      "permissions": ["mount.list"],
+      "permissions": ["chat.archive", "group.join", "mount.list"],
       "description": "A registered member of the lab. Uses the lab during opening hours, books seats, connects to the members' Wi-Fi with a personal login and asks Hub Steward in the lab's chat.",
       "created_at": "2026-10-21T00:00:00Z",
       "last_updated": "2026-10-21T00:00:00Z",
@@ -502,6 +502,16 @@
       "created_at": "2026-10-21T00:00:00Z",
       "last_updated": "2026-10-21T00:00:00Z",
       "deleted": false
+    },
+    {
+      "id": "5f9bf003-70ec-5e82-a138-17b0357a8829",
+      "code": "W-5",
+      "name": "Join a group",
+      "description": "A member asks to join a group of the lab, with the group's code if she has one.",
+      "ordinality": 5,
+      "created_at": "2026-11-01T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false
     }
   ],
   "work_items": [
@@ -600,6 +610,29 @@
       "created_at": "2026-10-21T00:00:00Z",
       "last_updated": "2026-10-21T00:00:00Z",
       "deleted": false
+    },
+    {
+      "id": "89139886-7223-5a33-9ed7-ce980515848f",
+      "code": "WI-9",
+      "workflow_id": "5f9bf003-70ec-5e82-a138-17b0357a8829",
+      "objective_id": "ccbc4679-489e-5e8f-a66b-4adad2019528",
+      "title": "Join a group",
+      "description": "The member says which group she wants to join by its code. The code is optional.",
+      "prompt": "The member says which group she wants to join by its code. The code is optional.",
+      "ordinality": 1,
+      "created_at": "2026-11-01T00:00:00Z",
+      "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "bd63bab3-d3dc-5eb5-93a2-98506d478b4a",
+      "form_name": "Join a group",
+      "questions": [
+        {
+          "prompt": "Group code",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
     }
   ],
   "work_plans": [],

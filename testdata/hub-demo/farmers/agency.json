@@ -129,9 +129,11 @@
       "name": "Group coordinator",
       "description": "Keeps the farmers' group going. Approves each supplier before he appears in the market, starts the group order and sets its minimum, decides for any farmer who stays silent, adds a row to the group order's Payments record for each farmer who has paid, and answers for the group to suppliers and buyers. This role is held by a person.",
       "created_at": "2026-10-26T00:00:00Z",
-      "last_updated": "2026-11-01T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
       "deleted": false,
       "permissions": [
+        "chat.archive",
+        "group.join",
         "market.browse",
         "market.group_order",
         "market.group_order_send",
@@ -144,8 +146,12 @@
       "name": "Farmer",
       "description": "A member of the group who grows crops. Says what inputs they need, such as seed or fertiliser and how much, and what produce they have to sell.",
       "created_at": "2026-10-26T00:00:00Z",
-      "last_updated": "2026-10-26T00:00:00Z",
-      "deleted": false
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "permissions": [
+        "chat.archive",
+        "group.join"
+      ]
     },
     {
       "id": "ff60e4c9-04a6-5b93-8fcb-a61941d291bb",
