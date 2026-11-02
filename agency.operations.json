@@ -458,7 +458,7 @@
       "action": "agency.workflow.create",
       "status": 201,
       "title": "Create workflow",
-      "description": "Add a named sequence of work the organization performs.",
+      "description": "Add a named sequence of work the organization performs. opens_in says where it starts for the person: chat, or form (the default, so leave it out for a form). A workflow that opens in a chat holds one chat step.",
       "args": [
         {
           "from": "body",
@@ -540,7 +540,7 @@
       "call": "UpdateWorkflow",
       "action": "agency.workflow.update",
       "title": "Update workflow",
-      "description": "Replace a workflow's name, description, position and event-flow definition.",
+      "description": "Replace a workflow's name, description, position, event-flow definition and opens_in (chat or form; a workflow that holds a chat step stays a chat).",
       "args": [
         {
           "from": "body",
@@ -657,7 +657,7 @@
       "action": "agency.work_item.create",
       "status": 201,
       "title": "Create work item",
-      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route or run_workflow), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused.",
+      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused.",
       "args": [
         {
           "from": "body",

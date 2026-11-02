@@ -3,6 +3,7 @@ package mwanachamaagency
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -208,6 +209,7 @@ func (s *issueScan) checkWorkItems() error {
 	}
 
 	workflowsWithItem := make(map[string]bool, len(workItems))
+	chatWorkflows := map[string]bool{}
 	for _, w := range workItems {
 		workflowsWithItem[w.WorkflowID] = true
 		if w.RoleID != "" && !roleIDs[w.RoleID] {
@@ -222,13 +224,42 @@ func (s *issueScan) checkWorkItems() error {
 			s.add(models.IssueSeverityError, "work_item", w.ID,
 				"Work item %s %q cancels with Workflow %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.CancelWorkflowID))
 		}
+		if w.Kind == models.StepKindChat {
+			chatWorkflows[w.WorkflowID] = true
+			s.checkChatStep(w, roleIDs, workflowIDs)
+		}
 	}
 	for _, w := range workflows {
 		if !workflowsWithItem[w.ID] {
 			s.add(models.IssueSeverityError, "workflow", w.ID, "Workflow %s %q has no Work Items", w.Code, w.Name)
 		}
+		if w.IsChat() && !chatWorkflows[w.ID] {
+			s.add(models.IssueSeverityError, "workflow", w.ID, "Workflow %s %q opens in a chat but has no chat step", w.Code, w.Name)
+		}
 	}
 	return nil
+}
+
+func (s *issueScan) checkChatStep(w models.WorkItem, roleIDs, workflowIDs map[string]bool) {
+	if w.RoleID == "" {
+		s.add(models.IssueSeverityError, "work_item", w.ID, "Work item %s %q is a chat step that names no role that opens it", w.Code, w.Title)
+	}
+	switch {
+	case w.AgentRoleID == "":
+		s.add(models.IssueSeverityError, "work_item", w.ID, "Work item %s %q is a chat step that names no agent to chat with", w.Code, w.Title)
+	case !roleIDs[w.AgentRoleID]:
+		s.add(models.IssueSeverityError, "work_item", w.ID,
+			"Work item %s %q chats with Role %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.AgentRoleID))
+	}
+	if strings.TrimSpace(w.Topic) == "" {
+		s.add(models.IssueSeverityError, "work_item", w.ID, "Work item %s %q is a chat step that names no topic", w.Code, w.Title)
+	}
+	for _, id := range w.StartWorkflowIDs {
+		if !workflowIDs[id] {
+			s.add(models.IssueSeverityError, "work_item", w.ID,
+				"Work item %s %q may start Workflow %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(id))
+		}
+	}
 }
 
 func (s *issueScan) checkEventFlowSteps() error {

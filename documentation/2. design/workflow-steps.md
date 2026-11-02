@@ -12,7 +12,7 @@ in `agency.blueprint.json`, carried by `models.WorkItem`:
 
 | Field | Meaning |
 |---|---|
-| `kind` | `fill_form`, `send_form`, `notify`, `yes_no`, `route` or `run_workflow`. Empty is an instruction-only step, which is every step written before this change. |
+| `kind` | `fill_form`, `send_form`, `notify`, `yes_no`, `route`, `run_workflow` or `chat`. Empty is an instruction-only step, which is every step written before this change. |
 | `role_id` | The one role that acts, in the same draft. Empty means the agency takes the step. |
 | `run_workflow_id` | The workflow a `run_workflow` step starts, in the same draft. |
 | `form_name` | What the step's form is called. |
@@ -121,6 +121,62 @@ The draft scan and the document import treat an offered group the same way: the
 scan does not flag it as a role that does not exist, and an imported step keeps
 the group id as it is, since groups belong to the agency and not to a draft. The
 agency in the picker is not an actor id here: an agency-only step names no role.
+
+## A workflow that opens in a chat (HS640, Hub Steward decision 123)
+
+A workflow says where it starts for the person with `opens_in`: `chat` or
+`form`. Empty means a form, and `form` is stored as empty, so a workflow that
+never says is exactly what it was before: the publication document leaves the
+key out, the content hash leaves the record out, and a workflow saved with
+`form` hashes the same as one saved with nothing. Any other value is refused
+with `ErrInvalidWorkflow` (400).
+
+A chat workflow's step 1 is a step of the new kind `chat`, so Publish still
+counts a step (the "workflow with no steps" error in the scan is unchanged).
+More steps may follow it. The agency does not create or lock the chat step: the
+console draws it as the locked step and creates it.
+
+The chat step reuses `role_id` for the role that opens it and adds five fields
+on `work_item`, carried by `models.WorkItem`:
+
+| Field | Meaning |
+|---|---|
+| `agent_role_id` | The role, in the same draft, that the chat is with. |
+| `topic` | What the chat talks about; the agent steers back to it. |
+| `opening_line` | What the chat says first. |
+| `prompts` | Up to three lines offered to start with. |
+| `tools` | The tools it may call, stored as the plain names the manager picked them by. Nothing checks them against a list: where the list comes from is open (decision 123). |
+| `start_workflow_ids` | The workflows, in the same draft, that the chat may lead the person to. |
+
+Create and update refuse, with `ErrInvalidWorkItem` unless noted:
+
+- a chat step in a workflow that opens in a form, or a second chat step in one
+  workflow;
+- any chat field on a step that is not a chat step, or on a step with no kind;
+- a `tool` (the single tool of a role's step) on a chat step, which lists its
+  tools in `tools`;
+- more than three prompts, or a blank prompt, tool or workflow to start;
+- a start workflow that is the workflow that owns the step;
+- an agent role that is not in the draft: `ErrRoleNotFound` (404); a workflow to
+  start that is not in the draft: `ErrWorkflowNotFound` (404).
+
+A workflow cannot go back from `chat` to a form while it holds a chat step:
+`ErrInvalidWorkflow`.
+
+What is left for Publish rather than for each save, because the console fills
+the step in after creating it: the Issue scan raises an `error` for a chat step
+that names no opening role, no agent or no topic, whose agent or start workflow
+no longer exists, and for a workflow that opens in a chat and has no chat step.
+
+Everything that copies a step carries the fields: a draft fork and a fork from a
+tag remap `agent_role_id` and `start_workflow_ids` onto the new draft's roles and
+workflows; the content hash adds each non-empty field to the step's record and
+`opens_in` to the workflow's, the same way `hazard_code` joined a risk's.
+
+The wakala-api reviewer that renames a workflow or a step rewrites the fields it
+knows (`reviewruns/workflows.go`), so it has to keep `opens_in` on a workflow and
+`agent_role_id`, `topic`, `opening_line`, `prompts`, `tools` and
+`start_workflow_ids` on a step, or a review's rename blanks them.
 
 ## Not here
 

@@ -89,7 +89,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		records = append(records, hashRecord("Workflow", map[string]any{
 			"id": r.ID, "name": r.Name, "description": r.Description,
 			"ordinality": r.Ordinality, "event_flows": r.EventFlows, "deleted": r.Deleted,
-		}))
+		}, optionalField{"opens_in", string(r.OpensIn)}))
 	}
 
 	workflowObjectives, err := list[models.WorkflowObjective](m, scoped(roleWorkflowObjective), roleWorkflowObjective)
@@ -117,7 +117,9 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 				"id": r.ID, "kind": r.Kind, "role_id": r.RoleID, "run_workflow_id": r.RunWorkflowID,
 				"form_name": r.FormName, "questions": r.Questions, "tool": r.Tool, "recipient_role_id": r.RecipientRoleID,
 				"sent_step_id": r.SentStepID, "routes": r.Routes, "otherwise_step_id": r.OtherwiseStepID,
-			}))
+			}, optionalField{"agent_role_id", r.AgentRoleID}, optionalField{"topic", r.Topic},
+				optionalField{"opening_line", r.OpeningLine}, optionalField{"prompts", hashList(r.Prompts)},
+				optionalField{"tools", hashList(r.Tools)}, optionalField{"start_workflow_ids", hashList(r.StartWorkflowIDs)}))
 		}
 		if r.TimeLimitMinutes != 0 || r.CancelWorkflowID != "" {
 			records = append(records, hashRecord("WorkItemLimit", map[string]any{
@@ -336,6 +338,14 @@ func (m *agencyManager) libraryHashRecords(scoped func(string) *gorm.DB) ([]stri
 		}))
 	}
 	return records, nil
+}
+
+func hashList(values []string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	b, _ := json.Marshal(values)
+	return string(b)
 }
 
 func hashRecord(typeName string, fields map[string]any, optional ...optionalField) string {

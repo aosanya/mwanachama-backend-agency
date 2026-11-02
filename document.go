@@ -72,7 +72,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	for _, w := range workflows {
 		doc.Workflows = append(doc.Workflows, models.DocumentWorkflow{
 			ID: w.ID, Code: w.Code, Name: w.Name, Description: w.Description,
-			Ordinality: w.Ordinality, EventFlows: w.EventFlows,
+			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn,
 		})
 	}
 
@@ -89,6 +89,8 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 			RecipientRoleID: wi.RecipientRoleID, SentStepID: wi.SentStepID,
 			Routes: wi.Routes, OtherwiseStepID: wi.OtherwiseStepID,
 			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: wi.CancelWorkflowID,
+			AgentRoleID: wi.AgentRoleID, Topic: wi.Topic, OpeningLine: wi.OpeningLine,
+			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: wi.StartWorkflowIDs,
 		})
 	}
 
@@ -316,7 +318,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	for _, w := range doc.Workflows {
 		row := models.Workflow{
 			ID: newID(), Code: w.Code, DraftID: draftID, Name: w.Name, Description: w.Description,
-			Ordinality: w.Ordinality, EventFlows: w.EventFlows, CreatedAt: now, LastUpdated: now,
+			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn, CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleWorkflow, row); err != nil {
 			return fail(err)
@@ -349,6 +351,8 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			RecipientRoleID: remap(roleIDs, wi.RecipientRoleID), SentStepID: remap(stepIDs, wi.SentStepID),
 			Routes: remapRoutes(stepIDs, wi.Routes), OtherwiseStepID: remap(stepIDs, wi.OtherwiseStepID),
 			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: workflowIDs[wi.CancelWorkflowID],
+			AgentRoleID: remap(roleIDs, wi.AgentRoleID), Topic: wi.Topic, OpeningLine: wi.OpeningLine,
+			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: remapAll(workflowIDs, wi.StartWorkflowIDs),
 			CreatedAt: now, LastUpdated: now,
 		}
 		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {

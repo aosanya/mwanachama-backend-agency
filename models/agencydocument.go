@@ -118,12 +118,13 @@ type DocumentObjective struct {
 }
 
 type DocumentWorkflow struct {
-	ID          string `json:"id"`
-	Code        string `json:"code"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Ordinality  int    `json:"ordinality"`
-	EventFlows  string `json:"event_flows"`
+	ID          string  `json:"id"`
+	Code        string  `json:"code"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Ordinality  int     `json:"ordinality"`
+	EventFlows  string  `json:"event_flows"`
+	OpensIn     OpensIn `json:"opens_in,omitempty"`
 }
 
 type DocumentWorkItem struct {
@@ -151,6 +152,13 @@ type DocumentWorkItem struct {
 
 	TimeLimitMinutes int    `json:"time_limit_minutes,omitempty"`
 	CancelWorkflowID string `json:"cancel_workflow_id,omitempty"`
+
+	AgentRoleID      string   `json:"agent_role_id,omitempty"`
+	Topic            string   `json:"topic,omitempty"`
+	OpeningLine      string   `json:"opening_line,omitempty"`
+	Prompts          []string `json:"prompts,omitempty"`
+	Tools            []string `json:"tools,omitempty"`
+	StartWorkflowIDs []string `json:"start_workflow_ids,omitempty"`
 }
 
 type DocumentWorkflowObjective struct {

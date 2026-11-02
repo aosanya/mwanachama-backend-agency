@@ -195,6 +195,8 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		wi.RoleID = remap(roleIDs, wi.RoleID)
 		wi.RunWorkflowID = remap(workflowIDs, wi.RunWorkflowID)
 		wi.CancelWorkflowID = remap(workflowIDs, wi.CancelWorkflowID)
+		wi.AgentRoleID = remap(roleIDs, wi.AgentRoleID)
+		wi.StartWorkflowIDs = remapAll(workflowIDs, wi.StartWorkflowIDs)
 		wi.RecipientRoleID = remap(roleIDs, wi.RecipientRoleID)
 		wi.SentStepID = remap(stepIDs, wi.SentStepID)
 		wi.OtherwiseStepID = remap(stepIDs, wi.OtherwiseStepID)
@@ -433,6 +435,17 @@ func remapRoutes(stepIDs map[string]string, routes []models.StepRoute) []models.
 	out := make([]models.StepRoute, len(routes))
 	for i, r := range routes {
 		out[i] = models.StepRoute{Match: r.Match, Rules: append([]models.RouteRule(nil), r.Rules...), GoToStep: remap(stepIDs, r.GoToStep)}
+	}
+	return out
+}
+
+func remapAll(ids map[string]string, values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]string, len(values))
+	for i, value := range values {
+		out[i] = remap(ids, value)
 	}
 	return out
 }
