@@ -301,3 +301,57 @@ Why this shape:
 - `market.group_order.answer_revision` is in no permission. It is the picker's own answer to revised terms, and the market test refuses any permission carrying an answer except `market.ask_answer`. The coordinator uses `decide_silent_line`.
 - `market.ask.answer` is the poster's own reply to an ask, so it is a permission of its own, "Answer an ask as the poster", and `market_permissions_test.go` fails if any other permission carries it.
 - The actions that read or write only the caller's own state (`actor.read_mine`, `group.list_mine`, `forms.form.list_waiting`, the live records and the like) are in no permission at all. The host lets every seated agent do them; the list is in wakala-api's `agent-role-permissions.md`.
+
+## Every other permission in the catalogue (HS724)
+
+The tables above leave some permissions out or give them only a paragraph. This table gives each of the rest one row, so every permission in `models/permissions_catalog.json` has a row on this page. The five permissions locked to owners are in the table under "The vocabulary".
+
+"Owning module" is the module the permission's action ids belong to, the part before the first dot. The catalogue's own `module` field is empty on some of these (`form.send` and the actor ones among them), so this column does not read it. "What a holder can do" says the permission's actions in words. For the actor, comm, forms, sources, ai and riskmanager modules the words come from the titles and descriptions in their snapshots under `testdata/operations/`. `instance`, `market`, `catalog`, `digitaltwin`, `assetmanager` and `taskmanager` have no snapshot here, so for them the words are the action ids and the permission's catalogue name and nothing more. A permission with no action grants nothing (decision 439).
+
+| Code | Permission | Locked | Owning module | What a holder can do |
+| --- | --- | --- | --- | --- |
+| `join_request.operate` | Read join requests and decide them as the operator | no | `actor` | List the join requests made to one group and read one. Approve or decline a pending request on the agency's behalf, with no leading seat asked: an approval registers the actor at the group in the same write, and a declined request is kept so the actor may ask again. The actor module says its mount grants the two decisions only to the agency's operators. |
+| `mount.list` | See the agency's modules and their names | no | `instance` | See the agency's modules and the names it gave them. Its one action is `instance.mount.list`. |
+| `role.assign` | Give a role and take it back | no | `actor` | Grant an actor a seat of some kind in a group, and revoke a seat. A grant is refused when the kind is retired, when the actor or the group does not exist, and when the actor already holds a live seat of that kind at that group; the grantor is the caller, never the body. Revoking a seat that already ended keeps the first reason and date. |
+| `market.browse` | Browse the market | no | `market` | List the posters, offers, notices and group orders, and list the kinds. Read one group order. Read the trail of a group order and of an order. |
+| `market.categorise` | Put a product under another category | no | `market` | Put a product under another category. |
+| `market.offer` | Post offers and keep stock | no | `market` | Create and update offers. Set and read stock. |
+| `market.notice` | Post a market notice | no | `market` | Create a market notice. |
+| `market.ask` | Ask a poster a question | no | `market` | Create an ask to a poster. List asks and list yeses. |
+| `market.advise` | Advise a farmer on the quotes to a notice | no | `market` | List quotes. Create and list drafts. |
+| `market.group_order_join` | Join a group order | no | `market` | Join a group order. |
+| `market.group_order_send` | Send a group order to the supplier | no | `market` | Send a group order to the supplier. |
+| `market.group_order_promise` | Answer a group order as the supplier | no | `market` | Answer a group order as the supplier (`market.group_order.promise`). |
+| `market.poster` | Apply as a poster | no | `market` | Apply as a poster. |
+| `form.send` | Send a form | no | `forms` | Open a form for answers. A public form gets its shareable link here, a member form reaches every group it was aimed at, and opening it twice changes nothing. |
+| `form.submit` | Submit a form for approval | no | `forms` | Hand a draft form to whoever clears it, which opens a round that waits for an answer. Pull a form back to draft, which closes the round that was waiting. |
+| `form.answer` | Answer a form | no | `forms` | Send every answer to a form at once, as one of the groups the form was aimed at that the caller belongs to. All are checked before any is written, and answering again as the same group edits what was given. |
+| `form.close` | Close a form | no | `forms` | Close an open form so it stops taking answers. Closing twice changes nothing. |
+| `form.payment` | Mark a form payment received | no | `forms` | Record that the person who sent a form has paid, or has not. Nothing here takes a payment: a person records it. |
+| `form.manage` | Edit, delete and translate forms | no | `forms` | List and read forms. Change a draft's title, window, audience and how it is collected, and delete a form that has not been published. Rewrite, remove and move a draft's questions, and replace a published question with a new version. List a question's choices and add one. Aim a draft at a group, list its aims and remove one. Put a translation, list every translation of a form, list the reviewed texts in one language, and list the languages that have a reviewed text. |
+| `form.results` | Read a form's results, sends and approvals | no | `forms` | Read the newest report on a form, for a caller in a group it was published to or inside one. Read the caller's own answers, and the previous period's. List who has sent a form and who missed a closed period. List the groups anonymous respondents declared and count them per group. List a form's rounds of approval and the forms waiting for a decision. List the groups a form reached and how far it got. |
+| `member.remove` | Remove a member | no | `actor` | Its one action, `actor.assignment.delete`, is not declared in the actor snapshot, so nothing in the snapshot is open to a holder through it. |
+| `group.settings` | Change group settings | no | `actor` | Choose how actors join a group: open lets them in at once, confirmed holds each request for a decision. Hide a group, so it is reached only by invitation and never listed as joinable, or show it again. |
+| `group.manage` | Create and arrange groups | no | `actor` | Create a group. Change a group's name, node type or anchor level. Move a group under another; the root cannot move and no group may move beneath itself. Set or clear the id of the digital twin node that is a group's area. |
+| `role_kind.manage` | Manage role kinds | no | `actor` | Create, list and read role kinds. Retire a kind, which is refused while anyone still holds one, and make a retired kind grantable again. Mark whether a kind leads its group. List who holds a kind. |
+| `code_format.manage` | Set the member code format | no | `actor` | Read and set how many groups of three characters newly drawn member and group codes have. Codes already drawn keep theirs. |
+| `board_item.reply` | Reply to board items | no | `catalog` | Send a reply to a board item. |
+| `board_item.hide` | Hide board items | no | `catalog` | Set whether a board item is hidden. Remove a raised item. |
+| `board.manage` | Manage the board | no | `catalog` | Group raised items and ungroup them. Set the outcome of a board item. |
+| `register.edit` | Edit the register | no | none yet | No action is declared for it yet, so it grants nothing. |
+| `map.edit` | Edit the map | no | `digitaltwin` | Create and update nodes and set a node's status. Create and delete links. Upsert a metric. Record observations one at a time or in a batch. Set retention. The reads are not in it; see "Edit the map". |
+| `task.assign` | Assign tasks | no | `taskmanager` | Assign a task, assign it to a holder, and unassign it. |
+| `service.edit` | Edit services | no | none yet | No action is declared for it yet, so it grants nothing. |
+| `service.publish` | Publish services | no | `catalog` | Set the visibility of a service entry. |
+| `service.read` | See the services | no | `catalog` | List the service entries. |
+| `appointment.manage` | Manage appointments | no | none yet | No action is declared for it yet, so it grants nothing. |
+| `chat.post` | Post in chat | no | `comm` | Post a message in a thread of a room the caller belongs to; the author is always the session's. List the posts of a thread, oldest first, and read one message by its id. |
+| `notification.read` | Read notifications and their deliveries | no | `comm` | List the caller's own notifications, newest first. List the push attempts one notification made, which is the record of whom it reached. |
+| `chat.reach` | See which rooms and threads one person can read | no | `comm` | List every thread one named person may read across the rooms they belong to, each with its structure, label, audience and the reason they can read it: group, asked or leads. It carries no post, no unread count and no read point, and never lists direct messages. |
+| `document.search` | Search documents | no | `sources` | Find the passages closest in meaning to a query vector, each with its source and that source's verification. List sources and read one. |
+| `asset.manage` | Register and allocate assets | no | `assetmanager` | Create, update, list and read assets, and read an asset's balance. List, read and create locations. Post a movement, and list and read movements. See "asset.manage" above for what it leaves out. |
+| `ai.account.manage` | Manage AI accounts | no | `ai` | Add, change and remove AI accounts. Replace an account's key, which is written and never read back. Test an account. Refresh the model list from a provider. Mark the agency's default account. |
+| `ai.role.manage` | Manage AI roles and limits | no | `ai` | Add, change, remove, list and read AI roles. Map an AI role to an account and to the agency role it speaks for. List an AI role's revisions and restore one. Set the limits of an AI role and of an account. Resolve an AI role, by its own id or by the agency role it speaks for. Test an account. |
+| `ai.use` | Call through the AI gateway | no | `ai` | List an agency's accounts and their use. Record one call's use, and check whether a call may go ahead. Resolve the AI role that speaks for an agency role. Chat with an account's model. List the models and the models the chat offers, and pick the caller's chat model. |
+| `ai.account.read` | Read AI account settings | no | `ai` | Read one account, and read the agency's default account. |
+| `risk.read` | Ask what could go wrong | no | `riskmanager` | Read the risk register: list and read risks, read a risk's bow-tie, list threats, consequences, preventive and mitigating measures, controls and gaps, and read what relies on a control. It writes nothing; see "The risk manager's reads". |
