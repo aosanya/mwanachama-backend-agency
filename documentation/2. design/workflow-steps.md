@@ -122,6 +122,8 @@ scan does not flag it as a role that does not exist, and an imported step keeps
 the group id as it is, since groups belong to the agency and not to a draft. The
 agency in the picker is not an actor id here: an agency-only step names no role.
 
+A group is kept on a step or record when it is read back, but a test scenario cannot name it: `scenarioView` and `actorFor` (`scenario_impl.go`) look the actor up among the draft's roles only, so a scenario block whose step a group acts on shows an empty `actor`, and a group is never one of the scenario's actors.
+
 ## A workflow that opens in a chat (HS640, Hub Steward decision 123)
 
 A workflow says where it starts for the person with `opens_in`: `chat` or
