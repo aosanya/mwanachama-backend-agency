@@ -128,6 +128,7 @@ func TestEveryActionTheCoordinatorAndMemberFlowsNeedBelongsToAnUnlockedPermissio
 		"actor.invitation.list_for_group":       "invitation.read",
 		"actor.invitation.read":                 "invitation.read",
 		"actor.actor.read_screen_name_by_code":  "member.view",
+		"actor.actor.standing":                  "member.view",
 		"actor.assignment.home_counts":          "group.view",
 		"comm.chat_thread.archive":              "chat.archive",
 		"comm.chat_thread.unarchive":            "chat.archive",
