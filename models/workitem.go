@@ -24,5 +24,11 @@ type WorkItem struct {
 	OtherwiseStepID  string         `json:"otherwise_step_id"`
 	TimeLimitMinutes int            `json:"time_limit_minutes"`
 	CancelWorkflowID string         `json:"cancel_workflow_id"`
+	AgentRoleID      string         `json:"agent_role_id"`
+	Topic            string         `json:"topic"`
+	OpeningLine      string         `json:"opening_line"`
+	Prompts          []string       `json:"prompts,omitempty"`
+	Tools            []string       `json:"tools,omitempty"`
+	StartWorkflowIDs []string       `json:"start_workflow_ids,omitempty"`
 	Action           string         `json:"action,omitempty" spec:"-"`
 }

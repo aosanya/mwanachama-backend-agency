@@ -3,6 +3,7 @@ package mwanachamaagency_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -165,5 +166,117 @@ func TestWorkflowOpensIn_CannotLeaveAChatWhileItHoldsAChatStep(t *testing.T) {
 	chat.Name = "Buy inputs renamed"
 	if _, err := w.mgr.UpdateWorkflow(ctx, chat); err != nil {
 		t.Fatalf("UpdateWorkflow keeping the chat: %v", err)
+	}
+}
+
+func (w stepWorld) boxedChatStep(chat, other models.Workflow) models.WorkItem {
+	step := w.chatStep(chat, 1)
+	step.AgentRoleID = w.roles[coordinator].ID
+	step.Topic = "Buying farm inputs"
+	step.OpeningLine = "What would you like to buy today?"
+	step.Prompts = []string{"What is on sale?", "Group orders", "My orders"}
+	step.Tools = []string{"See what is on sale", "Ask a shop"}
+	step.StartWorkflowIDs = []string{other.ID}
+	return step
+}
+
+func TestChatStep_HoldsItsBoxAndReadsItBack(t *testing.T) {
+	w := newStepWorld(t)
+	ctx := context.Background()
+	chat := w.chatWorkflow(t, "Buy inputs")
+	other := w.workflow(t, "Group order")
+	made, err := w.mgr.CreateWorkItem(ctx, w.boxedChatStep(chat, other))
+	if err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
+	}
+	got, err := w.mgr.GetWorkItem(ctx, made.ID)
+	if err != nil {
+		t.Fatalf("GetWorkItem: %v", err)
+	}
+	if got.RoleID != w.roles[farmer].ID || got.AgentRoleID != w.roles[coordinator].ID {
+		t.Errorf("opener = %q, agent = %q", got.RoleID, got.AgentRoleID)
+	}
+	if got.Topic != "Buying farm inputs" || got.OpeningLine != "What would you like to buy today?" {
+		t.Errorf("topic = %q, opening line = %q", got.Topic, got.OpeningLine)
+	}
+	if !reflect.DeepEqual(got.Prompts, []string{"What is on sale?", "Group orders", "My orders"}) {
+		t.Errorf("prompts = %v", got.Prompts)
+	}
+	if !reflect.DeepEqual(got.Tools, []string{"See what is on sale", "Ask a shop"}) {
+		t.Errorf("tools = %v", got.Tools)
+	}
+	if !reflect.DeepEqual(got.StartWorkflowIDs, []string{other.ID}) {
+		t.Errorf("start workflows = %v", got.StartWorkflowIDs)
+	}
+}
+
+func TestChatStep_RefusesWhatBreaksItsBox(t *testing.T) {
+	w := newStepWorld(t)
+	ctx := context.Background()
+	other := w.workflow(t, "Group order")
+	cases := map[string]func(*models.WorkItem, models.Workflow){
+		"four prompts":           func(s *models.WorkItem, _ models.Workflow) { s.Prompts = []string{"a", "b", "c", "d"} },
+		"a blank prompt":         func(s *models.WorkItem, _ models.Workflow) { s.Prompts = []string{"a", "  "} },
+		"a blank tool":           func(s *models.WorkItem, _ models.Workflow) { s.Tools = []string{"Ask a shop", ""} },
+		"a blank start workflow": func(s *models.WorkItem, _ models.Workflow) { s.StartWorkflowIDs = []string{""} },
+		"the single tool field":  func(s *models.WorkItem, _ models.Workflow) { s.Tool = "market_ask" },
+		"a form":                 func(s *models.WorkItem, _ models.Workflow) { s.FormName = "A form" },
+		"its own workflow":       func(s *models.WorkItem, own models.Workflow) { s.StartWorkflowIDs = []string{own.ID} },
+	}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			chat := w.chatWorkflow(t, "Buy inputs "+name)
+			step := w.boxedChatStep(chat, other)
+			mutate(&step, chat)
+			if _, err := w.mgr.CreateWorkItem(ctx, step); !errors.Is(err, mwanachamaagency.ErrInvalidWorkItem) {
+				t.Fatalf("err = %v, want ErrInvalidWorkItem", err)
+			}
+		})
+	}
+}
+
+func TestChatStep_NamesRolesAndWorkflowsOfItsOwnDraft(t *testing.T) {
+	w := newStepWorld(t)
+	ctx := context.Background()
+	chat := w.chatWorkflow(t, "Buy inputs")
+	other := w.workflow(t, "Group order")
+
+	noAgent := w.boxedChatStep(chat, other)
+	noAgent.AgentRoleID = "no-such-role"
+	if _, err := w.mgr.CreateWorkItem(ctx, noAgent); !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
+		t.Fatalf("an agent role that does not exist: err = %v, want ErrRoleNotFound", err)
+	}
+
+	noWorkflow := w.boxedChatStep(chat, other)
+	noWorkflow.StartWorkflowIDs = []string{other.ID, "no-such-workflow"}
+	if _, err := w.mgr.CreateWorkItem(ctx, noWorkflow); !errors.Is(err, mwanachamaagency.ErrWorkflowNotFound) {
+		t.Fatalf("a start workflow that does not exist: err = %v, want ErrWorkflowNotFound", err)
+	}
+}
+
+func TestChatFields_BelongOnlyToAChatStep(t *testing.T) {
+	w := newStepWorld(t)
+	ctx := context.Background()
+	plain := w.workflow(t, "Group order")
+	fields := map[string]func(*models.WorkItem){
+		"an agent role":      func(s *models.WorkItem) { s.AgentRoleID = w.roles[coordinator].ID },
+		"a topic":            func(s *models.WorkItem) { s.Topic = "Buying" },
+		"an opening line":    func(s *models.WorkItem) { s.OpeningLine = "Hello" },
+		"prompts":            func(s *models.WorkItem) { s.Prompts = []string{"a"} },
+		"tools":              func(s *models.WorkItem) { s.Tools = []string{"Ask a shop"} },
+		"workflows to start": func(s *models.WorkItem) { s.StartWorkflowIDs = []string{plain.ID} },
+	}
+	for name, set := range fields {
+		t.Run(name, func(t *testing.T) {
+			step := w.item(plain, 1, stepSpec{"Fill", models.StepKindFillForm, farmer, "A form", []models.StepQuestion{ask("Why", models.AnswerFreeText)}, ""})
+			set(&step)
+			if _, err := w.mgr.CreateWorkItem(ctx, step); !errors.Is(err, mwanachamaagency.ErrInvalidWorkItem) {
+				t.Fatalf("err = %v, want ErrInvalidWorkItem", err)
+			}
+		})
+	}
+	bare := models.WorkItem{DraftID: w.draftID, WorkflowID: plain.ID, Title: "Look", Ordinality: 1, Topic: "Buying"}
+	if _, err := w.mgr.CreateWorkItem(ctx, bare); !errors.Is(err, mwanachamaagency.ErrInvalidWorkItem) {
+		t.Fatalf("a topic on a step with no kind: err = %v, want ErrInvalidWorkItem", err)
 	}
 }

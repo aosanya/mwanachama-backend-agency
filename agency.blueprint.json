@@ -251,6 +251,12 @@
         {"name": "otherwise_step_id", "type": "string", "description": "The step in the same workflow a route step goes to when no route matches. Empty means the next step."},
         {"name": "time_limit_minutes", "type": "int", "description": "How many minutes the person this step waits on has to answer. Zero means the step waits as long as it takes. Only a fill-form or yes-or-no step that a role acts on can carry one."},
         {"name": "cancel_workflow_id", "type": "string", "description": "The workflow, in the same draft, that runs when the time limit passes with no answer; its notify step tells the person. Required with a time limit, empty without one."},
+        {"name": "agent_role_id", "type": "string", "description": "The role, in the same draft, that a chat step chats with: the agent that answers the person. Empty for every other kind."},
+        {"name": "topic", "type": "text", "description": "What a chat step talks about; the agent steers back to it. Empty for every other kind."},
+        {"name": "opening_line", "type": "text", "description": "What a chat step says first. Empty for every other kind."},
+        {"name": "prompts", "type": "json", "description": "Up to three prompts a chat step offers the person to start with, each a short line. Empty for every other kind."},
+        {"name": "tools", "type": "json", "description": "The tools a chat step may call, as the plain names the manager picked them by; they are kept as written and not checked against any list. Empty for every other kind."},
+        {"name": "start_workflow_ids", "type": "json", "description": "The workflows, in the same draft, that a chat step may lead the person to; never the workflow that owns the step. Empty for every other kind."},
         {"name": "created_at", "type": "timestamp", "description": "When the step was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}

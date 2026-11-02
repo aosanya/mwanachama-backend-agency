@@ -22,8 +22,8 @@ func validateStepShape(wi models.WorkItem) error {
 		return err
 	}
 	if wi.Kind == "" {
-		if wi.RoleID != "" || wi.RunWorkflowID != "" || wi.FormName != "" || len(wi.Questions) > 0 || wi.Tool != "" || wi.HasLinks() {
-			return invalidStep("a step with a role, a form, a workflow to run or a link to another step needs a kind")
+		if wi.RoleID != "" || wi.RunWorkflowID != "" || wi.FormName != "" || len(wi.Questions) > 0 || wi.Tool != "" || wi.HasLinks() || wi.HasChatFields() {
+			return invalidStep("a step with a role, a form, a workflow to run, a chat or a link to another step needs a kind")
 		}
 		return nil
 	}
@@ -39,6 +39,9 @@ func validateStepShape(wi models.WorkItem) error {
 	if wi.Kind != models.StepKindRunWorkflow && wi.RunWorkflowID != "" {
 		return invalidStep("only a run_workflow step names a workflow to run")
 	}
+	if err := validateChatFields(wi); err != nil {
+		return err
+	}
 	if err := validateStepLinks(wi); err != nil {
 		return err
 	}
@@ -46,6 +49,37 @@ func validateStepShape(wi models.WorkItem) error {
 		return err
 	}
 	return validateStepForm(wi)
+}
+
+func validateChatFields(wi models.WorkItem) error {
+	if wi.Kind != models.StepKindChat {
+		if wi.HasChatFields() {
+			return invalidStep("only a chat step names an agent, a topic, an opening line, prompts, tools or workflows to start")
+		}
+		return nil
+	}
+	if wi.Tool != "" {
+		return invalidStep("a chat step lists its tools in tools, not in tool")
+	}
+	if len(wi.Prompts) > models.MaxChatPrompts {
+		return invalidStep("a chat step offers at most %d prompts, got %d", models.MaxChatPrompts, len(wi.Prompts))
+	}
+	if err := requireNoBlank("prompt", wi.Prompts); err != nil {
+		return err
+	}
+	if err := requireNoBlank("tool", wi.Tools); err != nil {
+		return err
+	}
+	return requireNoBlank("workflow to start", wi.StartWorkflowIDs)
+}
+
+func requireNoBlank(what string, values []string) error {
+	for i, value := range values {
+		if strings.TrimSpace(value) == "" {
+			return invalidStep("%s %d of a chat step is blank", what, i+1)
+		}
+	}
+	return nil
 }
 
 func validateStepLimit(wi models.WorkItem) error {
@@ -169,6 +203,21 @@ func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB,
 		}
 		if wi.RunWorkflowID == wi.WorkflowID {
 			return invalidStep("a step cannot run the workflow that owns it")
+		}
+	}
+	if wi.AgentRoleID != "" {
+		if err := m.actorOfDraft(ctx, tx, wi.DraftID, wi.AgentRoleID); err != nil {
+			return err
+		}
+	}
+	for _, id := range wi.StartWorkflowIDs {
+		var w models.Workflow
+		q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), wi.DraftID).Where("id = ?", id)
+		if err := m.take(q, roleWorkflow, &w, ErrWorkflowNotFound); err != nil {
+			return err
+		}
+		if id == wi.WorkflowID {
+			return invalidStep("a chat step cannot lead to the workflow that owns it")
 		}
 	}
 	if wi.CancelWorkflowID != "" {

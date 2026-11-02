@@ -132,6 +132,13 @@ func (wi WorkItem) HasLinks() bool {
 	return wi.RecipientRoleID != "" || wi.SentStepID != "" || len(wi.Routes) > 0 || wi.OtherwiseStepID != ""
 }
 
+const MaxChatPrompts = 3
+
+func (wi WorkItem) HasChatFields() bool {
+	return wi.AgentRoleID != "" || wi.Topic != "" || wi.OpeningLine != "" ||
+		len(wi.Prompts) > 0 || len(wi.Tools) > 0 || len(wi.StartWorkflowIDs) > 0
+}
+
 func (wi WorkItem) WaitsOnPerson() bool {
 	return wi.RoleID != "" && (wi.Kind == StepKindFillForm || wi.Kind == StepKindYesNo)
 }
