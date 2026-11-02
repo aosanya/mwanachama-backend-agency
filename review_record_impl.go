@@ -100,11 +100,20 @@ func (m *agencyManager) settleReview(ctx context.Context, tx *gorm.DB, review mo
 	}
 	review.Tokens += tokens
 	if !anyReading(areas) {
-		review.Status, review.Running, review.FinishedAt = models.ReviewDone, false, models.NowRFC3339()
+		review.Status, review.Running, review.FinishedAt = settledStatus(areas), false, models.NowRFC3339()
 	}
 	err = m.writeUpdate(ctx, tx, roleReview, review.ID, review, ErrReviewNotFound,
 		"draft_id", "previous_review_id", "started_by", "started_at")
 	return review, err
+}
+
+func settledStatus(areas []models.ReviewArea) models.ReviewStatus {
+	for _, a := range areas {
+		if a.Status != models.ReviewAreaFailed {
+			return models.ReviewDone
+		}
+	}
+	return models.ReviewFailed
 }
 
 func anyReading(areas []models.ReviewArea) bool {

@@ -2681,6 +2681,21 @@
       ],
       "tool": "agency_list_reviews"
     },
+    "list_running_reviews": {
+      "method": "GET",
+      "path": "/running-reviews",
+      "call": "ListRunningReviews",
+      "action": "agency.review.list_running",
+      "title": "List running reviews",
+      "description": "List every review still running, in any draft of this agency, newest first, without parts or findings. A restart reads this to resume the reviews it left running instead of walking every draft.",
+      "args": [],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_running_reviews"
+    },
     "set_finding_status": {
       "method": "PATCH",
       "path": "/review-findings/{finding_id}",

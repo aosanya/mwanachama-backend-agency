@@ -154,3 +154,12 @@ func (m *agencyManager) ListReviews(ctx context.Context, draftID string) ([]mode
 	}
 	return out, nil
 }
+
+func (m *agencyManager) ListRunningReviews(ctx context.Context) ([]models.Review, error) {
+	q := m.q(ctx, roleReview).Where("status = ?", string(models.ReviewRunning)).Order("started_at desc")
+	out, err := list[models.Review](m, q, roleReview)
+	if err != nil {
+		return nil, fmt.Errorf("ListRunningReviews: %w", err)
+	}
+	return out, nil
+}
