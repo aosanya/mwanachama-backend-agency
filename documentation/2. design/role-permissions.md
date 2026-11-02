@@ -153,11 +153,11 @@ host's.
 
 ## asset.manage (HS89, decision 39)
 
-`asset.manage` lets an Assets Keeper register assets (`assetmanager.asset.create`, `.update`, `.list`, `.read`, `.balance`), look at locations, and allocate stock to a holder with `assetmanager.movement.post`. Accounting is deliberately not a permission. No permission exists yet for holding a seat or proposing a draft: `assetmanager.hold.create` reserves a quantity at a place until a time, which is not a seat, and `workspace.layout.propose` only previews a patch, so neither was invented into one.
+`asset.manage` lets an Assets Keeper register assets (`assetmanager.asset.create`, `.update`, `.list`, `.read`, `.balance`), look at locations (`assetmanager.location.list`, `.read`) and add one (`assetmanager.location.create`), allocate stock to a holder with `assetmanager.movement.post`, and read the movements (`assetmanager.movement.list`, `.read`). Accounting is deliberately not a permission. No permission exists yet for holding a seat or proposing a draft: `assetmanager.hold.create` reserves a quantity at a place until a time, which is not a seat, and `workspace.layout.propose` only previews a patch, so neither was invented into one.
 
 ## ai.account.manage, ai.role.manage, ai.use (HS128, decision 48)
 
-`ai.account.manage` adds, changes and removes AI accounts, sets their keys and tests them (`ai.account.create`, `.update`, `.delete`, `.key_set`, `.test`). It is held by owners; no role definition claims it by default. `ai.role.manage` covers AI roles, their fine-tuning and history, and the limits on accounts and roles (`ai.limits.set`, `ai.role.create`, `.update`, `.delete`, `.list`, `.read`, `.revision_list`, `.restore`, and `ai.account.test`); owners and staff seats hold it. `ai.use` lets an agent call through the AI gateway (`ai.account.list`, `ai.usage.list`, `ai.usage.record`, `ai.limits.check`, and `ai.role.resolve_agency_role`, HS176 step 2); agents hold it. `ai.account.test` is deliberately not in `ai.use`. The `ai.role.*` ids are listed explicitly because a permission never carries a wildcard; they must be reconciled with the ai module's operations file when it declares its role addresses.
+`ai.account.manage` adds, changes and removes AI accounts, sets their keys and tests them (`ai.account.create`, `.update`, `.delete`, `.key_set`, `.test`, `.default_set`), and refreshes the model lists (`ai.model.refresh`). It is held by owners; no role definition claims it by default. `ai.role.manage` covers AI roles, their fine-tuning and history, and the limits on accounts and roles (`ai.limits.set`, `ai.role.create`, `.update`, `.delete`, `.list`, `.read`, `.map`, `.resolve`, `.resolve_agency_role`, `.set_limits`, `ai.revision.list`, `ai.revision.restore`, and `ai.account.test`); owners and staff seats hold it. `ai.use` lets an agent call through the AI gateway (`ai.account.list`, `ai.usage.list`, `ai.usage.record`, `ai.limits.check`, `ai.role.resolve_agency_role`, HS176 step 2, `ai.account.chat`, `ai.model.list`, `ai.chat_model.list` and `ai.chat_model.pick`); agents hold it. `ai.account.test` is deliberately not in `ai.use`. The `ai.role.*` ids are listed explicitly because a permission never carries a wildcard; they must be reconciled with the ai module's operations file when it declares its role addresses.
 
 ## The permissions a Hub Steward agent needs when it is linked to a role (HS176 step 2, W7)
 
@@ -259,7 +259,7 @@ Two unlocked permissions, module `agency`, held by roles like any other:
 
 | Code | Name | Actions |
 |---|---|---|
-| `controls.edit` | Edit controls | `agency.control.create`, `agency.control.update`, `agency.control.delete`, `agency.control.attach`, `agency.control.detach` |
+| `controls.edit` | Edit controls | `agency.control.create`, `agency.control.update`, `agency.control.delete`, `agency.control.attach`, `agency.control.detach`, `agency.hazard.create`, `agency.hazard.update`, `agency.hazard.delete`, `agency.threat.create`, `agency.threat.update`, `agency.threat.delete`, `agency.consequence.create`, `agency.consequence.update`, `agency.consequence.delete`, `agency.risk_threat.create`, `agency.risk_threat.delete`, `agency.risk_consequence.create`, `agency.risk_consequence.delete` |
 | `controls.approve` | Approve control changes | `agency.publication.create` |
 
 Authoring and approving are separate codes so an agency can give them to different
@@ -290,12 +290,14 @@ A seated agent is refused any action its role's permissions do not carry, so the
 | `group.join` | new, module none | `actor.group.list_joinable`, `list_discoverable`, `find_by_code`, `join`, `join_by_code`, `actor.invitation.accept`, `decline` |
 | `chat.archive` | new, module `comm` | `comm.chat_thread.archive`, `unarchive`, `list_archived` |
 | `invitation.read` | new, module none | `actor.invitation.list_for_group`, `actor.invitation.read` |
-| `member.view` | adds | `actor.actor.read_screen_name_by_code` |
+| `member.view` | adds | `actor.actor.read_screen_name_by_code`, `actor.actor.standing` |
 | `group.view` | adds | `actor.assignment.home_counts` |
+| `market.ask_answer` | new, module `market` | `market.ask.answer` |
 
 Why this shape:
 
 - The coordinator's three steps are the default workflow's coordinator steps, so they ride with the permission that starts and calls off the order. A role that already holds `market.group_order` gains them.
 - `chat.thread` is pinned to what the hub agents do (`permission_hub_agent_test.go`), and `member.invite` to the actions AG89 listed, so archiving a thread and reading invitations are new permissions, not a widening of those two.
-- `market.group_order.answer_revision` is in no permission. It is the picker's own answer to revised terms, and the market test refuses any permission carrying an answer. The coordinator uses `decide_silent_line`.
+- `market.group_order.answer_revision` is in no permission. It is the picker's own answer to revised terms, and the market test refuses any permission carrying an answer except `market.ask_answer`. The coordinator uses `decide_silent_line`.
+- `market.ask.answer` is the poster's own reply to an ask, so it is a permission of its own, "Answer an ask as the poster", and `market_permissions_test.go` fails if any other permission carries it.
 - The actions that read or write only the caller's own state (`actor.read_mine`, `group.list_mine`, `forms.form.list_waiting`, the live records and the like) are in no permission at all. The host lets every seated agent do them; the list is in wakala-api's `agent-role-permissions.md`.
