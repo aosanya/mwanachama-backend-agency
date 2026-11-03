@@ -1,14 +1,14 @@
 {
   "_template": {
     "sector": "agriculture",
-    "archetype": "farmers' group",
+    "archetype": "agricultural ministry",
     "illustrative": true,
-    "note": "Synthetic template for a group of farmers around a hub planned in Siaya, Kenya. The hub is not open, every person is synthetic, and the numbers in the rules are values chosen for the demo."
+    "note": "Synthetic template for the agricultural ministry of Siaya County, Kenya, which serves the farmers around a hub planned in Siaya. The hub is not open, every person is synthetic, the procedures are written from how county agriculture departments generally work and Siaya's own forms and fees are not checked, and the numbers in the rules are values chosen for the demo."
   },
   "agency": {
     "id": "270e07b7-6b69-55ca-aa30-9441ce138541",
     "name": "Siaya Farmers' Group",
-    "description": "A group of farmers around a community tech hub planned in Siaya, Kenya, who buy farm inputs from approved suppliers, alone or as a group order, and look for a buyer for their produce, with two AI agents: one for the farmers and one for the suppliers. The hub is planned, not open.",
+    "description": "The agricultural ministry of Siaya County, Kenya, serving the farmers around a community tech hub planned in Siaya. Its officers advise farmers, keep the list of farmers, plots, animals and groups, answer reports of pests and sick animals, clear animals and produce to move, and decide on subsidised inputs and relief. Farmers also buy inputs from approved suppliers, alone or as a group order, and look for a buyer for their produce, with two AI agents: one for the farmers and one for the suppliers. The hub is planned, not open.",
     "enabled": true
   },
   "modules": [
@@ -120,6 +120,114 @@
       "created_at": "2026-10-28T00:00:00Z",
       "last_updated": "2026-10-28T00:00:00Z",
       "deleted": false
+    },
+    {
+      "id": "eb85ac40-ceb8-52ac-9c56-86b9d7062055",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "module_id": "dcec5bfc-a1ca-525a-9bb4-d6a64d7c16a1",
+      "rationale": "A visit, a pest report and a training sign-up are forms the extension officer reads; the field report is her own form.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9b3b9076-49e3-54b2-9cff-5b43bbb031e2",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "module_id": "3c367fd0-8d14-549a-87df-bf02a7455b52",
+      "rationale": "Each request is a task for the extension officer, and each advisory is a task for the agriculture director to approve.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "23e7412f-58a5-58c0-adb5-4af5550f4a05",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "module_id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "rationale": "The officer's answer reaches the farmer in her thread, through the Farmers' agent.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "404457f2-98ab-5f67-acb4-eb4cda57384b",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "module_id": "dcec5bfc-a1ca-525a-9bb4-d6a64d7c16a1",
+      "rationale": "Each registration is a form the farmer fills in, or the group coordinator for a group.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e3758e74-fc2f-52a3-8440-9b47ee61a839",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "module_id": "3c367fd0-8d14-549a-87df-bf02a7455b52",
+      "rationale": "Each registration is a task for the officer who confirms it.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a064baf3-d249-53f7-a7fd-0095b63e7705",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "module_id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "rationale": "The officer's answer, or the correction she asks for, reaches the farmer in her thread.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e9942f77-760e-5999-8c8d-a6e63e09b485",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "module_id": "dcec5bfc-a1ca-525a-9bb4-d6a64d7c16a1",
+      "rationale": "A sick-animal report and a movement request are forms the veterinary officer reads.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "04ff0e16-8956-5774-8699-e0d429da0691",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "module_id": "3c367fd0-8d14-549a-87df-bf02a7455b52",
+      "rationale": "Each report, booking and permit is a task for the officer who says yes.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "6c63378f-8cea-55ee-93d6-7c23949b3385",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "module_id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "rationale": "The officer's answer, and a warning to the other keepers, reach the farmers in their threads.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "8b73e26c-abbe-5cad-85f6-ac7227f83b8d",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "module_id": "dcec5bfc-a1ca-525a-9bb4-d6a64d7c16a1",
+      "rationale": "A subsidy request and a relief request are forms the farmer fills in.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ac2d968b-1930-529a-be65-9a10f748ec5e",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "module_id": "3c367fd0-8d14-549a-87df-bf02a7455b52",
+      "rationale": "Each request and complaint is a task for the officer or the agriculture director who decides.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "bce4ecdd-d6a9-5759-89a4-0a37af65ab65",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "module_id": "33f590fe-2004-5208-ba44-70304cd77af2",
+      "rationale": "The answer reaches the farmer in her thread, and the Suppliers' agent hands a complaint to the supplier.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
     }
   ],
   "roles": [
@@ -219,6 +327,45 @@
       "created_at": "2026-10-28T00:00:00Z",
       "last_updated": "2026-10-28T00:00:00Z",
       "deleted": false
+    },
+    {
+      "id": "9af64fa1-e951-547c-b3de-550eb443e8f1",
+      "code": "R-7",
+      "name": "Extension officer",
+      "description": "The ministry's adviser on crops, soil and training. Visits farms, answers pest and disease reports, books soil tests, training days, inspections and the county tractor, confirms farmers, plots, ponds and boats, and drafts the seasonal advisory and the field report. This role is held by a person.",
+      "permissions": [
+        "chat.archive",
+        "notification.read"
+      ],
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "b9fa3dc4-afce-572c-a16e-57969a0e2b24",
+      "code": "R-8",
+      "name": "Veterinary officer",
+      "description": "The ministry's adviser on animals. Answers reports of a sick animal, sets vaccination days, confirms livestock, and decides each animal movement permit. This role is held by a person.",
+      "permissions": [
+        "chat.archive",
+        "notification.read"
+      ],
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ecf853f7-e858-5f6b-9ca8-a8fd8050d6e3",
+      "code": "R-9",
+      "name": "Agriculture director",
+      "description": "Heads the ministry. Decides subsidised inputs, relief and complaints about suppliers, approves each seasonal advisory before it goes out, lists farmer groups and cooperatives, and reads each field report. This role is held by a person.",
+      "permissions": [
+        "chat.archive",
+        "notification.read"
+      ],
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
     }
   ],
   "goals": [
@@ -240,6 +387,26 @@
       "ordinality": 2,
       "created_at": "2026-10-26T00:00:00Z",
       "last_updated": "2026-10-29T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a1b56238-c830-57e3-b69f-959319462a74",
+      "code": "G-3",
+      "title": "Farmers are known to the county and advised",
+      "description": "Each farmer, plot, herd and group is on the ministry's list, and an officer is a request away for advice on crops, soil and training.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "bcbaf8ff-e1d0-5358-9d18-0e2854e47c2a",
+      "code": "G-4",
+      "title": "Farms and herds are protected and helped",
+      "description": "Sick animals and diseased crops are answered, animals and produce are cleared before they move, and help reaches the farmers who ask for it.",
+      "ordinality": 4,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
       "deleted": false
     }
   ],
@@ -287,6 +454,50 @@
       "created_at": "2026-10-28T00:00:00Z",
       "last_updated": "2026-10-28T00:00:00Z",
       "deleted": false
+    },
+    {
+      "id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "code": "O-5",
+      "goal_id": "a1b56238-c830-57e3-b69f-959319462a74",
+      "title": "Officers advise farmers on their crops and soil",
+      "description": "A farmer asks an officer to visit, reports a pest, signs up for a training day or asks for a soil test, and the ministry sends one advisory a season to every farmer.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "fca2b134-3903-5932-b166-009d5e219528",
+      "code": "O-6",
+      "goal_id": "a1b56238-c830-57e3-b69f-959319462a74",
+      "title": "The ministry knows its farmers, plots, animals and groups",
+      "description": "Each farmer, plot, herd, pond, boat and group is listed once an officer has confirmed it.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "code": "O-7",
+      "goal_id": "bcbaf8ff-e1d0-5358-9d18-0e2854e47c2a",
+      "title": "Animals and produce are healthy and cleared to move",
+      "description": "A sick animal is reported and answered, animals are vaccinated, and animals and produce move or are sold only once an officer has cleared them.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "code": "O-8",
+      "goal_id": "bcbaf8ff-e1d0-5358-9d18-0e2854e47c2a",
+      "title": "County help reaches the farmers who ask",
+      "description": "Subsidised inputs, the county tractor and relief go to the farmers who ask for them, and a complaint about a supplier is heard before anything is decided.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
     }
   ],
   "values": [
@@ -296,6 +507,14 @@
       "text": "Farmers do better together than alone; what the agents do is something a person could do and the group can check.",
       "created_at": "2026-10-26T00:00:00Z",
       "last_updated": "2026-10-26T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ed09daad-d85a-593e-b94c-7a7025f3e737",
+      "code": "V-2",
+      "text": "An officer's answer is written down with its reason, so the farmer and the next officer can read it.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
       "deleted": false
     }
   ],
@@ -435,6 +654,46 @@
       "created_at": "2026-10-28T00:00:00Z",
       "last_updated": "2026-10-28T00:00:00Z",
       "deleted": false
+    },
+    {
+      "id": "52e9ebd7-1498-5ff7-a8d6-131b0f2db2f7",
+      "code": "RU-18",
+      "text": "An officer says yes to every request that needs the ministry's answer, such as a visit, a permit, a subsidy, a tractor or relief; the agents take the request and tell the farmer the answer, and never decide it.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4c5a1208-429c-5d14-9689-0b9c2ec1f6f4",
+      "code": "RU-19",
+      "text": "The template sets no fee, subsidy or relief amount; the officer who says yes states it in the officer's own words.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e9a78aec-9eff-5553-8e6d-559d0cd5ad24",
+      "code": "RU-20",
+      "text": "A seasonal advisory goes out only after the agriculture director approves it, and the Farmers' agent sends it in the officer's words.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "d25191ba-63c1-5c44-ade2-72bf53588b2d",
+      "code": "RU-21",
+      "text": "A report of a sick animal or a crop disease goes to the officer at once; where the officer says it can spread, the Farmers' agent tells the other farmers who keep or grow the same, in the officer's words.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "001cf2cc-f70c-5830-a9c3-c52dd353d03e",
+      "code": "RU-22",
+      "text": "A supplier is heard before the agriculture director decides on a complaint against him, and stays in the market until the director has decided.",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
     }
   ],
   "value_attachments": [
@@ -458,6 +717,34 @@
       "target_type": "objective",
       "target_code": "O-4",
       "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "9936bdf0-f903-5b36-b4a7-8ffed4bd1121",
+      "value_code": "V-2",
+      "target_type": "objective",
+      "target_code": "O-5",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "1ba1b99e-1ef2-52c7-bdb5-5f8c7c52cc6e",
+      "value_code": "V-2",
+      "target_type": "objective",
+      "target_code": "O-6",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "9487d635-6fb7-554e-ba9a-f2791dddc5d6",
+      "value_code": "V-2",
+      "target_type": "objective",
+      "target_code": "O-7",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "faaa22a3-1b04-53ec-a30c-36a0aef8a375",
+      "value_code": "V-2",
+      "target_type": "objective",
+      "target_code": "O-8",
+      "created_at": "2026-11-02T00:00:00Z"
     }
   ],
   "rule_attachments": [
@@ -747,6 +1034,174 @@
       "target_type": "role",
       "target_code": "R-6",
       "created_at": "2026-10-28T00:00:00Z"
+    },
+    {
+      "id": "ec3e66a1-f7d8-585d-bc6d-1b6d1070426c",
+      "rule_code": "RU-18",
+      "target_type": "objective",
+      "target_code": "O-5",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "557d633d-36fc-523f-9a86-686bf8dbee76",
+      "rule_code": "RU-18",
+      "target_type": "objective",
+      "target_code": "O-6",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "13951954-fff3-5e4c-9ce7-0bae1f0b2809",
+      "rule_code": "RU-18",
+      "target_type": "objective",
+      "target_code": "O-7",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "5d887c94-d432-5a14-8eda-ed6d36b93f77",
+      "rule_code": "RU-18",
+      "target_type": "objective",
+      "target_code": "O-8",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "de19b75e-145c-5be5-b9d3-f1e9266d2782",
+      "rule_code": "RU-18",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "b4c06c9b-8b81-5b19-8f4f-f3fcece5bab4",
+      "rule_code": "RU-18",
+      "target_type": "role",
+      "target_code": "R-7",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "1085eb31-f942-5bfb-89b2-dd679227a55b",
+      "rule_code": "RU-18",
+      "target_type": "role",
+      "target_code": "R-8",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "5f6a50b9-8656-5766-b77d-07ed8c6e5946",
+      "rule_code": "RU-18",
+      "target_type": "role",
+      "target_code": "R-9",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "de9f1db5-8f19-5b10-b6d6-8d12c857fc57",
+      "rule_code": "RU-19",
+      "target_type": "objective",
+      "target_code": "O-8",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "89832704-3793-59ed-ab8a-7431f55138aa",
+      "rule_code": "RU-19",
+      "target_type": "role",
+      "target_code": "R-8",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "08df95d5-019a-5962-ab46-7a6675005a2f",
+      "rule_code": "RU-19",
+      "target_type": "role",
+      "target_code": "R-9",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "b58b6935-773e-566c-ad13-d61feac97790",
+      "rule_code": "RU-20",
+      "target_type": "objective",
+      "target_code": "O-5",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "7ce39758-cb05-54a2-b12c-c06fdfe4cfbf",
+      "rule_code": "RU-20",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "e98361ea-3735-53a3-a1f1-aad8b9897512",
+      "rule_code": "RU-20",
+      "target_type": "role",
+      "target_code": "R-7",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "3654b0c3-9f86-5939-8b7e-5cbd83473249",
+      "rule_code": "RU-20",
+      "target_type": "role",
+      "target_code": "R-9",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "f250fd96-ae3e-5c9e-a966-4d4b70e360b9",
+      "rule_code": "RU-21",
+      "target_type": "objective",
+      "target_code": "O-5",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "1ee86e3a-4461-5b37-95b4-3f8a007351ce",
+      "rule_code": "RU-21",
+      "target_type": "objective",
+      "target_code": "O-7",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "cf8f6de1-4683-5f80-af4b-7bf9eb344eed",
+      "rule_code": "RU-21",
+      "target_type": "role",
+      "target_code": "R-5",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "1ddea564-7179-5e2c-81f9-cba3615a2f57",
+      "rule_code": "RU-21",
+      "target_type": "role",
+      "target_code": "R-7",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "ba7b8f60-6ef5-58cb-b594-5054aaad4d21",
+      "rule_code": "RU-21",
+      "target_type": "role",
+      "target_code": "R-8",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "9b168c24-0840-551c-a962-81c6a3a42962",
+      "rule_code": "RU-22",
+      "target_type": "objective",
+      "target_code": "O-8",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "fc55ee03-c0a4-5544-8cdb-02359c1ff68d",
+      "rule_code": "RU-22",
+      "target_type": "role",
+      "target_code": "R-3",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "8370bd31-88dc-5bdb-a99b-3b019ef20956",
+      "rule_code": "RU-22",
+      "target_type": "role",
+      "target_code": "R-6",
+      "created_at": "2026-11-02T00:00:00Z"
+    },
+    {
+      "id": "451407d7-7e86-5fd2-8163-87d9fb1600ac",
+      "rule_code": "RU-22",
+      "target_type": "role",
+      "target_code": "R-9",
+      "created_at": "2026-11-02T00:00:00Z"
     }
   ],
   "workflows": [
@@ -858,6 +1313,196 @@
       "ordinality": 11,
       "created_at": "2026-11-01T00:00:00Z",
       "last_updated": "2026-11-01T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "cf7a2d86-87e6-502a-a3bc-4e540f3c5f71",
+      "code": "W-12",
+      "name": "Ask for a field visit",
+      "description": "A farmer asks an officer to visit her farm. Says yes: the extension officer, with a date.",
+      "ordinality": 12,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4ee3c83a-3d20-5cf9-9ea2-fd605e3cde7b",
+      "code": "W-13",
+      "name": "Report a crop pest or disease",
+      "description": "A farmer tells the ministry about a pest or disease in her crop. Says yes: the extension officer, with what to do or a visit date.",
+      "ordinality": 13,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4267be59-8c1b-54da-a437-e7091ab6a11d",
+      "code": "W-14",
+      "name": "Sign up for a training day",
+      "description": "A farmer signs up for a training day the extension officer has set. Says yes: the extension officer confirms her place.",
+      "ordinality": 14,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e42bf11a-c2c8-5b51-9fe8-df1b06652fdf",
+      "code": "W-15",
+      "name": "Request a soil test",
+      "description": "A farmer asks for the soil of a plot to be tested. Says yes: the extension officer, with a day to take the sample.",
+      "ordinality": 15,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "02862437-f273-55f0-acc1-11ed17316626",
+      "code": "W-16",
+      "name": "Issue a seasonal advisory",
+      "description": "The ministry tells farmers what to plant, spray or watch for this season. Says yes: the agriculture director approves the advisory before it goes out.",
+      "ordinality": 16,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1f81b25b-4450-5b0e-a8ba-58b905ba6c8b",
+      "code": "W-17",
+      "name": "Submit a field report",
+      "description": "An extension officer reports on her visits to the ministry. The agriculture director reads it; no one approves.",
+      "ordinality": 17,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a4e6d33d-8b3d-5454-b287-027a50f3b1a9",
+      "code": "W-18",
+      "name": "Register as a farmer",
+      "description": "A farmer is put on the ministry's list of farmers. Says yes: the extension officer confirms the entry.",
+      "ordinality": 18,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "436c5c31-6bd1-54d2-b28e-477d077eefbd",
+      "code": "W-19",
+      "name": "Register my plot",
+      "description": "A farmer adds a plot to the ministry's list. Says yes: the extension officer confirms it.",
+      "ordinality": 19,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f37e3680-e29a-51a3-916b-7e79b437d9c9",
+      "code": "W-20",
+      "name": "Register my livestock",
+      "description": "A farmer lists her animals with the ministry. Says yes: the veterinary officer confirms the entry.",
+      "ordinality": 20,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "9ebf7730-6eac-575d-94c2-e620f3aae5b4",
+      "code": "W-21",
+      "name": "Register a fish pond or boat",
+      "description": "A fish farmer or fisher lists a pond or a boat. Says yes: the extension officer confirms it.",
+      "ordinality": 21,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "2dbcdd9d-265c-5042-96e6-7441c3001435",
+      "code": "W-22",
+      "name": "Register a farmer group or cooperative",
+      "description": "A group of farmers asks the ministry to list it as a group or cooperative. Says yes: the agriculture director.",
+      "ordinality": 22,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3252951c-75a6-5125-add9-28ad01c87786",
+      "code": "W-23",
+      "name": "Report a sick animal",
+      "description": "A farmer reports an animal that is sick or dead. Says yes: the veterinary officer, with what to do or a visit date.",
+      "ordinality": 23,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "fc3d9696-8bd3-591e-9597-364e12481b54",
+      "code": "W-24",
+      "name": "Book a vaccination day",
+      "description": "A farmer books her animals into a vaccination day. Says yes: the veterinary officer, with the day.",
+      "ordinality": 24,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "26cbc36f-75b9-5039-a573-4bcedb96b74c",
+      "code": "W-25",
+      "name": "Request an animal movement permit",
+      "description": "A farmer asks to move animals from one place to another. Says yes: the veterinary officer.",
+      "ordinality": 25,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ce9c2cd5-c480-5fd8-a012-8ce987ecfb09",
+      "code": "W-26",
+      "name": "Request a produce inspection",
+      "description": "A farmer asks for her produce to be inspected before she sells it. Says yes: the extension officer, with a day.",
+      "ordinality": 26,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "e3ccdc03-cc64-5462-931f-df296eca5b2e",
+      "code": "W-27",
+      "name": "Apply for subsidised inputs",
+      "description": "A farmer applies for inputs the county gives at a lower cost. Says yes: the agriculture director, with what he allows.",
+      "ordinality": 27,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "6bf57895-02f7-55b9-abe6-e2eb335443df",
+      "code": "W-28",
+      "name": "Book a county tractor",
+      "description": "A farmer books the county's tractor for ploughing or planting. Says yes: the extension officer, with a day.",
+      "ordinality": 28,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a210d262-5162-569a-87d1-341e1b245731",
+      "code": "W-29",
+      "name": "Report a loss and apply for relief",
+      "description": "A farmer reports a loss to drought, flood or disease and asks for relief. Says yes: the agriculture director.",
+      "ordinality": 29,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "21583bee-ccf3-5409-a7ab-1504caf31baf",
+      "code": "W-30",
+      "name": "Raise a complaint about an input supplier",
+      "description": "A farmer complains about an input she bought, such as seed that did not grow. Says yes: the agriculture director decides what happens to the supplier.",
+      "ordinality": 30,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
       "deleted": false
     }
   ],
@@ -1262,6 +1907,918 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "1f28bb27-5e77-58bf-91b0-07cd4a729c2a",
+      "code": "WI-28",
+      "workflow_id": "cf7a2d86-87e6-502a-a3bc-4e540f3c5f71",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Ask for a field visit",
+      "description": "The farmer says what the visit is about, which crop or animal it concerns, and where her farm is.",
+      "prompt": "The farmer says what the visit is about, which crop or animal it concerns, and where her farm is.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Ask for a field visit",
+      "questions": [
+        {
+          "prompt": "What is the visit about",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Which crop or animal",
+          "answer_type": "free_text",
+          "required": false
+        },
+        {
+          "prompt": "Where is your farm",
+          "answer_type": "free_text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "93a6eab8-528a-5f92-94b4-c400c0a14e84",
+      "code": "WI-29",
+      "workflow_id": "cf7a2d86-87e6-502a-a3bc-4e540f3c5f71",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Book the visit",
+      "description": "Says yes: the extension officer, with a date, or no with a reason. The Farmers' agent tells the farmer in her thread.",
+      "prompt": "Says yes: the extension officer, with a date, or no with a reason. The Farmers' agent tells the farmer in her thread.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "49a3ba2c-9333-5f82-9342-d16f5e90956f",
+      "code": "WI-30",
+      "workflow_id": "cf7a2d86-87e6-502a-a3bc-4e540f3c5f71",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Write what was found",
+      "description": "After the visit the extension officer writes what she found and what the farmer should do next, and the farmer reads it in her thread.",
+      "prompt": "After the visit the extension officer writes what she found and what the farmer should do next, and the farmer reads it in her thread.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a08d0d6b-307b-5df5-b104-94995a3a0735",
+      "code": "WI-31",
+      "workflow_id": "4ee3c83a-3d20-5cf9-9ea2-fd605e3cde7b",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Report a crop pest or disease",
+      "description": "The farmer says which crop, what she sees, whether it is spreading and where the field is.",
+      "prompt": "The farmer says which crop, what she sees, whether it is spreading and where the field is.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Report a crop pest or disease",
+      "questions": [
+        {
+          "prompt": "Crop",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "What you see",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Is it spreading",
+          "answer_type": "yes_no",
+          "required": false
+        },
+        {
+          "prompt": "Where is the field",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "ed42f4b8-2c6b-525f-a7a2-07c4a04add30",
+      "code": "WI-32",
+      "workflow_id": "4ee3c83a-3d20-5cf9-9ea2-fd605e3cde7b",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Answer the farmer",
+      "description": "Says yes: the extension officer tells the farmer what to do now, or books a visit in Ask for a field visit.",
+      "prompt": "Says yes: the extension officer tells the farmer what to do now, or books a visit in Ask for a field visit.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "8e56893a-b9c1-5959-946f-e34e655eeb6a",
+      "code": "WI-33",
+      "workflow_id": "4ee3c83a-3d20-5cf9-9ea2-fd605e3cde7b",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Warn the other farmers",
+      "description": "Says yes: the extension officer decides whether the others are told. The Farmers' agent then tells the other farmers who grow the same crop, in the officer's words and nothing added.",
+      "prompt": "Says yes: the extension officer decides whether the others are told. The Farmers' agent then tells the other farmers who grow the same crop, in the officer's words and nothing added.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "41198d5f-b673-59d4-a0c2-c90985380373",
+      "code": "WI-34",
+      "workflow_id": "4267be59-8c1b-54da-a437-e7091ab6a11d",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Sign up for a training day",
+      "description": "The farmer says which training she wants and how many will come.",
+      "prompt": "The farmer says which training she wants and how many will come.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Sign up for a training day",
+      "questions": [
+        {
+          "prompt": "Which training",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "How many will come",
+          "answer_type": "number",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "f0e96705-571f-5a32-9c59-ae788147ce68",
+      "code": "WI-35",
+      "workflow_id": "4267be59-8c1b-54da-a437-e7091ab6a11d",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Confirm the place",
+      "description": "Says yes: the extension officer confirms the place, or says the day is full.",
+      "prompt": "Says yes: the extension officer confirms the place, or says the day is full.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "12526ac1-8f4d-59f3-9618-7132eaa83d5c",
+      "code": "WI-36",
+      "workflow_id": "e42bf11a-c2c8-5b51-9fe8-df1b06652fdf",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Take the request",
+      "description": "The Farmers' agent asks the farmer which plot and which crop she plans, and hands the answers to the extension officer.",
+      "prompt": "The Farmers' agent asks the farmer which plot and which crop she plans, and hands the answers to the extension officer.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c56a745d-64ed-5eed-9e3f-12c76f4eef1a",
+      "code": "WI-37",
+      "workflow_id": "e42bf11a-c2c8-5b51-9fe8-df1b06652fdf",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Book the sample",
+      "description": "Says yes: the extension officer, with a day to take the sample, or no with a reason.",
+      "prompt": "Says yes: the extension officer, with a day to take the sample, or no with a reason.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3c4da044-0302-5871-af06-867f8fe8eef6",
+      "code": "WI-38",
+      "workflow_id": "e42bf11a-c2c8-5b51-9fe8-df1b06652fdf",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Tell the farmer the result",
+      "description": "The extension officer writes what the test shows and what to add or change; the Farmers' agent tells the farmer in her thread.",
+      "prompt": "The extension officer writes what the test shows and what to add or change; the Farmers' agent tells the farmer in her thread.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "684cd4f3-54da-5638-9654-5d71c097e9cb",
+      "code": "WI-39",
+      "workflow_id": "02862437-f273-55f0-acc1-11ed17316626",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Draft the advisory",
+      "description": "The extension officer writes the advisory: the crop, the advice and the weeks it covers.",
+      "prompt": "The extension officer writes the advisory: the crop, the advice and the weeks it covers.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "4c2d7c6d-e6c3-5f2d-92bf-b4bb56a4bbc2",
+      "code": "WI-40",
+      "workflow_id": "02862437-f273-55f0-acc1-11ed17316626",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Approve or decline the advisory",
+      "description": "Says yes: the agriculture director approves or declines. Until he does, no farmer is told.",
+      "prompt": "Says yes: the agriculture director approves or declines. Until he does, no farmer is told.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0ffdad7c-6676-5876-9925-10d9c55f9040",
+      "code": "WI-41",
+      "workflow_id": "02862437-f273-55f0-acc1-11ed17316626",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Tell the farmers",
+      "description": "The Farmers' agent sends the approved advisory to each farmer in her thread, in the officer's words and in the language she writes in.",
+      "prompt": "The Farmers' agent sends the approved advisory to each farmer in her thread, in the officer's words and in the language she writes in.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "d95199b6-da82-5a47-a9dc-caf7a2808539",
+      "code": "WI-42",
+      "workflow_id": "1f81b25b-4450-5b0e-a8ba-58b905ba6c8b",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Submit a field report",
+      "description": "The extension officer says which ward she visited, how many farms, what she found and what is needed.",
+      "prompt": "The extension officer says which ward she visited, how many farms, what she found and what is needed.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "9af64fa1-e951-547c-b3de-550eb443e8f1",
+      "form_name": "Submit a field report",
+      "questions": [
+        {
+          "prompt": "Ward visited",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Farms visited",
+          "answer_type": "number",
+          "required": true
+        },
+        {
+          "prompt": "What you found",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "What is needed",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "cb40a56d-38db-52b3-9159-c7844351002c",
+      "code": "WI-43",
+      "workflow_id": "1f81b25b-4450-5b0e-a8ba-58b905ba6c8b",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "title": "Read the report",
+      "description": "The agriculture director reads the report and may ask the extension officer to follow up. Nobody approves it.",
+      "prompt": "The agriculture director reads the report and may ask the extension officer to follow up. Nobody approves it.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1816291e-68ac-5d41-8811-68326e28d162",
+      "code": "WI-44",
+      "workflow_id": "a4e6d33d-8b3d-5454-b287-027a50f3b1a9",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Register as a farmer",
+      "description": "The farmer says her ward, her main crops and animals, and the size of her farm.",
+      "prompt": "The farmer says her ward, her main crops and animals, and the size of her farm.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Register as a farmer",
+      "questions": [
+        {
+          "prompt": "Ward",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Main crops",
+          "answer_type": "free_text",
+          "required": false
+        },
+        {
+          "prompt": "Main animals",
+          "answer_type": "free_text",
+          "required": false
+        },
+        {
+          "prompt": "Farm size in acres",
+          "answer_type": "number",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "5cd24668-e8e2-5c56-9a6d-8250ce2ee415",
+      "code": "WI-45",
+      "workflow_id": "a4e6d33d-8b3d-5454-b287-027a50f3b1a9",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Confirm the entry",
+      "description": "Says yes: the extension officer confirms the farmer, or asks her to correct what she wrote.",
+      "prompt": "Says yes: the extension officer confirms the farmer, or asks her to correct what she wrote.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f2990ae2-3aa4-56e3-abfe-ca6a91f11906",
+      "code": "WI-46",
+      "workflow_id": "436c5c31-6bd1-54d2-b28e-477d077eefbd",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Register my plot",
+      "description": "The farmer names the plot, says where it is and how big, and may add its main crop.",
+      "prompt": "The farmer names the plot, says where it is and how big, and may add its main crop.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Register my plot",
+      "questions": [
+        {
+          "prompt": "Plot name",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Village or ward",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Size in acres",
+          "answer_type": "number",
+          "required": true
+        },
+        {
+          "prompt": "Main crop",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "1ca88b42-3e9d-55d6-bfd8-c4bf593f2a1d",
+      "code": "WI-47",
+      "workflow_id": "436c5c31-6bd1-54d2-b28e-477d077eefbd",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Confirm the plot",
+      "description": "Says yes: the extension officer confirms the plot, or asks the farmer to correct it.",
+      "prompt": "Says yes: the extension officer confirms the plot, or asks the farmer to correct it.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c7f4972b-cae2-5f89-bd7d-ea180374c5ff",
+      "code": "WI-48",
+      "workflow_id": "f37e3680-e29a-51a3-916b-7e79b437d9c9",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Register my livestock",
+      "description": "The farmer says which animals she keeps, how many, and where.",
+      "prompt": "The farmer says which animals she keeps, how many, and where.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Register my livestock",
+      "questions": [
+        {
+          "prompt": "Kind of animal",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "How many",
+          "answer_type": "number",
+          "required": true
+        },
+        {
+          "prompt": "Where they are kept",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "4c36cd5e-e9f1-5592-bb4b-d10341be9462",
+      "code": "WI-49",
+      "workflow_id": "f37e3680-e29a-51a3-916b-7e79b437d9c9",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Confirm the entry",
+      "description": "Says yes: the veterinary officer confirms the entry, or asks the farmer to correct it.",
+      "prompt": "Says yes: the veterinary officer confirms the entry, or asks the farmer to correct it.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f9958ae4-f8c8-5fc6-af7e-0502bf5ff27d",
+      "code": "WI-50",
+      "workflow_id": "9ebf7730-6eac-575d-94c2-e620f3aae5b4",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Take the details",
+      "description": "The Farmers' agent asks whether it is a pond or a boat, where it is, and what is raised or caught, and hands the answers to the extension officer.",
+      "prompt": "The Farmers' agent asks whether it is a pond or a boat, where it is, and what is raised or caught, and hands the answers to the extension officer.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f9451813-9140-5920-aeac-2f72ae8d5ea5",
+      "code": "WI-51",
+      "workflow_id": "9ebf7730-6eac-575d-94c2-e620f3aae5b4",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Confirm the entry",
+      "description": "Says yes: the extension officer confirms the entry, or asks for a correction.",
+      "prompt": "Says yes: the extension officer confirms the entry, or asks for a correction.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "466c1fd8-a5bb-595b-a5c0-3250180a5544",
+      "code": "WI-52",
+      "workflow_id": "2dbcdd9d-265c-5042-96e6-7441c3001435",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Register a farmer group or cooperative",
+      "description": "The group coordinator gives the group's name, its ward, how many members it has and what it does.",
+      "prompt": "The group coordinator gives the group's name, its ward, how many members it has and what it does.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "form_name": "Register a farmer group or cooperative",
+      "questions": [
+        {
+          "prompt": "Group name",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Ward",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "How many members",
+          "answer_type": "number",
+          "required": true
+        },
+        {
+          "prompt": "What the group does",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "9e6063d3-38a3-5356-88bf-cc25078c2420",
+      "code": "WI-53",
+      "workflow_id": "2dbcdd9d-265c-5042-96e6-7441c3001435",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "title": "Decide on the group",
+      "description": "Says yes: the agriculture director lists the group, or says what is missing.",
+      "prompt": "Says yes: the agriculture director lists the group, or says what is missing.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "19f7330a-4736-54bc-8635-72eeb27e94d8",
+      "code": "WI-54",
+      "workflow_id": "3252951c-75a6-5125-add9-28ad01c87786",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Report a sick animal",
+      "description": "The farmer says which animal, how many are sick, what she sees and whether any have died.",
+      "prompt": "The farmer says which animal, how many are sick, what she sees and whether any have died.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Report a sick animal",
+      "questions": [
+        {
+          "prompt": "Kind of animal",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "How many are sick",
+          "answer_type": "number",
+          "required": true
+        },
+        {
+          "prompt": "What you see",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Have any died",
+          "answer_type": "yes_no",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "8e189265-e6ee-5a1d-9e4e-95d8ffaa5216",
+      "code": "WI-55",
+      "workflow_id": "3252951c-75a6-5125-add9-28ad01c87786",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Answer the farmer",
+      "description": "Says yes: the veterinary officer tells the farmer what to do now and whether he will visit, with a date.",
+      "prompt": "Says yes: the veterinary officer tells the farmer what to do now and whether he will visit, with a date.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ffd38741-6514-5a42-a3a0-926784cd0c4b",
+      "code": "WI-56",
+      "workflow_id": "3252951c-75a6-5125-add9-28ad01c87786",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Warn the other keepers",
+      "description": "Says yes: the veterinary officer decides whether the others are told. The Farmers' agent then tells the other farmers who keep that animal, in the officer's words and nothing added.",
+      "prompt": "Says yes: the veterinary officer decides whether the others are told. The Farmers' agent then tells the other farmers who keep that animal, in the officer's words and nothing added.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "b7311fd4-f1d2-5ccb-9c68-4ed25ace73ca",
+      "code": "WI-57",
+      "workflow_id": "fc3d9696-8bd3-591e-9597-364e12481b54",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Take the booking",
+      "description": "The Farmers' agent asks the farmer which animals and how many, and hands the answers to the veterinary officer.",
+      "prompt": "The Farmers' agent asks the farmer which animals and how many, and hands the answers to the veterinary officer.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "3ba010b6-52cd-5b3f-8dad-920fbd98a386",
+      "code": "WI-58",
+      "workflow_id": "fc3d9696-8bd3-591e-9597-364e12481b54",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Confirm the day",
+      "description": "Says yes: the veterinary officer, with a day and a place, or no with a reason.",
+      "prompt": "Says yes: the veterinary officer, with a day and a place, or no with a reason.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ecc15765-40dc-544e-8b2d-35b570d29291",
+      "code": "WI-59",
+      "workflow_id": "fc3d9696-8bd3-591e-9597-364e12481b54",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Mark the animals vaccinated",
+      "description": "After the day the veterinary officer marks the animals vaccinated and the farmer is told in her thread.",
+      "prompt": "After the day the veterinary officer marks the animals vaccinated and the farmer is told in her thread.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "968e72c8-49f6-589c-8309-15edccbdf598",
+      "code": "WI-60",
+      "workflow_id": "26cbc36f-75b9-5039-a573-4bcedb96b74c",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Request an animal movement permit",
+      "description": "The farmer says which animals, how many, and where they are moving from and to.",
+      "prompt": "The farmer says which animals, how many, and where they are moving from and to.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Request an animal movement permit",
+      "questions": [
+        {
+          "prompt": "Kind of animal",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "How many",
+          "answer_type": "number",
+          "required": true
+        },
+        {
+          "prompt": "Move from",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Move to",
+          "answer_type": "free_text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "7c113c41-1f2c-54a0-8dc6-9dc315fdaa5c",
+      "code": "WI-61",
+      "workflow_id": "26cbc36f-75b9-5039-a573-4bcedb96b74c",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Decide on the permit",
+      "description": "Says yes: the veterinary officer approves or declines. Until he does, the animals are not cleared to move.",
+      "prompt": "Says yes: the veterinary officer approves or declines. Until he does, the animals are not cleared to move.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c928dc89-e19d-5e0f-bd96-39c86e120a3a",
+      "code": "WI-62",
+      "workflow_id": "ce9c2cd5-c480-5fd8-a012-8ce987ecfb09",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Take the request",
+      "description": "The Farmers' agent asks what produce, how much and where it is, and hands the answers to the extension officer.",
+      "prompt": "The Farmers' agent asks what produce, how much and where it is, and hands the answers to the extension officer.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "16f2bcbd-c06c-5795-bd73-10b67caee062",
+      "code": "WI-63",
+      "workflow_id": "ce9c2cd5-c480-5fd8-a012-8ce987ecfb09",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Book the inspection",
+      "description": "Says yes: the extension officer, with a day, or no with a reason.",
+      "prompt": "Says yes: the extension officer, with a day, or no with a reason.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "8eca5ade-cb3c-5da3-a277-1e8d195f1c24",
+      "code": "WI-64",
+      "workflow_id": "ce9c2cd5-c480-5fd8-a012-8ce987ecfb09",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "title": "Write the result",
+      "description": "The extension officer writes whether the produce passed and what to do if it did not; the farmer is told, and the buyer if the farmer asks.",
+      "prompt": "The extension officer writes whether the produce passed and what to do if it did not; the farmer is told, and the buyer if the farmer asks.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a0248f92-8caf-5481-852d-d507e5166fad",
+      "code": "WI-65",
+      "workflow_id": "e3ccdc03-cc64-5462-931f-df296eca5b2e",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Apply for subsidised inputs",
+      "description": "The farmer says which input she needs, how much, and how many acres it is for.",
+      "prompt": "The farmer says which input she needs, how much, and how many acres it is for.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Apply for subsidised inputs",
+      "questions": [
+        {
+          "prompt": "Input needed",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "How much",
+          "answer_type": "number",
+          "required": true
+        },
+        {
+          "prompt": "Acres it is for",
+          "answer_type": "number",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "a16b4734-f2cd-52df-87cd-7d2660af5e3f",
+      "code": "WI-66",
+      "workflow_id": "e3ccdc03-cc64-5462-931f-df296eca5b2e",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Decide on the application",
+      "description": "Says yes: the agriculture director approves, with what he allows, or declines with a reason. The template sets no amount.",
+      "prompt": "Says yes: the agriculture director approves, with what he allows, or declines with a reason. The template sets no amount.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "b9f7792a-2165-5343-8196-4a8f9ff234cc",
+      "code": "WI-67",
+      "workflow_id": "e3ccdc03-cc64-5462-931f-df296eca5b2e",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Tell the farmer",
+      "description": "The Farmers' agent tells the farmer the answer in her thread.",
+      "prompt": "The Farmers' agent tells the farmer the answer in her thread.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "db589d65-b3a0-5fe4-bd4e-8804c4bc5e7a",
+      "code": "WI-68",
+      "workflow_id": "6bf57895-02f7-55b9-abe6-e2eb335443df",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Take the booking",
+      "description": "The Farmers' agent asks what work, how many acres and which day, and hands the answers to the extension officer.",
+      "prompt": "The Farmers' agent asks what work, how many acres and which day, and hands the answers to the extension officer.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5bb1455f-eebf-5a49-9201-baebe4b684eb",
+      "code": "WI-69",
+      "workflow_id": "6bf57895-02f7-55b9-abe6-e2eb335443df",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Set the day",
+      "description": "Says yes: the extension officer, with a day, or no with the next day that is free.",
+      "prompt": "Says yes: the extension officer, with a day, or no with the next day that is free.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "944cedd7-b446-53c8-b44c-89420e939c94",
+      "code": "WI-70",
+      "workflow_id": "6bf57895-02f7-55b9-abe6-e2eb335443df",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Close the booking",
+      "description": "After the work the extension officer marks the booking done and the farmer is told in her thread.",
+      "prompt": "After the work the extension officer marks the booking done and the farmer is told in her thread.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c1edd9bb-08fe-5cbe-b5e0-e9053fad27fc",
+      "code": "WI-71",
+      "workflow_id": "a210d262-5162-569a-87d1-341e1b245731",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Report a loss and apply for relief",
+      "description": "The farmer says what was lost, how much, when and where.",
+      "prompt": "The farmer says what was lost, how much, when and where.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false,
+      "kind": "fill_form",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "form_name": "Report a loss and apply for relief",
+      "questions": [
+        {
+          "prompt": "What was lost",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "How much",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "When",
+          "answer_type": "free_text",
+          "required": true
+        },
+        {
+          "prompt": "Where",
+          "answer_type": "free_text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "8c935b81-a636-5737-aa7b-f5341e02e6a8",
+      "code": "WI-72",
+      "workflow_id": "a210d262-5162-569a-87d1-341e1b245731",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Check the loss",
+      "description": "An officer visits and writes what is found: the extension officer for crops, the veterinary officer for animals.",
+      "prompt": "An officer visits and writes what is found: the extension officer for crops, the veterinary officer for animals.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "01a1998d-bb5a-5136-98a9-992a7030be22",
+      "code": "WI-73",
+      "workflow_id": "a210d262-5162-569a-87d1-341e1b245731",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Decide on relief",
+      "description": "Says yes: the agriculture director approves relief, with what he gives, or declines with a reason. The template sets no amount.",
+      "prompt": "Says yes: the agriculture director approves relief, with what he gives, or declines with a reason. The template sets no amount.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "16fda279-4c49-53dc-8894-a8ad9082f93b",
+      "code": "WI-74",
+      "workflow_id": "21583bee-ccf3-5409-a7ab-1504caf31baf",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Take the complaint",
+      "description": "The Farmers' agent asks which supplier, what was bought and what went wrong, and hands the answers to the agriculture director.",
+      "prompt": "The Farmers' agent asks which supplier, what was bought and what went wrong, and hands the answers to the agriculture director.",
+      "ordinality": 1,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "d19f55a2-079f-5a40-8887-cc37fd192d5a",
+      "code": "WI-75",
+      "workflow_id": "21583bee-ccf3-5409-a7ab-1504caf31baf",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Hear the supplier",
+      "description": "The Suppliers' agent hands the complaint to the supplier, who answers in his own words. Nothing is decided before he has answered.",
+      "prompt": "The Suppliers' agent hands the complaint to the supplier, who answers in his own words. Nothing is decided before he has answered.",
+      "ordinality": 2,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0b4b5c77-cdef-5367-a121-b1bef92d7d94",
+      "code": "WI-76",
+      "workflow_id": "21583bee-ccf3-5409-a7ab-1504caf31baf",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "title": "Decide on the complaint",
+      "description": "Says yes: the agriculture director decides: no action, a warning, or asks the group coordinator to stop the supplier appearing in the market.",
+      "prompt": "Says yes: the agriculture director decides: no action, a warning, or asks the group coordinator to stop the supplier appearing in the market.",
+      "ordinality": 3,
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
     }
   ],
   "work_plans": [],
@@ -1417,6 +2974,222 @@
       "label": "consulted",
       "created_at": "2026-10-28T00:00:00Z",
       "last_updated": "2026-10-28T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "5c5cecb4-478a-5d74-8b6e-90120fb21210",
+      "role_id": "ecf853f7-e858-5f6b-9ca8-a8fd8050d6e3",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "label": "accountable",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "58a5beae-972d-5442-a6ca-52e5c2350a90",
+      "role_id": "9af64fa1-e951-547c-b3de-550eb443e8f1",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ccaf8371-6292-5257-af04-4c1eba3fa16a",
+      "role_id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f890376c-b9e3-5f85-837f-1d33aa0425b1",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "label": "consulted",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0f104acf-4ea6-5d1d-98d5-b62f0a53cb7d",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "objective_id": "77d02e28-1e19-5576-ad45-fabe53e663dc",
+      "label": "informed",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "67e24925-6186-5087-8972-f7711eeebb45",
+      "role_id": "ecf853f7-e858-5f6b-9ca8-a8fd8050d6e3",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "label": "accountable",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "d9949c95-1940-5832-822a-d4fac7a775bf",
+      "role_id": "9af64fa1-e951-547c-b3de-550eb443e8f1",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a334e7fc-c33c-5ee6-bb64-76f19406b5fc",
+      "role_id": "b9fa3dc4-afce-572c-a16e-57969a0e2b24",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "eca9db45-9618-5566-9ea4-f6775431a0f7",
+      "role_id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "60dc9782-042c-591a-a823-3ce406810716",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "label": "consulted",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "0f3e9f50-4d94-52d0-97e2-317a0108e172",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "objective_id": "fca2b134-3903-5932-b166-009d5e219528",
+      "label": "consulted",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1bc1eb0c-96b9-59c7-830e-197b0f044cc1",
+      "role_id": "ecf853f7-e858-5f6b-9ca8-a8fd8050d6e3",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "label": "accountable",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "a0d6c75b-13c5-5b39-8665-507fddd1200f",
+      "role_id": "b9fa3dc4-afce-572c-a16e-57969a0e2b24",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ff31f33e-7e92-59aa-8700-7bff6e3c3521",
+      "role_id": "9af64fa1-e951-547c-b3de-550eb443e8f1",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ed195c90-ceb4-5872-ad16-04b2ac6530e6",
+      "role_id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "1734d465-acee-53f7-aa78-7ea1aff38b42",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "label": "consulted",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "87803615-53cc-53e4-80d2-143c0c6ce5b4",
+      "role_id": "7c80ae1e-428c-564b-a00a-8648146b5495",
+      "objective_id": "a1ecc306-b95e-572f-8080-80ac0b75908d",
+      "label": "informed",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f2d04bc3-06a5-5611-98f6-d8d3a8412bc2",
+      "role_id": "ecf853f7-e858-5f6b-9ca8-a8fd8050d6e3",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "label": "accountable",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "f6f07343-2114-5418-b3cb-86e9e8ec185b",
+      "role_id": "9af64fa1-e951-547c-b3de-550eb443e8f1",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "7bf6e285-19b7-5f20-9914-1c0656d99cfb",
+      "role_id": "64f7e4f6-e029-5418-b3a2-1d239786ec78",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "ab5e181d-6047-5922-bbda-acd3af9cb850",
+      "role_id": "f3be31f4-df41-50e1-a976-4c02b28abbbc",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "label": "responsible",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "c57d4170-9d2c-566d-a61a-86e1699c38de",
+      "role_id": "cc54e044-bdda-58bb-b560-df8309a45960",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "label": "consulted",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "b237f645-cf39-5a08-b6a8-f770c8a48fc5",
+      "role_id": "ff60e4c9-04a6-5b93-8fcb-a61941d291bb",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "label": "consulted",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
+      "deleted": false
+    },
+    {
+      "id": "40c5812c-14ab-5cbf-9f05-7212d1ac1b46",
+      "role_id": "f431d2d7-f65e-522a-adc8-e4d418eb14e2",
+      "objective_id": "150a4f15-6543-5620-bf17-a76b46156e0d",
+      "label": "consulted",
+      "created_at": "2026-11-02T00:00:00Z",
+      "last_updated": "2026-11-02T00:00:00Z",
       "deleted": false
     }
   ],
