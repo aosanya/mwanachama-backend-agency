@@ -27,7 +27,10 @@ identified by its id and its name.
 There is no block object. A scenario's blocks are the steps of its workflow,
 one actor each, and are derived on every read (`scenario.blocks`): the step,
 its kind, its action, the actor, and for each question of its form the field
-with `free` or the fixed `value`, and the block's `then`.
+with `free` or the fixed `value`, the block's `then`, and its `tool`, which is
+the step's own `tool` as it stands (empty when the step names none; the runner
+then derives the endpoint from the step's words and kind, see the hub's
+`test-runner.md`).
 
 ### Then lines
 
@@ -47,6 +50,13 @@ new draft's steps.
 Each step of a run's `steps` has `played_by`, filled by the executor with who
 played it, such as `Test agent · Fill a form`; `actor` stays the character in
 the script. The agency stores and returns it as given.
+
+A played step also carries `module`, `endpoint`, `sent` (the arguments of the
+call), `answer` (what the module answered) and `trail` (the lines the call
+wrote, each with its step, module, endpoint, text and time). A run holds the
+`trail` of all its steps, the `stored` rows each module's test copy holds when
+the run ends, its `token_budget` and the `running_step` while it runs. The
+agency stores and returns these as the executor gives them.
 
 ### Actors
 
@@ -247,7 +257,9 @@ All under `agency.scenario.*` and `agency.test_run.*` in
 
 ## Not here
 
-The SQL mirror in the gateway's active migrations (another repo's), the
-executor and the `_test` tables (HS280, decision 85), the token budget (HS281),
-refusing the removal of a role or workflow a scenario uses (HS289), and
-removing a single run.
+The SQL mirror in the gateway's active migrations (another repo's), and
+removing a single run. The executor and the `_test` tables (HS280, decision 85)
+live in mwanachama-wakala-api (`internal/testruns`, `internal/agencies`),
+described in the hub's `3. implementation/test-runner.md` and wakala-api's
+`test-agent-stage.md`. The agency installs the executor through
+`WithScenarioRunner`; this repo has none of its own.
