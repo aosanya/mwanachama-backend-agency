@@ -1,6 +1,6 @@
 # Review an agency (HS465-HS468)
 
-The hub's design is [agency-review.md](../../../projects/meta-global-ai-hackathon-community-hubs/documentation/2.%20design/agency-review.md). This page records what the agency backend does about it and where it differs.
+The hub's design is [agency-review.md](../../../projects/hub-steward/documentation/2.%20design/technical-spec/agency-review.md). This page records what the agency backend does about it and where it differs.
 
 ## The objects
 
