@@ -22,5 +22,15 @@
     "icon": "alert",
     "mount": "risks",
     "mountable": true
+  },
+  {
+    "code": "assetmanager",
+    "name": "assetmanager",
+    "description": "Assets, the locations they sit in, the movements between locations and the holds placed on them.",
+    "enabled": false,
+    "locked": false,
+    "icon": "wrench",
+    "mount": "assets",
+    "mountable": true
   }
 ]
