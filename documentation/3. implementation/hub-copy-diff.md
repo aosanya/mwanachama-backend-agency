@@ -40,3 +40,4 @@ Three tests fail on a clean export of this repository at 4e47fa0, before any hub
 ## Changes made here that the hub copy does not have
 
 - Library parts created or renamed at the same moment (hub issue MUN698): `agency.go`, `library_part_impl.go`, `consequence_impl.go`; see `library-title-concurrency.md`.
+- A table that lacks a declared index is given it by `Provision` (hub issue MUN317): `provision.go`; see `provision-index-check.md`.

@@ -126,12 +126,14 @@ func upToDate(db *gorm.DB, s *spec.Spec) (bool, error) {
 		return false, nil
 	}
 
-	indexed, err := indexesHeld(db, s, roleWorkflowObjective)
-	if err != nil {
-		return false, err
-	}
-	if !indexed {
-		return false, nil
+	for _, o := range s.Objects {
+		indexed, err := indexesHeld(db, s, o.Role)
+		if err != nil {
+			return false, err
+		}
+		if !indexed {
+			return false, nil
+		}
 	}
 
 	var drafts int64
@@ -193,6 +195,9 @@ func indexesHeld(db *gorm.DB, s *spec.Spec, role string) (bool, error) {
 	postgres := db.Dialector.Name() == "postgres"
 	if !postgres {
 		query = `select name from sqlite_master where type = 'index' and name in ?`
+	}
+	if len(o.Indexes) == 0 {
+		return true, nil
 	}
 	names := make([]string, 0, len(o.Indexes))
 	for _, idx := range o.Indexes {
