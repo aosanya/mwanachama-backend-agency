@@ -140,3 +140,20 @@ func TestRecordRow_ARowThatWasCorrectedAwayCanBeSavedAgain(t *testing.T) {
 		t.Errorf("saving the corrected-away payment as a new one: %v", err)
 	}
 }
+
+func TestRecordRow_AnotherMembersIdenticalRowIsKeptAndTheSameMembersIsNot(t *testing.T) {
+	o := buildRoutedOrder(t)
+	ctx := context.Background()
+	first := paymentRow(o, "order-a", "Wanjiru", "100")
+	if _, err := o.world.mgr.CreateRecordRow(ctx, first); err != nil {
+		t.Fatalf("CreateRecordRow: %v", err)
+	}
+	other := first
+	other.AddedBy = "member-2"
+	if _, err := o.world.mgr.CreateRecordRow(ctx, other); err != nil {
+		t.Errorf("another member giving the same answers on the same order was refused: %v", err)
+	}
+	if _, err := o.world.mgr.CreateRecordRow(ctx, first); !errors.Is(err, mwanachamaagency.ErrDuplicateRecordRow) {
+		t.Errorf("the same member giving the same answers again = %v, want ErrDuplicateRecordRow", err)
+	}
+}
