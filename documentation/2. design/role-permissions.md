@@ -87,7 +87,7 @@ their `*.operations.json`:
 | `member.invite` Invite | `actor.invitation.create`, `actor.invitation.check_batch`, `actor.invitation.send_batch` |
 | `join_request.decide` Decide join requests | `actor.join_request.approve`, `actor.join_request.decline` |
 | `form.approve` Approve forms | `forms.approval.approve`, `forms.approval.approve_slot`, `forms.approval.refuse` |
-| `report.publish` Publish a report | `forms.results.publish` |
+| `report.publish` Publish a report | `forms.results.publish`, `voting.result.publish` |
 | `poll.run` Run a poll | `voting.poll.create`, `voting.choice.create` |
 | `notice.post` Post a notice | `engage.post.create` |
 | `event.post` Post an event or meeting | `engage.post.create` |
@@ -364,8 +364,12 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `risk.read` | Ask what could go wrong | no | `riskmanager` | Read the risk register: list and read risks, read a risk's bow-tie, list threats, consequences, preventive and mitigating measures, controls and gaps, and read what relies on a control. It writes nothing; see "The risk manager's reads". |
 | `review.run` | Run a review of a draft | no | `agency` | Start a review of a draft. The review is signed by the caller. No role is given it by default. |
 | `insight.count` | Count insights by subject | no | `insights` | Count the insights recorded about one subject. Small cells fold into an other cell so a count never names a few people. |
-| `task.read` | See tasks, their states, backlogs and what they wait on | no | `taskmanager` | List tasks, those overdue and those pending, read one by id or by name, list assignments and task states, list backlogs and who has access, and traverse the relationships between tasks. |
+| `task.read` | See tasks, their states, backlogs and what they wait on | no | `taskmanager` | List tasks, those overdue and those pending, find tasks of a backlog by id, code or words, read one by id or by name, list assignments and task states, list backlogs and who has access, and traverse the relationships between tasks. |
 | `task.edit` | Add and change tasks, and move them between steps and backlogs | no | `taskmanager` | Create, update, place and move tasks, move one to a step, and create and delete the relationships between tasks. |
 | `backlog.manage` | Add, change and delete backlogs and their steps | no | `taskmanager` | Create, rename, delete and manage backlogs, add, rename, remove and reorder their steps, give and take access to a backlog, and set its owner group. |
+| `case.vote` | Vote on cases, see the votes and take back your own | no | `taskmanager` | Vote on a case, take the caller's own vote back, and list the votes on a case. |
+| `consent.read` | Read the consent text in force and one's own consent | no | `custody` | Read the consent text in force and the caller's own consent. |
+| `consent.give` | Agree to the consent text and withdraw | no | `custody` | Agree to the consent text in force and withdraw that agreement. |
+| `consent.publish` | List the consent versions and publish a consent text | no | `custody` | List the consent versions and publish a new consent text. |
 
 `permission_doc_test.go` keeps this page and the catalogue in step. It reads every table on this page whose first column is headed `Code` or `Permission` and takes the code in backticks that opens each row. It fails naming each catalogue permission that has no such row, and each such row whose code is not in the catalogue. A table headed anything else is not read, so a table of questions or objects may open a row with a backticked word. Setting `ROLE_PERMISSIONS_DOC` to a path runs the test on another copy of the page.

@@ -22,7 +22,7 @@ func TestListPermissions_OlderPermissionsListTheActionsDeclaredToday(t *testing.
 		"member.invite":          {"actor.invitation.create", "actor.invitation.check_batch", "actor.invitation.send_batch"},
 		"join_request.decide":    {"actor.join_request.approve", "actor.join_request.decline"},
 		"form.approve":           {"forms.approval.approve", "forms.approval.approve_slot", "forms.approval.refuse"},
-		"report.publish":         {"forms.results.publish"},
+		"report.publish":         {"forms.results.publish", "voting.result.publish"},
 		"poll.run":               {"voting.poll.create", "voting.choice.create", "voting.poll.read", "voting.choice.list"},
 		"notice.post":            {"engage.post.create_notice"},
 		"event.post":             {"engage.post.create_event"},
