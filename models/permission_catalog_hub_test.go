@@ -65,3 +65,16 @@ func TestCatalogCarriesTheTaskModulePermissions(t *testing.T) {
 		}},
 	})
 }
+
+func TestCatalogCarriesBacklogRulesAndTheAssistantPermissions(t *testing.T) {
+	requireCatalogRows(t, []catalogRow{
+		{"task.read", "", []string{"taskmanager.backlog.rules_count"}},
+		{"backlog.manage", "", []string{"taskmanager.backlog.rules_set"}},
+		{"ai.chat", "ai", []string{
+			"ai.account.chat", "ai.chat_model.list", "ai.chat_model.pick",
+			"ai.assistant_limits.get", "ai.assistant_usage.mine",
+		}},
+		{"ai.account.read", "", []string{"ai.assistant_limits.get", "ai.assistant_usage.mine"}},
+		{"ai.account.manage", "", []string{"ai.assistant_limits.set"}},
+	})
+}
