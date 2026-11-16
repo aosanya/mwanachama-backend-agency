@@ -37,12 +37,12 @@ func TestAModuleReadsAsOneMountUnderTodaysName(t *testing.T) {
 		t.Errorf("market icon = %q, want the catalog's", market.Icon)
 	}
 
-	git, err := seededModule(mgr, ctx, draftID, "git")
+	custody, err := seededModule(mgr, ctx, draftID, "custody")
 	if err != nil {
 		t.Fatalf("seededModule: %v", err)
 	}
-	if len(mountsOf(t, git)) != 0 {
-		t.Errorf("git mounts = %q, want none for a module with no mount", git.Mounts)
+	if len(mountsOf(t, custody)) != 0 {
+		t.Errorf("custody mounts = %q, want none for a module with no mount", custody.Mounts)
 	}
 }
 
@@ -98,7 +98,7 @@ func TestMountNamesAreRefusedWhenTheyCannotBeTrusted(t *testing.T) {
 	draftID := newDraftAgency(t, mgr, ctx)
 	market, _ := seededModule(mgr, ctx, draftID, "market")
 	forms, _ := seededModule(mgr, ctx, draftID, "forms")
-	git, _ := seededModule(mgr, ctx, draftID, "git")
+	custody, _ := seededModule(mgr, ctx, draftID, "custody")
 
 	cases := map[string]struct {
 		id     string
@@ -114,7 +114,7 @@ func TestMountNamesAreRefusedWhenTheyCannotBeTrusted(t *testing.T) {
 		"one key twice":           {market.ID, []models.ModuleMount{{Name: "A", Key: "market"}, {Name: "B", Key: "market"}}},
 		"too many":                {market.ID, manyMounts(models.MaxModuleMounts + 1)},
 		"two on a single module":  {forms.ID, []models.ModuleMount{{Name: "One"}, {Name: "Two"}}},
-		"one on a mountless one":  {git.ID, []models.ModuleMount{{Name: "One"}}},
+		"one on a mountless one":  {custody.ID, []models.ModuleMount{{Name: "One"}}},
 	}
 	for name, c := range cases {
 		if _, err := mgr.SetModuleMounts(ctx, c.id, c.mounts); !errors.Is(err, mwanachamaagency.ErrInvalidModuleMounts) {

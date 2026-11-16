@@ -87,7 +87,7 @@ their `*.operations.json`:
 | `member.invite` Invite | `actor.invitation.create`, `actor.invitation.check_batch`, `actor.invitation.send_batch` |
 | `join_request.decide` Decide join requests | `actor.join_request.approve`, `actor.join_request.decline` |
 | `form.approve` Approve forms | `forms.approval.approve`, `forms.approval.approve_slot`, `forms.approval.refuse` |
-| `report.publish` Publish a report | `forms.results.publish`, `voting.result.publish` |
+| `report.publish` Publish a report | `forms.results.publish`, `forms.results.files`, `voting.result.publish` |
 | `poll.run` Run a poll | `voting.poll.create`, `voting.choice.create` |
 | `notice.post` Post a notice | `engage.post.create` |
 | `event.post` Post an event or meeting | `engage.post.create` |
@@ -366,7 +366,8 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `insight.count` | Count insights by subject | no | `insights` | Count the insights recorded about one subject. Small cells fold into an other cell so a count never names a few people. |
 | `task.read` | See tasks, their states, backlogs and what they wait on | no | `taskmanager` | List tasks, those overdue and those pending, find tasks of a backlog by id, code or words, read one by id or by name, list assignments and task states, list backlogs and who has access, and traverse the relationships between tasks. |
 | `task.edit` | Add and change tasks, and move them between steps and backlogs | no | `taskmanager` | Create, update, place and move tasks, move one to a step, and create and delete the relationships between tasks. |
-| `backlog.manage` | Add, change and delete backlogs and their steps | no | `taskmanager` | Create, rename, delete and manage backlogs, add, rename, remove and reorder their steps, give and take access to a backlog, and set its owner group. |
+| `backlog.manage` | Add, change and delete backlogs and their steps | no | `taskmanager` | Create, rename, archive, unarchive, delete and manage backlogs, add, rename, remove and reorder their steps, give and take access to a backlog, and set its owner group. |
+| `late_matters.read` | See the raised items past their answer time | no | `forms` | List the raised items whose answer time has passed. |
 | `case.vote` | Vote on cases, see the votes and take back your own | no | `taskmanager` | Vote on a case, take the caller's own vote back, and list the votes on a case. |
 | `consent.read` | Read the consent text in force and one's own consent | no | `custody` | Read the consent text in force and the caller's own consent. |
 | `consent.give` | Agree to the consent text and withdraw | no | `custody` | Agree to the consent text in force and withdraw that agreement. |
