@@ -44,7 +44,7 @@ func raceHarness(t *testing.T) (mwanachamaagency.AgencyManager, *httptest.Server
 	}
 
 	mux := http.NewServeMux()
-	for _, rt := range routes.Routes(mgr) {
+	for _, rt := range routes.Routes(mgr, nil) {
 		mux.Handle(rt.Pattern(""), rt.Handler)
 	}
 	srv := httptest.NewServer(mux)

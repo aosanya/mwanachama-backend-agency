@@ -58,7 +58,7 @@ func (d *reviewDesk) ok(name string, args map[string]any) map[string]any {
 
 func (d *reviewDesk) start() map[string]any {
 	d.t.Helper()
-	return d.ok("agency_start_review", map[string]any{"draft_id": d.draftID, "started_by": "amina"})
+	return d.ok("agency_start_review", map[string]any{"draft_id": d.draftID})
 }
 
 func (d *reviewDesk) record(reviewID, area, status string, tokens int, findings ...map[string]any) map[string]any {
@@ -336,7 +336,7 @@ func TestReviewTools_SetFindingStatusAndComment(t *testing.T) {
 		t.Fatal("an unknown finding was accepted")
 	}
 
-	note := d.ok("agency_comment_finding", map[string]any{"finding_id": fid, "body": "  The chair owns it.  ", "author": "amina"})
+	note := d.ok("agency_comment_finding", map[string]any{"finding_id": fid, "body": "  The chair owns it.  "})
 	if note["body"] != "The chair owns it." || note["author"] != "amina" || note["finding_id"] != fid || note["created_at"] == "" {
 		t.Fatalf("comment = %+v", note)
 	}
@@ -436,7 +436,7 @@ func TestReviewTools_StartAgainOnceTheRunHasFinished(t *testing.T) {
 func TestReviewTools_StartTakesOneAreaAndReadsOnlyThatPart(t *testing.T) {
 	d := newReviewDesk(t)
 
-	out := d.ok("agency_start_review", map[string]any{"draft_id": d.draftID, "started_by": "amina", "area": "risks"})
+	out := d.ok("agency_start_review", map[string]any{"draft_id": d.draftID, "area": "risks"})
 	areas, _ := out["areas"].([]any)
 	if len(areas) != 1 {
 		t.Fatalf("areas = %+v, want one", out["areas"])

@@ -10,7 +10,7 @@ import (
 
 func declaredTools(t *testing.T) []toolShape {
 	t.Helper()
-	shapes, err := toolsFor(mwanachamaagency.ManagerShape())
+	shapes, err := toolsFor(mwanachamaagency.ManagerShape(), nil)
 	if err != nil {
 		t.Fatalf("tools: %v", err)
 	}

@@ -17,7 +17,7 @@ func TestRoute_PatternWithPrefix(t *testing.T) {
 
 func TestRoutes_AnswersTheDeclaredAddresses(t *testing.T) {
 	mgr := newTestManager(t)
-	rts := routes.Routes(mgr)
+	rts := routes.Routes(mgr, nil)
 
 	want := map[string]bool{
 		"POST /agency":                    true,
@@ -49,7 +49,7 @@ func TestRoutes_AnswersTheDeclaredAddresses(t *testing.T) {
 // one: an operation nobody can name is one nobody can protect.
 func TestRoutes_EveryRouteCarriesItsOwnAction(t *testing.T) {
 	seen := map[string]string{}
-	for _, rt := range routes.Routes(newTestManager(t)) {
+	for _, rt := range routes.Routes(newTestManager(t), nil) {
 		if rt.Action == "" {
 			t.Errorf("%s carries no action", rt.Pattern(""))
 			continue
@@ -66,7 +66,7 @@ func TestRoutes_EveryRouteCarriesItsOwnAction(t *testing.T) {
 // and resolves the manager per request. It has to agree with the real table,
 // in the same order, or that mount registers one route and serves another.
 func TestShapeAgreesWithRoutes(t *testing.T) {
-	built := routes.Routes(newTestManager(t))
+	built := routes.Routes(newTestManager(t), nil)
 	shape := routes.Shape()
 
 	if len(built) != len(shape) {

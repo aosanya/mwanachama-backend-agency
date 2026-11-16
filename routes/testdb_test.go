@@ -74,7 +74,7 @@ func newTestManagerWithDraft(t *testing.T) (mwanachamaagency.AgencyManager, stri
 
 func serve(mgr mwanachamaagency.AgencyManager, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
-	for _, rt := range routes.Routes(mgr) {
+	for _, rt := range routes.Routes(mgr, nil) {
 		mux.Handle(rt.Pattern(""), rt.Handler)
 	}
 	mux.ServeHTTP(w, r)

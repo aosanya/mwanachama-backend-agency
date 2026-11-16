@@ -25,9 +25,9 @@ func ctxT(t *testing.T) context.Context {
 
 func newTestServer(mgr mwanachamaagency.AgencyManager) *gosdkmcp.Server {
 	server := gosdkmcp.NewServer(&gosdkmcp.Implementation{Name: "test", Version: "0.0.0"}, nil)
-	agencymcp.RegisterTools(server, func(ctx context.Context, id string) (mwanachamaagency.AgencyManager, error) {
+	agencymcp.RegisterToolsAs(server, func(ctx context.Context, id string) (mwanachamaagency.AgencyManager, error) {
 		return mgr, nil
-	})
+	}, func(context.Context) string { return "amina" })
 	return server
 }
 
