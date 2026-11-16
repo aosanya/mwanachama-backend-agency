@@ -42,3 +42,26 @@ func TestCatalogCarriesRiskGroupLimitInsightAndBoardActions(t *testing.T) {
 		{"board.manage", "", []string{"catalog.raised_item.reassign"}},
 	})
 }
+
+func TestCatalogCarriesTheTaskModulePermissions(t *testing.T) {
+	requireCatalogRows(t, []catalogRow{
+		{"task.read", "taskmanager", []string{
+			"taskmanager.task.list", "taskmanager.task.list_overdue", "taskmanager.task.pending",
+			"taskmanager.task.read", "taskmanager.task.read_by_name", "taskmanager.task.list_assignments",
+			"taskmanager.task_state.list", "taskmanager.backlog.list", "taskmanager.backlog_access.list",
+			"taskmanager.relationship.traverse",
+		}},
+		{"task.edit", "taskmanager", []string{
+			"taskmanager.task.create", "taskmanager.task.update", "taskmanager.task.place",
+			"taskmanager.task.move", "taskmanager.task.move_to_step",
+			"taskmanager.relationship.create", "taskmanager.relationship.delete",
+		}},
+		{"backlog.manage", "taskmanager", []string{
+			"taskmanager.backlog.create", "taskmanager.backlog.rename", "taskmanager.backlog.delete",
+			"taskmanager.backlog.manage", "taskmanager.backlog_step.add", "taskmanager.backlog_step.rename",
+			"taskmanager.backlog_step.remove", "taskmanager.backlog_step.reorder",
+			"taskmanager.backlog_access.give", "taskmanager.backlog_access.take",
+			"taskmanager.backlog.set_owner_group",
+		}},
+	})
+}
