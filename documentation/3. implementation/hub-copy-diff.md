@@ -36,3 +36,7 @@ Files a commit touched lost their comments (the repository rule is no comments i
 ## Failures present before this work
 
 Three tests fail on a clean export of this repository at 4e47fa0, before any hub change, and still fail: `TestUpdateWorkflow_TheConsolesBodyKeepsItsOrdinalityAndEventFlows`, `TestUpdateWorkItem_TheConsolesBodyKeepsItsTool` and, in `routes`, `TestAG74_OpenHole_AttachEditDetachRewritesAnAgencyWideValue`. None is touched by a hub commit.
+
+## Changes made here that the hub copy does not have
+
+- Library parts created or renamed at the same moment (hub issue MUN698): `agency.go`, `library_part_impl.go`, `consequence_impl.go`; see `library-title-concurrency.md`.

@@ -64,6 +64,8 @@ func (m *agencyManager) createPart(ctx context.Context, k libraryKind, p models.
 	if err := m.validateOpenDraftID(ctx, p.DraftID); err != nil {
 		return models.Hazard{}, err
 	}
+	m.libraryTitles.Lock()
+	defer m.libraryTitles.Unlock()
 	if err := m.requireFreeTitle(ctx, m.db, k, p.DraftID, "", p.Title); err != nil {
 		return models.Hazard{}, err
 	}
@@ -102,6 +104,8 @@ func (m *agencyManager) updatePart(ctx context.Context, k libraryKind, p models.
 		return models.Hazard{}, fmt.Errorf("%w: a %s needs a title", k.invalid, k.entity)
 	}
 	var out models.Hazard
+	m.libraryTitles.Lock()
+	defer m.libraryTitles.Unlock()
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		existing, err := m.findPart(ctx, tx, k, p.ID)
 		if err != nil {

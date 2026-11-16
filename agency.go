@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"gorm.io/gorm"
 
@@ -329,6 +330,8 @@ type agencyManager struct {
 	runs       RunLister
 
 	reviewAreas ReviewAreasFunc
+
+	libraryTitles sync.Mutex
 }
 
 func NewAgencyManager(db *gorm.DB, s *spec.Spec, opts ...Option) (AgencyManager, error) {

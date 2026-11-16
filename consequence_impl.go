@@ -48,6 +48,8 @@ func (m *agencyManager) CreateConsequence(ctx context.Context, p models.Conseque
 		return models.Consequence{}, fmt.Errorf("CreateConsequence: %w", err)
 	}
 	p.HazardCode = strings.TrimSpace(p.HazardCode)
+	m.libraryTitles.Lock()
+	defer m.libraryTitles.Unlock()
 	if err := m.requireHazard(ctx, m.db, p.DraftID, p.HazardCode); err != nil {
 		return models.Consequence{}, fmt.Errorf("CreateConsequence: %w", err)
 	}
@@ -94,6 +96,8 @@ func (m *agencyManager) UpdateConsequence(ctx context.Context, p models.Conseque
 	}
 	p.HazardCode = strings.TrimSpace(p.HazardCode)
 	var out models.Consequence
+	m.libraryTitles.Lock()
+	defer m.libraryTitles.Unlock()
 	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing models.Consequence
 		if err := m.find(ctx, tx, roleConsequence, p.ID, &existing, ErrConsequenceNotFound); err != nil {
