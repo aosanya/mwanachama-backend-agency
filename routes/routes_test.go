@@ -45,8 +45,6 @@ func TestRoutes_AnswersTheDeclaredAddresses(t *testing.T) {
 	}
 }
 
-// Every route carries the action a mount gates it on, and no two share
-// one: an operation nobody can name is one nobody can protect.
 func TestRoutes_EveryRouteCarriesItsOwnAction(t *testing.T) {
 	seen := map[string]string{}
 	for _, rt := range routes.Routes(newTestManager(t), nil) {
@@ -61,10 +59,6 @@ func TestRoutes_EveryRouteCarriesItsOwnAction(t *testing.T) {
 	}
 }
 
-// Shape is what a mount reads to decide which addresses to register when it
-// has no manager to build handlers against — wakala-api mounts per instance
-// and resolves the manager per request. It has to agree with the real table,
-// in the same order, or that mount registers one route and serves another.
 func TestShapeAgreesWithRoutes(t *testing.T) {
 	built := routes.Routes(newTestManager(t), nil)
 	shape := routes.Shape()

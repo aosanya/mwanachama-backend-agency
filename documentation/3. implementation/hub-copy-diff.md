@@ -31,7 +31,7 @@ Every non-test file is identical after the rewrite, JSON included, and no file e
 
 One commit here per hub commit group, each naming its hub hashes: 73c451de, 53b12775, f11b6fef (catalog group C); 5fc39fa7, bda4d379, f837351c, d135d26d, f19ca9a9, 8478cb43, ee60ebae, 5063fbe7 (group E); dde9355c, 7836db1d, cbb613e6 (approval limit and stamp); 15f49936 (routes cover tests); 5018e13b, 4446bfd0, 0eaa3c45, b1c21fed, a8a7efab (group D); d6ab2174 (kept codes); da99df0a, 98579506 (plaintext names); 743a64ef (send key); 3d11d3b8 (duplicate row per member); 12a4290d (role filter); 6422ddbe, 8899379e (signed by the caller); 20319cd1, ebd187e0 (post kinds); d571f6c4 (mcp cover tests); eb7cd7eb, 85246ae2, e12d5112, e8cbd7c4 (catalog group B); b2d0ca7d (partial role update); c80433b5, d96ca8dd, f09856e0 (task permissions); 83963ee8, 36cebd57, d0ddefd7, 92c070dd, e6728d3e (catalog group A). The hub commit a7d64d10 is the copy-in itself.
 
-Files a commit touched lost their comments (the repository rule is no comments in code). The two catalog JSON files of the last group were taken whole from the hub after the diff showed only those commits' lines, because this repository already carried its own `assetmanager` description. The hub's wording is the one kept.
+The functions a commit touched lost their comments (the repository rule is no comments in code); comments in code a commit did not touch remain until that code is next changed. The two catalog JSON files of the last group were taken whole from the hub after the diff showed only those commits' lines, because this repository already carried its own `assetmanager` description. The hub's wording is the one kept.
 
 ## Failures present before this work
 
