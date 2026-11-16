@@ -693,6 +693,25 @@
           "body": true
         }
       ]
+    },
+    "match_names": {
+      "method": "GET",
+      "path": "/matches",
+      "call": "Match",
+      "action": "riskmanager.match.list",
+      "title": "Find risks and controls by name",
+      "description": "Find the risks and controls whose name contains the words in query, so a plain name can be turned into the key the other questions need. Each option carries its kind, key and label. ambiguous is true when more than one matches, and the caller should then offer the options as buttons and ask which is meant instead of guessing.",
+      "args": [
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ]
     }
   },
   "errors": {

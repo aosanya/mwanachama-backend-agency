@@ -20,6 +20,7 @@ var riskReadActions = []string{
 	"riskmanager.control.read",
 	"riskmanager.control.reliance",
 	"riskmanager.gap.list",
+	"riskmanager.match.list",
 	"riskmanager.mitigating_measure.list",
 	"riskmanager.preventive_measure.list",
 	"riskmanager.risk.bowtie",
