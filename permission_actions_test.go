@@ -24,12 +24,12 @@ func TestListPermissions_OlderPermissionsListTheActionsDeclaredToday(t *testing.
 		"form.approve":           {"forms.approval.approve", "forms.approval.approve_slot", "forms.approval.refuse"},
 		"report.publish":         {"forms.results.publish"},
 		"poll.run":               {"voting.poll.create", "voting.choice.create"},
-		"notice.post":            {"engage.post.create"},
-		"event.post":             {"engage.post.create"},
-		"volunteer_call.post":    {"engage.post.create"},
+		"notice.post":            {"engage.post.create_notice"},
+		"event.post":             {"engage.post.create_event"},
+		"volunteer_call.post":    {"engage.post.create_volunteer_call"},
 		"board_item.hide":        {"catalog.board_item.set_hidden", "catalog.raised_item.remove"},
 		"service.publish":        {"catalog.entry.set_visibility"},
-		"promise.record_outcome": {},
+		"promise.record_outcome": {"forms.results.promise_outcome"},
 	}
 	for code, actions := range want {
 		p, ok := byCode[code]
