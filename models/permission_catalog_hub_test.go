@@ -78,3 +78,17 @@ func TestCatalogCarriesBacklogRulesAndTheAssistantPermissions(t *testing.T) {
 		{"ai.account.manage", "", []string{"ai.assistant_limits.set"}},
 	})
 }
+
+func TestCatalogCarriesTheDesignReadsAReviewAndAPollNeed(t *testing.T) {
+	requireCatalogRows(t, []catalogRow{
+		{"controls.edit", "", []string{"agency.control.list", "agency.control.read", "agency.control.list_attachments"}},
+		{"risk.read", "", []string{
+			"agency.risk.list", "agency.risk.read", "agency.risk_pathway.list", "agency.risk_pathway.read",
+			"agency.hazard.list", "agency.hazard.read", "agency.threat.list", "agency.threat.read",
+			"agency.consequence.list", "agency.consequence.read", "agency.risk_threat.list",
+			"agency.risk_consequence.list", "agency.unguarded_parts.list",
+		}},
+		{"review.run", "agency", []string{"agency.review.start"}},
+		{"poll.run", "", []string{"voting.poll.read", "voting.choice.list"}},
+	})
+}

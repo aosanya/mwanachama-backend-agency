@@ -29,6 +29,22 @@ var riskReadActions = []string{
 	"riskmanager.threat.list",
 }
 
+var riskReadDesignActions = []string{
+	"agency.consequence.list",
+	"agency.consequence.read",
+	"agency.hazard.list",
+	"agency.hazard.read",
+	"agency.risk.list",
+	"agency.risk.read",
+	"agency.risk_consequence.list",
+	"agency.risk_pathway.list",
+	"agency.risk_pathway.read",
+	"agency.risk_threat.list",
+	"agency.threat.list",
+	"agency.threat.read",
+	"agency.unguarded_parts.list",
+}
+
 type riskOperation struct {
 	Method string `json:"method"`
 	Action string `json:"action"`
@@ -39,6 +55,25 @@ func riskOperationsFromTestdata(t *testing.T) []riskOperation {
 	raw, err := os.ReadFile(riskOperations)
 	if err != nil {
 		t.Fatalf("read the risk manager operations: %v", err)
+	}
+	var doc struct {
+		Operations map[string]riskOperation `json:"operations"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	out := make([]riskOperation, 0, len(doc.Operations))
+	for _, op := range doc.Operations {
+		out = append(out, op)
+	}
+	return out
+}
+
+func agencyOperationsFromDeclaration(t *testing.T) []riskOperation {
+	t.Helper()
+	raw, err := os.ReadFile("agency.operations.json")
+	if err != nil {
+		t.Fatalf("read the agency operations: %v", err)
 	}
 	var doc struct {
 		Operations map[string]riskOperation `json:"operations"`
@@ -66,8 +101,10 @@ func TestRiskReadPermissionCarriesExactlyTheSixAnswersAndTheReadsThatFindThem(t 
 	}
 	got := append([]string(nil), p.Actions...)
 	sort.Strings(got)
-	if strings.Join(got, ",") != strings.Join(riskReadActions, ",") {
-		t.Errorf("risk.read carries %v, want %v", got, riskReadActions)
+	want := append(append([]string(nil), riskReadActions...), riskReadDesignActions...)
+	sort.Strings(want)
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("risk.read carries %v, want %v", got, want)
 	}
 }
 
@@ -77,15 +114,18 @@ func TestRiskReadPermissionCarriesOnlyActionsTheRiskManagerServesAsReads(t *test
 	for _, op := range ops {
 		method[op.Action] = op.Method
 	}
+	for _, op := range agencyOperationsFromDeclaration(t) {
+		method[op.Action] = op.Method
+	}
 	p, _ := models.LookupPermission("risk.read")
 	for _, a := range p.Actions {
 		m, declared := method[a]
 		if !declared {
-			t.Errorf("risk.read carries %s, which the risk manager does not declare", a)
+			t.Errorf("risk.read carries %s, which neither the risk manager nor the agency declares", a)
 			continue
 		}
 		if m != "GET" {
-			t.Errorf("risk.read carries %s, which the risk manager serves as %s", a, m)
+			t.Errorf("risk.read carries %s, which is served as %s", a, m)
 		}
 	}
 }
