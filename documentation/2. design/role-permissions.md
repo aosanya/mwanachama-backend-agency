@@ -155,7 +155,11 @@ host's.
 
 ## asset.manage (HS89, decision 39)
 
-`asset.manage` lets an Assets Keeper register assets (`assetmanager.asset.create`, `.update`, `.list`, `.read`, `.balance`), look at locations (`assetmanager.location.list`, `.read`) and add one (`assetmanager.location.create`), allocate stock to a holder with `assetmanager.movement.post`, and read the movements (`assetmanager.movement.list`, `.read`). Accounting is deliberately not a permission. No permission exists yet for holding a seat or proposing a draft: `assetmanager.hold.create` reserves a quantity at a place until a time, which is not a seat, and `workspace.layout.propose` only previews a patch, so neither was invented into one.
+`asset.manage` lets an Assets Keeper register assets (`assetmanager.asset.create`, `.update`, `.list`, `.read`, `.balance`), look at locations (`assetmanager.location.list`, `.read`) and add one (`assetmanager.location.create`), allocate stock to a holder with `assetmanager.movement.post`, and read the movements (`assetmanager.movement.list`, `.read`). Accounting has its own permissions, `accounting.manage` and `accounting.view` (MUN1052, below). No permission exists yet for holding a seat or proposing a draft: `assetmanager.hold.create` reserves a quantity at a place until a time, which is not a seat, and `workspace.layout.propose` only previews a patch, so neither was invented into one.
+
+## accounting.manage, accounting.view (MUN1052)
+
+`accounting.manage` lets a finance officer keep the books and set budgets: open and close accounts (`accounting.account.open`, `.close`), post entries (`accounting.entry.post`), set budget lines (`accounting.budget.set`), and read everything below. `accounting.view` is the read-only half: list and read accounts and their balance (`accounting.account.list`, `.read`, `.balance`), list entries (`accounting.entry.list`), list and read budget lines (`accounting.budget.list`, `.read`) and financial reports (`accounting.report.list`, `.read`). Both belong to the `accounting` module and are listed in `permissions_catalog.json` of wakala-api, the way `council.manage` and `council.view` are.
 
 ## ai.account.manage, ai.role.manage, ai.use (HS128, decision 48)
 
