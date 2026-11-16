@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 type OpensIn string
 
 const (
@@ -35,6 +37,18 @@ type Workflow struct {
 	Version        int   `json:"version" spec:"-"`
 	OrdersUnderWay int   `json:"orders_under_way" spec:"-"`
 	OrderVersions  []int `json:"order_versions,omitempty" spec:"-"`
+
+	carriedKeys
 }
 
 func (w Workflow) IsChat() bool { return w.OpensIn == OpensInChat }
+
+func (w *Workflow) UnmarshalJSON(data []byte) error {
+	type plain Workflow
+	var decoded plain
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*w = Workflow(decoded)
+	return w.record(data)
+}

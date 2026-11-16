@@ -198,10 +198,12 @@ publication document and added to the workflow's record in the content hash; a
 false value leaves both as they were, so an existing publication hashes the same.
 A draft fork and a fork from a tag carry it.
 
-An update replaces the whole workflow, so a body that leaves `cancels_order` out
-saves false, the same as it does for `ordinality`, `event_flows` and `opens_in`
-(the red probe in `update_keeps_unsent_fields_test.go`). The wakala-api reviewer
-that renames a workflow has to keep it, as it keeps `opens_in`.
+An update changes only the workflow fields the request carries. A body that
+leaves out `ordinality`, `event_flows`, `opens_in` or `cancels_order` keeps the
+stored value, and a body that sends one of them empty clears it. A step's `tool`
+works the same way. A caller that builds the struct in code carries every field,
+so it still replaces the whole row. See
+[update-keeps-unsent-fields.md](../3.%20implementation/update-keeps-unsent-fields.md).
 
 ## Not here
 

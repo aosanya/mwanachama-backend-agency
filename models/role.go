@@ -14,7 +14,7 @@ type Role struct {
 	LastUpdated string   `json:"last_updated"`
 	Deleted     bool     `json:"deleted"`
 
-	carried map[string]bool
+	carriedKeys
 }
 
 func (r *Role) UnmarshalJSON(data []byte) error {
@@ -23,22 +23,6 @@ func (r *Role) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return err
 	}
-	var keys map[string]json.RawMessage
-	if err := json.Unmarshal(data, &keys); err != nil {
-		return err
-	}
 	*r = Role(decoded)
-	r.carried = make(map[string]bool, len(keys))
-	for key := range keys {
-		r.carried[key] = true
-	}
-	return nil
-}
-
-func (r Role) Carries(field string) bool {
-	return r.carried == nil || r.carried[field]
-}
-
-func (r Role) FromRequest() bool {
-	return r.carried != nil
+	return r.record(data)
 }

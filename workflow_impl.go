@@ -92,6 +92,7 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
+		keepUnsentWorkflowFields(&w, existing)
 		if err := validateWorkflowShape(w); err != nil {
 			return err
 		}
@@ -167,4 +168,19 @@ func (m *agencyManager) findWorkflow(ctx context.Context, tx *gorm.DB, id string
 		return models.Workflow{}, err
 	}
 	return w, nil
+}
+
+func keepUnsentWorkflowFields(w *models.Workflow, existing models.Workflow) {
+	if !w.Carries("ordinality") {
+		w.Ordinality = existing.Ordinality
+	}
+	if !w.Carries("event_flows") {
+		w.EventFlows = existing.EventFlows
+	}
+	if !w.Carries("opens_in") {
+		w.OpensIn = existing.OpensIn
+	}
+	if !w.Carries("cancels_order") {
+		w.CancelsOrder = existing.CancelsOrder
+	}
 }

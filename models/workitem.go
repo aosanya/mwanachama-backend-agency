@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 type WorkItem struct {
 	ID               string         `json:"id"`
 	Code             string         `json:"code"`
@@ -31,4 +33,16 @@ type WorkItem struct {
 	Tools            []string       `json:"tools,omitempty"`
 	StartWorkflowIDs []string       `json:"start_workflow_ids,omitempty"`
 	Action           string         `json:"action,omitempty" spec:"-"`
+
+	carriedKeys
+}
+
+func (wi *WorkItem) UnmarshalJSON(data []byte) error {
+	type plain WorkItem
+	var decoded plain
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*wi = WorkItem(decoded)
+	return wi.record(data)
 }

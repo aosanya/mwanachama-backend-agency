@@ -72,6 +72,9 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
+		if !wi.Carries("tool") {
+			wi.Tool = existing.Tool
+		}
 		wi.Code = existing.Code
 		wi.DraftID = existing.DraftID
 		wi.CreatedAt = existing.CreatedAt

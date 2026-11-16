@@ -8,6 +8,9 @@ Where work on `mwanachama-backend-agency` is tracked. Two files carry the board:
   used to sit above the open list. A finished id is never reused: scan this
   file before minting the next one.
 
+- [update-keeps-unsent-fields.md](update-keeps-unsent-fields.md) — how a
+  workflow, step or role update keeps the fields its request does not carry.
+
 ## Rows that arrive with a failing test
 
 Two scheduled routines file rows here, and each files a **deliberately red**
