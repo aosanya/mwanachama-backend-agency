@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
+	"github.com/aosanya/mwanachama-backend-shared/plaintext"
 )
 
 const agentPermission = "ai.use"
@@ -24,7 +25,7 @@ func invalidScenario(format string, args ...any) error {
 }
 
 func sameName(a, b string) bool {
-	return strings.EqualFold(strings.TrimSpace(a), strings.TrimSpace(b))
+	return plaintext.SameNameIgnoringCase(a, b)
 }
 
 func (m *agencyManager) requireOpenDraft(ctx context.Context, tx *gorm.DB, draftID string) error {
@@ -432,6 +433,9 @@ func (m *agencyManager) resetScenario(ctx context.Context, tx *gorm.DB, id strin
 func (m *agencyManager) checkActorName(ctx context.Context, tx *gorm.DB, s models.Scenario, name, exceptID string) error {
 	if strings.TrimSpace(name) == "" {
 		return invalidScenario("an actor needs a name")
+	}
+	if problem := plaintext.Problem("scenario actor name", name); problem != "" {
+		return invalidScenario("%s", problem)
 	}
 	stored, err := m.storedActors(ctx, tx, s.ID)
 	if err != nil {
