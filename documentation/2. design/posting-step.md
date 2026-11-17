@@ -26,16 +26,15 @@ a posting step.
 ## 1. The step kind
 
 A new step kind, `post`, beside the others. Provisional: the name `post` is a
-proposal. It adds five stored fields to the work item, in `agency.blueprint.json`,
+proposal. It adds four stored fields to the work item, in `agency.blueprint.json`,
 carried by `models.WorkItem` and `models.DocumentWorkItem`. All are empty on every
 other kind and are left out of the document when empty.
 
 | Field | Meaning |
 |---|---|
 | `amount_step_id` | The calculating step whose result is posted: an earlier step of the same workflow, of kind `compute`. It is the only source of the amount. |
-| `account` | The member's account the entry is written to, named by the account category the agency has, such as `Member loans`. |
-| `counter_account` | The other side of the entry, named the same way, such as `Cash`. Every entry debits exactly one account and credits exactly one other, so a posting names both. |
-| `direction` | `debit` or `credit`, the side of `account` the amount goes on. The other side is `counter_account`. |
+| `debit_account` | The account the amount is debited from, named by the account category the agency has, such as `Cash`. |
+| `credit_account` | The account the amount is credited to, named the same way, such as `Member loans`. Every entry debits exactly one account and credits exactly one other, so a posting names both. |
 | `reason` | Why the amount is posted, in words, such as "Loan payment for March". |
 
 The amount is the result of the calculating step: nothing else is a source, and
@@ -49,17 +48,20 @@ member, found by the category and the member's id as holder (audit item 5).
 Provisional: how the case knows who the member is, and which category the agency
 uses for members, are not decided (section 11).
 
-The amount is never signed. Direction is which account sits on which side, as in
-the ledger (audit, "direction"). For Wanjiru's loan, whose balance is what she
-owes, a payment is a credit on `Member loans` and a debit on `Cash`.
+The amount is never signed. A posting names the account it debits and the account
+it credits, as a ledger entry does, and has no direction (decision 13). For
+Wanjiru's loan, whose balance is what she owes, a payment debits `Cash` and
+credits `Member loans`. Provisional: which categories are kept per member, so that
+the ledger finds the account by category and the member's id as holder (audit item
+5), is the accounting module's to say and is not decided here (section 11).
 
 `role_id` is not used: the agency takes the step. Provisional: whether a role may
 run a posting step is open (section 11).
 
 `action` is derived, never stored, as for the other kinds: it is declared
 `spec:"-"` and filled by every create, get, list and update. Provisional: it reads
-"Posts the Payment to post to Member loans", built from the calculating step's
-`result_name` and `account`.
+"Posts the Payment to post from Cash to Member loans", built from the calculating step's
+`result_name` and the two accounts.
 
 Example: the step Post the payment, in the workflow Loan payment.
 
@@ -67,9 +69,8 @@ Example: the step Post the payment, in the workflow Loan payment.
 |---|---|
 | `kind` | `post` |
 | `amount_step_id` | the step "Work out the payment", whose `result_name` is `Payment to post` |
-| `account` | `Member loans` |
-| `counter_account` | `Cash` |
-| `direction` | `credit` |
+| `debit_account` | `Cash` |
+| `credit_account` | `Member loans` |
 | `reason` | `Loan payment` |
 
 ## 2. Worked example: the entries and the balance
@@ -199,7 +200,7 @@ What the audit found: the accounting repo allows a reversal once only
 (`ErrAlreadyReversed`, backed by the unique index `reverses_once`), requires the
 reversed entry to exist, and copies the original's dimensions. It does not check
 that the reversal swaps the two accounts or repeats the amount, so a "reversal"
-of 500 for 50 in the same direction is accepted (audit item 3, partly built; gap
+of 500 for 50 on the same two sides is accepted (audit item 3, partly built; gap
 1). Provisional: until that check exists, the posting step must write the mirror
 itself and cannot rely on the ledger to refuse a wrong one.
 
@@ -236,9 +237,8 @@ All with `ErrInvalidWorkItem` (400) unless noted:
 - any posting field on a step of another kind;
 - a posting step with a form, a recipient, a sent step, routes, a run workflow,
   chat fields, a tool or calculating fields;
-- a `direction` that is neither `debit` nor `credit`, such as `credit side`;
 - a blank `reason`;
-- an `account` and a `counter_account` that are the same account;
+- a `debit_account` and a `credit_account` that are the same account;
 - an `amount_step_id` that is the step itself, is a step of another workflow, is
   not earlier by ordinality, or is not a calculating step: a `notify` step,
   or a `fill_form` step whose answer would be typed in, is not a source of the
@@ -247,20 +247,20 @@ All with `ErrInvalidWorkItem` (400) unless noted:
 Not found:
 
 - an `amount_step_id` that is not a step of the draft: `ErrWorkItemNotFound` (404);
-- an `account` or `counter_account` the agency does not have: `ErrAccountNotFound`
+- a `debit_account` or `credit_account` the agency does not have: `ErrAccountNotFound`
   (404). Provisional: this name is proposed here and not decided, and where the
   agency's accounts are listed is open (section 11).
 
-A posting step may be saved with no amount step, no account or no direction. A
+A posting step may be saved with no amount step, no debit account or no credit account. A
 workflow is built step by step, so the calculating step is made first and picked
 afterwards, as a route step is saved with no route. The Issue scan is what stops
 publishing.
 
-Example: Post the payment is saved as a `post` step with `account` `Member loans`
+Example: Post the payment is saved as a `post` step with `credit_account` `Member loans`
 and nothing else. It is accepted, with no amount source yet. Saved with
-`direction` `credit side` it is refused. Saved with `amount_step_id` naming "Apply
+`amount_step_id` naming itself it is refused. Saved with `amount_step_id` naming "Apply
 for a loan", a form step, it is refused: that is not a calculating step. Saved with
-`account` `Member loans` and `counter_account` `Member loans` it is refused.
+`debit_account` `Member loans` and `credit_account` `Member loans` it is refused.
 
 ## 9. What the Issue scan flags
 
@@ -268,11 +268,10 @@ All are `error`, so none can be published:
 
 - a posting step with no amount source: it names no calculating step. This is the
   owner's rule;
-- a posting step with no `account`, no `counter_account`, no `direction` or no
-  `reason`;
+- a posting step with no `debit_account`, no `credit_account` or no `reason`;
 - an amount step that no longer exists, now belongs to another workflow, is no
   longer earlier than this step, or is no longer a calculating step;
-- an `account` or `counter_account` the agency no longer has: the scan raises it
+- a `debit_account` or `credit_account` the agency no longer has: the scan raises it
   the way it already raises a step whose role is gone, with the sentence naming
   the step and the account.
 
@@ -286,23 +285,23 @@ and never given an amount step raises one error.
 ## 10. Everything that copies a step
 
 - A draft fork remaps `amount_step_id` onto the copied steps, as it does
-  `sent_step_id`. `account`, `counter_account`, `direction` and `reason` are copied
+  `sent_step_id`. `debit_account`, `credit_account` and `reason` are copied
   as they are: accounts are the agency's, not a draft's, so they are not remapped,
   the way an offered group is not.
-- A publication document carries the five fields on `DocumentWorkItem`, each left
+- A publication document carries the four fields on `DocumentWorkItem`, each left
   out when empty. Forking a draft from a publication restores them with the same
   remap.
 - The content hash gains a `WorkItemPost` record only for a step that has any of
-  the five fields set, the way `WorkItemLimit` is added only when a limit is set. A
+  the four fields set, the way `WorkItemLimit` is added only when a limit is set. A
   publication made before this change hashes as it did. A changed amount step,
-  account, direction or reason is a change that can be published:
+  debit account, credit account or reason is a change that can be published:
   `ErrNoChangesDetected` is not returned for it. Provisional: the record's name
   `WorkItemPost` is a proposal.
-- Import of an older agency: a document with none of the five fields reads as a
+- Import of an older agency: a document with none of the four fields reads as a
   step with none, and nothing is invented. A document that carries a `post` step
   with no amount source is accepted, and the scan flags it, as for a calculating
   step with fewer bindings than inputs.
-- Provisional: whether import should check an `account` against the importing
+- Provisional: whether import should check a debit or credit account against the importing
   agency's accounts, or accept it and let the scan flag it, is not decided. The
   import of a group id is the precedent: it keeps the id as it is.
 - Provisional: whether `post` is one of the `accounting` module's `step_kinds` in

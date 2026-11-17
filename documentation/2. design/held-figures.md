@@ -125,8 +125,8 @@ when the inputs moved, section 4. Provisional: it is listed in the role's
 
 Example: Quick loan interest has 1 Work out the interest (`compute`, hold 14 days),
 2 Approve the interest (`yes_no`, role Loan officer, `held_step_id` step 1) and 3
-Post the interest (`post`, `amount_step_id` step 1, `account` `Member loans`,
-`counter_account` `Interest income`, `direction` `debit`). Step 3 waits for step 2.
+Post the interest (`post`, `amount_step_id` step 1, `debit_account` `Member loans`,
+`credit_account` `Interest income`). Step 3 waits for step 2.
 
 ## 4. Rework at approval
 
