@@ -14,6 +14,9 @@ Where work on `mwanachama-backend-agency` is tracked. Two files carry the board:
   the fields a calculating, posting or holding step stores.
 - [input-sources.md](input-sources.md) — the list of sources a builder may pick for
   a calculating step's input, and the step fields on the work item tools.
+- [step-kind-registry.md](step-kind-registry.md) — the seam where a step kind
+  registers its checks, scan findings, fork remap, document fields and hash
+  record.
 
 ## Rows that arrive with a failing test
 
