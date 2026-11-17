@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
 	"github.com/aosanya/mwanachama-backend-agency/models"
@@ -45,16 +46,23 @@ type libraryPartKind struct {
 	invalid  error
 }
 
+const sharedHazardWait = 5 * time.Second
+
 func sharedHazard(mgr libraryManager, ctx context.Context, draftID string) string {
-	existing, err := mgr.ListHazards(ctx, draftID, mwanachamaagency.LibraryPartFilter{})
-	if err == nil && len(existing) > 0 {
-		return existing[0].Code
+	deadline := time.Now().Add(sharedHazardWait)
+	for {
+		existing, err := mgr.ListHazards(ctx, draftID, mwanachamaagency.LibraryPartFilter{})
+		if err == nil && len(existing) > 0 {
+			return existing[0].Code
+		}
+		if h, err := mgr.CreateHazard(ctx, models.Hazard{DraftID: draftID, Title: "Shared hazard"}); err == nil {
+			return h.Code
+		}
+		if time.Now().After(deadline) {
+			return ""
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
-	h, err := mgr.CreateHazard(ctx, models.Hazard{DraftID: draftID, Title: "Shared hazard"})
-	if err != nil {
-		return ""
-	}
-	return h.Code
 }
 
 func libraryPartKinds() []libraryPartKind {
