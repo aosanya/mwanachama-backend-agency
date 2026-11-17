@@ -80,8 +80,8 @@ The move is published like any other change, so the content hash differs and the
 - It never rewrites the versions in a published document.
 - It never asks the library to edit or remove a version.
 
-## Open for the owner
+## Stopping a known-wrong version
 
-Can a known-wrong version ever be made to stop running (for example when a result is unsafe), and who may decide that?
+The owner decided on 2026-11-17 (decision 11 in the compute repo's [decisions.md](../../../mwanachama-backend-compute/documentation/1.%20requirements/decisions.md)): a known-wrong library version keeps running, with a loud notice and a one-step upgrade. Only the platform owner may stop a version found unsafe, for every agency at once, and each affected step then follows its own failure choice, which is on [compute-step-failure.md](compute-step-failure.md). There is no automatic stop after a set time. So an agency's own publication never stops a version, and the scan only warns.
 
-This is not decided here. Until it is, a known-wrong version keeps running and only warns.
+Still open, on the compute repo's versioning page: what counts as unsafe, how a stop and its reason are recorded, and what people see.
