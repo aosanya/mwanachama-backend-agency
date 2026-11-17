@@ -2053,6 +2053,37 @@
       ],
       "tool": "agency_list_pickers"
     },
+    "list_input_sources": {
+      "method": "GET",
+      "path": "/input-sources",
+      "call": "ListInputSources",
+      "action": "agency.input_source.list",
+      "title": "List input sources",
+      "description": "List what a builder may pick as the source of an input of one calculating step, grouped by the four source types: answer (the questions of the earlier steps of the same workflow, each with its step id, step title, question and answer type), record_field (the questions of the draft's records, each with its record id, record name, question and answer type), ledger_balance (the one balance, a currency) and fixed (a value the builder types in). Each entry carries its type. A multi_select, photo or file question cannot be a source. input_type (number, currency, date, time, yes_no or text) narrows the list to the sources of that type.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose steps and records to read."
+        },
+        {
+          "from": "query",
+          "as": "work_item_id",
+          "refers": "agency.work_item",
+          "description": "The calculating step the sources are for; only the steps before it in its workflow are offered."
+        },
+        {
+          "from": "query",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_input_sources"
+    },
     "create_record": {
       "method": "POST",
       "path": "/records",
