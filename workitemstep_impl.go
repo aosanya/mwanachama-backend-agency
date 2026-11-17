@@ -28,7 +28,7 @@ func validateStepShape(wi models.WorkItem) error {
 		if wi.RoleID != "" || wi.RunWorkflowID != "" || wi.FormName != "" || len(wi.Questions) > 0 || wi.Tool != "" || wi.HasLinks() || wi.HasChatFields() {
 			return invalidStep("a step with a role, a form, a workflow to run, a chat or a link to another step needs a kind")
 		}
-		return nil
+		return shapeOfRegisteredKind(wi)
 	}
 	if !wi.Kind.Valid() && !stepKindRegistered(wi.Kind) {
 		return invalidStep("kind %q is not one of %v", wi.Kind, models.StepKinds())
