@@ -189,6 +189,16 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		workItems[i].ID = newID()
 		stepIDs[old] = workItems[i].ID
 	}
+	records, err := list[models.Record](m, scopeQuery(tx.Table(m.table(roleRecord)), sourceScope), roleRecord)
+	if err != nil {
+		return fmt.Errorf("CreateDraft: %w", err)
+	}
+	recordIDs := make(map[string]string, len(records))
+	for i := range records {
+		old := records[i].ID
+		records[i].ID = newID()
+		recordIDs[old] = records[i].ID
+	}
 	for _, wi := range workItems {
 		wi.DraftID, wi.CreatedAt, wi.LastUpdated = newDraftID, now, now
 		wi.WorkflowID = remap(workflowIDs, wi.WorkflowID)
@@ -201,7 +211,7 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		wi.SentStepID = remap(stepIDs, wi.SentStepID)
 		wi.OtherwiseStepID = remap(stepIDs, wi.OtherwiseStepID)
 		wi.Routes = remapRoutes(stepIDs, wi.Routes)
-		remapRegisteredKind(&wi, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs})
+		remapRegisteredKind(&wi, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs, Records: recordIDs})
 		if err := m.copyRow(ctx, tx, roleWorkItem, wi); err != nil {
 			return err
 		}
@@ -220,12 +230,8 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		}
 	}
 
-	records, err := list[models.Record](m, scopeQuery(tx.Table(m.table(roleRecord)), sourceScope), roleRecord)
-	if err != nil {
-		return fmt.Errorf("CreateDraft: %w", err)
-	}
 	for _, r := range records {
-		r.ID, r.DraftID, r.CreatedAt, r.LastUpdated = newID(), newDraftID, now, now
+		r.DraftID, r.CreatedAt, r.LastUpdated = newDraftID, now, now
 		r.WorkflowID = remap(workflowIDs, r.WorkflowID)
 		r.RoleID = remap(roleIDs, r.RoleID)
 		r.ViewerRoleID = remap(roleIDs, r.ViewerRoleID)

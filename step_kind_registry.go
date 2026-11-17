@@ -14,6 +14,7 @@ type StepIDMaps struct {
 	Workflows map[string]string
 	Roles     map[string]string
 	Steps     map[string]string
+	Records   map[string]string
 }
 
 type StepLookup interface {

@@ -344,6 +344,10 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	for _, wi := range doc.WorkItems {
 		stepIDs[wi.ID] = newID()
 	}
+	recordIDs := make(map[string]string, len(doc.Records))
+	for _, r := range doc.Records {
+		recordIDs[r.ID] = newID()
+	}
 	for _, wi := range doc.WorkItems {
 		row := models.WorkItem{
 			ID: stepIDs[wi.ID], Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
@@ -357,7 +361,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: remapAll(workflowIDs, wi.StartWorkflowIDs),
 			CreatedAt: now, LastUpdated: now,
 		}
-		rowOfRegisteredKind(wi, &row, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs})
+		rowOfRegisteredKind(wi, &row, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs, Records: recordIDs})
 		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {
 			return fail(err)
 		}
@@ -366,7 +370,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 
 	for _, r := range doc.Records {
 		row := models.Record{
-			ID: newID(), Code: r.Code, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
+			ID: recordIDs[r.ID], Code: r.Code, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
 			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), ViewerRoleID: remap(roleIDs, r.ViewerRoleID),
 			FormName: r.FormName, Questions: r.Questions, CreatedAt: now, LastUpdated: now,
 		}
