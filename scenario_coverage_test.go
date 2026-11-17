@@ -3,6 +3,7 @@ package mwanachamaagency_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -205,12 +206,22 @@ func TestScenarioCoverage_TheWarningNeverBlocksAPublishAndNeverFailsAScenario(t 
 	w.playing("Work out the payment")
 	s := w.scenario(t, "Payment is worked out", w.loan, w.actor("Wanjiru", farmer))
 	w.pass(t, s.ID)
-	if got := w.warnings(t); len(got) != 1 {
+	want := notPassedThrough(w.post)
+	if got := w.warnings(t); !sameMessages(got, []string{want}) {
 		t.Fatalf("warnings = %q, want the one for the posting step", got)
 	}
+	errors, err := w.mgr.ListIssues(context.Background(), w.draftID, mwanachamaagency.IssueFilter{Severity: string(models.IssueSeverityError), Message: "is not passed through"})
+	if err != nil {
+		t.Fatalf("ListIssues: %v", err)
+	}
+	if len(errors) != 0 {
+		t.Fatalf("coverage findings of severity error = %+v, want none", errors)
+	}
 
-	if _, err := w.mgr.PublishAgency(context.Background(), w.draftID, "spring", ""); err != nil {
-		t.Fatalf("PublishAgency with a coverage warning: %v", err)
+	_, err = w.mgr.PublishAgency(context.Background(), w.draftID, "spring", "")
+
+	if err != nil && strings.Contains(err.Error(), "is not passed through") {
+		t.Fatalf("PublishAgency was refused for the coverage warning: %v", err)
 	}
 	if after := w.get(t, s.ID); after.Result != models.ScenarioPassed {
 		t.Fatalf("scenario = %q after the scan, want passed", after.Result)

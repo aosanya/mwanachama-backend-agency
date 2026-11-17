@@ -39,6 +39,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkConsequenceHazards,
 		s.checkBowties,
 		s.checkScenarios,
+		s.checkScenarioCoverage,
 	} {
 		if err := check(); err != nil {
 			return nil, fmt.Errorf("scanIssues: %w", err)
