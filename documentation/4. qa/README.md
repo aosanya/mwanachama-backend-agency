@@ -10,6 +10,19 @@ go test ./...        # in-memory SQLite (glebarez/sqlite), no database needed
 The fixtures the tests read, and where they were copied from, are in
 [test-fixtures.md](test-fixtures.md).
 
+Cases written for tests that do not exist yet, one page per design page:
+
+- [compute-step-cases.md](compute-step-cases.md): the calculating step kind, its
+  inputs and who runs it (ISS-19).
+- [compute-step-failure-cases.md](compute-step-failure-cases.md): what a
+  calculating step does when it fails (ISS-6).
+- [posting-step-cases.md](posting-step-cases.md): the posting step and the
+  ledger entries it writes (ISS-7).
+- [held-figures-cases.md](held-figures-cases.md): a calculated figure that waits
+  for approval (ISS-22).
+- [scenario-cases.md](scenario-cases.md): a test scenario that passes through a
+  calculating or posting step (ISS-15).
+
 `go test ./...` is green apart from the deliberate red listed under Red by
 design. As of 2026-10-03 (confirmed by the integration sweep with `grep -rc
 "^func Test" *.go mcp/*.go routes/*.go`) there were
