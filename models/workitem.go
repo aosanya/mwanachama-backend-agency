@@ -37,9 +37,8 @@ type WorkItem struct {
 	ResultName       string         `json:"result_name"`
 	OnFailure        *StepFailure   `json:"on_failure,omitempty"`
 	AmountStepID     string         `json:"amount_step_id"`
-	Account          string         `json:"account"`
-	CounterAccount   string         `json:"counter_account"`
-	Direction        string         `json:"direction"`
+	DebitAccount     string         `json:"debit_account"`
+	CreditAccount    string         `json:"credit_account"`
 	Reason           string         `json:"reason"`
 	Hold             *StepHold      `json:"hold,omitempty"`
 	HeldStepID       string         `json:"held_step_id"`

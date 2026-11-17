@@ -12,11 +12,6 @@ import (
 
 var ErrAccountNotFound = errors.New("mwanachamaagency: account not found")
 
-const (
-	postDirectionDebit  = "debit"
-	postDirectionCredit = "credit"
-)
-
 type AccountDirectory interface {
 	HasAccount(ctx context.Context, draftID, account string) (bool, error)
 }
@@ -64,12 +59,12 @@ func stepKindsOtherThanPost() []models.StepKind {
 }
 
 func hasPostFields(wi models.WorkItem) bool {
-	return wi.AmountStepID != "" || wi.Account != "" || wi.CounterAccount != "" || wi.Direction != "" || wi.Reason != ""
+	return wi.AmountStepID != "" || wi.DebitAccount != "" || wi.CreditAccount != "" || wi.Reason != ""
 }
 
 func postFieldsOnAnotherKind(wi models.WorkItem) error {
 	if hasPostFields(wi) {
-		return invalidStep("an amount step, an account, a counter account, a direction and a reason belong to a post step, not to a %s step", kindWord(wi.Kind))
+		return invalidStep("an amount step, a debit account, a credit account and a reason belong to a post step, not to a %s step", kindWord(wi.Kind))
 	}
 	return nil
 }
@@ -88,14 +83,11 @@ func postShape(wi models.WorkItem) error {
 	if wi.Tool != "" {
 		return invalidStep("a post step names no tool")
 	}
-	if wi.Direction != "" && wi.Direction != postDirectionDebit && wi.Direction != postDirectionCredit {
-		return invalidStep("the direction of a post step is %s or %s, not %q", postDirectionDebit, postDirectionCredit, wi.Direction)
-	}
 	if wi.Reason != "" && strings.TrimSpace(wi.Reason) == "" {
 		return invalidStep("the reason of a post step is written in words, not left blank")
 	}
-	if wi.Account != "" && wi.Account == wi.CounterAccount {
-		return invalidStep("a post step debits one account and credits another, so %q cannot be both sides", wi.Account)
+	if wi.DebitAccount != "" && wi.DebitAccount == wi.CreditAccount {
+		return invalidStep("a post step debits one account and credits another, so %q cannot be both sides", wi.DebitAccount)
 	}
 	return nil
 }
@@ -136,7 +128,7 @@ func checkAccountsExist(ctx context.Context, wi models.WorkItem) error {
 	if directory == nil {
 		return nil
 	}
-	for _, account := range []string{wi.Account, wi.CounterAccount} {
+	for _, account := range []string{wi.DebitAccount, wi.CreditAccount} {
 		if account == "" {
 			continue
 		}
@@ -167,14 +159,11 @@ func postScan(report StepScanReport, wi models.WorkItem, steps []models.WorkItem
 
 func missingPostFields(wi models.WorkItem) []string {
 	var missing []string
-	if wi.Account == "" {
-		missing = append(missing, "account")
+	if wi.DebitAccount == "" {
+		missing = append(missing, "debit account")
 	}
-	if wi.CounterAccount == "" {
-		missing = append(missing, "counter account")
-	}
-	if wi.Direction == "" {
-		missing = append(missing, "direction")
+	if wi.CreditAccount == "" {
+		missing = append(missing, "credit account")
 	}
 	if strings.TrimSpace(wi.Reason) == "" {
 		missing = append(missing, "reason")
@@ -205,7 +194,7 @@ func scanAccountsExist(report StepScanReport, wi models.WorkItem) {
 	if directory == nil {
 		return
 	}
-	for _, account := range []string{wi.Account, wi.CounterAccount} {
+	for _, account := range []string{wi.DebitAccount, wi.CreditAccount} {
 		if account == "" {
 			continue
 		}
