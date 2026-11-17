@@ -146,6 +146,8 @@ func TestComputeFailure_SaveRefusesAFailureChoiceOnAStepThatIsNotCalculating(t *
 	w := newFailureWorld(t)
 	_, err := w.mgr.CreateWorkItem(context.Background(), models.WorkItem{
 		DraftID: w.draftID, WorkflowID: w.wf.ID, Title: "Tell the member", Kind: models.StepKindNotify,
+		FormName:  "Payment notice",
+		Questions: []models.StepQuestion{{Prompt: "Message sent", AnswerType: models.AnswerFreeText, Required: true, Fixed: "Thank you for the payment"}},
 		OnFailure: w.stop(),
 	})
 	wantRefusal(t, err, mwanachamaagency.ErrInvalidWorkItem, "a notify step has no failure choice; only a compute step can say what happens when it cannot work out a result")
