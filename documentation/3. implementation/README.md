@@ -17,6 +17,39 @@ Where work on `mwanachama-backend-agency` is tracked. Two files carry the board:
 - [step-kind-registry.md](step-kind-registry.md) — the seam where a step kind
   registers its checks, scan findings, fork remap, document fields and hash
   record.
+- [compute-step-checks.md](compute-step-checks.md) — what a calculating step is
+  refused for when it is saved, what the Issue scan flags in a stored one, the
+  function catalog and what stays open (ISS-60).
+- [compute-failure-checks.md](compute-failure-checks.md) — the save refusals and
+  Issue scan findings of a calculating step's failure choice, and the reading of
+  a loop of steps with no way out (ISS-61).
+- [post-hold-checks.md](post-hold-checks.md) — what is refused when a posting
+  step or a hold is saved, what the Issue scan flags and what stays open
+  (ISS-63).
+- [step-copy-rules.md](step-copy-rules.md) — what each field of the calculating,
+  posting and holding steps does on a fork, a publication, the hash and an
+  import (ISS-66).
+- [scenario-coverage.md](scenario-coverage.md) — the warning for a calculating or
+  posting step that no current scenario run passes through (ISS-70).
+- [compute-step-host.md](compute-step-host.md) — what wakala-api does at a
+  calculating step (ISS-19).
+- [compute-step-failure-host.md](compute-step-failure-host.md) — what wakala-api
+  does when a calculating step fails.
+- [posting-step-host.md](posting-step-host.md) — what the host and the accounting
+  repo must do for the posting step.
+- [held-figures-host.md](held-figures-host.md) — what the host and the accounting
+  repo must do for held figures (ISS-22).
+- [scenario-compute-host.md](scenario-compute-host.md) — what wakala-api and the
+  test runner do for a scenario that computes or posts (ISS-15).
+- [accounting-ledger-audit.md](accounting-ledger-audit.md) — what
+  `mwanachama-backend-accounting` actually builds of its ledger, judged from its
+  code and tests.
+- [hub-copy-diff.md](hub-copy-diff.md) — how this repo and the hub's copy of the
+  agency module are compared.
+- [library-title-concurrency.md](library-title-concurrency.md) — library parts
+  created or renamed at the same moment (MUN698).
+- [provision-index-check.md](provision-index-check.md) — `Provision` gives back
+  a declared index that an existing table lacks (MUN317).
 
 ## Rows that arrive with a failing test
 
