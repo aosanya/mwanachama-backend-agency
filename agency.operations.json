@@ -658,7 +658,7 @@
       "action": "agency.work_item.create",
       "status": 201,
       "title": "Create work item",
-      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused.",
+      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, account, counter_account, direction (debit or credit) and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick.",
       "args": [
         {
           "from": "body",
@@ -678,7 +678,7 @@
       "call": "ListWorkItems",
       "action": "agency.work_item.list",
       "title": "List work items",
-      "description": "List one draft's work items in their listed order, narrowed by the filter. Each step reads back with its kind, role, form, questions, tool and derived action, such as \"Fills the Group order form\".",
+      "description": "List one draft's work items in their listed order, narrowed by the filter. Each step reads back with its kind, role, form, questions, tool and derived action, such as \"Fills the Group order form\". It reads back function, bindings, result_name, on_failure, hold, amount_step_id, account, counter_account, direction, reason and held_step_id on the steps that hold them.",
       "args": [
         {
           "from": "query",
@@ -703,7 +703,7 @@
       "call": "GetWorkItem",
       "action": "agency.work_item.read",
       "title": "Read work item",
-      "description": "Read one work item by its id — its code, title, prompt, kind, role, form and derived action, and the workflow it belongs to.",
+      "description": "Read one work item by its id — its code, title, prompt, kind, role, form and derived action, and the workflow it belongs to. It reads back function, bindings, result_name, on_failure, hold, amount_step_id, account, counter_account, direction, reason and held_step_id on the steps that hold them.",
       "args": [
         {
           "from": "path",
@@ -725,7 +725,7 @@
       "call": "UpdateWorkItem",
       "action": "agency.work_item.update",
       "title": "Update work item",
-      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply.",
+      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, account, counter_account, direction (debit or credit) and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick.",
       "args": [
         {
           "from": "body",
