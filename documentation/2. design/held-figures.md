@@ -188,7 +188,11 @@ Example: `HF-41` is held on Monday and nobody decides. Two weeks later it reads
 This joins the confirmation list in compute-step.md section 6 and changes none of
 what it decides. Provisional: the list is the held figures of one step in one run,
 with the totals first (members, sum of the figures, how many held back). Provisional:
-the limits below are proposals.
+the limits below are proposals. Decision 11 in
+[compute-decisions.md](../1.%20requirements/compute-decisions.md) makes a bulk
+release the actualization batch, run only after the calculation batch has finished
+and sized by the agency. Provisional: the release batch of 500 is the proposed
+default for that size, and it is not decided.
 
 | Limit | Value | Over it |
 |---|---|---|
@@ -218,7 +222,7 @@ Wanjiru among them, come back `moved`. She approves the new figure for 39 and se
 Releasing twice releases once. Provisional: releasing a `released` figure returns
 the first result and writes nothing, and the posting step's send key keeps the ledger
 to one entry ([posting-step.md](posting-step.md) section 4). A batch cut off after
-1,000 can be sent again whole: 1,000 come back `already_released` and 1,998 release.
+1,000 can be sent again whole: 1,000 come back `already_released`, 1,958 release and 40 come back `moved`.
 
 ## 7. What create and update refuse
 
