@@ -33,6 +33,24 @@ answers a sent form, and the Route step.
 
 [compute-settings.md](compute-settings.md) covers where an agency keeps the settings the calculating steps need (the decimal places of its currency, the rounding rule, the digits kept in a division and the most rows one batch may hold), who changes them and what a change does to a publication that already exists.
 
+[compute-step.md](compute-step.md) covers the calculating step kind: where each
+input comes from, who runs the step, and whether a confirming role checks the
+figure first (ISS-19).
+
+[compute-step-failure.md](compute-step-failure.md) covers what a calculating step
+does when it cannot work out a result: stop, or go to a named step (ISS-6).
+
+[posting-step.md](posting-step.md) covers the posting step, which writes a
+calculated amount to a member's ledger account as an appended entry (ISS-7).
+
+[held-figures.md](held-figures.md) covers a calculated figure that waits for
+approval before it becomes real, and what happens when its inputs move first
+(ISS-22).
+
+[library-versioning.md](library-versioning.md) covers the library versions a
+publication carries, what the Issue scan reports about them and what the agency
+never does to them (ISS-18).
+
 [test-scenarios.md](test-scenarios.md) covers test scenarios, their actors and
 inputs, test runs, the send-back rule and the publish gate (HS260).
 
