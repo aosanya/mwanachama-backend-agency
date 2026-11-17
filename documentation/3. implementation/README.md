@@ -12,6 +12,8 @@ Where work on `mwanachama-backend-agency` is tracked. Two files carry the board:
   workflow, step or role update keeps the fields its request does not carry.
 - [step-fields.md](step-fields.md) — the `compute` and `post` step kinds and
   the fields a calculating, posting or holding step stores.
+- [input-sources.md](input-sources.md) — the list of sources a builder may pick for
+  a calculating step's input, and the step fields on the work item tools.
 
 ## Rows that arrive with a failing test
 
