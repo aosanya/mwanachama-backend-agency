@@ -51,6 +51,9 @@ type computeWorld struct {
 
 func newComputeWorld(t *testing.T, opts ...mwanachamaagency.Option) computeWorld {
 	t.Helper()
+	mwanachamaagency.ClearStepKindRegistry()
+	t.Cleanup(mwanachamaagency.ClearStepKindRegistry)
+	mwanachamaagency.RegisterComputeStepChecks()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("gorm.Open: %v", err)

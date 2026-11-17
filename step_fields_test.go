@@ -16,11 +16,11 @@ var newStepFieldKeys = []string{
 	"account", "counter_account", "direction", "reason", "hold", "held_step_id",
 }
 
-func loanBindings(applyStepID string) []models.StepBinding {
+func loanBindings(applyStepID, recordID string) []models.StepBinding {
 	return []models.StepBinding{
 		{Input: "principal", SourceType: models.SourceAnswer, StepID: applyStepID, Question: "Amount requested"},
 		{Input: "monthly_rate", SourceType: models.SourceFixed, Value: "0.01"},
-		{Input: "months", SourceType: models.SourceRecordField, RecordID: "loan-terms", Question: "Months"},
+		{Input: "months", SourceType: models.SourceRecordField, RecordID: recordID, Question: "Months"},
 		{Input: "balance", SourceType: models.SourceLedgerBalance},
 	}
 }
@@ -49,9 +49,19 @@ func TestStepFields_ComputeStepRoundTrips(t *testing.T) {
 	w := newStepWorld(t)
 	ctx := context.Background()
 	wf := w.workflow(t, "Loan payment")
-	apply, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: w.draftID, WorkflowID: wf.ID, Title: "Apply for a loan", Ordinality: 1})
+	apply, err := w.mgr.CreateWorkItem(ctx, w.item(wf, 1, stepSpec{
+		title: "Apply for a loan", kind: models.StepKindFillForm, role: coordinator, form: "Loan request",
+		questions: []models.StepQuestion{ask("Amount requested", models.AnswerCurrency), ask("Months", models.AnswerNumber)},
+	}))
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
+	}
+	terms, err := w.mgr.CreateRecord(ctx, models.Record{
+		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Loan terms", RoleID: w.roles[coordinator].ID,
+		FormName: "Terms", Questions: []models.StepQuestion{ask("Months", models.AnswerNumber)},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
 	}
 	fallback, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: w.draftID, WorkflowID: wf.ID, Title: "Ask the officer", Ordinality: 3})
 	if err != nil {
@@ -62,7 +72,7 @@ func TestStepFields_ComputeStepRoundTrips(t *testing.T) {
 		DraftID: w.draftID, WorkflowID: wf.ID, Title: "Work out the payment", Ordinality: 2,
 		Kind:       models.StepKindCompute,
 		Function:   "fin.pmt@2",
-		Bindings:   loanBindings(apply.ID),
+		Bindings:   loanBindings(apply.ID, terms.ID),
 		ResultName: "Payment to post",
 		OnFailure:  &models.StepFailure{Choice: models.FailureGoToStep, StepID: fallback.ID},
 		Hold:       &models.StepHold{ExpiresAfterDays: 14},

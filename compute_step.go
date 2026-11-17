@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
@@ -28,7 +29,13 @@ func WithFunctionCatalog(catalog FunctionCatalog) Option {
 }
 
 func init() {
-	RegisterStepShapeCheck(computeFieldsOnTheRightKind)
+	registerComputeStep()
+}
+
+var computeShapeRegistered sync.Once
+
+func registerComputeStep() {
+	computeShapeRegistered.Do(func() { RegisterStepShapeCheck(computeFieldsOnTheRightKind) })
 	RegisterStepKind(models.StepKindCompute, StepKindHooks{
 		Shape:      computeShape,
 		References: computeReferences,

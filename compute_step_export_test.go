@@ -6,6 +6,10 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+func RegisterComputeStepChecks() {
+	registerComputeStep()
+}
+
 func PlantStep(mgr AgencyManager, wi models.WorkItem) (models.WorkItem, error) {
 	m := mgr.(*agencyManager)
 	ctx := context.Background()

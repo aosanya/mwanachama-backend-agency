@@ -34,7 +34,7 @@ func buildLoanWorld(t *testing.T) loanWorld {
 	}
 	compute, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{
 		DraftID: w.draftID, WorkflowID: wf.ID, Title: "Work out the monthly payment",
-		Ordinality: 2, Kind: models.StepKindCompute,
+		Ordinality: 2, Kind: models.StepKindCompute, Function: "fin.pmt@2", ResultName: "Monthly payment",
 	})
 	if err != nil {
 		t.Fatalf("CreateWorkItem compute: %v", err)
