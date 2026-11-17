@@ -45,7 +45,116 @@ var stepKindRegistry = struct {
 func RegisterStepKind(kind models.StepKind, hooks StepKindHooks) {
 	stepKindRegistry.Lock()
 	defer stepKindRegistry.Unlock()
+	if existing, ok := stepKindRegistry.kinds[kind]; ok {
+		hooks = chainStepKindHooks(existing, hooks)
+	}
 	stepKindRegistry.kinds[kind] = hooks
+}
+
+func chainStepKindHooks(first, second StepKindHooks) StepKindHooks {
+	return StepKindHooks{
+		Shape:        chainShape(first.Shape, second.Shape),
+		References:   chainReferences(first.References, second.References),
+		Scan:         chainScan(first.Scan, second.Scan),
+		Remap:        chainRemap(first.Remap, second.Remap),
+		ToDocument:   chainToDocument(first.ToDocument, second.ToDocument),
+		FromDocument: chainFromDocument(first.FromDocument, second.FromDocument),
+		Hash:         chainHash(first.Hash, second.Hash),
+	}
+}
+
+func chainShape(first, second func(models.WorkItem) error) func(models.WorkItem) error {
+	if first == nil {
+		return second
+	}
+	if second == nil {
+		return first
+	}
+	return func(wi models.WorkItem) error {
+		if err := first(wi); err != nil {
+			return err
+		}
+		return second(wi)
+	}
+}
+
+func chainReferences(first, second func(context.Context, StepLookup, models.WorkItem) error) func(context.Context, StepLookup, models.WorkItem) error {
+	if first == nil {
+		return second
+	}
+	if second == nil {
+		return first
+	}
+	return func(ctx context.Context, lookup StepLookup, wi models.WorkItem) error {
+		if err := first(ctx, lookup, wi); err != nil {
+			return err
+		}
+		return second(ctx, lookup, wi)
+	}
+}
+
+func chainScan(first, second func(StepScanReport, models.WorkItem, []models.WorkItem)) func(StepScanReport, models.WorkItem, []models.WorkItem) {
+	if first == nil {
+		return second
+	}
+	if second == nil {
+		return first
+	}
+	return func(report StepScanReport, wi models.WorkItem, steps []models.WorkItem) {
+		first(report, wi, steps)
+		second(report, wi, steps)
+	}
+}
+
+func chainRemap(first, second func(*models.WorkItem, StepIDMaps)) func(*models.WorkItem, StepIDMaps) {
+	if first == nil {
+		return second
+	}
+	if second == nil {
+		return first
+	}
+	return func(wi *models.WorkItem, ids StepIDMaps) {
+		first(wi, ids)
+		second(wi, ids)
+	}
+}
+
+func chainToDocument(first, second func(models.WorkItem, *models.DocumentWorkItem)) func(models.WorkItem, *models.DocumentWorkItem) {
+	if first == nil {
+		return second
+	}
+	if second == nil {
+		return first
+	}
+	return func(wi models.WorkItem, out *models.DocumentWorkItem) {
+		first(wi, out)
+		second(wi, out)
+	}
+}
+
+func chainFromDocument(first, second func(models.DocumentWorkItem, *models.WorkItem, StepIDMaps)) func(models.DocumentWorkItem, *models.WorkItem, StepIDMaps) {
+	if first == nil {
+		return second
+	}
+	if second == nil {
+		return first
+	}
+	return func(in models.DocumentWorkItem, row *models.WorkItem, ids StepIDMaps) {
+		first(in, row, ids)
+		second(in, row, ids)
+	}
+}
+
+func chainHash(first, second func(models.WorkItem) []string) func(models.WorkItem) []string {
+	if first == nil {
+		return second
+	}
+	if second == nil {
+		return first
+	}
+	return func(wi models.WorkItem) []string {
+		return append(first(wi), second(wi)...)
+	}
 }
 
 func RegisterIssueCheck(check IssueCheck) {
