@@ -31,6 +31,8 @@ kind, its one role, its form and questions, its derived action, and the RACI lab
 its steps: records and their rows, a Send form step's recipient, the step that
 answers a sent form, and the Route step.
 
+[compute-settings.md](compute-settings.md) covers where an agency keeps the settings the calculating steps need (the decimal places of its currency, the rounding rule, the digits kept in a division and the most rows one batch may hold), who changes them and what a change does to a publication that already exists.
+
 [test-scenarios.md](test-scenarios.md) covers test scenarios, their actors and
 inputs, test runs, the send-back rule and the publish gate (HS260).
 
