@@ -159,3 +159,21 @@ func TestLibraryPartTitles_ACreateAndARenameToOneTitleStoreItOnce(t *testing.T) 
 		})
 	}
 }
+
+func TestSharedHazard_EightCallersOnADraftWithNoHazardAllGetTheOneCode(t *testing.T) {
+	for round := 1; round <= simultaneousRounds; round++ {
+		mgr := newFileLibraryManager(t)
+		ctx := context.Background()
+		_, _, o, _, _ := seedLiveAgency(t, mgr, ctx)
+		codes := make([]string, simultaneousCalls)
+		atTheSameMoment(simultaneousCalls, func(i int) error {
+			codes[i] = sharedHazard(mgr, ctx, o.DraftID)
+			return nil
+		})
+		for i, code := range codes {
+			if code == "" || code != codes[0] {
+				t.Fatalf("round %d: caller %d got %q, caller 0 got %q, want every caller to get the one hazard code", round, i, code, codes[0])
+			}
+		}
+	}
+}
