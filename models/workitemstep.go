@@ -12,11 +12,14 @@ const (
 	StepKindRoute       StepKind = "route"
 	StepKindRunWorkflow StepKind = "run_workflow"
 	StepKindChat        StepKind = "chat"
+	StepKindCompute     StepKind = "compute"
+	StepKindPost        StepKind = "post"
 )
 
 var stepKinds = []StepKind{
 	StepKindFillForm, StepKindSendForm, StepKindNotify,
 	StepKindYesNo, StepKindRoute, StepKindRunWorkflow, StepKindChat,
+	StepKindCompute, StepKindPost,
 }
 
 func StepKinds() []StepKind { return append([]StepKind(nil), stepKinds...) }
@@ -127,6 +130,40 @@ type StepRoute struct {
 	Match    RouteMatch  `json:"match"`
 	Rules    []RouteRule `json:"rules"`
 	GoToStep string      `json:"go_to_step_id"`
+}
+
+type BindingSource string
+
+const (
+	SourceAnswer        BindingSource = "answer"
+	SourceRecordField   BindingSource = "record_field"
+	SourceLedgerBalance BindingSource = "ledger_balance"
+	SourceFixed         BindingSource = "fixed"
+)
+
+type StepBinding struct {
+	Input      string        `json:"input"`
+	SourceType BindingSource `json:"source_type"`
+	StepID     string        `json:"step_id,omitempty"`
+	Question   string        `json:"question,omitempty"`
+	RecordID   string        `json:"record_id,omitempty"`
+	Value      string        `json:"value,omitempty"`
+}
+
+type FailureChoice string
+
+const (
+	FailureStop     FailureChoice = "stop"
+	FailureGoToStep FailureChoice = "go_to_step"
+)
+
+type StepFailure struct {
+	Choice FailureChoice `json:"choice"`
+	StepID string        `json:"step_id,omitempty"`
+}
+
+type StepHold struct {
+	ExpiresAfterDays int `json:"expires_after_days"`
 }
 
 func (wi WorkItem) HasLinks() bool {

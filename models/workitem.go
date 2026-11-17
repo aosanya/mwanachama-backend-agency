@@ -32,6 +32,17 @@ type WorkItem struct {
 	Prompts          []string       `json:"prompts,omitempty"`
 	Tools            []string       `json:"tools,omitempty"`
 	StartWorkflowIDs []string       `json:"start_workflow_ids,omitempty"`
+	Function         string         `json:"function"`
+	Bindings         []StepBinding  `json:"bindings,omitempty"`
+	ResultName       string         `json:"result_name"`
+	OnFailure        *StepFailure   `json:"on_failure,omitempty"`
+	AmountStepID     string         `json:"amount_step_id"`
+	Account          string         `json:"account"`
+	CounterAccount   string         `json:"counter_account"`
+	Direction        string         `json:"direction"`
+	Reason           string         `json:"reason"`
+	Hold             *StepHold      `json:"hold,omitempty"`
+	HeldStepID       string         `json:"held_step_id"`
 	Action           string         `json:"action,omitempty" spec:"-"`
 
 	carriedKeys

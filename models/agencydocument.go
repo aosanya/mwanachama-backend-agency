@@ -161,6 +161,18 @@ type DocumentWorkItem struct {
 	Prompts          []string `json:"prompts,omitempty"`
 	Tools            []string `json:"tools,omitempty"`
 	StartWorkflowIDs []string `json:"start_workflow_ids,omitempty"`
+
+	Function       string        `json:"function,omitempty"`
+	Bindings       []StepBinding `json:"bindings,omitempty"`
+	ResultName     string        `json:"result_name,omitempty"`
+	OnFailure      *StepFailure  `json:"on_failure,omitempty"`
+	AmountStepID   string        `json:"amount_step_id,omitempty"`
+	Account        string        `json:"account,omitempty"`
+	CounterAccount string        `json:"counter_account,omitempty"`
+	Direction      string        `json:"direction,omitempty"`
+	Reason         string        `json:"reason,omitempty"`
+	Hold           *StepHold     `json:"hold,omitempty"`
+	HeldStepID     string        `json:"held_step_id,omitempty"`
 }
 
 type DocumentWorkflowObjective struct {

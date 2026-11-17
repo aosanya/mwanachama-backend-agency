@@ -122,6 +122,8 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 			string(models.StepKindRoute),
 			string(models.StepKindRunWorkflow),
 			string(models.StepKindChat),
+			string(models.StepKindCompute),
+			string(models.StepKindPost),
 		},
 		"workflow.opens_in": {
 			string(models.OpensInForm),
