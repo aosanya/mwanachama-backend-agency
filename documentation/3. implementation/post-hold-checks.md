@@ -50,7 +50,7 @@ Not found:
 |---|---|---|
 | an amount step that is not a step of the draft | `ErrWorkItemNotFound` (404): the amount step st-404 is not a step of this draft | P9 |
 | a held step that is not a step of the draft | `ErrWorkItemNotFound` (404): the held step st-404 is not a step of this draft | H9h |
-| an account or counter account the agency does not have | `ErrAccountNotFound`: the agency has no account "Member savings" | P8 |
+| an account or counter account the agency does not have | `ErrAccountNotFound` (404): the agency has no account "Member savings" | P8 |
 
 A posting step may be saved with no amount step, account, counter account, direction or reason, and a calculating step may be saved with a hold and no releasing step. Only the scan stops publishing.
 
@@ -87,7 +87,7 @@ The checks against the amount step and the held step are run on the whole draft,
 
 | Name | Where |
 |---|---|
-| `ErrAccountNotFound` (404 is proposed, not mapped in `routes/` yet) | `post_step.go`, one declaration |
+| `ErrAccountNotFound` (404, mapped in the operations file, `routes/` and `mcp/`) | `post_step.go`, one declaration |
 | the post kind's name `post`, and the names `hold` and `held_step_id` | as on step-fields.md |
 | the sentences in the tables | tests check each word for word |
 
@@ -106,7 +106,7 @@ The checks against the amount step and the held step are run on the whole draft,
 
 ## What stays open
 
-- The name `post`, the error name `ErrAccountNotFound` and its 404 mapping in `routes/`, whether a role may run a posting step, whether `post` is an accounting module step kind, how the case knows the member, where held figures are kept and who else may release one: as the design pages leave them. Nothing here decides one.
+- The name `post`, the error name `ErrAccountNotFound`, whether a role may run a posting step, whether `post` is an accounting module step kind, how the case knows the member, where held figures are kept and who else may release one: as the design pages leave them. Nothing here decides one.
 - Where the agency's accounts are listed. The check goes through `AccountDirectory`; until `SetAccountDirectory` is called with one, no account is checked, on save or in the scan. The scan treats an error from the directory as "unknown" and flags nothing.
 - A post step that names a role and a held step releases the figure it posts (held-figures.md section 3). Without a role the scan flags it like a yes_no step. Whether a post step may carry a role at all is the open question above, so the check is built behind the proposal.
 - A post step saved with a held step and no amount step is accepted (the amount may be picked afterwards); once both are set they must name the same step.

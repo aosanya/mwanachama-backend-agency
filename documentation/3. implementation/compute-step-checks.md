@@ -31,7 +31,7 @@ The library is in another repo, so this repo asks it through one small interface
 | `FunctionInput` | an input of a function: its `Name` and its `Type` (`number`, `currency`, `date`, `time`, `yes_no`, `text`) |
 | `FunctionCatalog` | `InputsOf(ctx, name, version)` returns the inputs and whether the library has that function and version |
 | `WithFunctionCatalog(catalog)` | the manager option |
-| `ErrFunctionNotFound` | the sentinel for a function or version the library does not have; proposed and not decided, see Open |
+| `ErrFunctionNotFound` | the sentinel for a function or version the library does not have; answers 404 over HTTP and a not-found refusal from the tools; the name is proposed and not decided, see Open |
 
 With no catalog the inputs of a function are unknown. A save then checks everything that does not need them (the shape of the function, the result name, the bindings' own fields, the answer and record references and that the source can be a source) and the scan does not flag an input with no source. The host that builds the manager is expected to give it the catalog.
 
@@ -72,7 +72,7 @@ Not found:
 | CS-32 | a role or group that is not offered: `ErrRoleNotFound` (404), from the check every step already has |
 | CS-33 | an answer step that is not in the draft: `ErrWorkItemNotFound` (404) |
 | CS-34 | a record that is not in the draft: `ErrRecordNotFound` (404) |
-| CS-35 | a function or version the library does not have: `ErrFunctionNotFound`, `the library has no function fin.pmt@9` |
+| CS-35 | a function or version the library does not have: `ErrFunctionNotFound` (404), `the library has no function fin.pmt@9` |
 
 A step with fewer bindings than the function has inputs is saved (CS-36). An update is refused as a create is and the stored step is unchanged (CS-31). The fit of a source is exact: `currency` fits `currency`, `number` fits `number`, and nothing is converted.
 
@@ -114,7 +114,7 @@ Every refusal of compute-step.md section 3 and every finding of section 4 has a 
 
 Copied from compute-step.md and the issue; none is decided here.
 
-1. The error name `ErrFunctionNotFound` is a proposal. It is not yet mapped to a status in `agency.operations.json`, `routes/routes.go` or `mcp/sentinels.go`, so over HTTP it is not yet a 404. The mapping is one line in each when the owner accepts the name.
+1. The error name `ErrFunctionNotFound` is a proposal. It is mapped to 404 in `agency.operations.json`, `routes/routes.go` and `mcp/sentinels.go` (ISS-81); a rename is one line in each.
 2. A function version that is no longer in the library: the save refuses it (CS-35) but the scan does not flag an already stored step whose version has gone, and a function the catalog does not know skips the input checks of that step in the scan.
 3. Whether a `currency` source is accepted where a number is asked. The fit is exact today.
 4. Which row a `record_field` reads, which ledger `ledger_balance` reads, whether a later compute step's result may be a source, and whether a confirming step may carry a time limit. None of these is checked.
