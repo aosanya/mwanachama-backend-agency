@@ -44,13 +44,16 @@ repos, and this page does not say.
    the publication pins (`3`) and a fingerprint of the inputs (`c91f0a47` for
    Wanjiru). Case P1. Provisional: how the fingerprint is worked out is open, and
    the calculating step's function and version come from its `function` field.
-6. Post once per row: one calculating result, one entry, with the amount unsigned,
-   the side set by `direction` and the other side `counter_account`, and the
-   `reason`. A row never waits on another row and never posts half. Cases P1, P4.
-   Design section 5.
+6. Post once per row, in the actualization batch that runs after the calculation
+   batch has finished as a whole (decision 11): one calculating result, one entry,
+   with the amount unsigned, the side set by `direction` and the other side
+   `counter_account`, and the `reason`. A row never waits on another row and never
+   posts half. Cases P1, P4. Design section 5.
 7. When the ledger answers that the key is used, treat it as success and carry on
    with the entry it returned, writing nothing. A bulk run that is restarted
-   skips the rows already posted and posts the rest. Cases P3a, P3b.
+   skips the rows already posted and posts the rest, when the person chose to keep
+   the finished rows; if the person chose to cancel them, each finished row is
+   reversed first (decision 8). Cases P3a, P3b.
 8. Follow the calculating step's failure choice for a row with no amount, and post
    nothing for it, under either choice. Case P4. Provisional: what the choice does
    is [compute-step-failure.md](../2.%20design/compute-step-failure.md), and the

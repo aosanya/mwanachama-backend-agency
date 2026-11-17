@@ -185,11 +185,14 @@ lists it for the role. A compute step with no role is never listed, because
 nobody waits on it.
 
 What the confirmer sees: the figure, and the inputs it was worked out from, each
-with its name, its source and its value. What they can do: accept it, hold it
-back, or send it back through the step's failure choice (Provisional: the choice
-is in [compute-step-failure.md](compute-step-failure.md), and this page does not
-say what it does). Whether they may change a figure is open, and it is the one
-open question the owner has to answer for this issue (section 9).
+with its name, its source and its value. What they can do is a set of routes the
+builder draws (decision 3 in
+[compute-decisions.md](../1.%20requirements/compute-decisions.md)): accept it,
+send it back, or take a route to an overwrite step. The step has no built-in
+overwrite. A figure can be overwritten only where the builder has wired an
+overwrite step, so a confirmer cannot change a figure unless the builder gave them
+that route. Provisional: what an overwrite step is, as a kind, is not written. In
+a bulk run the confirmer also holds back individual rows (section 6).
 
 A time limit on such a step is open. Today `WaitsOnPerson` refuses a limit on any
 kind but `fill_form` and `yes_no`, as [step-time-limit.md](step-time-limit.md)
@@ -214,6 +217,16 @@ Decided: a bulk run gives the confirmer one list for the whole run, with the
 totals and the unusual figures first. The confirmer confirms the run once, and
 may hold back individual members. Nothing is posted until the confirmer confirms.
 Provisional: posting is the posting step's ([posting-step.md](posting-step.md)).
+
+Decided (decision 11): a bulk run has two stages. The calculation batch works out
+every row and finishes as a whole, and the list above is the finished calculation
+batch. Only then does an actualization batch post or release the results, which is
+the posting step's work. The agency sets how many rows one batch may hold, and a
+batch over the agency's limit is refused whole before any row is worked out
+(compute repo decision 16). Nothing real changes in the calculation batch, so it can
+be confirmed, held, repeated or cancelled before the actualization batch starts.
+Open: whether a run larger than the limit is cut into several calculation batches
+by the platform or by the builder.
 
 Per member the list shows the name, the figure and the inputs. The totals are
 the number of members, the sum of the figures and the number held back.
@@ -312,7 +325,9 @@ question "Months" of the record "Loan terms".
 
 ## 9. Open questions
 
-1. Can a confirmer change a figure? Not decided. It is the owner's.
+1. Decided (decision 3): the step has no built-in overwrite. A confirmer changes a
+   figure only through an overwrite step the builder wires. Open: what that step
+   is, as a kind.
 2. How is an unusual figure chosen for the top of the confirmation list? Not decided.
 3. Where does a held-back member go next? Not decided.
 4. May a confirming compute step carry a time limit? Not decided.
@@ -323,6 +338,8 @@ question "Months" of the record "Loan terms".
 7. May a later compute step use an earlier step's result as a source? It is not
    one of the owner's four sources, so it is not offered. Not decided.
 8. Provisional: is a `currency` source accepted where a number is asked? Not decided.
+9. Who cuts a run larger than the agency's batch limit into several calculation
+   batches, the platform or the builder? Not decided (decision 11).
 
 ## 10. Not here
 

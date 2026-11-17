@@ -133,7 +133,7 @@ Every row below is an `error`, so each expects the publish of that agency to be 
 
 No case until the owner decides:
 
-- Whether a confirmer may change a figure.
+- What an overwrite step is, as a kind. A confirmer changes a figure only through an overwrite step the builder wires (decision 3).
 - How unusual figures are chosen for the top of a bulk confirmation list.
 - Where a held-back member goes next.
 - Whether a confirming compute step may carry a time limit.

@@ -139,6 +139,13 @@ after 120 postings. When it is restarted, the 120 keys are already used and
 write nothing, and the other 80 post. Without the key the restart would post the
 first 120 again.
 
+The person is asked each time a stopped run is started again (decision 8 in
+[compute-decisions.md](../1.%20requirements/compute-decisions.md)): keep the rows
+already done and run the rest, which is the case above, or cancel the finished rows
+and run everyone again. Cancelling a finished row leaves a reversing entry in the
+ledger (section 6), so the 120 postings would each be reversed before the run posts
+again.
+
 What the audit found: the accounting repo has no key field and no unique index.
 A repeat is recognised by a read inside the transaction when the document kind,
 document id, both accounts, the amount, `reverses_entry_id` and `settles_entry_id`
@@ -150,9 +157,15 @@ posting step is not safe to restart until they exist.
 
 ## 5. A bulk run posts each row on its own
 
-A bulk run over many members posts each row separately: one calculating result,
-one posting, one entry. A row never waits on another row to post, and no row posts
-half.
+A bulk run has two stages (decision 11 in
+[compute-decisions.md](../1.%20requirements/compute-decisions.md)): a calculation
+batch that works out every row and finishes as a whole, and then an actualization
+batch. Posting is the actualization batch. Nothing is posted until the calculation
+batch has finished, and the agency sets how many rows one batch may hold.
+
+Once the actualization batch runs, each row is posted separately: one calculating
+result, one posting, one entry. A row never waits on another row to post, and no
+row posts half.
 
 A row whose calculating step failed follows the step's failure choice, which is in
 [compute-step-failure.md](compute-step-failure.md) and not decided here. Under
@@ -160,8 +173,9 @@ either choice the failed row posts nothing: no entry is written for it, and the
 other rows are not held back.
 
 Where a confirming role is named on the calculating step, nothing is posted until
-the confirmer confirms the run, as [compute-step.md](compute-step.md) section 6
-says, and a member the confirmer holds back posts nothing.
+the confirmer confirms the finished calculation batch, as
+[compute-step.md](compute-step.md) section 6 says, and a member the confirmer holds
+back posts nothing.
 
 Example: 200 rows at Lakeside, 3 fail the calculation (a payment of -5.00, no
 balance, a term of 0 months). 197 entries are written and 3 are not. Provisional:
@@ -304,29 +318,25 @@ builder adds Post the payment and the publication hashes differently. Another
 builder changes only `reason` from `Loan payment` to `Loan payment for the month`:
 that hashes differently too and publishes.
 
-## 11. Open question for the owner: values that are not money
+## 11. Values that are not money
 
 A ratio or a score, for example Wanjiru's repayment ratio of 0.82, is worked out
-by a calculating step but is not an amount. The ledger posts only money, so such a
-value has no home yet. Which of these three, or another?
+by a calculating step but is not an amount. The ledger posts only money.
 
-1. A second kind of account whose entries are not money. Pros: the same
-   append-only entries, reversal and sum, and the same provenance. Cons: the
-   ledger's entry is double-entry on a positive whole amount, and a score on that
-   shape needs the account type and the entry's rules changed.
-2. A separate figures record beside the ledger. Pros: the ledger stays money only,
-   and each figure can keep its own provenance. Cons: a second place to read, and
-   it must be append-only too or it loses the trail.
-3. A column on the record row. Pros: no new object, and the figure sits next to the
-   answers it came from. Cons: record rows are corrected by a replacing row and
-   are per record, not per member over time, and nothing sums them.
-
-This is not decided here. Until the owner picks, the posting step posts money to a
-ledger account and nothing else.
+Decided (decision 7 in
+[compute-decisions.md](../1.%20requirements/compute-decisions.md)): a figure that is
+not money is kept in a separate append-only record of figures beside the ledger.
+There is one entry per subject, figure and date, and each entry carries how it was
+worked out. The ledger stays money only, and the history of a figure can be read
+and each entry traced. The posting step still posts money to a ledger account and
+nothing else. Provisional: the step that writes an entry to the record of figures is
+not written, and neither are the record's fields; that entry carries the same
+provenance as section 3, as [held-figures.md](held-figures.md) section 10 says.
 
 ## 12. Open questions
 
-1. Values that are not money: section 11, the owner's to pick.
+1. Values that are not money: decided in section 11 (decision 7). Open: the step
+   that writes the record of figures, and its fields.
 2. Which category does the agency use for member accounts, and where is the
    agency's list of accounts kept, so that "an account the agency does not have"
    can be checked? The accounting module owns the accounts today and this repo

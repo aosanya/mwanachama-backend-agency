@@ -43,7 +43,10 @@ It is one of two shapes, and there is no third:
 
 - `{"choice":"stop"}`: stop and tell the person what is missing.
 - `{"choice":"go_to_step","step_id":"<step id>"}`: send the case to that step,
-  which is in the same workflow.
+  which is in the same workflow. Decided (decision 12 in
+  [compute-decisions.md](../1.%20requirements/compute-decisions.md)): it may be any
+  step of the workflow except the failing step itself, so a `route` step or another
+  calculating step is allowed.
 
 One choice covers both kinds of failure; there is no separate choice per kind.
 Provisional: `on_failure` exists only on the calculating step kind.
@@ -106,10 +109,19 @@ All are `error`, so none can be published:
 
 - a calculating step with no choice;
 - a named step that no longer exists, or now belongs to another workflow;
-- a named step that is the calculating step itself.
+- a named step that is the calculating step itself;
+- a loop of calculating steps that fail onto each other with no way out (decision
+  12). Provisional: "no way out" is read as a cycle of calculating steps, each
+  going to the next on failure, from which no step leaves by stopping or by going to
+  a step outside the cycle. How the scan walks the choices is not written.
 
 Provisional: the first of these is the owner's rule that a calculating step
 with no answer for a failure cannot be published.
+
+Example: Check the loan payment goes on failure to Check the term, and Check the
+term goes on failure back to Check the loan payment. Neither can stop, so the scan
+raises one error for the loop. If Check the term chose stop, there is a way out and
+nothing is raised.
 
 The scan checks the target the way `checkStepTarget` checks a route target, so
 the sentences read like the existing ones: `Work item WI-12 "Check the loan
@@ -147,6 +159,12 @@ payment of -5.00, one with no balance, one with a term of 0 months).
 A bad-input row gives all its problems, so a row with two bad inputs shows two
 lines under its row number.
 
+A failed row does not hold up the calculation batch: the calculation batch works
+out every row and finishes as a whole, and a failed row is one of its outcomes
+(decision 11 in [compute-decisions.md](../1.%20requirements/compute-decisions.md)).
+Provisional: the failed rows follow the choice when the calculation batch has
+finished. Nothing is posted for any row until the actualization batch.
+
 ## Failure budget
 
 A run has a failure budget, kept for system faults such as a timeout. A failed
@@ -162,9 +180,10 @@ alone. This repo only stores and checks the field. The host's side is in
 
 ## Open questions
 
-1. May a `go_to_step` target be a `route` step, or another calculating step? A
-   failed payment sent to a second calculating step could fail the same way.
-   Today only the step itself is refused.
+1. Decided (decision 12): a `go_to_step` target may be any step except the failing
+   step itself, a `route` step or another calculating step included. A loop of
+   calculating steps with no way out is a blocking scan error. Open: how the scan
+   finds such a loop.
 2. What is the most problem lines one screen shows? A bulk row with many bad
    inputs, or a stop listing 3 rows of 4 problems each, can run long.
 3. Provisional: does the named step learn which kind of failure it was (bad

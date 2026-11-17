@@ -34,6 +34,8 @@ Review the loan payment, in the same workflow.
 | C13 | Budget spent by a timeout | Host |
 | C14 | `go_to_step` with no step id | save |
 | C15 | Saved with no choice | save |
+| C16 | A target that is a route step or another calculating step | save |
+| C17 | A loop of calculating steps with no way out | scan, publish |
 
 ## C1 No choice
 
@@ -177,3 +179,23 @@ Review the loan payment, in the same workflow.
 - Expected: the save succeeds; only the scan (C1) stops publishing.
 - Provisional: the step is the calculating kind.
 - Rule: [What create and update refuse](../2.%20design/compute-step-failure.md#what-create-and-update-refuse)
+
+## C16 A target that is a route step or another calculating step
+
+- Setup: `on_failure` of Check the loan payment is `{"choice":"go_to_step",
+  "step_id":"<id of a route step in Loan check>"}`. A second save names another
+  calculating step of the workflow, Check the term.
+- Expected: both saves succeed; any step of the workflow except the step itself is
+  allowed (decision 12).
+- Provisional: the step is the calculating kind.
+- Rule: [Where it lives](../2.%20design/compute-step-failure.md#where-it-lives)
+
+## C17 A loop of calculating steps with no way out
+
+- Setup: Check the loan payment goes on failure to Check the term, and Check the
+  term goes on failure to Check the loan payment. Both are saved.
+- Expected (save): both saves succeed, since each names a step other than itself.
+- Expected (scan): Provisional: one `error` for the loop, and publishing is
+  refused with `ErrPublishValidationFailed` (409). Changing Check the term to
+  `{"choice":"stop"}` leaves a way out, and the scan raises nothing for the loop.
+- Rule: [What the Issue scan flags](../2.%20design/compute-step-failure.md#what-the-issue-scan-flags)
