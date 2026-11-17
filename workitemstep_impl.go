@@ -27,7 +27,7 @@ func validateStepShape(wi models.WorkItem) error {
 		}
 		return nil
 	}
-	if !wi.Kind.Valid() {
+	if !wi.Kind.Valid() && !stepKindRegistered(wi.Kind) {
 		return invalidStep("kind %q is not one of %v", wi.Kind, models.StepKinds())
 	}
 	if wi.Kind.AgencyOnly() && wi.RoleID != "" {
@@ -48,7 +48,10 @@ func validateStepShape(wi models.WorkItem) error {
 	if err := validateStepTool(wi); err != nil {
 		return err
 	}
-	return validateStepForm(wi)
+	if err := validateStepForm(wi); err != nil {
+		return err
+	}
+	return shapeOfRegisteredKind(wi)
 }
 
 func validateChatFields(wi models.WorkItem) error {
@@ -230,7 +233,7 @@ func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB,
 			return invalidStep("a step cannot cancel with the workflow that owns it")
 		}
 	}
-	return nil
+	return m.referencesOfRegisteredKind(ctx, tx, wi)
 }
 
 func (m *agencyManager) validateStep(ctx context.Context, tx *gorm.DB, wi models.WorkItem) error {

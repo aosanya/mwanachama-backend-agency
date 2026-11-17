@@ -81,7 +81,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		return fail(err)
 	}
 	for _, wi := range workItems {
-		doc.WorkItems = append(doc.WorkItems, models.DocumentWorkItem{
+		docStep := models.DocumentWorkItem{
 			ID: wi.ID, Code: wi.Code, WorkflowID: wi.WorkflowID,
 			Title: wi.Title, Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
 			Kind: wi.Kind, RoleID: wi.RoleID, RunWorkflowID: wi.RunWorkflowID,
@@ -91,7 +91,9 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: wi.CancelWorkflowID,
 			AgentRoleID: wi.AgentRoleID, Topic: wi.Topic, OpeningLine: wi.OpeningLine,
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: wi.StartWorkflowIDs,
-		})
+		}
+		documentOfRegisteredKind(wi, &docStep)
+		doc.WorkItems = append(doc.WorkItems, docStep)
 	}
 
 	workflowObjectives, err := list[models.WorkflowObjective](m, scoped(roleWorkflowObjective).Order("created_at"), roleWorkflowObjective)
@@ -355,6 +357,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: remapAll(workflowIDs, wi.StartWorkflowIDs),
 			CreatedAt: now, LastUpdated: now,
 		}
+		rowOfRegisteredKind(wi, &row, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs})
 		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {
 			return fail(err)
 		}

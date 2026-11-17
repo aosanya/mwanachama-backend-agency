@@ -201,6 +201,7 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		wi.SentStepID = remap(stepIDs, wi.SentStepID)
 		wi.OtherwiseStepID = remap(stepIDs, wi.OtherwiseStepID)
 		wi.Routes = remapRoutes(stepIDs, wi.Routes)
+		remapRegisteredKind(&wi, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs})
 		if err := m.copyRow(ctx, tx, roleWorkItem, wi); err != nil {
 			return err
 		}

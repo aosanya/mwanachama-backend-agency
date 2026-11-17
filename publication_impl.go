@@ -121,6 +121,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 				optionalField{"opening_line", r.OpeningLine}, optionalField{"prompts", hashList(r.Prompts)},
 				optionalField{"tools", hashList(r.Tools)}, optionalField{"start_workflow_ids", hashList(r.StartWorkflowIDs)}))
 		}
+		records = append(records, hashRecordsOfRegisteredKind(r)...)
 		if r.TimeLimitMinutes != 0 || r.CancelWorkflowID != "" {
 			records = append(records, hashRecord("WorkItemLimit", map[string]any{
 				"id": r.ID, "time_limit_minutes": r.TimeLimitMinutes, "cancel_workflow_id": r.CancelWorkflowID,

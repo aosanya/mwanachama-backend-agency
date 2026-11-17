@@ -27,6 +27,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkRoleAssignments,
 		s.checkWorkflowObjectives,
 		s.checkWorkItems,
+		s.checkRegistered,
 		s.checkStepLinks,
 		s.checkRecords,
 		s.checkRiskPathways,
@@ -229,6 +230,7 @@ func (s *issueScan) checkWorkItems() error {
 			s.checkChatStep(w, roleIDs, workflowIDs)
 		}
 	}
+	s.scanRegisteredKinds(workItems)
 	for _, w := range workflows {
 		if !workflowsWithItem[w.ID] {
 			s.add(models.IssueSeverityError, "workflow", w.ID, "Workflow %s %q has no Work Items", w.Code, w.Name)
