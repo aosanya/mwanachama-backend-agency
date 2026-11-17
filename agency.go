@@ -328,6 +328,7 @@ type agencyManager struct {
 	tokenLimit func(ctx context.Context) int
 	board      *runBoard
 	groups     GroupLister
+	functions  FunctionCatalog
 	runs       RunLister
 
 	reviewAreas ReviewAreasFunc
