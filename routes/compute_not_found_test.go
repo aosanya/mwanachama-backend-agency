@@ -83,8 +83,8 @@ func TestComputeStepRoutes_AnAccountTheAgencyDoesNotHaveIsNotFound(t *testing.T)
 	t.Cleanup(func() { mwanachamaagency.SetAccountDirectory(nil) })
 
 	rec := world.post(`{"workflow_id":"` + world.workflowID + `","draft_id":"` + world.draftID + `","title":"Post the payment",` +
-		`"ordinality":2,"kind":"post","amount_step_id":"` + amount[0].ID + `","account":"Cash","counter_account":"Member loans",` +
-		`"direction":"debit","reason":"Loan payment"}`)
+		`"ordinality":2,"kind":"post","amount_step_id":"` + amount[0].ID + `","debit_account":"Cash","credit_account":"Member loans",` +
+		`"reason":"Loan payment"}`)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404, body = %s", rec.Code, rec.Body.String())
 	}

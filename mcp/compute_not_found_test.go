@@ -97,7 +97,7 @@ func TestComputeStepTools_AnAccountTheAgencyDoesNotHaveIsNotFound(t *testing.T) 
 
 	result := world.createWorkItem(t, map[string]any{
 		"title": "Post the payment", "ordinality": 2, "kind": "post", "amount_step_id": steps[0].ID,
-		"account": "Cash", "counter_account": "Member loans", "direction": "debit", "reason": "Loan payment",
+		"debit_account": "Cash", "credit_account": "Member loans", "reason": "Loan payment",
 	})
 	if !result.IsError || !strings.Contains(textOf(result), "account not found") {
 		t.Fatalf("result = IsError %v, %q, want a refusal saying the account was not found", result.IsError, textOf(result))

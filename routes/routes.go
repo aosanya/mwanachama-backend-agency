@@ -71,6 +71,8 @@ var sentinels = map[string]error{
 	"ErrInvalidRecord":              mwanachamaagency.ErrInvalidRecord,
 	"ErrInvalidRecordRow":           mwanachamaagency.ErrInvalidRecordRow,
 	"ErrRecordNotFound":             mwanachamaagency.ErrRecordNotFound,
+	"ErrFunctionNotFound":           mwanachamaagency.ErrFunctionNotFound,
+	"ErrAccountNotFound":            mwanachamaagency.ErrAccountNotFound,
 	"ErrRecordRowRefused":           mwanachamaagency.ErrRecordRowRefused,
 	"ErrDuplicateRecordRow":         mwanachamaagency.ErrDuplicateRecordRow,
 	"ErrInvalidModuleMounts":        mwanachamaagency.ErrInvalidModuleMounts,
