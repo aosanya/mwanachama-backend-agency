@@ -10,6 +10,8 @@ Where work on `mwanachama-backend-agency` is tracked. Two files carry the board:
 
 - [update-keeps-unsent-fields.md](update-keeps-unsent-fields.md) — how a
   workflow, step or role update keeps the fields its request does not carry.
+- [step-fields.md](step-fields.md) — the `compute` and `post` step kinds and
+  the fields a calculating, posting or holding step stores.
 
 ## Rows that arrive with a failing test
 
