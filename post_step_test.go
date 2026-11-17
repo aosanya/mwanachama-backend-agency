@@ -13,7 +13,7 @@ import (
 func TestPostStep_SavedWithOnlyAnAccount(t *testing.T) {
 	w := newPostHoldWorld(t)
 	w.workOutThePayment(t, 1, nil)
-	if _, err := w.step("Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) { wi.Account = "Member loans" }); err != nil {
+	if _, err := w.step("Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) { wi.CreditAccount = "Member loans" }); err != nil {
 		t.Fatalf("a post step may be saved before its amount step, counter account and direction are picked: %v", err)
 	}
 }
@@ -33,14 +33,11 @@ func TestPostStep_SaveRefusals(t *testing.T) {
 		want   error
 		says   string
 	}{
-		{"a direction that is neither debit nor credit (P6)", func(t *testing.T, w postHoldWorld, calc models.WorkItem) func(*models.WorkItem) {
-			return func(wi *models.WorkItem) { wi.Direction = "credit side" }
-		}, mwanachamaagency.ErrInvalidWorkItem, `the direction of a post step is debit or credit, not "credit side"`},
 		{"a blank reason", func(t *testing.T, w postHoldWorld, calc models.WorkItem) func(*models.WorkItem) {
 			return func(wi *models.WorkItem) { wi.Reason = "   " }
 		}, mwanachamaagency.ErrInvalidWorkItem, "the reason of a post step is written in words, not left blank"},
 		{"the same account on both sides (P10)", func(t *testing.T, w postHoldWorld, calc models.WorkItem) func(*models.WorkItem) {
-			return func(wi *models.WorkItem) { wi.Account, wi.CounterAccount = "Member loans", "Member loans" }
+			return func(wi *models.WorkItem) { wi.DebitAccount, wi.CreditAccount = "Member loans", "Member loans" }
 		}, mwanachamaagency.ErrInvalidWorkItem, `a post step debits one account and credits another, so "Member loans" cannot be both sides`},
 		{"a function on a post step", func(t *testing.T, w postHoldWorld, calc models.WorkItem) func(*models.WorkItem) {
 			return func(wi *models.WorkItem) { wi.Function = "loan.cap@3" }
@@ -97,9 +94,8 @@ func TestPostStep_SaveRefusals(t *testing.T) {
 			change := tc.change(t, w, calc)
 			_, err := w.step("Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) {
 				wi.AmountStepID = calc.ID
-				wi.Account = "Member loans"
-				wi.CounterAccount = "Cash"
-				wi.Direction = "debit"
+				wi.DebitAccount = "Member loans"
+				wi.CreditAccount = "Cash"
 				wi.Reason = "Loan payment"
 				change(wi)
 			})
@@ -131,7 +127,7 @@ func TestPostStep_PostFieldsBelongToAPostStepOnly(t *testing.T) {
 			if kind == models.StepKindNotify {
 				withForm(wi)
 			}
-			wi.Account = "Member loans"
+			wi.CreditAccount = "Member loans"
 		})
 		if !errors.Is(err, mwanachamaagency.ErrInvalidWorkItem) || !strings.Contains(err.Error(), "belong to a post step") {
 			t.Fatalf("kind %q: got %v", kind, err)
@@ -145,9 +141,8 @@ func TestPostStep_AnAccountTheAgencyDoesNotHaveIsRefused(t *testing.T) {
 	calc := w.workOutThePayment(t, 1, nil)
 	_, err := w.step("Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) {
 		wi.AmountStepID = calc.ID
-		wi.Account = "Member savings"
-		wi.CounterAccount = "Cash"
-		wi.Direction = "credit"
+		wi.DebitAccount = "Cash"
+		wi.CreditAccount = "Member savings"
 		wi.Reason = "Loan payment"
 	})
 	if !errors.Is(err, mwanachamaagency.ErrAccountNotFound) || !strings.Contains(err.Error(), `the agency has no account "Member savings"`) {
@@ -155,16 +150,16 @@ func TestPostStep_AnAccountTheAgencyDoesNotHaveIsRefused(t *testing.T) {
 	}
 	_, err = w.step("Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) {
 		wi.AmountStepID = calc.ID
-		wi.Account = "Member loans"
-		wi.CounterAccount = "Petty cash"
+		wi.DebitAccount = "Petty cash"
+		wi.CreditAccount = "Member loans"
 	})
 	if !errors.Is(err, mwanachamaagency.ErrAccountNotFound) || !strings.Contains(err.Error(), `the agency has no account "Petty cash"`) {
-		t.Fatalf("the counter account is checked too, got %v", err)
+		t.Fatalf("the debit account is checked too, got %v", err)
 	}
 	if _, err := w.step("Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) {
 		wi.AmountStepID = calc.ID
-		wi.Account = "Member loans"
-		wi.CounterAccount = "Cash"
+		wi.DebitAccount = "Cash"
+		wi.CreditAccount = "Member loans"
 	}); err != nil {
 		t.Fatalf("accounts the agency has must save: %v", err)
 	}
@@ -173,7 +168,7 @@ func TestPostStep_AnAccountTheAgencyDoesNotHaveIsRefused(t *testing.T) {
 func TestPostStep_ScanOfAStepWithNothingButAnAccount(t *testing.T) {
 	w := newPostHoldWorld(t)
 	w.workOutThePayment(t, 1, nil)
-	post := w.mustStep(t, "Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) { wi.Account = "Member loans" })
+	post := w.mustStep(t, "Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) { wi.CreditAccount = "Member loans" })
 
 	messages := w.errorsAbout(t, post.ID)
 	if len(messages) != 4 {
@@ -181,8 +176,7 @@ func TestPostStep_ScanOfAStepWithNothingButAnAccount(t *testing.T) {
 	}
 	wants := []string{
 		"is a post step with no amount source: it names no calculating step",
-		"is a post step with no counter account",
-		"is a post step with no direction",
+		"is a post step with no debit account",
 		"is a post step with no reason",
 	}
 	for _, want := range wants {
@@ -244,7 +238,7 @@ func TestPostStep_ScanFollowsTheAmountStepAfterItChanges(t *testing.T) {
 func TestPostStep_AnUnpublishableDraftRefusesToPublish(t *testing.T) {
 	w := newPostHoldWorld(t)
 	w.workOutThePayment(t, 1, nil)
-	w.mustStep(t, "Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) { wi.Account = "Member loans" })
+	w.mustStep(t, "Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) { wi.CreditAccount = "Member loans" })
 	_, err := w.mgr.PublishAgency(context.Background(), w.draftID, "", "")
 	if !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {
 		t.Fatalf("P5: the draft with a bare post step must refuse to publish, got %v", err)

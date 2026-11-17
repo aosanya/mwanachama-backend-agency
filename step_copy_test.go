@@ -95,8 +95,8 @@ func buildPaymentFlow(t *testing.T) paymentFlow {
 	approve := must(approveIn)
 	post := must(models.WorkItem{
 		DraftID: w.draftID, WorkflowID: wf.ID, Title: postTitle, Ordinality: 5, Kind: models.StepKindPost,
-		AmountStepID: compute.ID, Account: "Member loans", CounterAccount: "Cash",
-		Direction: "credit", Reason: "Loan payment", HeldStepID: compute.ID,
+		AmountStepID: compute.ID, DebitAccount: "Cash", CreditAccount: "Member loans",
+		Reason: "Loan payment", HeldStepID: compute.ID,
 	})
 	return paymentFlow{
 		world: w, workflow: wf, apply: apply, record: record, fallback: fallback,
@@ -176,8 +176,8 @@ func assertCopiedFlow(t *testing.T, mgr mwanachamaagency.AgencyManager, copyID s
 	if post.AmountStepID != compute.ID || post.HeldStepID != compute.ID {
 		t.Errorf("the posting step must point at the copied step %s, got amount %s held %s", compute.ID, post.AmountStepID, post.HeldStepID)
 	}
-	if post.Account != "Member loans" || post.CounterAccount != "Cash" || post.Direction != "credit" || post.Reason != "Loan payment" {
-		t.Errorf("accounts, direction and reason are copied as they are, got %+v", post)
+	if post.DebitAccount != "Cash" || post.CreditAccount != "Member loans" || post.Reason != "Loan payment" {
+		t.Errorf("accounts and reason are copied as they are, got %+v", post)
 	}
 }
 
@@ -217,8 +217,8 @@ func TestStepCopy_APublicationCarriesTheFieldsAndAForkFromItRestoresThemWithTheS
 		docCompute.OnFailure == nil || docCompute.Hold == nil || docCompute.Hold.ExpiresAfterDays != 14 {
 		t.Fatalf("the document must carry the calculating fields: %+v", docCompute)
 	}
-	if docPost.AmountStepID != docCompute.ID || docPost.Account != "Member loans" || docPost.CounterAccount != "Cash" ||
-		docPost.Direction != "credit" || docPost.Reason != "Loan payment" || docPost.HeldStepID != docCompute.ID {
+	if docPost.AmountStepID != docCompute.ID || docPost.DebitAccount != "Cash" || docPost.CreditAccount != "Member loans" ||
+		docPost.Reason != "Loan payment" || docPost.HeldStepID != docCompute.ID {
 		t.Fatalf("the document must carry the posting fields: %+v", docPost)
 	}
 	raw, err := json.Marshal(docApply)
@@ -359,9 +359,8 @@ func TestStepCopy_APostingStepAndAReleasingStepChangeTheHashWhenAnyOfTheirFields
 		}
 	}
 	changePost("a reason in more words", func(wi *models.WorkItem) { wi.Reason = "Loan payment for the month" })
-	changePost("another account", func(wi *models.WorkItem) { wi.Account = "Member savings" })
-	changePost("another counter account", func(wi *models.WorkItem) { wi.CounterAccount = "Bank" })
-	changePost("another direction", func(wi *models.WorkItem) { wi.Direction = "debit" })
+	changePost("another debit account", func(wi *models.WorkItem) { wi.DebitAccount = "Bank" })
+	changePost("another credit account", func(wi *models.WorkItem) { wi.CreditAccount = "Member savings" })
 	changePost("another amount step", func(wi *models.WorkItem) { wi.AmountStepID = flow.stop.ID })
 	changePost("another held step", func(wi *models.WorkItem) { wi.HeldStepID = flow.stop.ID })
 
@@ -410,7 +409,7 @@ func lakesideDocument(steps []models.DocumentWorkItem, records []models.Document
 
 func hasNoStepFields(wi models.WorkItem) bool {
 	return wi.Function == "" && len(wi.Bindings) == 0 && wi.ResultName == "" && wi.OnFailure == nil &&
-		wi.AmountStepID == "" && wi.Account == "" && wi.CounterAccount == "" && wi.Direction == "" &&
+		wi.AmountStepID == "" && wi.DebitAccount == "" && wi.CreditAccount == "" &&
 		wi.Reason == "" && wi.Hold == nil && wi.HeldStepID == ""
 }
 
@@ -458,7 +457,7 @@ func TestStepCopy_AnImportKeepsFewBindingsNoAmountSourceAndAHoldWithNoReleasingS
 		{ID: "s3", WorkflowID: "w1", Title: fallbackTitle, Ordinality: 3},
 		{ID: "s4", WorkflowID: "w1", Title: approveTitle, Ordinality: 4, Kind: models.StepKindYesNo, RoleID: "r1", FormName: "Approval",
 			Questions: []models.StepQuestion{{Prompt: "Approved", AnswerType: models.AnswerYesNo, Required: true}}, HeldStepID: "s2"},
-		{ID: "s5", WorkflowID: "w1", Title: postTitle, Ordinality: 5, Kind: models.StepKindPost, Account: "Member loans", Direction: "credit"},
+		{ID: "s5", WorkflowID: "w1", Title: postTitle, Ordinality: 5, Kind: models.StepKindPost, CreditAccount: "Member loans"},
 	}
 	records := []models.DocumentRecord{{ID: "rc1", WorkflowID: "w1", Name: termsName, RoleID: "r1", FormName: "Terms",
 		Questions: []models.StepQuestion{{Prompt: "Months", AnswerType: models.AnswerNumber, Required: true}}}}
@@ -489,7 +488,7 @@ func TestStepCopy_AnImportKeepsFewBindingsNoAmountSourceAndAHoldWithNoReleasingS
 		t.Errorf("the releasing step must name the imported calculating step, got %q", imported[approveTitle].HeldStepID)
 	}
 	post := imported[postTitle]
-	if post.AmountStepID != "" || post.Account != "Member loans" || post.Direction != "credit" {
+	if post.AmountStepID != "" || post.CreditAccount != "Member loans" {
 		t.Errorf("a posting step with no amount source must import as it is, got %+v", post)
 	}
 }

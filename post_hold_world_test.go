@@ -63,9 +63,8 @@ func (w postHoldWorld) workOutThePayment(t *testing.T, ordinality int, change fu
 func (w postHoldWorld) postThePayment(t *testing.T, ordinality int, amountStepID string, change func(*models.WorkItem)) models.WorkItem {
 	return w.mustStep(t, "Post the payment", ordinality, models.StepKindPost, func(wi *models.WorkItem) {
 		wi.AmountStepID = amountStepID
-		wi.Account = "Member loans"
-		wi.CounterAccount = "Cash"
-		wi.Direction = "credit"
+		wi.DebitAccount = "Cash"
+		wi.CreditAccount = "Member loans"
 		wi.Reason = "Loan payment"
 		if change != nil {
 			change(wi)

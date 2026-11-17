@@ -13,7 +13,7 @@ import (
 
 var newStepFieldKeys = []string{
 	"function", "bindings", "result_name", "on_failure", "amount_step_id",
-	"account", "counter_account", "direction", "reason", "hold", "held_step_id",
+	"debit_account", "credit_account", "reason", "hold", "held_step_id",
 }
 
 func loanBindings(applyStepID, recordID string) []models.StepBinding {
@@ -132,12 +132,11 @@ func TestStepFields_PostStepRoundTrips(t *testing.T) {
 	}
 	want := models.WorkItem{
 		DraftID: w.draftID, WorkflowID: wf.ID, Title: "Post the payment", Ordinality: 2,
-		Kind:           models.StepKindPost,
-		AmountStepID:   work.ID,
-		Account:        "Member loans",
-		CounterAccount: "Cash",
-		Direction:      "credit",
-		Reason:         "Loan payment",
+		Kind:          models.StepKindPost,
+		AmountStepID:  work.ID,
+		DebitAccount:  "Cash",
+		CreditAccount: "Member loans",
+		Reason:        "Loan payment",
 	}
 	created, err := w.mgr.CreateWorkItem(ctx, want)
 	if err != nil {
@@ -145,8 +144,8 @@ func TestStepFields_PostStepRoundTrips(t *testing.T) {
 	}
 	got, listed := readBack(t, w, created.ID, w.draftID)
 	for name, step := range map[string]models.WorkItem{"created": created, "got": got, "listed": listed} {
-		if step.Kind != models.StepKindPost || step.AmountStepID != work.ID || step.Account != "Member loans" ||
-			step.CounterAccount != "Cash" || step.Direction != "credit" || step.Reason != "Loan payment" {
+		if step.Kind != models.StepKindPost || step.AmountStepID != work.ID || step.DebitAccount != "Cash" ||
+			step.CreditAccount != "Member loans" || step.Reason != "Loan payment" {
 			t.Errorf("%s post step = %+v", name, step)
 		}
 		if step.Function != "" || len(step.Bindings) != 0 || step.OnFailure != nil || step.Hold != nil {
@@ -179,7 +178,7 @@ func TestStepFields_HeldStepIDRoundTripsOnYesNoAndPost(t *testing.T) {
 	post, err := w.mgr.CreateWorkItem(ctx, models.WorkItem{
 		DraftID: w.draftID, WorkflowID: wf.ID, Title: "Post the interest", Ordinality: 3,
 		Kind: models.StepKindPost, AmountStepID: work.ID, HeldStepID: work.ID,
-		Account: "Member loans", CounterAccount: "Interest income", Direction: "debit", Reason: "Interest",
+		DebitAccount: "Member loans", CreditAccount: "Interest income", Reason: "Interest",
 	})
 	if err != nil {
 		t.Fatalf("CreateWorkItem post step: %v", err)
@@ -202,7 +201,7 @@ func TestStepFields_OlderKindsCarryNone(t *testing.T) {
 	w.build(t, wf, groupOrderSteps)
 	for _, step := range w.stepsOf(t, w.draftID, wf) {
 		if step.Function != "" || len(step.Bindings) != 0 || step.ResultName != "" || step.OnFailure != nil ||
-			step.AmountStepID != "" || step.Account != "" || step.CounterAccount != "" || step.Direction != "" ||
+			step.AmountStepID != "" || step.DebitAccount != "" || step.CreditAccount != "" ||
 			step.Reason != "" || step.Hold != nil || step.HeldStepID != "" {
 			t.Errorf("step %q of kind %q carries a new field: %+v", step.Title, step.Kind, step)
 		}
