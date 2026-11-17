@@ -25,6 +25,12 @@ The mutex holds inside one server process. Two server processes on one database 
 
 `library_part_concurrent_test.go` sends 8 creates of one title at once, 12 rounds, for each of hazard, threat and consequence; 8 renames of different parts to one title, 12 rounds; and a create and a rename to one title, 12 rounds, on a SQLite file in WAL mode with 8 connections. Exactly one call succeeds each round, every other answers `ErrLibraryTitleTaken` or `ErrConflict`, and the list grows by one. Before the fix the creates stored two parts and the renames answered `database is locked`.
 
+## A flake that was in the test, not the store
+
+The consequence case of the simultaneous creates failed about one run in five with `a consequence needs a hazard_code`. The store was right. A consequence needs a hazard, the test helper `sharedHazard` in `library_parts_test.go` makes one titled "Shared hazard" when the draft has none, and in that case all 8 callers made it at the same moment: one won, seven were refused with the title conflict, and the old helper swallowed the refusal and returned an empty code, so seven consequences were created with no hazard.
+
+`sharedHazard` now waits, for at most 5 seconds, until the winner's hazard is listed and returns its code, so every simultaneous caller gets the one code. `TestSharedHazard_EightCallersOnADraftWithNoHazardAllGetTheOneCode` fails against the old helper in 9 of 10 runs and passes 30 of 30 now, and the simultaneous creates test passes 30 of 30. A test that creates a part which needs another part should seed that part before the callers start, or use this helper.
+
 ## Hub copy
 
 The hub copy (`projects/hub-steward/code/wakala-api/modules/agency`) does not have this change and needs it until ISS-105 deletes the copy. Until then `scripts/hub-copy-diff.sh` shows differences in `agency.go`, `library_part_impl.go` and `consequence_impl.go`.
