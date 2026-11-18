@@ -10,9 +10,16 @@
     "ErrInvalidActor": 400,
     "ErrInvalidGroup": 400,
     "ErrInvalidGroupType": 400,
+    "ErrInvalidHierarchy": 400,
+    "ErrInvalidLevel": 400,
+    "ErrInvalidRoleKind": 400,
     "ErrParentNotFound": 400,
     "ErrDuplicateAttribute": 400,
     "ErrDuplicateID": 409,
+    "ErrDuplicateGroupName": 409,
+    "ErrDuplicateRoleKindName": 409,
+    "ErrDuplicateHierarchyName": 409,
+    "ErrDuplicateDisplayName": 409,
     "ErrConflict": 409,
     "ErrRootCannotMove": 409,
     "ErrParentIsSelf": 409,
@@ -20,6 +27,9 @@
     "ErrKindHasLiveAssignments": 409,
     "ErrKindRetired": 409,
     "ErrSeatAlreadyHeld": 409,
+    "ErrApprovalLimitNegative": 400,
+    "ErrOverApprovalLimit": 403,
+    "ErrSeatEnded": 409,
     "ErrLevelWornByGroups": 409,
     "ErrLevelHasRoleKinds": 409,
     "ErrGroupTypeWornByGroups": 409,
@@ -46,11 +56,14 @@
     "ErrTranslationNotFound": 404,
     "ErrReviewerRequired": 400,
     "ErrNotAnArea": 409,
+    "ErrBoundaryNotAnArea": 400,
     "ErrInvalidPopulation": 400,
     "ErrPopulationNotFound": 404,
     "ErrInvalidDelegation": 400,
     "ErrDelegationNotFound": 404,
-    "ErrDelegationRevoked": 409
+    "ErrDelegationRevoked": 409,
+    "ErrNotInGroup": 404,
+    "ErrRemoverRequired": 400
   },
   "operations": {
     "create_actor": {
@@ -515,6 +528,37 @@
       ],
       "tool": "actor_assign_group"
     },
+    "unassign_group": {
+      "method": "DELETE",
+      "path": "/actors/{actor_id}/assignments/{group_id}",
+      "call": "RemoveFromGroup",
+      "action": "actor.assignment.unassign",
+      "title": "End an actor's registration in a group",
+      "description": "End one actor's registration in one group: they leave the group's list, every seat they hold in that group ends as an eviction, and a removal is recorded against the caller with the time. Their other groups and their record are kept. An actor not registered in the group is refused (404). The remover is the caller, never the body.",
+      "args": [
+        {
+          "from": "path",
+          "as": "actor_id",
+          "description": "The actor whose registration ends."
+        },
+        {
+          "from": "path",
+          "as": "group_id",
+          "description": "The group they leave."
+        },
+        {
+          "from": "caller",
+          "as": "removed_by",
+          "description": "Who ends the registration, resolved from the session rather than the request."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "actor_unassign_group"
+    },
     "list_groups_for_actor": {
       "method": "GET",
       "path": "/actors/{actor_id}/assignments",
@@ -571,6 +615,42 @@
         }
       ],
       "tool": "actor_list_actors_for_group"
+    },
+    "list_group_members": {
+      "method": "GET",
+      "path": "/groups/{group_id}/members",
+      "call": "ListGroupMembers",
+      "action": "actor.assignment.list_members",
+      "title": "List a group's members by name",
+      "description": "The actors registered in one group with their names, in name order, with how many the group holds. Ask for the first few with limit; to go further set offset to how many you already have. q keeps only the members whose display, first or last name contains it, and total then counts only those.",
+      "args": [
+        {
+          "from": "path",
+          "as": "group_id",
+          "description": "The group whose members to list."
+        },
+        {
+          "from": "query",
+          "as": "offset",
+          "description": "How many members to skip, in name order. Empty or zero starts at the beginning."
+        },
+        {
+          "from": "query",
+          "as": "limit",
+          "description": "How many members to return. Empty or zero returns 50; more than 200 returns 200."
+        },
+        {
+          "from": "query",
+          "as": "q",
+          "description": "Keep only the members whose display, first or last name contains this text, whatever the case."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "actor_list_group_members"
     },
     "home_counts": {
       "method": "GET",
@@ -780,6 +860,60 @@
         }
       ],
       "tool": "actor_set_group_area_node"
+    },
+    "set_group_boundary": {
+      "method": "PUT",
+      "path": "/groups/{group_id}/boundary",
+      "call": "SetGroupBoundary",
+      "action": "actor.group.set_boundary",
+      "title": "Set group boundary",
+      "description": "Set or clear the ground a group covers, as a GeoJSON Polygon or MultiPolygon. Omit the boundary to clear it. A point, a line or an unclosed ring is refused.",
+      "args": [
+        {
+          "from": "path",
+          "as": "group_id",
+          "description": "The group whose boundary to set."
+        },
+        {
+          "from": "body",
+          "as": "boundary",
+          "description": "The boundary as a GeoJSON Polygon or MultiPolygon."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "actor_set_group_boundary"
+    },
+    "groups_at_point": {
+      "method": "GET",
+      "path": "/groups/at-point",
+      "call": "GroupsAtPoint",
+      "action": "actor.group.list_at_point",
+      "title": "Groups holding a point",
+      "description": "List the groups whose boundary holds this point, in id order. A point inside no boundary gives an empty list.",
+      "args": [
+        {
+          "from": "query",
+          "as": "lon",
+          "required": true,
+          "description": "Longitude in degrees, from -180 to 180."
+        },
+        {
+          "from": "query",
+          "as": "lat",
+          "required": true,
+          "description": "Latitude in degrees, from -90 to 90."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "actor_groups_at_point"
     },
     "join_group": {
       "method": "POST",
@@ -1436,12 +1570,12 @@
       "action": "actor.role_assignment.create",
       "status": 201,
       "title": "Grant a seat",
-      "description": "Give an actor a seat of some kind in a group. Refused when the kind is retired, when the actor or the group does not exist (404), and when the actor already holds a live seat of that kind at that group. The grantor is the caller, never the body.",
+      "description": "Give an actor a seat of some kind in a group. Refused when the kind is retired, when the actor or the group does not exist (404), and when the actor already holds a live seat of that kind at that group. The body may carry approval_limit, the most the seat may approve in one act; a negative one is refused (400) and an absent one means no limit. The grantor is the caller, never the body.",
       "args": [
         {
           "from": "body",
           "whole": true,
-          "description": "The seat to grant: the actor, the group and the kind."
+          "description": "The seat to grant: the actor, the group, the kind and, optionally, its approval limit."
         },
         {
           "from": "caller",
@@ -1499,6 +1633,59 @@
         }
       ],
       "tool": "actor_revoke_role"
+    },
+    "set_approval_limit": {
+      "method": "PUT",
+      "path": "/role-assignments/{assignment_id}/approval-limit",
+      "call": "SetApprovalLimit",
+      "action": "actor.role_assignment.set_approval_limit",
+      "title": "Set what a seat may approve",
+      "description": "Change the most a live seat may approve in one act. A negative limit is refused (400), an ended seat is refused (409), and an absent limit removes the cap.",
+      "args": [
+        {
+          "from": "path",
+          "as": "assignment_id",
+          "description": "The seat to change."
+        },
+        {
+          "from": "body",
+          "as": "limit",
+          "description": "The most the seat may approve in one act. Leave it out for no limit."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "actor_set_approval_limit"
+    },
+    "authorise_approval": {
+      "method": "POST",
+      "path": "/role-assignments/{assignment_id}/authorise-approval",
+      "call": "AuthoriseApproval",
+      "action": "actor.role_assignment.authorise_approval",
+      "status": 204,
+      "title": "Check a seat may approve an amount",
+      "description": "Ask whether a seat may approve an amount. Refused (403) when the amount is over the seat's limit or the seat has ended, and 404 when there is no such seat.",
+      "args": [
+        {
+          "from": "path",
+          "as": "assignment_id",
+          "description": "The seat that would approve."
+        },
+        {
+          "from": "body",
+          "as": "amount",
+          "description": "The amount to be approved, never negative."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "actor_authorise_approval"
     },
     "step_down_role": {
       "method": "POST",
