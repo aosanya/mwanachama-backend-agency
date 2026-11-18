@@ -350,6 +350,7 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `board_item.hide` | Hide board items | no | `catalog` | Set whether a board item is hidden. Remove a raised item. |
 | `board.manage` | Manage the board | no | `catalog` | Group raised items and ungroup them. Set the outcome of a board item. |
 | `board.read` | Read the board and its counts | no | `catalog` | List the board's items and read the count by area. It never groups, hides, reassigns or sets an outcome; the hub's copy of the catalogue follows in the hub-copy issue, and which template roles hold it is the owner's call. |
+| `resident.read` | Open a resident's name, address and bills | no | none | List the people of the hub, read one person's record (name and address) and read the bills and payments of a resident. The Zöldhalom template gives it to the town clerk and the finance officer; the owner gives it to other seats from Roles and Permissions. A person without it sees neither the list of residents nor a resident's page. |
 | `register.edit` | Edit the register | no | none yet | No action is declared for it yet, so it grants nothing. |
 | `map.edit` | Edit the map | no | `digitaltwin` | Create and update nodes and set a node's status. Create and delete links. Upsert a metric. Record observations one at a time or in a batch. Set retention. The reads are not in it; see "Edit the map". |
 | `task.assign` | Assign tasks | no | `taskmanager` | Assign a task, assign it to a holder, and unassign it. |
