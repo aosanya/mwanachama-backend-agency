@@ -65,6 +65,7 @@ empty list: `register.edit`, `service.edit` and `appointment.manage`.
 `board.manage` maps to catalog's grouping (`catalog.raised_item.group`,
 `ungroup`) and `catalog.board_item.set_outcome`; `task.assign` to
 taskmanager's `task.assign`, `task.assign_holder` and `task.unassign`.
+`board.read` maps to `catalog.board_item.list` and `catalog.board_item.tally_by_area` and allows reading only.
 `poll.run` names `"module": "voting"`, as the engage permissions name `engage`.
 
 A duplicate tick is dropped on save: `CreateRole` and `UpdateRole` keep the
@@ -348,6 +349,7 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `board_item.reply` | Reply to board items | no | `catalog` | Send a reply to a board item. |
 | `board_item.hide` | Hide board items | no | `catalog` | Set whether a board item is hidden. Remove a raised item. |
 | `board.manage` | Manage the board | no | `catalog` | Group raised items and ungroup them. Set the outcome of a board item. |
+| `board.read` | Read the board and its counts | no | `catalog` | List the board's items and read the count by area. It never groups, hides, reassigns or sets an outcome; the hub's copy of the catalogue follows in the hub-copy issue, and which template roles hold it is the owner's call. |
 | `register.edit` | Edit the register | no | none yet | No action is declared for it yet, so it grants nothing. |
 | `map.edit` | Edit the map | no | `digitaltwin` | Create and update nodes and set a node's status. Create and delete links. Upsert a metric. Record observations one at a time or in a batch. Set retention. The reads are not in it; see "Edit the map". |
 | `task.assign` | Assign tasks | no | `taskmanager` | Assign a task, assign it to a holder, and unassign it. |
