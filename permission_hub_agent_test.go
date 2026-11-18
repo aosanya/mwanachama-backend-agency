@@ -150,7 +150,7 @@ func TestEarlierPermissionCodesAndTheActionsOfChatPostAndDocumentSearchStayAsThe
 	for _, code := range []string{
 		"report.publish", "form.approve", "join_request.decide", "member.invite", "promise.record_outcome", "poll.run",
 		"notice.post", "event.post", "volunteer_call.post", "form.send", "member.remove", "group.settings",
-		"board_item.reply", "board_item.hide", "board.manage", "register.edit", "map.edit", "task.assign",
+		"board_item.reply", "board_item.hide", "board.manage", "board.read", "register.edit", "map.edit", "task.assign",
 		"service.edit", "service.publish", "appointment.manage", "chat.post", "document.search", "asset.manage",
 		"ai.account.manage", "ai.role.manage", "ai.use", "ai.account.read",
 		"agent.manage", "api_key.manage", "agency.go_live", "agency.delete", "permission.override",

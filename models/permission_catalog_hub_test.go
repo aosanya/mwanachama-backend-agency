@@ -40,7 +40,19 @@ func TestCatalogCarriesRiskGroupLimitInsightAndBoardActions(t *testing.T) {
 		{"role.assign", "", []string{"actor.role_assignment.set_approval_limit"}},
 		{"insight.count", "insights", []string{"insights.insight.count"}},
 		{"board.manage", "", []string{"catalog.raised_item.reassign"}},
+		{"board.read", "forms", []string{"catalog.board_item.list", "catalog.board_item.tally_by_area"}},
 	})
+}
+
+func TestBoardManageKeepsItsFourActionsBesideBoardRead(t *testing.T) {
+	want := []string{"catalog.raised_item.group", "catalog.raised_item.ungroup", "catalog.board_item.set_outcome", "catalog.raised_item.reassign"}
+	manage, ok := models.LookupPermission("board.manage")
+	if !ok {
+		t.Fatal("board.manage is gone from the catalogue")
+	}
+	if !slices.Equal(manage.Actions, want) {
+		t.Errorf("board.manage actions = %v, want %v", manage.Actions, want)
+	}
 }
 
 func TestCatalogCarriesTheTaskModulePermissions(t *testing.T) {
