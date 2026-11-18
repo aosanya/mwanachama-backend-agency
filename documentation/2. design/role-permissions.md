@@ -40,6 +40,7 @@ sections add some, the last table lists the rest, and
 | Code | Permission | Locked |
 | --- | --- | --- |
 | `report.publish` | Publish a report | no |
+| `report.read` | Find and read a report published to your groups | no |
 | `form.approve` | Approve forms | no |
 | `join_request.decide` | Decide join requests | no |
 | `member.invite` | Invite | no |
@@ -89,6 +90,7 @@ their `*.operations.json`:
 | `join_request.decide` Decide join requests | `actor.join_request.approve`, `actor.join_request.decline` |
 | `form.approve` Approve forms | `forms.approval.approve`, `forms.approval.approve_slot`, `forms.approval.refuse` |
 | `report.publish` Publish a report | `forms.results.publish`, `forms.results.files`, `voting.result.publish` |
+| `report.read` Find and read a report published to your groups | `forms.results.list_mine`, `forms.results.read_text` |
 | `poll.run` Run a poll | `voting.poll.create`, `voting.choice.create` |
 | `notice.post` Post a notice | `engage.post.create` |
 | `event.post` Post an event or meeting | `engage.post.create` |
