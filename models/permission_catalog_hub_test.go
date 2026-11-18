@@ -41,6 +41,7 @@ func TestCatalogCarriesRiskGroupLimitInsightAndBoardActions(t *testing.T) {
 		{"insight.count", "insights", []string{"insights.insight.count"}},
 		{"board.manage", "", []string{"catalog.raised_item.reassign"}},
 		{"board.read", "forms", []string{"catalog.board_item.list", "catalog.board_item.tally_by_area"}},
+		{"resident.read", "", []string{"actor.actor.list", "actor.actor.read", "actor.actor.read_many", "accounting.bill.list", "accounting.bill.read", "accounting.payment.list"}},
 	})
 }
 
