@@ -214,6 +214,32 @@ func validateRowAnswer(q models.StepQuestion, answer string) error {
 		if len(q.Options) > 0 && !slices.Contains(q.Options, answer) {
 			return invalidRow("the answer to %q is one of %v, got %q", q.Prompt, q.Options, answer)
 		}
+	case models.AnswerMultiSelect:
+		return validateMultiSelectAnswer(q, answer)
+	}
+	return nil
+}
+
+const multiSelectSeparator = ";"
+
+func multiSelectChoices(answer string) []string {
+	choices := strings.Split(answer, multiSelectSeparator)
+	for i, choice := range choices {
+		choices[i] = strings.TrimSpace(choice)
+	}
+	return choices
+}
+
+func validateMultiSelectAnswer(q models.StepQuestion, answer string) error {
+	chosen := map[string]bool{}
+	for _, choice := range multiSelectChoices(answer) {
+		if choice == "" || chosen[choice] {
+			return invalidRow("the answer to %q is options joined with %q, each once, got %q", q.Prompt, multiSelectSeparator+" ", answer)
+		}
+		if len(q.Options) > 0 && !slices.Contains(q.Options, choice) {
+			return invalidRow("the answer to %q is options from %v joined with %q, got %q", q.Prompt, q.Options, multiSelectSeparator+" ", choice)
+		}
+		chosen[choice] = true
 	}
 	return nil
 }

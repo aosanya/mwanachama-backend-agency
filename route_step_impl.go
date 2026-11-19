@@ -4,11 +4,14 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
+
+const writtenDayLayout = "2006-01-02"
 
 func validateStepLinks(wi models.WorkItem) error {
 	if strings.ContainsAny(wi.RecipientRoleID, ", \t\r\n;") {
@@ -59,6 +62,9 @@ func validateRoute(number int, r models.StepRoute) error {
 		}
 		if _, err := strconv.ParseFloat(strings.TrimSpace(rule.Value), 64); rule.Operator.Numeric() && err != nil {
 			return invalidStep("route %d rule %d compares with %q, which is not a number", number, i+1, rule.Value)
+		}
+		if _, err := time.Parse(writtenDayLayout, strings.TrimSpace(rule.Value)); rule.Operator.Day() && err != nil {
+			return invalidStep("route %d rule %d compares with %q, which is not a day written as %s", number, i+1, rule.Value, writtenDayLayout)
 		}
 	}
 	return nil

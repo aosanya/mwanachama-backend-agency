@@ -103,9 +103,12 @@ const (
 	RouteContains RouteOperator = "contains"
 	RouteMoreThan RouteOperator = "more_than"
 	RouteLessThan RouteOperator = "less_than"
+
+	RouteOnOrBefore RouteOperator = "on_or_before"
+	RouteOnOrAfter  RouteOperator = "on_or_after"
 )
 
-var routeOperators = []RouteOperator{RouteIs, RouteIsNot, RouteContains, RouteMoreThan, RouteLessThan}
+var routeOperators = []RouteOperator{RouteIs, RouteIsNot, RouteContains, RouteMoreThan, RouteLessThan, RouteOnOrBefore, RouteOnOrAfter}
 
 func RouteOperators() []RouteOperator { return append([]RouteOperator(nil), routeOperators...) }
 
@@ -119,6 +122,8 @@ func (o RouteOperator) Valid() bool {
 }
 
 func (o RouteOperator) Numeric() bool { return o == RouteMoreThan || o == RouteLessThan }
+
+func (o RouteOperator) Day() bool { return o == RouteOnOrBefore || o == RouteOnOrAfter }
 
 type RouteRule struct {
 	Question string        `json:"question"`
