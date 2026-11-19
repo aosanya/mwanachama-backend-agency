@@ -46,6 +46,9 @@ Where work on `mwanachama-backend-agency` is tracked. Two files carry the board:
   code and tests.
 - [hub-copy-diff.md](hub-copy-diff.md) — how this repo and the hub's copy of the
   agency module are compared.
+- [hub-import-drift.md](hub-import-drift.md) — every difference between the hub's
+  copy and this repo on 2026-11-19, what the merge took from the hub, and the
+  hub wiring that stays in the hub.
 - [library-title-concurrency.md](library-title-concurrency.md) — library parts
   created or renamed at the same moment (MUN698).
 - [provision-index-check.md](provision-index-check.md) — `Provision` gives back
