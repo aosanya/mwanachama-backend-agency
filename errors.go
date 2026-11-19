@@ -178,4 +178,9 @@ var (
 	ErrLibraryTitleTaken        = errors.New("mwanachamaagency: a part of this kind already has this title")
 )
 
+var (
+	ErrUnknownPermission = errors.New("mwanachamaagency: unknown permission")
+	ErrLockedPermission  = errors.New("mwanachamaagency: locked permission")
+)
+
 var ErrConflict = errors.New("mwanachamaagency: another write got there first, try again")

@@ -319,6 +319,7 @@
         {"name": "description", "type": "text", "description": "What whoever holds this seat is there to do."},
         {"name": "permissions", "type": "json", "description": "The named permissions whoever holds this seat may use, each a code from the platform's permission vocabulary. Empty declares none, and an organization whose seats declare none keeps the platform's default behaviour."},
         {"name": "staff", "type": "bool", "description": "Whether whoever holds this seat counts as staff: may be handed a task and reads replies on the board, as owners and agents do."},
+        {"name": "approves_above_limit", "type": "bool", "description": "Whether whoever holds this seat may approve an amount above the approval limit written to the seat, the approval being flagged for the council. Off, an amount above the limit is refused."},
         {"name": "created_at", "type": "timestamp", "description": "When the seat was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
@@ -381,7 +382,7 @@
         {"name": "spec", "type": "json", "description": "The declared shape this organization gives the capability: which object fills each of the module's roles, what this organization calls it, and which table it lands in. Empty unless the module declares a blueprint to validate it against. Carries no instance — a launch supplies that."},
         {"name": "settings", "type": "json", "description": "The values this organization gives the capability's own settings, as one JSON object keyed by setting name. Empty means none given. Checked by the module itself at publish, and published and versioned with the draft."},
         {"name": "icon", "type": "string", "description": "The key of the icon the app and the studio draw for this capability, from the fixed set both ship. Taken from the catalog; empty means the first letter of its name."},
-        {"name": "mounts", "type": "json", "description": "The names this organization gives the capability when it runs it more than once: a JSON list of name, key and optional icon. Empty means the one mount the capability has always run under. A key is the mount the capability's records live in and never changes; a name is what the organization calls it."},
+        {"name": "mounts", "type": "json", "description": "The names this organization gives the capability when it runs it more than once: a JSON list of name, key, optional icon and optional words (a map from a generic word to the word this agency uses for it). Empty means the one mount the capability has always run under. A key is the mount the capability's records live in and never changes; a name is what the organization calls it."},
         {"name": "created_at", "type": "timestamp", "description": "When the catalog row was seeded.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
@@ -602,6 +603,7 @@
         {"name": "role_id", "type": "string", "description": "The role the person adding the row acted as."},
         {"name": "added_by", "type": "string", "description": "Who added the row, as the app names them."},
         {"name": "answers", "type": "json", "description": "The answer to each question of the record's form, by the question's prompt."},
+        {"name": "place_refs", "type": "json", "description": "For an address question answered from the town's own list, the street or address the words name, by the question's prompt. Empty for an answer typed as words."},
         {"name": "order_id", "type": "string", "description": "The one group order the row was added from. Empty for a row that belongs to no order."},
         {"name": "replaces", "type": "string", "description": "The row this one corrects. The replaced row stays, and reads as history."},
         {"name": "corrected_on", "type": "timestamp", "description": "When this row replaced the earlier one. Empty for a row that corrects nothing."},

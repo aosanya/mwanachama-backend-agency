@@ -90,4 +90,6 @@ var sentinels = map[string]error{
 	"ErrDuplicateRiskThreat":        mwanachamaagency.ErrDuplicateRiskThreat,
 	"ErrDuplicateRiskConsequence":   mwanachamaagency.ErrDuplicateRiskConsequence,
 	"ErrConsequenceOutsideHazard":   mwanachamaagency.ErrConsequenceOutsideHazard, "ErrLibraryTitleTaken": mwanachamaagency.ErrLibraryTitleTaken,
+	"ErrUnknownPermission": mwanachamaagency.ErrUnknownPermission,
+	"ErrLockedPermission":  mwanachamaagency.ErrLockedPermission,
 }
