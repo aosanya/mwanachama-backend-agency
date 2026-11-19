@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -66,7 +67,7 @@ func TestTheFirstNewNameTakesTodaysMountAndTheRestGetTheirOwn(t *testing.T) {
 		t.Fatalf("mounts = %+v, want %+v", got, want)
 	}
 	for i := range want {
-		if got[i] != want[i] {
+		if !reflect.DeepEqual(got[i], want[i]) {
 			t.Errorf("mount %d = %+v, want %+v", i, got[i], want[i])
 		}
 	}
