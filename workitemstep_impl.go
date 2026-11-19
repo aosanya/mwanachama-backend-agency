@@ -162,6 +162,18 @@ func validateFormQuestion(invalid func(string, ...any) error, number int, q mode
 	if !picks && (len(q.Options) > 0 || q.OptionsFrom != "") {
 		return invalid("question %d has options but is not a pick question", number)
 	}
+	if q.AnswerType == models.AnswerMultiSelect {
+		return validateMultiSelectOptions(invalid, number, q.Options)
+	}
+	return nil
+}
+
+func validateMultiSelectOptions(invalid func(string, ...any) error, number int, options []string) error {
+	for _, option := range options {
+		if strings.Contains(option, multiSelectSeparator) || option != strings.TrimSpace(option) {
+			return invalid("question %d is a multi-select and its option %q holds %q or starts or ends with a space, so no answer could ever name it", number, option, multiSelectSeparator)
+		}
+	}
 	return nil
 }
 

@@ -84,3 +84,49 @@ func TestRouteStep_ADayOperatorNeedsAWrittenDay(t *testing.T) {
 		t.Error("on_or_before and on_or_after are route operators")
 	}
 }
+
+func TestRecordAndStep_AMultiSelectOptionThatCanNeverBeChosenIsRefusedWhenSaved(t *testing.T) {
+	unreachable := map[string][]string{
+		"an option holding a semicolon":      {"Research; evaluation", "Audit"},
+		"an option with a leading space":     {" Kenya", "Rwanda"},
+		"an option with a trailing space":    {"Kenya ", "Rwanda"},
+		"an option holding only a semicolon": {";", "Audit"},
+	}
+	for name, options := range unreachable {
+		t.Run(name, func(t *testing.T) {
+			w := newStepWorld(t)
+			ctx := context.Background()
+			workflow := w.workflow(t, "Consultant pool")
+			questions := []models.StepQuestion{{Prompt: "Expertise areas", AnswerType: models.AnswerMultiSelect, Required: true, Options: options}}
+
+			saved, err := w.mgr.CreateRecord(ctx, consultantsRecord(w, workflow))
+			if err != nil {
+				t.Fatalf("CreateRecord with offered options: %v", err)
+			}
+			saved.Questions = questions
+			if _, err := w.mgr.UpdateRecord(ctx, saved); !errors.Is(err, mwanachamaagency.ErrInvalidRecord) {
+				t.Errorf("UpdateRecord: want ErrInvalidRecord, got %v", err)
+			}
+
+			other := consultantsRecord(w, workflow)
+			other.Name, other.Questions = "Other consultants", questions
+			if _, err := w.mgr.CreateRecord(ctx, other); !errors.Is(err, mwanachamaagency.ErrInvalidRecord) {
+				t.Errorf("CreateRecord: want ErrInvalidRecord, got %v", err)
+			}
+
+			step := w.item(workflow, 1, stepSpec{"Ask", models.StepKindFillForm, coordinator, "Ask form", questions, "Fills the form"})
+			if _, err := w.mgr.CreateWorkItem(ctx, step); !errors.Is(err, mwanachamaagency.ErrInvalidWorkItem) {
+				t.Errorf("CreateWorkItem: want ErrInvalidWorkItem, got %v", err)
+			}
+		})
+	}
+}
+
+func TestRecord_ASingleChoiceOptionMayHoldASemicolon(t *testing.T) {
+	w := newStepWorld(t)
+	record := consultantsRecord(w, w.workflow(t, "Consultant pool"))
+	record.Questions = []models.StepQuestion{{Prompt: "Kind of work", AnswerType: models.AnswerSingleChoice, Required: true, Options: []string{"Research; evaluation", "Audit"}}}
+	if _, err := w.mgr.CreateRecord(context.Background(), record); err != nil {
+		t.Errorf("a single choice is not split on a semicolon: %v", err)
+	}
+}
