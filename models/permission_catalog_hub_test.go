@@ -45,8 +45,8 @@ func TestCatalogCarriesRiskGroupLimitInsightAndBoardActions(t *testing.T) {
 	})
 }
 
-func TestBoardManageKeepsItsFourActionsBesideBoardRead(t *testing.T) {
-	want := []string{"catalog.raised_item.group", "catalog.raised_item.ungroup", "catalog.board_item.set_outcome", "catalog.raised_item.reassign"}
+func TestBoardManageKeepsItsActionsBesideBoardRead(t *testing.T) {
+	want := []string{"catalog.raised_item.group", "catalog.raised_item.ungroup", "catalog.board_item.set_outcome", "catalog.raised_item.reassign", "catalog.board_item.assign", "catalog.board_item.read", "catalog.raised_item.file"}
 	manage, ok := models.LookupPermission("board.manage")
 	if !ok {
 		t.Fatal("board.manage is gone from the catalogue")

@@ -15,18 +15,29 @@ import (
 const riskOperations = "testdata/operations/riskmanager.operations.json"
 
 var riskReadActions = []string{
+	"riskmanager.action.list",
+	"riskmanager.assessment.list",
+	"riskmanager.barrier.list",
 	"riskmanager.consequence.list",
 	"riskmanager.control.list",
 	"riskmanager.control.read",
 	"riskmanager.control.reliance",
+	"riskmanager.evidence.list",
 	"riskmanager.gap.list",
 	"riskmanager.match.list",
 	"riskmanager.mitigating_measure.list",
+	"riskmanager.pathway.read",
 	"riskmanager.preventive_measure.list",
 	"riskmanager.risk.bowtie",
 	"riskmanager.risk.list",
 	"riskmanager.risk.read",
 	"riskmanager.threat.list",
+}
+
+var riskRecordActions = map[string]bool{
+	"riskmanager.action.set_status": true,
+	"riskmanager.action.update":     true,
+	"riskmanager.evidence.record":   true,
 }
 
 var riskReadDesignActions = []string{
@@ -130,14 +141,18 @@ func TestRiskReadPermissionCarriesOnlyActionsTheRiskManagerServesAsReads(t *test
 	}
 }
 
-func TestNoUnlockedPermissionCarriesARiskManagerWrite(t *testing.T) {
+func TestOnlyRiskRecordCarriesARiskManagerWriteAmongTheUnlockedPermissions(t *testing.T) {
 	ops := riskOperationsFromTestdata(t)
 	held := heldByAnUnlockedPermission()
 	for _, op := range ops {
 		if op.Method == "GET" {
 			continue
 		}
-		if permission := held[op.Action]; permission != "" {
+		permission := held[op.Action]
+		if permission == "risk.record" && riskRecordActions[op.Action] {
+			continue
+		}
+		if permission != "" {
 			t.Errorf("%s is a %s on the risk manager and %s, an unlocked permission, carries it", op.Action, op.Method, permission)
 		}
 	}

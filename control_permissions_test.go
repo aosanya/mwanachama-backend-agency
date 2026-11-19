@@ -51,6 +51,14 @@ func TestListPermissions_EditControlsListsTheControlWriteActions(t *testing.T) {
 			"agency.control.list",
 			"agency.control.read",
 			"agency.control.list_attachments",
+			"agency.hazard.list",
+			"agency.hazard.read",
+			"agency.threat.list",
+			"agency.threat.read",
+			"agency.consequence.list",
+			"agency.consequence.read",
+			"agency.risk_threat.list",
+			"agency.risk_consequence.list",
 		},
 	}
 	if got := permissionByCode(t, "controls.edit"); !reflect.DeepEqual(got, want) {

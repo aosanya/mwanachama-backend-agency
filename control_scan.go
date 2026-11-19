@@ -6,11 +6,23 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+var umbrellaActions = map[string][]string{
+	"engage.post.create": {"engage.post.create_notice", "engage.post.create_event", "engage.post.create_volunteer_call"},
+}
+
 func catalogueActions() map[string]bool {
 	actions := map[string]bool{}
 	for _, p := range models.PermissionCatalog() {
 		for _, a := range p.Actions {
 			actions[a] = true
+		}
+	}
+	for umbrella, kinds := range umbrellaActions {
+		for _, kind := range kinds {
+			if actions[kind] {
+				actions[umbrella] = true
+				break
+			}
 		}
 	}
 	return actions

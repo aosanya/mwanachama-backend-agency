@@ -381,5 +381,25 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `consent.read` | Read the consent text in force and one's own consent | no | `custody` | Read the consent text in force and the caller's own consent. |
 | `consent.give` | Agree to the consent text and withdraw | no | `custody` | Agree to the consent text in force and withdraw that agreement. |
 | `consent.publish` | List the consent versions and publish a consent text | no | `custody` | List the consent versions and publish a new consent text. |
+| `accounting.manage` | Keep the books and set budgets | no | `accounting` | Open and close accounts, post entries, set and delete budgets, record bills, payments, tenders and quotes, send upward reports, and read accounts, budgets, reports, milestones and certificates. |
+| `accounting.view` | Read accounts, budgets and reports | no | `accounting` | Read accounts, entries, budgets, reports, bills, payments, tenders, quotes, spending totals and entries by dimension, milestones and certificates. |
+| `application.correct` | Correct a sent application | no | `forms` | Correct a sent application. |
+| `application.decide` | Approve or refuse a sent application | no | `forms` | Approve or refuse a sent application. |
+| `application.file` | File an application for a resident | no | `forms` | File an application for a resident, and list the published forms that reach one person. |
+| `application.inspect` | Record an inspector's finding on a sent application | no | `forms` | Record an inspector's finding on a sent application, and list the sends the caller's role inspects. |
+| `appointment.view_person` | See one person's bookings | no | `forms` | List one person's bookings. |
+| `audit.view` | View the audit log | no | none | List the entries of the audit log. |
+| `consent.record` | Record a person's consent given on paper | no | `custody` | Take a person's consent given on paper. |
+| `council.manage` | Put council meetings on record and read them | no | `council` | Create, update, list and read council meetings, set and read their agendas and minutes, and create, update, list and read resolutions and bylaws. |
+| `council.view` | Read council meetings | no | `council` | List and read council meetings, their agendas and minutes, resolutions and bylaws. |
+| `declaration.read` | Read the register of declarations of interest | no | none | List the register of declarations of interest. |
+| `digitaltwin.manage` | Record addresses, holdings and land use of places and read them | no | `digitaltwin` | Create, update, list and read addresses, holdings and land use, and list and read the places they belong to. |
+| `digitaltwin.view` | Read addresses, holdings and land use of places | no | `digitaltwin` | List and read addresses, holdings and land use, and the places they belong to. |
+| `location.edit` | Change a place | no | `assetmanager` | Change a place. |
+| `member.add` | Add a person who lives here | no | none | Add a person who lives here. |
+| `member.edit` | Change a person's name and details | no | none | Change a person's display name and details, and list the properties a detail may take. |
+| `notification.raise` | Tell one person about a report | no | `comm` | Tell one person about a report. |
+| `person_raised_items.read` | See the wishes and issues one resident raised | no | `forms` | List the wishes and issues one resident raised. |
+| `risk.record` | Record proof on a risk and keep its actions | no | `riskmanager` | Record evidence on a risk, and update and set the status of its actions. |
 
 `permission_doc_test.go` keeps this page and the catalogue in step. It reads every table on this page whose first column is headed `Code` or `Permission` and takes the code in backticks that opens each row. It fails naming each catalogue permission that has no such row, and each such row whose code is not in the catalogue. A table headed anything else is not read, so a table of questions or objects may open a row with a backticked word. Setting `ROLE_PERMISSIONS_DOC` to a path runs the test on another copy of the page.
