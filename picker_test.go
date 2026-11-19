@@ -74,14 +74,14 @@ func TestListPickers_TheAgencyItsRolesAndItsGroupsAreOneList(t *testing.T) {
 	}
 }
 
-func TestListPickers_AnswerTypesAreTheFormsModulesTen(t *testing.T) {
+func TestListPickers_AnswerTypesAreTheFormsModulesTenAndTheTimeRangeAndAddressTypes(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	got, err := mgr.ListPickers(ctx, newDraftAgency(t, mgr, ctx))
 	if err != nil {
 		t.Fatalf("ListPickers: %v", err)
 	}
-	want := []models.AnswerType{"yes_no", "single_choice", "multi_select", "free_text", "date", "time", "number", "currency", "photo", "file"}
+	want := []models.AnswerType{"yes_no", "single_choice", "multi_select", "free_text", "date", "time", "number", "currency", "photo", "file", "time_range", "address"}
 	if len(got.AnswerTypes) != len(want) {
 		t.Fatalf("answer types = %v, want %v", got.AnswerTypes, want)
 	}

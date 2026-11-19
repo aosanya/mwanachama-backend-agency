@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
+	"github.com/aosanya/mwanachama-backend-shared/answerrules"
 )
 
 func invalidRecord(format string, args ...any) error {
@@ -171,20 +172,27 @@ func (m *agencyManager) DeleteRecord(ctx context.Context, id string) error {
 
 const amendmentPromptPrefix = "Changed: "
 
-func validateRowAnswers(questions []models.StepQuestion, answers map[string]string) error {
+func validateRowAnswers(ctx context.Context, questions []models.StepQuestion, answers map[string]string) error {
+	allowance := rowAllowanceOf(ctx)
 	asked := make(map[string]models.StepQuestion, len(questions))
 	for _, q := range questions {
 		asked[q.Prompt] = q
 	}
 	for prompt := range answers {
-		if _, ok := asked[prompt]; !ok && !isApprovalStampPrompt(prompt) && !strings.HasPrefix(prompt, amendmentPromptPrefix) {
+		_, extra := allowance.extraNamed(prompt)
+		if _, ok := asked[prompt]; !ok && !extra && !isApprovalStampPrompt(prompt) && !strings.HasPrefix(prompt, amendmentPromptPrefix) {
 			return invalidRow("%q is not a question of the form", prompt)
+		}
+	}
+	for _, extra := range allowance.Extra {
+		if _, ok := asked[extra.Prompt]; !ok && extra.Required && strings.TrimSpace(answers[extra.Prompt]) == "" {
+			return invalidRow("the detail %q is required", extra.Prompt)
 		}
 	}
 	for _, q := range questions {
 		answer := strings.TrimSpace(answers[q.Prompt])
 		if answer == "" {
-			if q.Required {
+			if q.Required && !allowance.waives(q.Prompt) {
 				return invalidRow("the question %q is required", q.Prompt)
 			}
 			continue
@@ -209,6 +217,14 @@ func validateRowAnswer(q models.StepQuestion, answer string) error {
 	case models.AnswerDate:
 		if _, err := time.Parse("2006-01-02", answer); err != nil {
 			return invalidRow("the answer to %q is a date as 2006-01-02, got %q", q.Prompt, answer)
+		}
+	case models.AnswerTimeRange:
+		from, to, ok := answerrules.TimeRangeOfWords(answer)
+		if !ok {
+			return invalidRow("the answer to %q is a time range as from HH:MM to HH:MM, got %q", q.Prompt, answer)
+		}
+		if err := answerrules.CheckTimeRange(from, to); err != nil {
+			return invalidRow("the answer to %q: %v", q.Prompt, err)
 		}
 	case models.AnswerSingleChoice:
 		if len(q.Options) > 0 && !slices.Contains(q.Options, answer) {
@@ -259,7 +275,7 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 	if row.RoleID == "" || row.RoleID != record.RoleID {
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w: only the role that adds rows to %q may", ErrRecordRowRefused, record.Name)
 	}
-	if err := validateRowAnswers(record.Questions, row.Answers); err != nil {
+	if err := validateRowAnswers(ctx, record.Questions, row.Answers); err != nil {
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
 	}
 	row.ID = newID()

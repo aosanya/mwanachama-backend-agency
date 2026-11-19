@@ -164,8 +164,8 @@ func TestStepKindsAndAnswerTypes_ReturnCopiesCallersCannotCorrupt(t *testing.T) 
 		t.Error("changing the returned kinds changed the registry")
 	}
 	answers := AnswerTypes()
-	if len(answers) != 10 {
-		t.Errorf("there are %d answer types, want 10", len(answers))
+	if len(answers) != 12 {
+		t.Errorf("there are %d answer types, want 12", len(answers))
 	}
 	answers[0] = "tampered"
 	if AnswerTypes()[0] == "tampered" {
