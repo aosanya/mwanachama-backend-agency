@@ -19,6 +19,7 @@ type AgencyDocument struct {
 	EventFlowSteps     []EventFlowStep             `json:"event_flow_steps"`
 	Records            []DocumentRecord            `json:"records,omitempty"`
 	Measures           []DocumentMeasure           `json:"measures,omitempty"`
+	Home               []DocumentHomeNode          `json:"home,omitempty"`
 	Scenarios          []DocumentScenario          `json:"scenarios,omitempty"`
 	Risks              []DocumentRisk              `json:"risks,omitempty"`
 	RiskPathways       []DocumentRiskPathway       `json:"risk_pathways,omitempty"`

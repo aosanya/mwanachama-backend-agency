@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const declaredRoles = 38
+const declaredRoles = 39
 
 func TestBlueprintParses(t *testing.T) {
 	b, err := Blueprint()
@@ -155,6 +155,10 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 		},
 		"review_finding.fate": {
 			string(models.FateNew), string(models.FateFixed), string(models.FateStillOpen), string(models.FateWithdrawn),
+		},
+		"home_entry.target_type": {
+			string(models.HomeTargetRecord), string(models.HomeTargetWorkflow), string(models.HomeTargetBacklog),
+			string(models.HomeTargetMenu), string(models.HomeTargetFiles), string(models.HomeTargetStart), string(models.HomeTargetOngoing),
 		},
 		"issue.severity": {
 			string(models.IssueSeverityInfo),

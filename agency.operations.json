@@ -57,6 +57,8 @@
     "ErrWorkItemNotFound": 404,
     "ErrWorkflowNotFound": 404,
     "ErrInvalidMeasure": 400,
+    "ErrInvalidHomeEntry": 400,
+    "ErrHomeEntryNotFound": 404,
     "ErrRiskNotFound": 404,
     "ErrRiskPathwayNotFound": 404,
     "ErrInvalidRisk": 400,
@@ -2623,6 +2625,74 @@
         }
       ],
       "tool": "agency_list_test_runs"
+    },
+    "create_home_entry": {
+      "method": "POST",
+      "path": "/home-entries",
+      "call": "CreateHomeEntry",
+      "action": "agency.home_entry.create",
+      "title": "Create home entry",
+      "description": "Declare one row of the app's Home, at the end of its section. Leave out parent_id for a row on Home itself, or give the id of a section as parent_id to put it inside that section. A section has no target_type; an entry has one of record, workflow, backlog, menu or files and, except for files, a target naming which one: a record or workflow code, a backlog id, or a menu item written as section/item. permission is a catalogue code that only a person holding it sees. titles holds the title in other languages by language code. Home goes at most 5 levels deep, a section holds at most 40 rows and a draft at most 300. Refused with 400 for a broken row, a repeated key or a parent that is an entry, 404 for a parent that does not exist and 409 once the draft is archived.",
+      "args": [
+        {
+          "from": "body",
+          "whole": true
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_create_home_entry",
+      "status": 201
+    },
+    "set_home": {
+      "method": "PUT",
+      "path": "/home",
+      "call": "SetHome",
+      "action": "agency.home.set",
+      "title": "Set the Home",
+      "description": "Replace a draft's whole Home with the nested one sent. Each node is {key, title, titles?, icon?, permission?, roles?, then either entries (a section; with page_of the record code it is the page of one row of that record and is not listed) or target {type, ref?, step?, scope?, where?} (an entry)}. type is record, workflow, backlog, menu, files, start or ongoing. A where is a list of at most 5 {question, operator, value} and a value is a text or {\"row\": \"<question prompt>\"} inside a row page. roles are role codes of this draft. The same limits and refusals as create_home_entry apply to the whole list, and a refusal keeps the old Home. Nothing in the draft's Home is kept except what is sent. Refused with 409 once the draft is archived.",
+      "args": [
+        {
+          "from": "body",
+          "as": "draft_id",
+          "description": "The draft whose Home to replace."
+        },
+        {
+          "from": "body",
+          "as": "entries",
+          "description": "The nested nodes, in the order a person should see them. An empty list clears the Home."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_set_home"
+    },
+    "list_home_entries": {
+      "method": "GET",
+      "path": "/home-entries",
+      "call": "ListHomeEntries",
+      "action": "agency.home_entry.list",
+      "title": "List home entries",
+      "description": "List one draft's Home rows, each with the section it sits in (parent_id), its place among its siblings (ordinality), its title and translated titles, icon, permission and, for an entry, what it opens.",
+      "args": [
+        {
+          "from": "query",
+          "as": "draft_id",
+          "description": "The draft whose Home to read."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_list_home_entries"
     },
     "set_measure": {
       "method": "PUT",

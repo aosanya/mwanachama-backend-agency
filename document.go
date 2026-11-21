@@ -149,6 +149,11 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		})
 	}
 
+	doc.Home, err = m.homeDocument(ctx, tx, draftID)
+	if err != nil {
+		return fail(err)
+	}
+
 	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment).Order("created_at"), roleRoleAssignment)
 	if err != nil {
 		return fail(err)
@@ -428,6 +433,20 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		if err := m.copyRow(ctx, tx, roleWorkflowObjective, row); err != nil {
 			return fail(err)
 		}
+	}
+
+	if err := models.ValidateHomeDocument(doc.Home); err != nil {
+		return fail(fmt.Errorf("%w: %s", ErrInvalidHomeEntry, err))
+	}
+	documentRoles := make(map[string]bool, len(doc.Roles))
+	for _, role := range doc.Roles {
+		documentRoles[role.Code] = true
+	}
+	if err := homeRolesHeld(models.HomeRoleCodes(doc.Home), documentRoles); err != nil {
+		return fail(err)
+	}
+	if err := m.applyHomeNodes(ctx, tx, draftID, "", doc.Home, now); err != nil {
+		return fail(err)
 	}
 
 	assigned := make(map[[3]string]bool, len(doc.RoleAssignments))

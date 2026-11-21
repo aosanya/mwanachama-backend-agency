@@ -28,6 +28,7 @@ type TableNames struct {
 	Records            string
 	RecordRows         string
 	Measures           string
+	HomeEntries        string
 	Risks              string
 	RiskPathways       string
 	Scenarios          string
@@ -72,6 +73,7 @@ func TablesFor(s *spec.Spec) TableNames {
 		Records:            table(roleRecord),
 		RecordRows:         table(roleRecordRow),
 		Measures:           table(roleMeasure),
+		HomeEntries:        table(roleHomeEntry),
 		Risks:              table(roleRisk),
 		RiskPathways:       table(roleRiskPathway),
 		Scenarios:          table(roleScenario),

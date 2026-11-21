@@ -213,6 +213,22 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		}))
 	}
 
+	homeRows, err := list[models.HomeEntry](m, scoped(roleHomeEntry), roleHomeEntry)
+	if err != nil {
+		return "", fmt.Errorf("contentHashFor: %w", err)
+	}
+	homeKeys := make(map[string]string, len(homeRows))
+	for _, r := range homeRows {
+		homeKeys[r.ID] = r.Key
+	}
+	for _, r := range homeRows {
+		records = append(records, hashRecord("HomeEntry", map[string]any{
+			"parent": homeKeys[r.ParentID], "key": r.Key, "title": r.Title, "titles": r.Titles, "icon": r.Icon,
+			"permission": r.Permission, "roles": r.Roles, "page_of": r.PageOf, "target_type": string(r.TargetType), "target": r.Target,
+			"step": r.Step, "scope": r.Scope, "conditions": r.Conditions, "ordinality": r.Ordinality, "deleted": r.Deleted,
+		}))
+	}
+
 	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment), roleRoleAssignment)
 	if err != nil {
 		return "", fmt.Errorf("contentHashFor: %w", err)

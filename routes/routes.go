@@ -60,6 +60,8 @@ var sentinels = map[string]error{
 	"ErrWorkflowNotFound":           mwanachamaagency.ErrWorkflowNotFound,
 	"ErrWorkflowObjectiveNotFound":  mwanachamaagency.ErrWorkflowObjectiveNotFound,
 	"ErrInvalidMeasure":             mwanachamaagency.ErrInvalidMeasure,
+	"ErrInvalidHomeEntry":           mwanachamaagency.ErrInvalidHomeEntry,
+	"ErrHomeEntryNotFound":          mwanachamaagency.ErrHomeEntryNotFound,
 	"ErrRiskNotFound":               mwanachamaagency.ErrRiskNotFound,
 	"ErrRiskPathwayNotFound":        mwanachamaagency.ErrRiskPathwayNotFound,
 	"ErrInvalidControl":             mwanachamaagency.ErrInvalidControl,

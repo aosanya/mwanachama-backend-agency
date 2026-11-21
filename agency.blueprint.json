@@ -571,6 +571,37 @@
       ]
     },
     {
+      "role": "home_entry",
+      "description": "One row of the app's Home as the agency declares it: a section that holds further rows, or an entry that opens one target.",
+      "fields": [
+        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
+        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
+        {"name": "parent_id", "type": "string", "description": "The section this row sits in, in the same draft. Empty for a row on Home itself."},
+        {"name": "key", "type": "string", "description": "The row's handle in the declaration, such as farm-list. Unique in a draft.", "required": true},
+        {"name": "title", "type": "string", "description": "What the row says.", "required": true},
+        {"name": "titles", "type": "json", "description": "The title in other languages: a map of language code to text. Empty means the title is said the same in every language."},
+        {"name": "icon", "type": "string", "description": "The name of one of the app's icons. Empty means the app picks one for the kind of row."},
+        {"name": "permission", "type": "string", "description": "A permission code of the catalogue. Only a person who holds it sees the row. Empty means anyone who may open the agency."},
+        {"name": "roles", "type": "json", "description": "A list of the agency's role codes. Only a person who holds one of them sees the row; the owner always does. Empty means no role is asked for."},
+        {"name": "page_of", "type": "string", "description": "A record code. Marks a section as the page of one row of that record: it is not listed, and opens when a person taps a row. Empty for every other row."},
+        {"name": "target_type", "type": "enum", "description": "What an entry opens: a live record, a workflow, a backlog, an item of the app's fixed menu, Files, Start or Ongoing. Empty for a section.", "values": ["record", "workflow", "backlog", "menu", "files", "start", "ongoing"]},
+        {"name": "target", "type": "string", "description": "Which one the entry opens: a record or workflow code, a backlog name or id or a menu item written as section/item. Empty for Files, Start, Ongoing and a section."},
+        {"name": "step", "type": "string", "description": "For a workflow entry, the code of the one step it opens. Empty means the workflow's first step or its open items."},
+        {"name": "scope", "type": "string", "description": "For a workflow entry inside a row page, row.order: only the run that belongs to the tapped row. Empty otherwise."},
+        {"name": "conditions", "type": "json", "description": "For a record entry, a list of at most 5 conditions the rows must meet, each a question, an operator and a value that is a text or {\"row\": \"<question prompt>\"}, the answer of the tapped row. Empty means every row."},
+        {"name": "ordinality", "type": "int", "description": "Where the row stands among the rows of its section, counting from zero."},
+        {"name": "created_at", "type": "timestamp", "description": "When the row was declared.", "immutable": true},
+        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
+        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
+      ],
+      "indexes": [
+        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
+        {"name": "draft_key_unique", "description": "Refuses a second row with the same key in one draft, so two writers racing cannot both add it.", "fields": ["draft_id", "key"], "unique": true, "not_deleted": true},
+        {"name": "page_of_unique", "description": "Refuses a second page for one record in a draft, so two writers racing cannot both add it. Rows that are no page are left out.", "fields": ["draft_id", "page_of"], "unique": true, "not_deleted": true, "where": [{"field": "page_of", "op": "not_empty"}]},
+        {"name": "parent", "description": "Reads the rows of one section.", "fields": ["parent_id"]}
+      ]
+    },
+    {
       "role": "record",
       "description": "A named list a workflow keeps beside its steps: who adds rows to it and the form each row is added with.",
       "fields": [

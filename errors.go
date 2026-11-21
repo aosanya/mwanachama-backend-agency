@@ -131,11 +131,13 @@ var (
 	ErrInvalidModuleMounts   = models.ErrInvalidMounts
 	ErrModuleLocked          = errors.New("mwanachamaagency: a locked module cannot be switched off")
 
-	ErrInvalidMeasure   = errors.New("mwanachamaagency: invalid measure")
-	ErrInvalidRecord    = errors.New("mwanachamaagency: invalid record")
-	ErrRecordNotFound   = errors.New("mwanachamaagency: record not found")
-	ErrInvalidRecordRow = errors.New("mwanachamaagency: invalid record row")
-	ErrRecordRowRefused = errors.New("mwanachamaagency: this role does not add rows to the record")
+	ErrInvalidMeasure    = errors.New("mwanachamaagency: invalid measure")
+	ErrInvalidHomeEntry  = errors.New("mwanachamaagency: invalid home entry")
+	ErrHomeEntryNotFound = errors.New("mwanachamaagency: home entry not found")
+	ErrInvalidRecord     = errors.New("mwanachamaagency: invalid record")
+	ErrRecordNotFound    = errors.New("mwanachamaagency: record not found")
+	ErrInvalidRecordRow  = errors.New("mwanachamaagency: invalid record row")
+	ErrRecordRowRefused  = errors.New("mwanachamaagency: this role does not add rows to the record")
 
 	ErrDuplicateRecordRow = errors.New("mwanachamaagency: the same answers were saved a moment ago")
 	ErrStepAlreadySent    = errors.New("mwanachamaagency: this step was already sent for this run")

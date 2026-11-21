@@ -45,6 +45,7 @@ var carriers = map[string]string{
 	"record":             "Record",
 	"record_row":         "RecordRow",
 	"measure":            "Measure",
+	"home_entry":         "HomeEntry",
 	"risk":               "Risk",
 	"risk_pathway":       "RiskPathway",
 	"hazard":             "Hazard",
@@ -59,13 +60,14 @@ var carriers = map[string]string{
 }
 
 var storeOwned = map[string]bool{
-	"Module.enabled":   true,
-	"Measure.current":  true,
-	"Measure.draft_id": true,
-	"Draft.status":     true,
-	"Issue.severity":   true,
-	"Issue.message":    true,
-	"Issue.entity_id":  true,
+	"Module.enabled":       true,
+	"Measure.current":      true,
+	"Measure.draft_id":     true,
+	"HomeEntry.ordinality": true,
+	"Draft.status":         true,
+	"Issue.severity":       true,
+	"Issue.message":        true,
+	"Issue.entity_id":      true,
 
 	"ScenarioActor.draft_id":    true,
 	"ScenarioActor.scenario_id": true,

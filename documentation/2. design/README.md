@@ -51,6 +51,8 @@ approval before it becomes real, and what happens when its inputs move first
 publication carries, what the Issue scan reports about them and what the agency
 never does to them (ISS-18).
 
+[home-entries.md](home-entries.md) covers the rows of the app's Home that an agency declares: the nested declaration, what is stored, the two tools and how it travels through import, fork and publish.
+
 [test-scenarios.md](test-scenarios.md) covers test scenarios, their actors and
 inputs, test runs, the send-back rule and the publish gate (HS260).
 

@@ -78,6 +78,10 @@ type AgencyManager interface {
 	SetMeasure(ctx context.Context, m models.Measure) (models.Measure, error)
 	ListMeasures(ctx context.Context, draftID string, filter MeasureFilter) ([]models.Measure, error)
 
+	CreateHomeEntry(ctx context.Context, e models.HomeEntry) (models.HomeEntry, error)
+	ListHomeEntries(ctx context.Context, draftID string) ([]models.HomeEntry, error)
+	SetHome(ctx context.Context, draftID string, entries []map[string]any) ([]models.HomeEntry, error)
+
 	CreateRecord(ctx context.Context, r models.Record) (models.Record, error)
 	GetRecord(ctx context.Context, id string) (models.Record, error)
 	ListRecords(ctx context.Context, draftID string, filter RecordFilter) ([]models.Record, error)

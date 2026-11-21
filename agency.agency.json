@@ -172,6 +172,12 @@
       "description": "One figure an objective is judged by, with its target."
     },
     {
+      "role": "home_entry",
+      "name": "home_entry",
+      "table": "home_entries",
+      "description": "One row of the app's Home as this agency declares it."
+    },
+    {
       "role": "record",
       "name": "record",
       "table": "records",

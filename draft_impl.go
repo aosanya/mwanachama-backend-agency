@@ -282,6 +282,10 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		return err
 	}
 
+	if err := m.forkHomeEntries(ctx, tx, sourceScope, newDraftID, now); err != nil {
+		return err
+	}
+
 	steps, err := list[models.EventFlowStep](m, scopeQuery(tx.Table(m.table(roleEventFlowStep)), sourceScope), roleEventFlowStep)
 	if err != nil {
 		return fmt.Errorf("CreateDraft: %w", err)
