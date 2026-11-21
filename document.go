@@ -438,11 +438,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	if err := models.ValidateHomeDocument(doc.Home); err != nil {
 		return fail(fmt.Errorf("%w: %s", ErrInvalidHomeEntry, err))
 	}
-	documentRoles := make(map[string]bool, len(doc.Roles))
-	for _, role := range doc.Roles {
-		documentRoles[role.Code] = true
-	}
-	if err := homeRolesHeld(models.HomeRoleCodes(doc.Home), documentRoles); err != nil {
+	if err := homeRolesResolve(models.HomePartsOf(doc), doc.Home); err != nil {
 		return fail(err)
 	}
 	if err := m.applyHomeNodes(ctx, tx, draftID, "", doc.Home, now); err != nil {

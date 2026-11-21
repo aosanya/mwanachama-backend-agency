@@ -13,11 +13,11 @@ An agency file may carry a top-level `home`: a list of nodes in the order a pers
 | `titles` | The title in other languages, a map of language code to text, each at most 80 characters and never blank. |
 | `icon` | An icon name the app draws. Not checked here: the set belongs to the app. |
 | `permission` | A code of the permission catalogue. |
-| `roles` | Role codes of the agency. Each must be a role of the same draft or file. |
-| `page_of` | On a section: a record code. The section is the page of one row of that record and is not listed. One section per record code in a draft. |
+| `roles` | Roles of the agency, each a code or a name. Each must resolve to one role of the same draft or file: the code is matched first, then the name, ignoring case; a name that matches no role or two roles is refused. A role the file marks deleted is not a role. The row keeps what was written. |
+| `page_of` | On a section: a record code or name. The section is the page of one row of that record and is not listed. One section per record code in a draft. |
 | `target` | `{ "type", "ref", "step", "scope", "where" }` on an entry. |
 
-Target types: `record` (`ref` a record code), `workflow` (`ref` a workflow code), `backlog` (`ref` a name or id), `menu` (`ref` as `section/item`), `files`, `start` and `ongoing` (no `ref`). `step` is a work item code and only on a workflow. `scope` is `row.order` and only on a workflow inside a row page. `where` is at most 5 conditions on a record, each `{ "question", "operator", "value" }` with an operator of `is`, `is_not`, `contains`, `more_than`, `less_than`, `on_or_before` or `on_or_after`, and a value that is a text or `{ "row": "<question prompt>" }`, the answer of the tapped row, only inside a row page. A section holds at most 40 nodes, a draft at most 300, a `ref` at most 200 characters.
+Target types: `record` (`ref` a record code or name), `workflow` (`ref` a workflow code or name), `backlog` (`ref` a name), `menu` (`ref` as `section/item`), `files`, `start` and `ongoing` (no `ref`). `step` is a work item code or name and only on a workflow. `scope` is `row.order` and only on a workflow inside a row page. `where` is at most 5 conditions on a record, each `{ "question", "operator", "value" }` with an operator of `is`, `is_not`, `contains`, `more_than`, `less_than`, `on_or_before` or `on_or_after`, and a value that is a text or `{ "row": "<question prompt>" }`, the answer of the tapped row, only inside a row page. A section holds at most 40 nodes, a draft at most 300, a `ref` at most 200 characters.
 
 ## What is stored
 
@@ -42,6 +42,10 @@ A create puts the row last in its section. `agency_set_home` replaces every row 
 - A document without `home` imports, forks and publishes as before. A reader that does not know `home` ignores it.
 
 `models.NestHomeEntries` turns a draft's rows into the nested form, ordered by `ordinality`.
+
+## Reading a file
+
+A file's `home` is read strictly: a node, target or condition with a field it does not have (a `where` beside the `target` instead of inside it), a blank `page_of`, `permission`, `ref`, `step` or `scope` (leave the field out), a value `{ "row": ... }` with a second key, or an `entries` list beside a `target` (even an empty one) is refused whole. `models.HomeParts` resolves a code or a name against a set of parts (`ResolveHomePart`, `Step`, `CheckHome`, `CheckHomeRoles`, `HomePartsOf`); the hub uses it to check and to resolve every reference.
 
 ## Not here
 

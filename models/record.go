@@ -42,4 +42,5 @@ type DocumentRecord struct {
 	ViewerRoleID string         `json:"viewer_role_id,omitempty"`
 	FormName     string         `json:"form_name"`
 	Questions    []StepQuestion `json:"questions,omitempty"`
+	Deleted      bool           `json:"deleted,omitempty"`
 }

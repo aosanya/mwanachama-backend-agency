@@ -33,7 +33,7 @@ func (m *agencyManager) CreateHomeEntry(ctx context.Context, in models.HomeEntry
 		if err != nil {
 			return err
 		}
-		if err := m.requireHomeRoles(ctx, tx, in.DraftID, in.Roles); err != nil {
+		if err := m.requireHomeRoles(ctx, tx, in.DraftID, []models.DocumentHomeNode{{Key: in.Key, Roles: in.Roles}}); err != nil {
 			return err
 		}
 		now := models.NowRFC3339()
@@ -87,26 +87,24 @@ func homePlace(held []models.HomeEntry, in models.HomeEntry) (int, error) {
 	return siblings, nil
 }
 
-func (m *agencyManager) requireHomeRoles(ctx context.Context, tx *gorm.DB, draftID string, codes []string) error {
-	if len(codes) == 0 {
+func (m *agencyManager) requireHomeRoles(ctx context.Context, tx *gorm.DB, draftID string, nodes []models.DocumentHomeNode) error {
+	if len(models.HomeRoleCodes(nodes)) == 0 {
 		return nil
 	}
 	roles, err := list[models.Role](m, scopeQuery(tx.WithContext(ctx).Table(m.table(roleRole)), draftID), roleRole)
 	if err != nil {
 		return err
 	}
-	held := make(map[string]bool, len(roles))
+	parts := models.HomeParts{}
 	for _, role := range roles {
-		held[role.Code] = true
+		parts.Roles = append(parts.Roles, models.HomePart{Code: role.Code, Name: role.Name})
 	}
-	return homeRolesHeld(codes, held)
+	return homeRolesResolve(parts, nodes)
 }
 
-func homeRolesHeld(codes []string, held map[string]bool) error {
-	for _, code := range codes {
-		if !held[code] {
-			return invalidHomeEntry("the role %q is not in this draft", code)
-		}
+func homeRolesResolve(parts models.HomeParts, nodes []models.DocumentHomeNode) error {
+	if err := parts.CheckHomeRoles(nodes); err != nil {
+		return fmt.Errorf("%w: %s", ErrInvalidHomeEntry, err)
 	}
 	return nil
 }
@@ -124,7 +122,7 @@ func (m *agencyManager) SetHome(ctx context.Context, draftID string, entries []m
 		if err := models.ValidateHomeDocument(nodes); err != nil {
 			return fmt.Errorf("%w: %s", ErrInvalidHomeEntry, err)
 		}
-		if err := m.requireHomeRoles(ctx, tx, draftID, models.HomeRoleCodes(nodes)); err != nil {
+		if err := m.requireHomeRoles(ctx, tx, draftID, nodes); err != nil {
 			return err
 		}
 		if err := m.deleteWhere(ctx, tx, roleHomeEntry, "draft_id = ?", draftID); err != nil {

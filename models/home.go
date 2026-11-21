@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -70,10 +71,59 @@ func (v *HomeValue) UnmarshalJSON(raw []byte) error {
 	var placeholder struct {
 		Row string `json:"row"`
 	}
-	if err := json.Unmarshal(raw, &placeholder); err != nil || strings.TrimSpace(placeholder.Row) == "" {
+	if err := decodeHomeFields(raw, &placeholder, []string{"row"}, nil); err != nil || strings.TrimSpace(placeholder.Row) == "" {
 		return fmt.Errorf("a condition value is a text or {\"row\": \"<question prompt>\"}")
 	}
 	*v = HomeValue{Row: placeholder.Row}
+	return nil
+}
+
+func decodeHomeFields(raw []byte, into any, known, notBlank []string) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return err
+	}
+	for name := range fields {
+		if !slices.Contains(known, name) {
+			return fmt.Errorf("%q is not a field of this part of a home", name)
+		}
+	}
+	for _, name := range notBlank {
+		var text string
+		if value, present := fields[name]; present && json.Unmarshal(value, &text) == nil && strings.TrimSpace(text) == "" {
+			return fmt.Errorf("%q is present but blank; leave it out", name)
+		}
+	}
+	return json.Unmarshal(raw, into)
+}
+
+func (c *HomeCondition) UnmarshalJSON(raw []byte) error {
+	type plain HomeCondition
+	var out plain
+	if err := decodeHomeFields(raw, &out, []string{"question", "operator", "value"}, nil); err != nil {
+		return err
+	}
+	*c = HomeCondition(out)
+	return nil
+}
+
+func (t *HomeTarget) UnmarshalJSON(raw []byte) error {
+	type plain HomeTarget
+	var out plain
+	if err := decodeHomeFields(raw, &out, []string{"type", "ref", "step", "scope", "where"}, []string{"ref", "step", "scope"}); err != nil {
+		return err
+	}
+	*t = HomeTarget(out)
+	return nil
+}
+
+func (n *DocumentHomeNode) UnmarshalJSON(raw []byte) error {
+	type plain DocumentHomeNode
+	var out plain
+	if err := decodeHomeFields(raw, &out, []string{"key", "title", "titles", "icon", "permission", "roles", "page_of", "target", "entries"}, []string{"page_of", "permission"}); err != nil {
+		return err
+	}
+	*n = DocumentHomeNode(out)
 	return nil
 }
 
@@ -272,7 +322,7 @@ func ValidateHomeDocument(nodes []DocumentHomeNode) error {
 			if total > HomeMaxEntries {
 				return fmt.Errorf("the home holds more than %d entries", HomeMaxEntries)
 			}
-			if n.Target != nil && len(n.Entries) > 0 {
+			if n.Target != nil && n.Entries != nil {
 				return fmt.Errorf("the home entry %q has both a target and entries", n.Key)
 			}
 			row := HomeEntryOfNode(n)

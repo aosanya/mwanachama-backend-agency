@@ -100,6 +100,7 @@ type DocumentRole struct {
 	Permissions        []string `json:"permissions,omitempty"`
 	Staff              bool     `json:"staff,omitempty"`
 	ApprovesAboveLimit bool     `json:"approves_above_limit,omitempty"`
+	Deleted            bool     `json:"deleted,omitempty"`
 }
 
 type DocumentGoal struct {
@@ -129,6 +130,7 @@ type DocumentWorkflow struct {
 	OpensIn     OpensIn `json:"opens_in,omitempty"`
 
 	CancelsOrder bool `json:"cancels_order,omitempty"`
+	Deleted      bool `json:"deleted,omitempty"`
 }
 
 type DocumentWorkItem struct {
@@ -139,6 +141,7 @@ type DocumentWorkItem struct {
 	Description string `json:"description"`
 	Ordinality  int    `json:"ordinality"`
 	Prompt      string `json:"prompt"`
+	Deleted     bool   `json:"deleted,omitempty"`
 
 	LegacyObjectiveID string `json:"objective_id,omitempty"`
 
