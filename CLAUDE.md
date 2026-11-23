@@ -65,6 +65,14 @@ section wins. Design record:
   `agency_design_from_spec` takes `objective_keys`/`objective_ids` on a
   workflow and `work_item_key` on a `raci` entry.
 
+## Workflow subject and the row a run is started on
+
+`Workflow.SubjectRecord` (`subject_record`, a record code of the draft) says a
+workflow acts on one row of that record; empty means no subject and nothing
+changes. `RecordRow.SubjectRowID` (`subject_row_id`) beside `OrderID` is the
+row a run was started on, shared by every row of the run. Both are optional.
+Design record: [documentation/2. design/workflow-records.md](documentation/2.%20design/workflow-records.md).
+
 ## Porting notes
 
 - **AG3 landed 2026-09-09: `models/`, `gormstore/`, root `doc.go`/

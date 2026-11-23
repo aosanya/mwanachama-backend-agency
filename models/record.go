@@ -23,21 +23,22 @@ type Record struct {
 }
 
 type RecordRow struct {
-	ID          string            `json:"id"`
-	DraftID     string            `json:"draft_id,omitempty"`
-	RecordID    string            `json:"record_id"`
-	RecordCode  string            `json:"record_code"`
-	RoleID      string            `json:"role_id"`
-	AddedBy     string            `json:"added_by"`
-	Answers     map[string]string `json:"answers,omitempty"`
-	PlaceRefs   map[string]string `json:"place_refs,omitempty"`
-	OrderID     string            `json:"order_id,omitempty"`
-	Replaces    string            `json:"replaces,omitempty"`
-	CorrectedOn string            `json:"corrected_on,omitempty"`
-	SendKey     string            `json:"-"`
-	CreatedAt   string            `json:"created_at"`
-	LastUpdated string            `json:"last_updated"`
-	Deleted     bool              `json:"deleted"`
+	ID           string            `json:"id"`
+	DraftID      string            `json:"draft_id,omitempty"`
+	RecordID     string            `json:"record_id"`
+	RecordCode   string            `json:"record_code"`
+	RoleID       string            `json:"role_id"`
+	AddedBy      string            `json:"added_by"`
+	Answers      map[string]string `json:"answers,omitempty"`
+	PlaceRefs    map[string]string `json:"place_refs,omitempty"`
+	OrderID      string            `json:"order_id,omitempty"`
+	SubjectRowID string            `json:"subject_row_id,omitempty"`
+	Replaces     string            `json:"replaces,omitempty"`
+	CorrectedOn  string            `json:"corrected_on,omitempty"`
+	SendKey      string            `json:"-"`
+	CreatedAt    string            `json:"created_at"`
+	LastUpdated  string            `json:"last_updated"`
+	Deleted      bool              `json:"deleted"`
 
 	DeletedBy     string `json:"deleted_by,omitempty"`
 	DeletedReason string `json:"deleted_reason,omitempty"`
