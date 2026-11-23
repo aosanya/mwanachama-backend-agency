@@ -28,6 +28,9 @@ type Workflow struct {
 	EventFlows   string  `json:"event_flows,omitempty"`
 	OpensIn      OpensIn `json:"opens_in,omitempty"`
 	CancelsOrder bool    `json:"cancels_order"`
+	Generated    bool    `json:"generated"`
+	GeneratedFor string  `json:"generated_for,omitempty"`
+	ReplacedBy   string  `json:"replaced_by,omitempty"`
 	CreatedAt    string  `json:"created_at"`
 	LastUpdated  string  `json:"last_updated"`
 	Deleted      bool    `json:"deleted"`

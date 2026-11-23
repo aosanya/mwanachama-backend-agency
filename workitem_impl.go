@@ -72,8 +72,17 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
+		if err := m.refuseGeneratedWorkflow(ctx, tx, existing.DraftID, existing.WorkflowID); err != nil {
+			return err
+		}
 		if !wi.Carries("tool") {
 			wi.Tool = existing.Tool
+		}
+		if !wi.Carries("row_record") {
+			wi.RowRecord = existing.RowRecord
+		}
+		if !wi.Carries("row_action") {
+			wi.RowAction = existing.RowAction
 		}
 		wi.Code = existing.Code
 		wi.DraftID = existing.DraftID
@@ -103,6 +112,9 @@ func (m *agencyManager) DeleteWorkItem(ctx context.Context, id string) error {
 			return err
 		}
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
+			return err
+		}
+		if err := m.refuseGeneratedWorkflow(ctx, tx, existing.DraftID, existing.WorkflowID); err != nil {
 			return err
 		}
 		if err := m.sendBack(ctx, tx, existing.DraftID, m.stepKeys(ctx, tx, existing)...); err != nil {

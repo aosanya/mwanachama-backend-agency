@@ -29,7 +29,7 @@ kind, its one role, its form and questions, its derived action, and the RACI lab
 
 [workflow-records.md](workflow-records.md) covers what a workflow keeps beside
 its steps: records and their rows, a Send form step's recipient, the step that
-answers a sent form, and the Route step.
+answers a sent form, the Route step, the row steps that add, edit or delete a record's row, retiring a row, and the generated workflows made from each record.
 
 [compute-settings.md](compute-settings.md) covers where an agency keeps the settings the calculating steps need (the decimal places of its currency, the rounding rule, the digits kept in a division and the most rows one batch may hold), who changes them and what a change does to a publication that already exists.
 

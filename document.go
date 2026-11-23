@@ -73,6 +73,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		doc.Workflows = append(doc.Workflows, models.DocumentWorkflow{
 			ID: w.ID, Code: w.Code, Name: w.Name, Description: w.Description,
 			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn, CancelsOrder: w.CancelsOrder,
+			Generated: w.Generated, GeneratedFor: w.GeneratedFor, ReplacedBy: w.ReplacedBy,
 		})
 	}
 
@@ -91,6 +92,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: wi.CancelWorkflowID,
 			AgentRoleID: wi.AgentRoleID, Topic: wi.Topic, OpeningLine: wi.OpeningLine,
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: wi.StartWorkflowIDs,
+			RowRecord: wi.RowRecord, RowAction: wi.RowAction,
 		}
 		documentOfRegisteredKind(wi, &docStep)
 		doc.WorkItems = append(doc.WorkItems, docStep)
@@ -114,6 +116,8 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		doc.Records = append(doc.Records, models.DocumentRecord{
 			ID: r.ID, Code: r.Code, WorkflowID: r.WorkflowID, Name: r.Name,
 			RoleID: r.RoleID, ViewerRoleID: r.ViewerRoleID, FormName: r.FormName, Questions: r.Questions,
+			ItemName: r.ItemName, EditRoleID: r.EditRoleID, DeleteRoleID: r.DeleteRoleID,
+			AddReplacedBy: r.AddReplacedBy, EditReplacedBy: r.EditReplacedBy, DeleteReplacedBy: r.DeleteReplacedBy,
 		})
 	}
 
@@ -326,6 +330,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		row := models.Workflow{
 			ID: newID(), Code: w.Code, DraftID: draftID, Name: w.Name, Description: w.Description,
 			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn, CancelsOrder: w.CancelsOrder, CreatedAt: now, LastUpdated: now,
+			Generated: w.Generated, GeneratedFor: w.GeneratedFor, ReplacedBy: w.ReplacedBy,
 		}
 		if err := m.copyRow(ctx, tx, roleWorkflow, row); err != nil {
 			return fail(err)
@@ -364,6 +369,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: workflowIDs[wi.CancelWorkflowID],
 			AgentRoleID: remap(roleIDs, wi.AgentRoleID), Topic: wi.Topic, OpeningLine: wi.OpeningLine,
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: remapAll(workflowIDs, wi.StartWorkflowIDs),
+			RowRecord: wi.RowRecord, RowAction: wi.RowAction,
 			CreatedAt: now, LastUpdated: now,
 		}
 		rowOfRegisteredKind(wi, &row, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs, Records: recordIDs})
@@ -378,6 +384,8 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			ID: recordIDs[r.ID], Code: r.Code, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
 			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), ViewerRoleID: remap(roleIDs, r.ViewerRoleID),
 			FormName: r.FormName, Questions: r.Questions, CreatedAt: now, LastUpdated: now,
+			ItemName: r.ItemName, EditRoleID: remap(roleIDs, r.EditRoleID), DeleteRoleID: remap(roleIDs, r.DeleteRoleID),
+			AddReplacedBy: r.AddReplacedBy, EditReplacedBy: r.EditReplacedBy, DeleteReplacedBy: r.DeleteReplacedBy,
 		}
 		if err := m.copyRow(ctx, tx, roleRecord, row); err != nil {
 			return fail(err)
@@ -573,7 +581,7 @@ func (m *agencyManager) applyLibraryDocuments(ctx context.Context, tx *gorm.DB, 
 			return err
 		}
 	}
-	return nil
+	return m.ensureGenerated(ctx, tx, draftID)
 }
 
 type workflowObjectiveLink struct {

@@ -92,6 +92,24 @@ func (s *issueScan) checkRecords() error {
 	return nil
 }
 
+func (s *issueScan) checkRowSteps() error {
+	steps, err := list[models.WorkItem](s.m, s.scoped(roleWorkItem), roleWorkItem)
+	if err != nil {
+		return err
+	}
+	codes, err := s.codeSet(roleRecord)
+	if err != nil {
+		return err
+	}
+	for _, w := range steps {
+		if hasRowFields(w) && !codes[w.RowRecord] {
+			s.add(models.IssueSeverityError, "work_item", w.ID,
+				"Work item %s %q writes rows of Record %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.RowRecord))
+		}
+	}
+	return nil
+}
+
 func (s *issueScan) idSet(role string) (map[string]bool, error) {
 	var ids []string
 	if err := s.scoped(role).Pluck("id", &ids).Error; err != nil {

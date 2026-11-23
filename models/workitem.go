@@ -42,6 +42,8 @@ type WorkItem struct {
 	Reason           string         `json:"reason"`
 	Hold             *StepHold      `json:"hold,omitempty"`
 	HeldStepID       string         `json:"held_step_id"`
+	RowRecord        string         `json:"row_record"`
+	RowAction        string         `json:"row_action"`
 	Action           string         `json:"action,omitempty" spec:"-"`
 
 	carriedKeys

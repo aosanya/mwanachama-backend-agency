@@ -85,7 +85,12 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 	if err != nil {
 		return "", fmt.Errorf("contentHashFor: %w", err)
 	}
+	generatedWorkflows := map[string]bool{}
 	for _, r := range workflows {
+		if r.Generated {
+			generatedWorkflows[r.ID] = true
+			continue
+		}
 		records = append(records, hashRecord("Workflow", map[string]any{
 			"id": r.ID, "name": r.Name, "description": r.Description,
 			"ordinality": r.Ordinality, "event_flows": r.EventFlows, "deleted": r.Deleted,
@@ -107,6 +112,9 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		return "", fmt.Errorf("contentHashFor: %w", err)
 	}
 	for _, r := range workItems {
+		if generatedWorkflows[r.WorkflowID] {
+			continue
+		}
 		records = append(records, hashRecord("WorkItem", map[string]any{
 			"id": r.ID, "workflow_id": r.WorkflowID,
 			"title": r.Title, "description": r.Description, "ordinality": r.Ordinality,
@@ -122,6 +130,11 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 				optionalField{"tools", hashList(r.Tools)}, optionalField{"start_workflow_ids", hashList(r.StartWorkflowIDs)}))
 		}
 		records = append(records, hashRecordsOfRegisteredKind(r)...)
+		if hasRowFields(r) {
+			records = append(records, hashRecord("WorkItemRow", map[string]any{
+				"id": r.ID, "row_record": r.RowRecord, "row_action": r.RowAction,
+			}))
+		}
 		if r.TimeLimitMinutes != 0 || r.CancelWorkflowID != "" {
 			records = append(records, hashRecord("WorkItemLimit", map[string]any{
 				"id": r.ID, "time_limit_minutes": r.TimeLimitMinutes, "cancel_workflow_id": r.CancelWorkflowID,
@@ -137,7 +150,10 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		records = append(records, hashRecord("Record", map[string]any{
 			"id": r.ID, "workflow_id": r.WorkflowID, "name": r.Name, "role_id": r.RoleID,
 			"form_name": r.FormName, "questions": r.Questions, "deleted": r.Deleted,
-		}, optionalField{"viewer_role_id", r.ViewerRoleID}))
+		}, optionalField{"viewer_role_id", r.ViewerRoleID}, optionalField{"item_name", r.ItemName},
+			optionalField{"edit_role_id", r.EditRoleID}, optionalField{"delete_role_id", r.DeleteRoleID},
+			optionalField{"add_replaced_by", r.AddReplacedBy}, optionalField{"edit_replaced_by", r.EditReplacedBy},
+			optionalField{"delete_replaced_by", r.DeleteReplacedBy}))
 	}
 
 	steps, err := list[models.EventFlowStep](m, scoped(roleEventFlowStep), roleEventFlowStep)
@@ -413,6 +429,9 @@ func (m *agencyManager) PublishAgency(ctx context.Context, draftID, tag, channel
 	err = m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if _, err := m.findDraft(ctx, tx, draftID); err != nil {
 			return err
+		}
+		if err := m.ensureGenerated(ctx, tx, draftID); err != nil {
+			return fmt.Errorf("PublishAgency: %w", err)
 		}
 		if err := m.validationErrors(ctx, tx, draftID, groups); err != nil {
 			return err

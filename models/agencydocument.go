@@ -131,6 +131,10 @@ type DocumentWorkflow struct {
 
 	CancelsOrder bool `json:"cancels_order,omitempty"`
 	Deleted      bool `json:"deleted,omitempty"`
+
+	Generated    bool   `json:"generated,omitempty"`
+	GeneratedFor string `json:"generated_for,omitempty"`
+	ReplacedBy   string `json:"replaced_by,omitempty"`
 }
 
 type DocumentWorkItem struct {
@@ -177,6 +181,8 @@ type DocumentWorkItem struct {
 	Reason        string        `json:"reason,omitempty"`
 	Hold          *StepHold     `json:"hold,omitempty"`
 	HeldStepID    string        `json:"held_step_id,omitempty"`
+	RowRecord     string        `json:"row_record,omitempty"`
+	RowAction     string        `json:"row_action,omitempty"`
 }
 
 type DocumentWorkflowObjective struct {

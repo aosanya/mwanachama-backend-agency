@@ -18,6 +18,9 @@ A record is `models.Record`, stored in the `record` object of
 | `role_id` | The one role that adds rows, in the same draft. |
 | `viewer_role_id` | The one role whose members each see their own row of the record (decision 90, HS675), in the same draft. Empty when no role but the one that adds rows sees them. A group is accepted where a role is, as for `role_id`. |
 | `form_name`, `questions` | The form each row is added with, in the same shape as a step's form. |
+| `item_name` | What one row is called, singular, such as Tender or Office holder. Optional; the generated workflows are named from it (see Generated workflows). |
+| `edit_role_id`, `delete_role_id` | The one role that edits, and the one that deletes, a row through the generated workflows. Optional; empty means `role_id`. In the same draft. |
+| `add_replaced_by`, `edit_replaced_by`, `delete_replaced_by` | The code of a designed workflow of the same draft that stands in for the generated add, edit or delete workflow. Optional; it must exist and must not be generated. |
 
 Create and update refuse with `ErrInvalidRecord` (400) a record with no name,
 no role, two roles, two viewer roles, no workflow, no form name, no question, an
@@ -162,6 +165,99 @@ step by step and a route points at steps after it, so the Route step is created
 first and filled in once its targets exist. The Issue scan raises the error
 that stops publishing.
 
+## Row steps (ISS-121)
+
+A `fill_form` step may write a row of a record. Two fields on `models.WorkItem`,
+columns of `work_item` in `agency.blueprint.json`, in `DocumentWorkItem`, in
+the fork, the import, the publication document, and in the content hash only
+when set (record `WorkItemRow`, so an agency without them hashes as before):
+
+| Field | Values | Meaning |
+|---|---|---|
+| `row_record` | a record code such as `RC-1` | The record whose row the step writes. |
+| `row_action` | `add`, `edit`, `delete` | What the step does to it. |
+
+Create and update refuse with `ErrInvalidWorkItem` (400): one of the two without
+the other, an unknown action, a step that is not `fill_form`, a record code that
+is not a record of the same draft, a step whose role is not the record's role
+for that action (`role_id`, or `edit_role_id` and `delete_role_id` when set), an
+`add` or `edit` whose form name and questions differ from the record's, a
+`delete` that does not ask exactly one required `free_text` question (the
+reason), and a workflow that holds a row step beside any other step. An update
+that leaves `row_record` or `row_action` out keeps the stored value, as
+`tool` is kept; sending them empty clears them. The Issue scan names a row step
+whose record is gone. Code: `row_step.go`, `models/rowstep.go`.
+
+## Retiring a row (ISS-121)
+
+`RetireRecordRow(ctx, rowID, deletedBy, reason)` on the manager, tool
+`agency_retire_record_row`, route `POST /record-rows/{row_id}/retire` with a
+`reason` in the body and the caller as `deleted_by`. It marks one current row
+`deleted` and writes `deleted_by`, `deleted_reason` and `deleted_on` (new
+columns of `record_row`) and `last_updated`. Nothing is physically deleted and
+no audit entry is written; the row keeps its answers. It refuses with
+`ErrInvalidRecordRow` (400) a row that does not exist, one already retired, one
+replaced by a correction (history, not a current row) and a blank reason. A
+retired row can no longer be replaced, and does not count as a duplicate of an
+equal row added afterwards.
+
+`ListRecordRows` hides retired rows unless `RecordRowFilter.IncludeRetired`
+(`include_retired` on the route) is true; a row that was never retired lists as
+before. The route is a POST and not a DELETE because a reason travels in a body.
+Code: `record_row_retire.go`.
+
+## Generated workflows (ISS-121)
+
+An agency has designed workflows, written in its file, and generated workflows,
+made by the sibling from its records and never authored. Every live record has
+three, one step each, all `fill_form` steps with `row_record` set to the
+record's code and `row_action` set:
+
+| Workflow code | `row_action` | Held by | Form |
+|---|---|---|---|
+| `RC-1.add` | `add` | `role_id` | the record's form and questions |
+| `RC-1.edit` | `edit` | `edit_role_id`, else `role_id` | the record's form and questions |
+| `RC-1.delete` | `delete` | `delete_role_id`, else `role_id` | `Why delete this <item>` asking `Why is it removed` |
+
+The workflow name is the verb and the item with its article: `Add a tender`,
+`Edit an office holder`. The item is `item_name`, else the record's
+`form_name`, else its name. The step is titled like its workflow, has the
+ordinality 1 and the code `RC-1.add.1`.
+
+On a workflow, three fields: `generated` (true), `generated_for` (the record's
+code) and `replaced_by` (the code of the designed workflow that stands in for
+it, copied from the record's `*_replaced_by`; the generated workflow stays in
+the agency and the hub hides it from Start). They are columns of `workflow` and
+fields of `DocumentWorkflow`.
+
+When they are made: on every fork of a draft or of a publication, on every
+import, on publish (before the scan and the hash), and whenever a record is
+created, updated or deleted or a workflow is deleted (`ensureGenerated`, also
+the public `EnsureGeneratedWorkflows(ctx, draftID)`). Generation reuses the row
+of a workflow with the same code, so ids stay the same across regenerations
+inside a draft, updates the workflow and its step in place when the record's
+questions, role, names or stand-ins changed, removes a second copy and a
+workflow whose record is gone, and never changes a designed workflow. A draft,
+publication or import written before this existed has none, and gets them at
+its next fork, import or publish. Nothing is edited by hand for that.
+
+They are ordinary workflows to everything else: a `run_workflow` step of a
+designed workflow may name one (that is how a designed workflow uses
+`Add a client` as a sub-workflow), reads list them with `generated: true`, and
+they are started and run like any workflow. A run of one step is complete the
+moment it is sent and waits on no second actor.
+
+They are refused with `ErrGeneratedWorkflow` (409) on `UpdateWorkflow`,
+`DeleteWorkflow`, and on creating, updating, moving into or deleting a step of
+one. `CreateWorkflow` and `UpdateWorkflow` force `generated` false and the two
+other fields empty. A record cannot be kept by a generated workflow.
+
+The content hash leaves out generated workflows and their steps, so a record
+counts once and a record change is the change that regenerates them.
+
+The publish guard is `checkGeneratedWorkflows` in `generated_workflows.go`,
+one of the Issue scan's checks that `validationErrors` runs before a publish.
+
 ## What the Issue scan flags
 
 All are `error`, so none can be published:
@@ -170,7 +266,17 @@ All are `error`, so none can be published:
 - a sent form, a route target or an otherwise target that no longer exists, or
   that now belongs to another workflow;
 - a recipient role that no longer exists;
-- a record whose role, viewer role or workflow no longer exists.
+- a record whose role, viewer role or workflow no longer exists;
+- a row step whose record no longer exists;
+- a live record without an adding role;
+- for a live record, a missing, duplicated, altered or stale generated
+  workflow (different name, stand-in, step, role, form or questions than the
+  record now gives it), naming the record and the workflow code, and a
+  generated workflow whose record is gone;
+- a record whose `*_replaced_by` names no designed workflow of the draft.
+
+A designed workflow that stands in for a generated one but has no
+`run_workflow` step naming it is a `warning`.
 
 None of the deletes cascade into the steps that point at what they remove.
 

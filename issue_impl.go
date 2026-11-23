@@ -30,6 +30,8 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkRegistered,
 		s.checkStepLinks,
 		s.checkRecords,
+		s.checkRowSteps,
+		s.checkGeneratedWorkflows,
 		s.checkRiskPathways,
 		s.checkEventFlowSteps,
 		s.checkAttachments,
@@ -177,7 +179,7 @@ func (s *issueScan) checkWorkflowObjectives() error {
 		}
 	}
 	for _, w := range workflows {
-		if !workflowsWithObjective[w.ID] {
+		if !workflowsWithObjective[w.ID] && !w.Generated {
 			s.add(models.IssueSeverityError, "workflow", w.ID, "Workflow %s %q has no Objective", w.Code, w.Name)
 		}
 	}

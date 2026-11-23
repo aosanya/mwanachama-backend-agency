@@ -38,6 +38,7 @@ func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (
 		return models.Workflow{}, err
 	}
 	w.OpensIn = w.OpensIn.Normalized()
+	w.Generated, w.GeneratedFor, w.ReplacedBy = false, "", ""
 	w.ID = newID()
 	w.Deleted = false
 	w.CreatedAt = models.NowRFC3339()
@@ -92,6 +93,10 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
+		if existing.Generated {
+			return fmt.Errorf("%w: %s %q", ErrGeneratedWorkflow, existing.Code, existing.Name)
+		}
+		w.Generated, w.GeneratedFor, w.ReplacedBy = false, "", ""
 		keepUnsentWorkflowFields(&w, existing)
 		if err := validateWorkflowShape(w); err != nil {
 			return err
@@ -132,6 +137,9 @@ func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
+		if existing.Generated {
+			return fmt.Errorf("%w: %s %q", ErrGeneratedWorkflow, existing.Code, existing.Name)
+		}
 		if err := m.refuseWorkflowMirroredByScenario(ctx, tx, existing); err != nil {
 			return err
 		}
@@ -154,7 +162,10 @@ func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
 		if err := m.deleteInDraft(ctx, tx, roleRecord, existing.DraftID, "workflow_id = ?", id); err != nil {
 			return err
 		}
-		return m.deleteWhere(ctx, tx, roleWorkflow, "id = ?", id)
+		if err := m.deleteWhere(ctx, tx, roleWorkflow, "id = ?", id); err != nil {
+			return err
+		}
+		return m.ensureGenerated(ctx, tx, existing.DraftID)
 	})
 	if err != nil {
 		return fmt.Errorf("DeleteWorkflow: %w", err)

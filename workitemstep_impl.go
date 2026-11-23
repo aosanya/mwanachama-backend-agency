@@ -18,6 +18,9 @@ func validateStepShape(wi models.WorkItem) error {
 	if err := sharedShapeOfRegisteredKinds(wi); err != nil {
 		return err
 	}
+	if err := validateRowStepShape(wi); err != nil {
+		return err
+	}
 	if strings.ContainsAny(wi.RoleID, ", \t\r\n;") {
 		return invalidStep("a step has one role, got %q", wi.RoleID)
 	}
@@ -201,6 +204,12 @@ func (m *agencyManager) validateChatPlacement(ctx context.Context, tx *gorm.DB, 
 
 func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB, wi models.WorkItem) error {
 	if err := m.validateOwningWorkflow(ctx, tx, wi); err != nil {
+		return err
+	}
+	if err := m.refuseGeneratedWorkflow(ctx, tx, wi.DraftID, wi.WorkflowID); err != nil {
+		return err
+	}
+	if err := m.validateRowStepReferences(ctx, tx, wi); err != nil {
 		return err
 	}
 	if wi.Kind == models.StepKindChat {

@@ -74,8 +74,9 @@ var (
 	ErrInvalidRiskPathway  = errors.New("mwanachamaagency: invalid risk pathway")
 	// ErrInvalidWorkItem is returned by CreateWorkItem/UpdateWorkItem for a
 	// step that fails validation.
-	ErrInvalidWorkItem = errors.New("mwanachamaagency: invalid work item")
-	ErrInvalidWorkflow = errors.New("mwanachamaagency: invalid workflow")
+	ErrInvalidWorkItem   = errors.New("mwanachamaagency: invalid work item")
+	ErrInvalidWorkflow   = errors.New("mwanachamaagency: invalid workflow")
+	ErrGeneratedWorkflow = errors.New("mwanachamaagency: a generated workflow is made from its record and is not edited, renamed or deleted here")
 	// ErrInvalidValue is returned by CreateValue/UpdateValue when Text is
 	// empty.
 	ErrInvalidValue = errors.New("mwanachamaagency: invalid value")

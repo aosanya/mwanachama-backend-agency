@@ -125,6 +125,9 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 			string(models.StepKindCompute),
 			string(models.StepKindPost),
 		},
+		"work_item.row_action": {
+			models.RowActionAdd, models.RowActionEdit, models.RowActionDelete,
+		},
 		"workflow.opens_in": {
 			string(models.OpensInForm),
 			string(models.OpensInChat),

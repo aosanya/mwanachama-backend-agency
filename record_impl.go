@@ -35,6 +35,11 @@ func validateRecordShape(r models.Record) error {
 	if strings.ContainsAny(r.ViewerRoleID, ", \t\r\n;") {
 		return invalidRecord("a record has at most one role that sees its rows, got %q", r.ViewerRoleID)
 	}
+	for _, role := range []string{r.EditRoleID, r.DeleteRoleID} {
+		if strings.ContainsAny(role, ", \t\r\n;") {
+			return invalidRecord("a record has one role that edits and one that deletes its rows, got %q", role)
+		}
+	}
 	if r.WorkflowID == "" {
 		return invalidRecord("a record belongs to a workflow")
 	}
@@ -53,9 +58,23 @@ func (m *agencyManager) validateRecord(ctx context.Context, tx *gorm.DB, r model
 			return err
 		}
 	}
+	for _, role := range []string{r.EditRoleID, r.DeleteRoleID} {
+		if role == "" {
+			continue
+		}
+		if err := m.actorOfDraft(ctx, tx, r.DraftID, role); err != nil {
+			return err
+		}
+	}
 	var workflow models.Workflow
 	workflowQuery := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), r.DraftID).Where("id = ?", r.WorkflowID)
 	if err := m.take(workflowQuery, roleWorkflow, &workflow, ErrWorkflowNotFound); err != nil {
+		return err
+	}
+	if workflow.Generated {
+		return invalidRecord("a generated workflow keeps no record of its own")
+	}
+	if err := m.validateStandIns(ctx, tx, r); err != nil {
 		return err
 	}
 	var same int64
@@ -76,6 +95,7 @@ func (m *agencyManager) CreateRecord(ctx context.Context, r models.Record) (mode
 		return models.Record{}, err
 	}
 	r.Name = strings.TrimSpace(r.Name)
+	r.ItemName = strings.TrimSpace(r.ItemName)
 	if err := m.validateRecord(ctx, m.db, r); err != nil {
 		return models.Record{}, fmt.Errorf("CreateRecord: %w", err)
 	}
@@ -88,6 +108,10 @@ func (m *agencyManager) CreateRecord(ctx context.Context, r models.Record) (mode
 		r.Code = code
 		return r
 	})
+	if err != nil {
+		return models.Record{}, fmt.Errorf("CreateRecord: %w", err)
+	}
+	err = m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return m.ensureGenerated(ctx, tx, r.DraftID) })
 	if err != nil {
 		return models.Record{}, fmt.Errorf("CreateRecord: %w", err)
 	}
@@ -134,6 +158,7 @@ func (m *agencyManager) UpdateRecord(ctx context.Context, r models.Record) (mode
 		r.CreatedAt = existing.CreatedAt
 		r.LastUpdated = models.NowRFC3339()
 		r.Name = strings.TrimSpace(r.Name)
+		r.ItemName = strings.TrimSpace(r.ItemName)
 
 		if err := m.validateRecord(ctx, tx, r); err != nil {
 			return err
@@ -142,7 +167,7 @@ func (m *agencyManager) UpdateRecord(ctx context.Context, r models.Record) (mode
 			return err
 		}
 		out = r
-		return nil
+		return m.ensureGenerated(ctx, tx, existing.DraftID)
 	})
 	if err != nil {
 		return models.Record{}, fmt.Errorf("UpdateRecord: %w", err)
@@ -162,7 +187,10 @@ func (m *agencyManager) DeleteRecord(ctx context.Context, id string) error {
 		if err := m.deleteWhere(ctx, tx, roleRecordRow, "record_id = ?", id); err != nil {
 			return err
 		}
-		return m.deleteWhere(ctx, tx, roleRecord, "id = ?", id)
+		if err := m.deleteWhere(ctx, tx, roleRecord, "id = ?", id); err != nil {
+			return err
+		}
+		return m.ensureGenerated(ctx, tx, existing.DraftID)
 	})
 	if err != nil {
 		return fmt.Errorf("DeleteRecord: %w", err)
@@ -301,6 +329,9 @@ func (m *agencyManager) ListRecordRows(ctx context.Context, draftID string, filt
 	q = eqFilter(q, "record_id", filter.RecordID)
 	q = eqFilter(q, "record_code", filter.RecordCode)
 	q = eqFilter(q, "order_id", filter.OrderID)
+	if !filter.IncludeRetired {
+		q = notRetired(q)
+	}
 
 	out, err := list[models.RecordRow](m, q, roleRecordRow)
 	if err != nil {

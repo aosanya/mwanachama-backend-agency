@@ -113,7 +113,10 @@ func (m *agencyManager) CreateDraft(ctx context.Context, description, forkedFrom
 		if forkedFromType == "" {
 			return seedModuleCatalog(tx, m.st.Spec(), draft.ID)
 		}
-		return m.forkScope(ctx, tx, sourceScope, draft.ID, now)
+		if err := m.forkScope(ctx, tx, sourceScope, draft.ID, now); err != nil {
+			return err
+		}
+		return m.ensureGenerated(ctx, tx, draft.ID)
 	})
 	if err != nil {
 		return models.Draft{}, err
@@ -235,6 +238,8 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		r.WorkflowID = remap(workflowIDs, r.WorkflowID)
 		r.RoleID = remap(roleIDs, r.RoleID)
 		r.ViewerRoleID = remap(roleIDs, r.ViewerRoleID)
+		r.EditRoleID = remap(roleIDs, r.EditRoleID)
+		r.DeleteRoleID = remap(roleIDs, r.DeleteRoleID)
 		if err := m.copyRow(ctx, tx, roleRecord, r); err != nil {
 			return err
 		}

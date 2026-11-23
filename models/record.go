@@ -13,6 +13,13 @@ type Record struct {
 	CreatedAt    string         `json:"created_at"`
 	LastUpdated  string         `json:"last_updated"`
 	Deleted      bool           `json:"deleted"`
+
+	ItemName         string `json:"item_name"`
+	EditRoleID       string `json:"edit_role_id"`
+	DeleteRoleID     string `json:"delete_role_id"`
+	AddReplacedBy    string `json:"add_replaced_by"`
+	EditReplacedBy   string `json:"edit_replaced_by"`
+	DeleteReplacedBy string `json:"delete_replaced_by"`
 }
 
 type RecordRow struct {
@@ -31,6 +38,10 @@ type RecordRow struct {
 	CreatedAt   string            `json:"created_at"`
 	LastUpdated string            `json:"last_updated"`
 	Deleted     bool              `json:"deleted"`
+
+	DeletedBy     string `json:"deleted_by,omitempty"`
+	DeletedReason string `json:"deleted_reason,omitempty"`
+	DeletedOn     string `json:"deleted_on,omitempty"`
 }
 
 type DocumentRecord struct {
@@ -43,4 +54,11 @@ type DocumentRecord struct {
 	FormName     string         `json:"form_name"`
 	Questions    []StepQuestion `json:"questions,omitempty"`
 	Deleted      bool           `json:"deleted,omitempty"`
+
+	ItemName         string `json:"item_name,omitempty"`
+	EditRoleID       string `json:"edit_role_id,omitempty"`
+	DeleteRoleID     string `json:"delete_role_id,omitempty"`
+	AddReplacedBy    string `json:"add_replaced_by,omitempty"`
+	EditReplacedBy   string `json:"edit_replaced_by,omitempty"`
+	DeleteReplacedBy string `json:"delete_replaced_by,omitempty"`
 }

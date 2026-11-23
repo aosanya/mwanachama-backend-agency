@@ -41,6 +41,7 @@
     "ErrInvalidValue": 400,
     "ErrInvalidWorkItem": 400,
     "ErrInvalidWorkflow": 400,
+    "ErrGeneratedWorkflow": 409,
     "ErrModuleLocked": 409,
     "ErrModuleNotFound": 404,
     "ErrNoChangesDetected": 409,
@@ -485,7 +486,7 @@
       "call": "ListWorkflows",
       "action": "agency.workflow.list",
       "title": "List workflows",
-      "description": "List one draft's workflows in their listed order, narrowed by the filter. Each carries in_use (an order is under way on it), orders_under_way, order_versions (the versions those orders are on) and version (the version published now, 0 before the first publish).",
+      "description": "List one draft's workflows in their listed order, narrowed by the filter. Each carries in_use (an order is under way on it), orders_under_way, order_versions (the versions those orders are on) and version (the version published now, 0 before the first publish). A generated workflow, made by the agency from a record, reads back generated true, generated_for (the record's code), replaced_by (the designed workflow that stands in for it, when the record names one) and its code RC-n.add, RC-n.edit or RC-n.delete; it holds one fill_form step that writes the record's row.",
       "args": [
         {
           "from": "query",
@@ -547,7 +548,7 @@
       "call": "UpdateWorkflow",
       "action": "agency.workflow.update",
       "title": "Update workflow",
-      "description": "Replace a workflow's name, description, position, event-flow definition, opens_in (chat or form; a workflow that holds a chat step stays a chat) and cancels_order (true for a workflow that cancels an order).",
+      "description": "Replace a workflow's name, description, position, event-flow definition, opens_in (chat or form; a workflow that holds a chat step stays a chat) and cancels_order (true for a workflow that cancels an order). A generated workflow is refused with 409.",
       "args": [
         {
           "from": "body",
@@ -664,7 +665,7 @@
       "action": "agency.work_item.create",
       "status": 201,
       "title": "Create work item",
-      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick.",
+      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only.",
       "args": [
         {
           "from": "body",
@@ -684,7 +685,7 @@
       "call": "ListWorkItems",
       "action": "agency.work_item.list",
       "title": "List work items",
-      "description": "List one draft's work items in their listed order, narrowed by the filter. Each step reads back with its kind, role, form, questions, tool and derived action, such as \"Fills the Group order form\". It reads back function, bindings, result_name, on_failure, hold, amount_step_id, debit_account, credit_account, reason and held_step_id on the steps that hold them.",
+      "description": "List one draft's work items in their listed order, narrowed by the filter. Each step reads back with its kind, role, form, questions, tool and derived action, such as \"Fills the Group order form\". It reads back function, bindings, result_name, on_failure, hold, amount_step_id, debit_account, credit_account, reason and held_step_id on the steps that hold them, and row_record and row_action on the steps that write a row.",
       "args": [
         {
           "from": "query",
@@ -709,7 +710,7 @@
       "call": "GetWorkItem",
       "action": "agency.work_item.read",
       "title": "Read work item",
-      "description": "Read one work item by its id — its code, title, prompt, kind, role, form and derived action, and the workflow it belongs to. It reads back function, bindings, result_name, on_failure, hold, amount_step_id, debit_account, credit_account, reason and held_step_id on the steps that hold them.",
+      "description": "Read one work item by its id — its code, title, prompt, kind, role, form and derived action, and the workflow it belongs to. It reads back function, bindings, result_name, on_failure, hold, amount_step_id, debit_account, credit_account, reason and held_step_id on the steps that hold them, and row_record and row_action on the steps that write a row.",
       "args": [
         {
           "from": "path",
@@ -731,7 +732,7 @@
       "call": "UpdateWorkItem",
       "action": "agency.work_item.update",
       "title": "Update work item",
-      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick.",
+      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only.",
       "args": [
         {
           "from": "body",
@@ -2013,7 +2014,7 @@
       "tool": "agency_delete_workflow",
       "status": 204,
       "title": "Delete workflow",
-      "description": "Remove a workflow, every work item it owns, its objective links and the RACI links of its steps. Refused with 409 while a scenario mirrors it.",
+      "description": "Remove a workflow, every work item it owns, its objective links and the RACI links of its steps. Refused with 409 while a scenario mirrors it, and with 409 for a generated workflow, which goes with its record.",
       "args": [
         {
           "from": "path",
@@ -2036,7 +2037,7 @@
       "tool": "agency_delete_work_item",
       "status": 204,
       "title": "Delete work item",
-      "description": "Remove one work item. It carries no RACI of its own, so nothing else goes with it.",
+      "description": "Remove one work item. It carries no RACI of its own, so nothing else goes with it. A step of a generated workflow is refused with 409.",
       "args": [
         {
           "from": "path",
@@ -2123,7 +2124,7 @@
       "call": "CreateRecord",
       "action": "agency.record.create",
       "title": "Create record",
-      "description": "Add a record to a workflow: a named list the workflow keeps beside its steps, the one role that adds rows, optionally the one role whose members each see their own row (viewer_role_id), and the form each row is added with. The roles and the workflow must be in the draft.",
+      "description": "Add a record to a workflow: a named list the workflow keeps beside its steps, the one role that adds rows, optionally the one role whose members each see their own row (viewer_role_id), and the form each row is added with. The roles and the workflow must be in the draft. A record may also carry item_name (what one row is called, singular, such as Tender: the generated workflows are named from it), edit_role_id and delete_role_id (the roles that edit and delete a row; empty means the role that adds rows) and add_replaced_by, edit_replaced_by and delete_replaced_by (the code of a designed workflow of the draft that stands in for the generated add, edit or delete workflow). Every record has three generated workflows, RC-n.add, RC-n.edit and RC-n.delete, made and kept by the agency (see list_workflows, generated).",
       "args": [
         {
           "from": "body",
@@ -2190,7 +2191,7 @@
       "call": "UpdateRecord",
       "action": "agency.record.update",
       "title": "Update record",
-      "description": "Replace a record's name, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. An update replaces the whole record and does not merge into it: a viewer_role_id left out clears it, so send the current one to keep it. The same refusals as creating one apply.",
+      "description": "Replace a record's name, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. An update replaces the whole record and does not merge into it: a viewer_role_id left out clears it, so send the current one to keep it, and the same holds for item_name, edit_role_id, delete_role_id and the three replaced_by fields. The same refusals as creating one apply. Saving a record regenerates its three workflows in place.",
       "args": [
         {
           "from": "body",
@@ -2265,7 +2266,7 @@
       "call": "ListRecordRows",
       "action": "agency.record_row.list",
       "title": "List record rows",
-      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version.",
+      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version. Retired rows are left out unless include_retired is true.",
       "args": [
         {
           "from": "query",
@@ -2283,6 +2284,38 @@
         }
       ],
       "tool": "agency_list_record_rows"
+    },
+    "retire_record_row": {
+      "method": "POST",
+      "path": "/record-rows/{row_id}/retire",
+      "call": "RetireRecordRow",
+      "action": "agency.record_row.retire",
+      "title": "Retire record row",
+      "description": "Retire one current row of a record: it leaves the default listing, and the row is kept with who retired it, why and when (deleted_by, deleted_reason, deleted_on). The reason is required and the retiring person is the caller; a deleted_by in the request is ignored. A row that does not exist, is already retired or was replaced by a correction is refused. Nothing is physically deleted: list_record_rows with include_retired reads retired rows too.",
+      "args": [
+        {
+          "from": "path",
+          "as": "row_id",
+          "description": "The row to retire."
+        },
+        {
+          "from": "caller",
+          "as": "deleted_by",
+          "description": "Who retires the row, resolved from the session rather than the request."
+        },
+        {
+          "from": "body",
+          "as": "reason",
+          "required": true,
+          "description": "Why the row is retired."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_retire_record_row"
     },
     "create_scenario": {
       "method": "POST",
