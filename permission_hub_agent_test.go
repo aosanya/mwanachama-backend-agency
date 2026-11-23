@@ -31,7 +31,6 @@ var hubAgentCalls = []hubAgentCall{
 	{"sources_source_list", "sources.source.list", []string{"document.search", "document.read"}},
 	{"sources_chunk_list", "sources.chunk.list", []string{"document.read"}},
 	{"actor_list_groups", "actor.group.list", []string{"group.read"}},
-	{"actor_list_actors", "actor.actor.list", []string{"member.read"}},
 	{"ai_resolve_agency_role", "ai.role.resolve_agency_role", []string{"ai.use"}},
 	{"ai_list_accounts", "ai.account.list", []string{"ai.use"}},
 	{"ai_record_usage", "ai.usage.record", []string{"ai.use"}},
@@ -77,7 +76,7 @@ func TestTheHubAgentPermissionsCarryExactlyTheirActions(t *testing.T) {
 	want := map[string]models.Permission{
 		"chat.thread": {
 			Code: "chat.thread", Name: "Open and keep up with chat threads", Module: "comm",
-			Actions: []string{"comm.chat_thread.list", "comm.chat_thread.create", "comm.chat_thread.mark_read"},
+			Actions: []string{"comm.chat_thread.list", "comm.chat_thread.read", "comm.chat_thread.create", "comm.chat_thread.mark_read", "comm.chat_room.set_question"},
 		},
 		"form.compose": {
 			Code: "form.compose", Name: "Compose forms", Module: "forms",
@@ -97,7 +96,7 @@ func TestTheHubAgentPermissionsCarryExactlyTheirActions(t *testing.T) {
 		},
 		"member.read": {
 			Code: "member.read", Name: "See who is in the hub",
-			Actions: []string{"actor.actor.list"},
+			Actions: []string{},
 		},
 	}
 	for code, expected := range want {

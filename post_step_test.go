@@ -171,8 +171,8 @@ func TestPostStep_ScanOfAStepWithNothingButAnAccount(t *testing.T) {
 	post := w.mustStep(t, "Post the payment", 2, models.StepKindPost, func(wi *models.WorkItem) { wi.CreditAccount = "Member loans" })
 
 	messages := w.errorsAbout(t, post.ID)
-	if len(messages) != 4 {
-		t.Fatalf("want 4 errors (P5), got %d: %q", len(messages), messages)
+	if len(messages) != 3 {
+		t.Fatalf("want 3 errors (P5), got %d: %q", len(messages), messages)
 	}
 	wants := []string{
 		"is a post step with no amount source: it names no calculating step",

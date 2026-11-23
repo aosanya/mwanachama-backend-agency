@@ -183,12 +183,12 @@ into underscores, except the actor tools, which declare their own name.
 
 | Permission | Name | Module | Actions | Agent tools |
 | --- | --- | --- | --- | --- |
-| `chat.thread` | Open and keep up with chat threads | `comm` | `comm.chat_thread.list`, `comm.chat_thread.create`, `comm.chat_thread.mark_read` | `comm_chat_thread_list`, `comm_chat_thread_create`, `comm_chat_thread_mark_read` |
+| `chat.thread` | Open and keep up with chat threads | `comm` | `comm.chat_thread.list`, `comm.chat_thread.read`, `comm.chat_thread.create`, `comm.chat_thread.mark_read`, `comm.chat_room.set_question` | `comm_chat_thread_list`, `comm_chat_thread_read`, `comm_chat_thread_create`, `comm_chat_thread_mark_read`, `comm_chat_room_set_question` |
 | `form.compose` | Compose forms | `forms` | `forms.form.create`, `forms.question.create`, `forms.question.list` | `forms_form_create`, `forms_question_create`, `forms_question_list` |
 | `form.answers.read` | Read the answers to a form | `forms` | `forms.answer.list_all`, `forms.question.list` | `forms_answer_list_all`, `forms_question_list` |
 | `document.read` | Read documents | `sources` | `sources.source.list`, `sources.source.read`, `sources.chunk.list` | `sources_source_list`, `sources_chunk_list` |
 | `group.read` | See the hub's rooms | none | `actor.group.list` | `actor_list_groups` |
-| `member.read` | See who is in the hub | none | `actor.actor.list` | `actor_list_actors` |
+| `member.read` | See who is in the hub | none | none | none |
 
 The agent role also holds permissions that already existed: `chat.post` (the chat
 messages: `comm_chat_message_list`, `comm_chat_message_post`), `form.send`
@@ -209,10 +209,9 @@ Why they are shaped this way:
   `document.search` so that a role that only reads documents (the answers desk
   lists the documents and walks their passages itself) does not also need
   search. A permission is a set of actions, so holding both is no wider than either.
-- `member.read` is separate from `group.read` because listing every person in a
-  hub is wider than listing its rooms. No agent code calls `actor_list_actors`
-  today; the permission exists because the service's allowed tool list names it, and
-  a template that does not need it can leave it out.
+- `member.read` carries no action. Listing the people of a hub is
+  `resident.read`, which opens a person's name and address, so no hub agent
+  lists members and no hub agent holds `resident.read`.
 - `ai.use` gains `ai.role.resolve_agency_role` because every agent reads its
   role's instructions from `GET /instances/{id}/ai/agency-roles/{id}/resolve`
   before it asks the model. It does not gain `ai.role.resolve` (by AI role id),
@@ -398,7 +397,8 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `location.edit` | Change a place | no | `assetmanager` | Change a place. |
 | `member.add` | Add a person who lives here | no | none | Add a person who lives here. |
 | `member.edit` | Change a person's name and details | no | none | Change a person's display name and details, and list the properties a detail may take. |
-| `notification.raise` | Tell one person about a report | no | `comm` | Tell one person about a report. |
+| `notification.raise` | Tell one person about a report | no | `comm` | Tell one person about a report, and read who can be told. |
+| `payment.receive_unpaid_list` | Receive the list of who has not paid | no | `comm` | Names the seat that is sent the list of who has not paid. It carries no action of its own, so holding it opens nothing. |
 | `person_raised_items.read` | See the wishes and issues one resident raised | no | `forms` | List the wishes and issues one resident raised. |
 | `risk.record` | Record proof on a risk and keep its actions | no | `riskmanager` | Record evidence on a risk, and update and set the status of its actions. |
 
