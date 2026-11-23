@@ -466,7 +466,7 @@
       "action": "agency.workflow.create",
       "status": 201,
       "title": "Create workflow",
-      "description": "Add a named sequence of work the organization performs. opens_in says where it starts for the person: chat, or form (the default, so leave it out for a form). A workflow that opens in a chat holds one chat step. cancels_order is true for a workflow that cancels an order, so the picker on a waiting step lists it beside the built-in Cancel (false by default).",
+      "description": "Add a named sequence of work the organization performs. opens_in says where it starts for the person: chat, or form (the default, so leave it out for a form). A workflow that opens in a chat holds one chat step. cancels_order is true for a workflow that cancels an order, so the picker on a waiting step lists it beside the built-in Cancel (false by default). subject_record is the code of a record of the draft, such as RC-1, whose row a run of the workflow is started on; a record the draft does not keep is refused, and leaving it out means the workflow has no subject.",
       "args": [
         {
           "from": "body",
@@ -486,7 +486,7 @@
       "call": "ListWorkflows",
       "action": "agency.workflow.list",
       "title": "List workflows",
-      "description": "List one draft's workflows in their listed order, narrowed by the filter. Each carries in_use (an order is under way on it), orders_under_way, order_versions (the versions those orders are on) and version (the version published now, 0 before the first publish). A generated workflow, made by the agency from a record, reads back generated true, generated_for (the record's code), replaced_by (the designed workflow that stands in for it, when the record names one) and its code RC-n.add, RC-n.edit or RC-n.delete; it holds one fill_form step that writes the record's row.",
+      "description": "List one draft's workflows in their listed order, narrowed by the filter. Each carries in_use (an order is under way on it), orders_under_way, order_versions (the versions those orders are on) and version (the version published now, 0 before the first publish). A generated workflow, made by the agency from a record, reads back generated true, generated_for (the record's code), replaced_by (the designed workflow that stands in for it, when the record names one) and its code RC-n.add, RC-n.edit or RC-n.delete; it holds one fill_form step that writes the record's row. A workflow that names a subject record reads back subject_record.",
       "args": [
         {
           "from": "query",
@@ -548,7 +548,7 @@
       "call": "UpdateWorkflow",
       "action": "agency.workflow.update",
       "title": "Update workflow",
-      "description": "Replace a workflow's name, description, position, event-flow definition, opens_in (chat or form; a workflow that holds a chat step stays a chat) and cancels_order (true for a workflow that cancels an order). A generated workflow is refused with 409.",
+      "description": "Replace a workflow's name, description, position, event-flow definition, opens_in (chat or form; a workflow that holds a chat step stays a chat) cancels_order (true for a workflow that cancels an order) and subject_record (the code of a record of the draft; empty clears it; left out keeps it). A generated workflow is refused with 409.",
       "args": [
         {
           "from": "body",
@@ -2239,7 +2239,7 @@
       "call": "CreateRecordRow",
       "action": "agency.record_row.create",
       "title": "Add record row",
-      "description": "Add one row to a record, as the member app does. The row is refused unless role_id is the role that adds rows to the record, and its answers must fit the record's form. The row is signed by the caller; an added_by in the request is ignored. Rows are kept in the agency and are never copied into a new version.",
+      "description": "Add one row to a record, as the member app does. The row is refused unless role_id is the role that adds rows to the record, and its answers must fit the record's form. The row is signed by the caller; an added_by in the request is ignored. Rows are kept in the agency and are never copied into a new version. subject_row_id is the row, of the record the workflow names as its subject, that the run was started on; it must be a row of the draft, every row of one order_id carries the same one, and a row that leaves it out takes the one its order already carries.",
       "args": [
         {
           "from": "body",
@@ -2266,7 +2266,7 @@
       "call": "ListRecordRows",
       "action": "agency.record_row.list",
       "title": "List record rows",
-      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version. Retired rows are left out unless include_retired is true, and returned rows unless include_returned is true.",
+      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version, to one order by order_id, or to the rows of the runs started on one row by subject_row_id. Retired rows are left out unless include_retired is true, and returned rows unless include_returned is true.",
       "args": [
         {
           "from": "query",

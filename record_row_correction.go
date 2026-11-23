@@ -35,6 +35,12 @@ func (m *agencyManager) settleReplacement(ctx context.Context, row *models.Recor
 	if row.OrderID != old.OrderID {
 		return invalidRow("a replacing row stays with the order of the row it replaces")
 	}
+	if row.SubjectRowID == "" {
+		row.SubjectRowID = old.SubjectRowID
+	}
+	if old.SubjectRowID != "" && row.SubjectRowID != old.SubjectRowID {
+		return invalidRow("a replacing row stays with the subject row of the row it replaces")
+	}
 	taken, err := list[models.RecordRow](m, m.q(ctx, roleRecordRow).Where("replaces = ?", old.ID), roleRecordRow)
 	if err != nil {
 		return err

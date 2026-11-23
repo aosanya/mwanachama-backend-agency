@@ -94,7 +94,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		records = append(records, hashRecord("Workflow", map[string]any{
 			"id": r.ID, "name": r.Name, "description": r.Description,
 			"ordinality": r.Ordinality, "event_flows": r.EventFlows, "deleted": r.Deleted,
-		}, optionalField{"opens_in", string(r.OpensIn)}, optionalField{"cancels_order", trueText(r.CancelsOrder)}))
+		}, optionalField{"opens_in", string(r.OpensIn)}, optionalField{"cancels_order", trueText(r.CancelsOrder)}, optionalField{"subject_record", r.SubjectRecord}))
 	}
 
 	workflowObjectives, err := list[models.WorkflowObjective](m, scoped(roleWorkflowObjective), roleWorkflowObjective)

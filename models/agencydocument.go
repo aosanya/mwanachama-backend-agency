@@ -132,9 +132,10 @@ type DocumentWorkflow struct {
 	CancelsOrder bool `json:"cancels_order,omitempty"`
 	Deleted      bool `json:"deleted,omitempty"`
 
-	Generated    bool   `json:"generated,omitempty"`
-	GeneratedFor string `json:"generated_for,omitempty"`
-	ReplacedBy   string `json:"replaced_by,omitempty"`
+	Generated     bool   `json:"generated,omitempty"`
+	GeneratedFor  string `json:"generated_for,omitempty"`
+	ReplacedBy    string `json:"replaced_by,omitempty"`
+	SubjectRecord string `json:"subject_record,omitempty"`
 }
 
 type DocumentWorkItem struct {

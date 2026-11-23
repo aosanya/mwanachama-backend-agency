@@ -315,6 +315,9 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 	if err := m.settleReplacement(ctx, &row, record); err != nil {
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
 	}
+	if err := m.settleSubjectRow(ctx, &row); err != nil {
+		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
+	}
 	if err := m.refuseDuplicate(ctx, row); err != nil {
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
 	}
@@ -329,6 +332,7 @@ func (m *agencyManager) ListRecordRows(ctx context.Context, draftID string, filt
 	q = eqFilter(q, "record_id", filter.RecordID)
 	q = eqFilter(q, "record_code", filter.RecordCode)
 	q = eqFilter(q, "order_id", filter.OrderID)
+	q = eqFilter(q, "subject_row_id", filter.SubjectRowID)
 	if !filter.IncludeRetired {
 		q = notRetired(q)
 	}
