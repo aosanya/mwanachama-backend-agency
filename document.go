@@ -94,7 +94,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 			AgentRoleID: wi.AgentRoleID, Topic: wi.Topic, OpeningLine: wi.OpeningLine,
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: wi.StartWorkflowIDs,
 			RowRecord: wi.RowRecord, RowAction: wi.RowAction,
-			SendBackDecision: wi.SendBackDecision, SendBackReason: wi.SendBackReason,
+			SendBackDecision: wi.SendBackDecision, SendBackReason: wi.SendBackReason, RecordCode: wi.RecordCode,
 		}
 		documentOfRegisteredKind(wi, &docStep)
 		doc.WorkItems = append(doc.WorkItems, docStep)
@@ -376,7 +376,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			AgentRoleID: remap(roleIDs, wi.AgentRoleID), Topic: wi.Topic, OpeningLine: wi.OpeningLine,
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: remapAll(workflowIDs, wi.StartWorkflowIDs),
 			RowRecord: wi.RowRecord, RowAction: wi.RowAction,
-			SendBackDecision: wi.SendBackDecision, SendBackReason: wi.SendBackReason,
+			SendBackDecision: wi.SendBackDecision, SendBackReason: wi.SendBackReason, RecordCode: wi.RecordCode,
 			CreatedAt: now, LastUpdated: now,
 		}
 		rowOfRegisteredKind(wi, &row, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs, Records: recordIDs})

@@ -140,6 +140,11 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 				"id": r.ID, "send_back_decision": r.SendBackDecision, "send_back_reason": r.SendBackReason,
 			}))
 		}
+		if r.RecordCode != "" {
+			records = append(records, hashRecord("WorkItemRecordCode", map[string]any{
+				"id": r.ID, "record_code": r.RecordCode,
+			}))
+		}
 		if r.TimeLimitMinutes != 0 || r.CancelWorkflowID != "" {
 			records = append(records, hashRecord("WorkItemLimit", map[string]any{
 				"id": r.ID, "time_limit_minutes": r.TimeLimitMinutes, "cancel_workflow_id": r.CancelWorkflowID,

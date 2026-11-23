@@ -46,6 +46,7 @@ type WorkItem struct {
 	RowAction        string         `json:"row_action"`
 	SendBackDecision string         `json:"send_back_decision"`
 	SendBackReason   string         `json:"send_back_reason"`
+	RecordCode       string         `json:"record_code"`
 	Action           string         `json:"action,omitempty" spec:"-"`
 
 	carriedKeys

@@ -283,6 +283,22 @@ returned is refused, so the two reasons never share one row.
 
 Code: `record_row_return.go`.
 
+## A form step names its record (ISS-140)
+
+One optional field on `models.WorkItem` and `models.DocumentWorkItem`:
+`record_code`, the code of the record the step's form writes, such as
+`bid_decision`. It is a column of `work_item` in `agency.blueprint.json`,
+written by the fork, the import, the publication document and the restore of a
+publication, and in the content hash only when set (record
+`WorkItemRecordCode`), so an agency without it hashes as before. An update that
+leaves it out keeps the stored value; sending it empty clears it.
+
+Create and update refuse with `ErrInvalidWorkItem` (400) a `record_code` on a
+step that is not `fill_form`. The sibling does not check the format of the
+code, that a record with that code exists, or that no other step names it: the
+platform that imports the file owns those checks and derives the record. Code:
+`record_code_step.go`, called from `validateStepShape`.
+
 ## Generated workflows (ISS-121)
 
 An agency has designed workflows, written in its file, and generated workflows,
