@@ -187,6 +187,7 @@ type DocumentWorkItem struct {
 
 	SendBackDecision string `json:"send_back_decision,omitempty"`
 	SendBackReason   string `json:"send_back_reason,omitempty"`
+	RecordCode       string `json:"record_code,omitempty"`
 }
 
 type DocumentWorkflowObjective struct {

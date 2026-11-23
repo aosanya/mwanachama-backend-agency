@@ -276,6 +276,7 @@
         {"name": "row_action", "type": "enum", "description": "What a step with a row_record does to the record's row: add, edit or delete. Empty for every other step; set together with row_record.", "values": ["add", "edit", "delete"]},
         {"name": "send_back_decision", "type": "string", "description": "The prompt of the yes or no question of the step's own form that holds the pick between approving and sending back: yes is Approve, no is Send back. Empty for a step that cannot be sent back; set together with send_back_reason."},
         {"name": "send_back_reason", "type": "string", "description": "The prompt of the free text question of the step's own form that holds the reason for a send back. Empty for a step that cannot be sent back; set together with send_back_decision."},
+        {"name": "record_code", "type": "string", "description": "The code of the record a fill_form step writes, such as bid_decision, which the platform derives when the file declares no record with that code. Empty for every other step and for a step whose record is found by its title."},
         {"name": "created_at", "type": "timestamp", "description": "When the step was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
