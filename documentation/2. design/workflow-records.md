@@ -258,6 +258,39 @@ counts once and a record change is the change that regenerates them.
 The publish guard is `checkGeneratedWorkflows` in `generated_workflows.go`,
 one of the Issue scan's checks that `validationErrors` runs before a publish.
 
+## A workflow's subject and the row a run is started on
+
+A workflow may name a **subject record**: `subject_record` on `Workflow` and on
+the document workflow holds a record code, such as `RC-1`, of the same draft. It
+says the workflow acts on one row of that record, so a run of it is started on
+a row. An empty `subject_record` means no subject, and the workflow behaves as
+every workflow did before the field existed.
+
+`CreateWorkflow` and `UpdateWorkflow` refuse a code the draft does not keep with
+`ErrInvalidWorkflow`, naming it; an update that leaves the field out keeps it,
+and one that leaves it unchanged is not checked again. `ImportDocument`, and a
+fork from a publication, refuse a workflow whose subject is not among the
+document's records, in the same words, and nothing of the import is kept. A record
+cannot be named by a workflow created before it exists, so an importer that
+creates workflow by workflow creates the records first and then sets the
+subject with `UpdateWorkflow`. The Issue scan reports a workflow whose subject
+record is gone. The field is in the publication document, in the content hash
+(naming a subject is a change to publish), and in a fork.
+
+A run is the register rows that share an `order_id`. `RecordRow` gains
+`subject_row_id` beside it: the row of the subject record the run was started
+on. `CreateRecordRow` takes it from the caller and:
+
+- refuses an id that is not a current row of the draft, naming it;
+- gives a row of a run the `subject_row_id` its run already carries when it
+  names none, and refuses one that names another;
+- gives a replacing row the one of the row it replaces.
+
+`ListRecordRows` narrows by `subject_row_id`, so every row of the runs started
+on one row reads back together. A row without one, and every row written before
+the column existed, behaves as before; no row is migrated, and the column is
+added to an existing table by `Provision`.
+
 ## What the Issue scan flags
 
 All are `error`, so none can be published:
@@ -268,6 +301,7 @@ All are `error`, so none can be published:
 - a recipient role that no longer exists;
 - a record whose role, viewer role or workflow no longer exists;
 - a row step whose record no longer exists;
+- a workflow whose subject record no longer exists;
 - a live record without an adding role;
 - for a live record, a missing, duplicated, altered or stale generated
   workflow (different name, stand-in, step, role, form or questions than the

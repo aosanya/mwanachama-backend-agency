@@ -73,7 +73,8 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		doc.Workflows = append(doc.Workflows, models.DocumentWorkflow{
 			ID: w.ID, Code: w.Code, Name: w.Name, Description: w.Description,
 			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn, CancelsOrder: w.CancelsOrder,
-			Generated: w.Generated, GeneratedFor: w.GeneratedFor, ReplacedBy: w.ReplacedBy,
+			SubjectRecord: w.SubjectRecord,
+			Generated:     w.Generated, GeneratedFor: w.GeneratedFor, ReplacedBy: w.ReplacedBy,
 		})
 	}
 
@@ -300,6 +301,9 @@ func (m *agencyManager) libraryDocuments(scoped func(string) *gorm.DB, doc *mode
 
 func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, draftID string, doc models.AgencyDocument, now string) error {
 	fail := func(err error) error { return fmt.Errorf("applyDocumentToDraft: %w", err) }
+	if err := validateDocumentSubjects(doc); err != nil {
+		return fail(err)
+	}
 
 	goalIDs := make(map[string]string, len(doc.Goals))
 	for _, g := range doc.Goals {
@@ -330,7 +334,8 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		row := models.Workflow{
 			ID: newID(), Code: w.Code, DraftID: draftID, Name: w.Name, Description: w.Description,
 			Ordinality: w.Ordinality, EventFlows: w.EventFlows, OpensIn: w.OpensIn, CancelsOrder: w.CancelsOrder, CreatedAt: now, LastUpdated: now,
-			Generated: w.Generated, GeneratedFor: w.GeneratedFor, ReplacedBy: w.ReplacedBy,
+			SubjectRecord: w.SubjectRecord,
+			Generated:     w.Generated, GeneratedFor: w.GeneratedFor, ReplacedBy: w.ReplacedBy,
 		}
 		if err := m.copyRow(ctx, tx, roleWorkflow, row); err != nil {
 			return fail(err)
