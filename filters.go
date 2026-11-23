@@ -51,7 +51,8 @@ type RecordRowFilter struct {
 	RecordCode string `query:"record_code"`
 	OrderID    string `query:"order_id"`
 
-	IncludeRetired bool `query:"include_retired"`
+	IncludeRetired  bool `query:"include_retired"`
+	IncludeReturned bool `query:"include_returned"`
 }
 type EventFlowStepFilter struct {
 	Code        string `query:"code"`

@@ -332,6 +332,9 @@ func (m *agencyManager) ListRecordRows(ctx context.Context, draftID string, filt
 	if !filter.IncludeRetired {
 		q = notRetired(q)
 	}
+	if !filter.IncludeReturned {
+		q = notReturned(q)
+	}
 
 	out, err := list[models.RecordRow](m, q, roleRecordRow)
 	if err != nil {

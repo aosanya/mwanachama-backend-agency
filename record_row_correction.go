@@ -23,6 +23,9 @@ func (m *agencyManager) settleReplacement(ctx context.Context, row *models.Recor
 	if old.Deleted {
 		return invalidRow("the row to replace is retired")
 	}
+	if old.ReturnedOn != "" {
+		return invalidRow("the row to replace was returned")
+	}
 	if old.RecordCode != record.Code {
 		return invalidRow("the row to replace belongs to another record")
 	}
@@ -46,7 +49,7 @@ func (m *agencyManager) settleReplacement(ctx context.Context, row *models.Recor
 func (m *agencyManager) refuseDuplicate(ctx context.Context, row models.RecordRow) error {
 	since := rowClock().Add(-duplicateRowWindow).Format(models.TimeLayout)
 	recent, err := list[models.RecordRow](m, m.q(ctx, roleRecordRow).
-		Where("record_code = ? AND created_at >= ?", row.RecordCode, since).Scopes(notRetired), roleRecordRow)
+		Where("record_code = ? AND created_at >= ?", row.RecordCode, since).Scopes(notRetired, notReturned), roleRecordRow)
 	if err != nil {
 		return err
 	}

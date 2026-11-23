@@ -206,6 +206,83 @@ equal row added afterwards.
 before. The route is a POST and not a DELETE because a reason travels in a body.
 Code: `record_row_retire.go`.
 
+## Sending a step back (ISS-139)
+
+Hub Steward decision 17 (IAS, 2026-11-23). A step that reviews earlier work may
+be sent back: the run reopens the previous step for the role that holds it, with
+the sender's reason. For now there is one target, the previous step. Where work
+goes after a send-back may branch later, so the target is chosen by the caller
+and never by the sibling.
+
+### How a step declares its decision and reason
+
+Two optional fields on `models.WorkItem`, set together:
+
+| Field | Meaning |
+|---|---|
+| `send_back_decision` | The prompt of the yes or no question of the step's own form that holds the pick. Yes is Approve, no is Send back. |
+| `send_back_reason` | The prompt of the free text question of the step's own form that holds the reason. |
+
+They are the two prompts the open steps reply carries as `send_back {decision,
+reason}`. They are columns of `work_item` in `agency.blueprint.json`, fields of
+`models.WorkItem` and `models.DocumentWorkItem`, written by the fork, the
+import, the publication document and the restore of a publication, and in the
+content hash only when set (record `WorkItemSendBack`), so an agency without
+them hashes as before. An update that leaves them out keeps the stored values,
+as for `row_record`; sending them empty clears them.
+
+Create and update refuse with `ErrInvalidWorkItem` (400): one prompt without
+the other, a step that is not `fill_form`, a step no role acts on, a step that
+writes a row (`row_record`), a decision prompt the step's own form does not ask
+or that is not a `yes_no` question, and a reason prompt the form does not ask or
+that is not a `free_text` question. Prompts are matched exactly. Code:
+`send_back_step.go`, called from `validateStepShape`.
+
+The sibling does not check that a previous step exists, because a workflow is
+built step by step; the previous step is the nearest earlier `fill_form` step of
+the same workflow that has a record, as the run already orders them, and the
+caller finds it (see below).
+
+### How a row is marked returned
+
+Three new columns of `record_row` and fields of `models.RecordRow`, written
+together and by nothing else, the way `deleted_by`, `deleted_reason` and
+`deleted_on` are:
+
+| Field | Meaning |
+|---|---|
+| `returned_by` | Who sent the row back, as the app names them. Empty for a row that was never returned. |
+| `returned_reason` | The sender's reason, in her own words. Empty for a row that was never returned. |
+| `returned_on` | When it was sent back. A row is returned exactly when this is not empty. |
+
+`ReturnRecordRow(ctx, rowID, returnedBy, reason)` on the manager, tool
+`agency_return_record_row`, route `POST /record-rows/{row_id}/return` with a
+`reason` in the body and the caller as `returned_by`. It marks one current row
+returned and writes the three fields and `last_updated`. It refuses with
+`ErrInvalidRecordRow` (400) a row that does not exist, one already returned, one
+retired, one replaced by a correction and a blank reason.
+
+A returned row:
+
+- no longer counts as done: `ListRecordRows` hides it unless
+  `RecordRowFilter.IncludeReturned` (`include_returned` on the route) is true,
+  so a run that reads its rows sees the step as not done and reopens it;
+- frees its send key: the row's `send_key` is cleared in the same write, so the
+  unique `send_key_unique` index lets the step be sent again for the same run.
+  Clearing the key needs no change to a database that already holds the index,
+  and the row still says which record and order it belonged to;
+- stays in history with its answers, who returned it, why and when, and reads
+  with `include_returned`; the reopened step prefills from those answers;
+- no longer counts as a duplicate of an equal row added afterwards, and can
+  no longer be replaced, retired or returned again.
+
+The tool takes a row id and nothing about where the work goes next. Naming the
+previous step, and later another target, is the caller's rule, so a branching
+workflow changes the caller and not the row. A row that is both retired and
+returned is refused, so the two reasons never share one row.
+
+Code: `record_row_return.go`.
+
 ## Generated workflows (ISS-121)
 
 An agency has designed workflows, written in its file, and generated workflows,

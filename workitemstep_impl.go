@@ -21,6 +21,9 @@ func validateStepShape(wi models.WorkItem) error {
 	if err := validateRowStepShape(wi); err != nil {
 		return err
 	}
+	if err := validateSendBackShape(wi); err != nil {
+		return err
+	}
 	if strings.ContainsAny(wi.RoleID, ", \t\r\n;") {
 		return invalidStep("a step has one role, got %q", wi.RoleID)
 	}

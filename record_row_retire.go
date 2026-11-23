@@ -28,6 +28,9 @@ func (m *agencyManager) RetireRecordRow(ctx context.Context, rowID, deletedBy, r
 		if row.Deleted {
 			return invalidRow("the row is already retired")
 		}
+		if row.ReturnedOn != "" {
+			return invalidRow("the row was returned, so it is history and not a current row")
+		}
 		replacing, err := list[models.RecordRow](m, tx.WithContext(ctx).Table(m.table(roleRecordRow)).Where("replaces = ?", row.ID), roleRecordRow)
 		if err != nil {
 			return err

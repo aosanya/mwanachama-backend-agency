@@ -273,6 +273,8 @@
         {"name": "held_step_id", "type": "string", "description": "The compute step, earlier in the same workflow, whose held figure a yes_no or post step decides. Empty for every other kind."},
         {"name": "row_record", "type": "string", "description": "The code of the record, in the same draft, whose row a fill_form step writes, such as RC-1. Empty for every other step; set together with row_action."},
         {"name": "row_action", "type": "enum", "description": "What a step with a row_record does to the record's row: add, edit or delete. Empty for every other step; set together with row_record.", "values": ["add", "edit", "delete"]},
+        {"name": "send_back_decision", "type": "string", "description": "The prompt of the yes or no question of the step's own form that holds the pick between approving and sending back: yes is Approve, no is Send back. Empty for a step that cannot be sent back; set together with send_back_reason."},
+        {"name": "send_back_reason", "type": "string", "description": "The prompt of the free text question of the step's own form that holds the reason for a send back. Empty for a step that cannot be sent back; set together with send_back_decision."},
         {"name": "created_at", "type": "timestamp", "description": "When the step was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
@@ -652,6 +654,9 @@
         {"name": "deleted_by", "type": "string", "description": "Who retired the row, as the app names them. Empty for a row that is not retired."},
         {"name": "deleted_reason", "type": "text", "description": "Why the row was retired, in the words of the person who retired it. Empty for a row that is not retired."},
         {"name": "deleted_on", "type": "timestamp", "description": "When the row was retired. Empty for a row that is not retired."},
+        {"name": "returned_by", "type": "string", "description": "Who sent the row back, as the app names them. Empty for a row that was never returned."},
+        {"name": "returned_reason", "type": "text", "description": "Why the row was sent back, in the words of the person who sent it. Empty for a row that was never returned."},
+        {"name": "returned_on", "type": "timestamp", "description": "When the row was sent back. A row is returned exactly when this is not empty."},
         {"name": "send_key", "type": "string", "description": "The step and run a workflow step sent this row for, written by the step's own send and by nothing else. Empty for every other row, including the ones kept from before the key existed."},
         {"name": "created_at", "type": "timestamp", "description": "When the row was added.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},

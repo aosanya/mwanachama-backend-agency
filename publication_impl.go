@@ -135,6 +135,11 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 				"id": r.ID, "row_record": r.RowRecord, "row_action": r.RowAction,
 			}))
 		}
+		if hasSendBackFields(r) {
+			records = append(records, hashRecord("WorkItemSendBack", map[string]any{
+				"id": r.ID, "send_back_decision": r.SendBackDecision, "send_back_reason": r.SendBackReason,
+			}))
+		}
 		if r.TimeLimitMinutes != 0 || r.CancelWorkflowID != "" {
 			records = append(records, hashRecord("WorkItemLimit", map[string]any{
 				"id": r.ID, "time_limit_minutes": r.TimeLimitMinutes, "cancel_workflow_id": r.CancelWorkflowID,

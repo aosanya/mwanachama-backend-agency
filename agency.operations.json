@@ -665,7 +665,7 @@
       "action": "agency.work_item.create",
       "status": 201,
       "title": "Create work item",
-      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only.",
+      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only. A fill_form step a role acts on, that writes no row, may also be sendable back: send_back_decision (the prompt of one yes or no question of its own form: yes is Approve, no is Send back) and send_back_reason (the prompt of one free text question of its own form) are set together, and a step with only one, on another kind, with no role, with a prompt its form does not ask or of the wrong answer type is refused.",
       "args": [
         {
           "from": "body",
@@ -685,7 +685,7 @@
       "call": "ListWorkItems",
       "action": "agency.work_item.list",
       "title": "List work items",
-      "description": "List one draft's work items in their listed order, narrowed by the filter. Each step reads back with its kind, role, form, questions, tool and derived action, such as \"Fills the Group order form\". It reads back function, bindings, result_name, on_failure, hold, amount_step_id, debit_account, credit_account, reason and held_step_id on the steps that hold them, and row_record and row_action on the steps that write a row.",
+      "description": "List one draft's work items in their listed order, narrowed by the filter. Each step reads back with its kind, role, form, questions, tool and derived action, such as \"Fills the Group order form\". It reads back function, bindings, result_name, on_failure, hold, amount_step_id, debit_account, credit_account, reason and held_step_id on the steps that hold them, row_record and row_action on the steps that write a row, and send_back_decision and send_back_reason on the steps that can be sent back.",
       "args": [
         {
           "from": "query",
@@ -710,7 +710,7 @@
       "call": "GetWorkItem",
       "action": "agency.work_item.read",
       "title": "Read work item",
-      "description": "Read one work item by its id — its code, title, prompt, kind, role, form and derived action, and the workflow it belongs to. It reads back function, bindings, result_name, on_failure, hold, amount_step_id, debit_account, credit_account, reason and held_step_id on the steps that hold them, and row_record and row_action on the steps that write a row.",
+      "description": "Read one work item by its id — its code, title, prompt, kind, role, form and derived action, and the workflow it belongs to. It reads back function, bindings, result_name, on_failure, hold, amount_step_id, debit_account, credit_account, reason and held_step_id on the steps that hold them, row_record and row_action on the steps that write a row, and send_back_decision and send_back_reason on the steps that can be sent back.",
       "args": [
         {
           "from": "path",
@@ -732,7 +732,7 @@
       "call": "UpdateWorkItem",
       "action": "agency.work_item.update",
       "title": "Update work item",
-      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only.",
+      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only. A fill_form step a role acts on, that writes no row, may also be sendable back: send_back_decision (the prompt of one yes or no question of its own form: yes is Approve, no is Send back) and send_back_reason (the prompt of one free text question of its own form) are set together, and a step with only one, on another kind, with no role, with a prompt its form does not ask or of the wrong answer type is refused.",
       "args": [
         {
           "from": "body",
@@ -2266,7 +2266,7 @@
       "call": "ListRecordRows",
       "action": "agency.record_row.list",
       "title": "List record rows",
-      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version. Retired rows are left out unless include_retired is true.",
+      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version. Retired rows are left out unless include_retired is true, and returned rows unless include_returned is true.",
       "args": [
         {
           "from": "query",
@@ -2316,6 +2316,38 @@
         }
       ],
       "tool": "agency_retire_record_row"
+    },
+    "return_record_row": {
+      "method": "POST",
+      "path": "/record-rows/{row_id}/return",
+      "call": "ReturnRecordRow",
+      "action": "agency.record_row.return",
+      "title": "Return record row",
+      "description": "Send one current row of a record back: it no longer counts as done and leaves the default listing, its step can be sent again for the same run, and the row is kept with who returned it, why and when (returned_by, returned_reason, returned_on). The reason is required and the person returning it is the caller; a returned_by in the request is ignored. A row that does not exist, is retired, is already returned or was replaced by a correction is refused. Nothing is physically deleted: list_record_rows with include_returned reads returned rows too.",
+      "args": [
+        {
+          "from": "path",
+          "as": "row_id",
+          "description": "The row to send back."
+        },
+        {
+          "from": "caller",
+          "as": "returned_by",
+          "description": "Who sends the row back, resolved from the session rather than the request."
+        },
+        {
+          "from": "body",
+          "as": "reason",
+          "required": true,
+          "description": "Why the row is sent back."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_return_record_row"
     },
     "create_scenario": {
       "method": "POST",

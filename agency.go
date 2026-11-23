@@ -92,6 +92,7 @@ type AgencyManager interface {
 	CreateRecordRow(ctx context.Context, row models.RecordRow) (models.RecordRow, error)
 	ListRecordRows(ctx context.Context, draftID string, filter RecordRowFilter) ([]models.RecordRow, error)
 	RetireRecordRow(ctx context.Context, rowID, deletedBy, reason string) (models.RecordRow, error)
+	ReturnRecordRow(ctx context.Context, rowID, returnedBy, reason string) (models.RecordRow, error)
 
 	// WorkItem. A step takes its Objectives from its Workflow (AGD-009).
 	CreateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error)

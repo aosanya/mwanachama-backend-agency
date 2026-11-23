@@ -84,6 +84,12 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 		if !wi.Carries("row_action") {
 			wi.RowAction = existing.RowAction
 		}
+		if !wi.Carries("send_back_decision") {
+			wi.SendBackDecision = existing.SendBackDecision
+		}
+		if !wi.Carries("send_back_reason") {
+			wi.SendBackReason = existing.SendBackReason
+		}
 		wi.Code = existing.Code
 		wi.DraftID = existing.DraftID
 		wi.CreatedAt = existing.CreatedAt

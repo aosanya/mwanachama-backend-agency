@@ -42,6 +42,10 @@ type RecordRow struct {
 	DeletedBy     string `json:"deleted_by,omitempty"`
 	DeletedReason string `json:"deleted_reason,omitempty"`
 	DeletedOn     string `json:"deleted_on,omitempty"`
+
+	ReturnedBy     string `json:"returned_by,omitempty"`
+	ReturnedReason string `json:"returned_reason,omitempty"`
+	ReturnedOn     string `json:"returned_on,omitempty"`
 }
 
 type DocumentRecord struct {

@@ -183,6 +183,9 @@ type DocumentWorkItem struct {
 	HeldStepID    string        `json:"held_step_id,omitempty"`
 	RowRecord     string        `json:"row_record,omitempty"`
 	RowAction     string        `json:"row_action,omitempty"`
+
+	SendBackDecision string `json:"send_back_decision,omitempty"`
+	SendBackReason   string `json:"send_back_reason,omitempty"`
 }
 
 type DocumentWorkflowObjective struct {
