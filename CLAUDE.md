@@ -6,9 +6,8 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 A standalone Go library, sibling to
 [`mwanachama-backend-actor`](../mwanachama-backend-actor), modeling an
-Agency: Goals/Objectives/Workflows/WorkItems, and RACI labels
-(Responsible/Accountable/Consulted/Informed) that put a Role on a step
-(a WorkItem). Objectives attach to Workflows, not to steps (AGD-009,
+Agency: Goals/Objectives/Workflows/WorkItems, and the one accountable Role a
+step (a WorkItem) names. Objectives attach to Workflows, not to steps (AGD-009,
 2026-10-31). Module path
 `github.com/aosanya/mwanachama-backend-agency`. Ported from a standalone
 gRPC microservice — see
@@ -22,12 +21,13 @@ for what's still open. There is no `Department`/`Level` org-chart surface
 (removed; see the AG31–AG42 note below) and no live/`gormstore` row-struct
 storage (superseded by AGD-006/AGD-007, same note).
 
-## Current model of objectives and RACI (AGD-009, AG95-AG97)
+## Current model of objectives and the accountable role (AGD-009, ISS-179)
 
 The porting notes below are a dated log. Where they describe Objective-scoped
-RACI, a required `WorkItem.ObjectiveID` or one Accountable per Objective, this
-section wins. Design record:
-[documentation/2. design/todo_details/AGD-009.md](documentation/2.%20design/todo_details/AGD-009.md).
+RACI, RACI labels, `RoleAssignment`, a required `WorkItem.ObjectiveID` or one
+Accountable per Objective, this section wins. Design records:
+[documentation/2. design/todo_details/AGD-009.md](documentation/2.%20design/todo_details/AGD-009.md)
+and [documentation/2. design/accountable-role.md](documentation/2.%20design/accountable-role.md).
 
 - `workflow_objective {id, draft_id, workflow_id, objective_id}` joins a
   Workflow to its Objectives, many to many, both in one draft
@@ -35,35 +35,30 @@ section wins. Design record:
   `DeleteWorkflowObjective`; duplicate pair is `ErrDuplicateWorkflowObjective`,
   a missing row `ErrWorkflowObjectiveNotFound`). A step has no `objective_id`;
   it serves its workflow's objectives.
-- `role_assignment {id, draft_id, work_item_id, role_id, label}` puts a Role on
-  a step. `ListRoleAssignmentsForWorkItem` replaces
-  `ListRoleAssignmentsForObjective`. No Role to Objective link is stored.
-- No cap on any label, Accountable included. The one refusal is the same role
-  and label twice on one step: `ErrDuplicateRoleAssignment` (409). A role may
-  hold two labels on a step. `ErrDuplicateAccountable` is gone, and so is the
-  AG53 concurrent-Accountable race.
-- The label drives no behaviour. Who acts, the recipient and the time limit
-  stay in the step's own fields.
-- Deleting a workflow removes its `workflow_objective` rows and the
-  `role_assignment` rows of its steps; an objective, its `workflow_objective`
-  rows; a step or a role, its `role_assignment` rows; all in one transaction.
-- Fork remaps both joins. The publication document carries
-  `workflow_objectives` and step-scoped `role_assignments`. Import seeds one
-  `workflow_objective` per distinct (workflow, objective) of an old
-  `work_items[].objective_id` and ignores an old `role_assignments` entry that
-  names an objective and no step.
+- A step carries one plain field, `WorkItem.AccountableRoleID`
+  (`accountable_role_id`): the one role of the same draft that answers for it,
+  on a step of any kind. There is no `role_assignment` object, no RACI label,
+  and no label on an objective. The field drives no behaviour; who acts, the
+  recipient and the time limit stay in the step's own fields.
+- Deleting a role empties `accountable_role_id` on the steps that named it;
+  deleting a workflow removes its `workflow_objective` rows; an objective, its
+  `workflow_objective` rows; all in one transaction.
+- Fork remaps the joins and the accountable role. The publication document
+  carries `workflow_objectives` and `accountable_role_id` on each step. Import,
+  fork from a publication and the role brief fold an older document's
+  `role_assignments` into the field (`foldLegacyRoleAssignments`): only
+  `accountable` entries that name a step and a role, whose role is not the
+  step's own `role_id`, the first per step, and never over a field already set.
 - The Issue scan: a Workflow with no Objective is an `error`; a
-  `workflow_objective` whose workflow or objective is gone, and a
-  `role_assignment` whose step or role is gone, are `error`. It does not
-  police RACI: no "Objective with no Accountable", no "two Accountables".
+  `workflow_objective` whose workflow or objective is gone, and a step whose
+  accountable role is gone, are `error`.
 - Operations and tools: `agency_link_workflow_objective`,
   `agency_list_workflow_objectives`, `agency_get_workflow_objective`,
-  `agency_delete_workflow_objective`, `agency_set_raci` (body `work_item_id`,
-  `role_id`, `label`), `agency_list_role_assignments_for_work_item`
-  (`GET /work-items/{work_item_id}/role-assignments`). The role brief reads a
-  seat's objectives through the workflows whose steps it holds. The composite
-  `agency_design_from_spec` takes `objective_keys`/`objective_ids` on a
-  workflow and `work_item_key` on a `raci` entry.
+  `agency_delete_workflow_objective`; `accountable_role_id` rides the work item
+  create and update bodies. The role brief reads a seat's objectives and steps
+  through each step's accountable role, or its own role when that is empty. The
+  composite `agency_design_from_spec` takes `objective_keys`/`objective_ids` on
+  a workflow and `accountable_role_key`/`accountable_role_id` on a work item.
 
 ## Workflow subject and the row a run is started on
 

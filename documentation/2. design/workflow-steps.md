@@ -65,34 +65,32 @@ Update keeps the step in its draft whatever `draft_id` the body carries.
   longer exists in the draft, which is what deleting a role or a workflow now
   leaves behind. Neither delete cascades into the steps.
 
-## Objectives and RACI on a step (AGD-009)
+## Objectives and the accountable role of a step (AGD-009, ISS-179)
 
 A step has no `objective_id`. A workflow names the objectives it delivers
 through `workflow_objective` rows (`agency_link_workflow_objective`), many to
 many, both in one draft; a step serves its workflow's objectives. A workflow
 with none is a blocking `error` in the scan.
 
-RACI is a `role_assignment {work_item_id, role_id, label}` on the step, with
-`label` one of `responsible`, `accountable`, `consulted`, `informed`
-(`agency_set_raci`; the step's rows are `GET /work-items/{work_item_id}/role-assignments`,
-`agency_list_role_assignments_for_work_item`). The builder picks any number of
-roles on a step and a label for each. Nothing caps a label, Accountable
-included; the only refusal is the same role with the same label twice on one
-step (`ErrDuplicateRoleAssignment`, 409), and one role may hold two labels.
+A step carries one plain field, `accountable_role_id`: the one role of the same
+draft that answers for it. It may be set on a step of any kind, and on a step
+with no role of its own. There is no row, label or vocabulary beside it; the
+design is in [accountable-role.md](accountable-role.md).
 
-The label drives nothing. Who acts is `role_id`, who is told is
+The field drives nothing. Who acts is `role_id`, who is told is
 `recipient_role_id`, the answer comes from the step's kind and the limit is
-`time_limit_minutes`; the approval gate reads those, not the RACI rows. The scan
-does not count Accountables. No role to objective link is stored: a role's
-objectives are read through the workflows whose steps it holds, which is how
-the role brief ([role-brief.md](role-brief.md)) finds them.
+`time_limit_minutes`; the approval gate reads those. The scan raises an `error`
+for an accountable role that no longer exists. No role to objective link is
+stored: a role's objectives are read through the workflows whose steps it
+answers for, which is how the role brief ([role-brief.md](role-brief.md)) finds
+them.
 
-Deleting a step or a role removes its `role_assignment` rows; deleting a
-workflow removes its `workflow_objective` rows and the `role_assignment` rows of
-its steps; deleting an objective removes its `workflow_objective` rows. Fork
-remaps both joins, the publication document carries `workflow_objectives` and
-step-scoped `role_assignments`, and import seeds one `workflow_objective` per
-distinct (workflow, objective) of an older `work_items[].objective_id` while
+Deleting a role empties `accountable_role_id` on the steps that named it;
+deleting a workflow removes its `workflow_objective` rows; deleting an objective
+removes its `workflow_objective` rows. Fork remaps both the joins and the
+accountable role, the publication document carries `workflow_objectives` and
+`accountable_role_id` on each step, and import seeds one `workflow_objective`
+per distinct (workflow, objective) of an older `work_items[].objective_id` while
 ignoring an older `role_assignments` entry that names an objective and no step.
 
 ## The pickers (HS299)

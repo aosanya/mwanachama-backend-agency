@@ -46,18 +46,14 @@ every line.
 
 The first cut emitted a fixed tail of `ID`, `DraftID`, `Channel`,
 `Severity` and `TargetCode`. That is enough for a row that stands alone and
-useless for a join row, which is exactly what RACI is: a
-`models.RoleAssignment` has no `Code` and no title, so it rendered as
-`- "accountable" (id: …, draft id: …)` — the label and nothing else. Asked
-to check the imported Wakala agency, the Studio's chat agent reported it
-could see the labels but could not name the seat on any link, because
-`RoleID` and the step it sat on were being dropped on the floor.
+useless for a join row, which is what the role assignment was before ISS-179
+removed it: it had no `Code` and no title, so it rendered as
+`- "accountable" (id: …, draft id: …)` — the label and nothing else, and the
+Studio's chat agent could not name the seat on any link because `RoleID` and the
+step it sat on were being dropped on the floor.
 
-The hand-written tool this replaced (`mcp/raci.go`, before AG41) printed
-`role <id> is <label> on step <id>` — ids, not names, but ids the
-model can match against `agency_list_roles` and `agency_list_work_items`.
-Taking every `*ID`/`*Code` field restores that for RACI and closes the same
-hole for `WorkItem` (its workflow), `WorkflowObjective` (workflow and objective), the attachment tables (value
+Taking every `*ID`/`*Code` field closes the same hole for `WorkItem` (its
+workflow and its accountable role), `WorkflowObjective` (workflow and objective), the attachment tables (value
 or rule code, plus the target it attaches to) and every join row added
 later, without a list to keep current.
 
@@ -67,7 +63,6 @@ and its type, and the model already has the roles listing.
 
 ## Pinning it
 
-`mcp/tools_text_test.go` holds the cases worth keeping: a RACI line names
-both ends of the link, a work item names its workflow, a workflow objective names both ends, an
+`mcp/tools_text_test.go` holds the cases worth keeping: a work item names its workflow and its accountable role, a workflow objective names both ends, an
 attachment names what it attaches to what, and neither the draft nor a
 timestamp appears in any of them.

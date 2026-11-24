@@ -1,5 +1,7 @@
 # Requirements — mwanachama-backend-agency
 
+This is the 2026-09-09 scoping record and is kept as written. Where it describes a RACI matrix or role assignments, [accountable-role.md](../2.%20design/accountable-role.md) (ISS-179, decisions D39 and D49) supersedes it: a step names one accountable role and nothing else.
+
 ## Problem
 
 Mwanachama needs a domain repo modeling an **Agency** — not as a live

@@ -7,9 +7,11 @@ It reads the publication on the `production` channel (`GetPublicationForChannel`
 Parts, all taken from the publication document:
 
 - the seat's name and description (the seat is found by id or code);
-- the objectives it serves: those of every workflow that has a step the seat holds a RACI label on (`role_assignments` by step, then `workflow_objectives` by workflow), each with its goal and the labels the seat holds there;
+- the objectives it serves: those of every workflow that has a step the seat answers for (a step's `accountable_role_id`, or its own `role_id` when that is empty, then `workflow_objectives` by workflow), each with its goal; an objective carries no label;
 - the values and rules attached to the seat, to one of those objectives, to one of those goals, or to nothing at all (organization-wide). Anything attached only to another seat or objective is left out;
-- the `prompt` of each work item of those workflows (items with no prompt are skipped).
+- the `prompt` of each step the seat answers for (steps with no prompt are skipped), marked `accountable` when the seat is the step's `accountable_role_id` and unmarked when the seat is only the step's own role. A step with both an accountable role and its own role is listed under the accountable role only.
+
+A publication written before ISS-179 carries `role_assignments`; the brief folds them into the field the way import does (see [accountable-role.md](accountable-role.md)).
 
 An unknown seat answers `ErrRoleNotFound`; no production publication answers `ErrPublicationNotFound`.
 

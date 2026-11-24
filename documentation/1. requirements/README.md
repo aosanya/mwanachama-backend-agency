@@ -17,7 +17,7 @@ code disagree, the code and the design records under
 | Decision | Says | What ships instead |
 |---|---|---|
 | #2 Storage | GORM row structs in `gormstore/` | Objects are declared in `agency.blueprint.json` and stored through `mwanachama-backend-shared/spec`. There is no `gormstore/` directory (AGD-007) |
-| #3 RACI | a Role is assigned to a WorkItem | a Role is assigned to a WorkItem, as a label (responsible, accountable, consulted or informed) with no limit on any label. A Workflow, not a step, carries its Objectives. The blueprint's work item has no `objective_id` (AGD-009, which reverses AG12/AGD-001's Objective-scoped RACI) |
+| #3 RACI | a Role is assigned to a WorkItem | one Role is named accountable for a WorkItem, as the step's `accountable_role_id`; there are no labels and no row. A Workflow, not a step, carries its Objectives. The blueprint's work item has no `objective_id` (AGD-009, which reverses AG12/AGD-001's Objective-scoped RACI; ISS-179 and decisions D39 and D49 drop the labels) |
 | #7 Departments | an org chart of departments and levels | there is no `Department` or `Level` model, route or tool. `models/` names neither |
 | #9 Auth | gated under the API gateway's session middleware | mounted by `mwanachama-wakala-api`. The boundary is the Instance, enforced by that host's membership check (its decision #21) |
 | Ports | `PromoteDraft`, an immutable snapshot, a live row set | there is no live row set and no promote. Every row belongs to a Draft, and publish reads the named Draft (AGD-006) |

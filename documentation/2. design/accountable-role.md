@@ -17,7 +17,7 @@ Written:
 | What | File, function |
 |---|---|
 | create, update and delete one row | `roleassignment_impl.go`: `CreateRoleAssignment`, `UpdateRoleAssignment`, `DeleteRoleAssignment`, check in `validateRoleAssignment` |
-| import of an agency file | `document.go`: the `doc.RoleAssignments` loop at the end of `applyDocument` |
+| import of an agency file | `document.go`: the `doc.RoleAssignments` loop at the end of `applyDocumentToDraft` |
 | fork of a draft | `draft_impl.go`: the `RoleAssignment` copy loop in `CreateDraft` |
 | the software-lab seed | `swelab.go`: `RoleAssignments`, `CreateRoleAssignment` in the seed |
 | the design-from-spec tool | `mcp/composite.go`: `specRACI`, the `p.RACI` loop in `mcpDesignAgencyFromSpec`, `RoleAssignments` in `mcpDesignFromSpecResult` |
@@ -64,7 +64,11 @@ Declared:
   `ErrRoleAssignmentNotFound`, and none of the six operations or their tools.
   `agency_design_from_spec` has no `raci` section; a work item in the spec takes
   `accountable_role_key` or `accountable_role_id`.
-- The role brief of a seat lists a step when the step's effective role is the
+- No label is kept anywhere: an objective carries none either (owner decision D49
+applies the rule to every repo; this module's objective-level rows were already
+ignored since AGD-009 and are now not read at all).
+
+The role brief of a seat lists a step when the step's effective role is the
   seat. The effective role is `accountable_role_id`, or `role_id` when
   `accountable_role_id` is empty. Objectives are those of the workflows that
   have such a step. `BriefWorkItem` and `BriefObjective` no longer carry labels;
