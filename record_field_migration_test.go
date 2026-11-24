@@ -239,3 +239,41 @@ func TestProvision_TheKeysAnOlderDatabaseGetsAreTheOnesAnOldFileGets(t *testing.
 		}
 	}
 }
+
+func TestProvision_ARowStillSavedByPromptAfterItsRecordWasKeyedIsMovedByTheNextProvision(t *testing.T) {
+	d, o := newOlderFieldsDatabase(t)
+	ctx := context.Background()
+	w := d.world
+	if err := mwanachamaagency.Provision(d.db, d.s); err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+	record, _ := w.mgr.GetRecord(ctx, d.record.ID)
+	amount := fieldOf(t, record, "Enter the amount paid")
+	stray, err := w.mgr.CreateRecordRow(ctx, rowAdded(w, o, map[string]string{
+		fieldOf(t, record, "Select the farmer").Key: "Otieno", amount.Key: "7",
+	}))
+	if err != nil {
+		t.Fatalf("CreateRecordRow: %v", err)
+	}
+	byPrompt, _ := json.Marshal(map[string]string{"Select the farmer": "Otieno", "Enter the amount paid": "7"})
+	if err := d.db.Exec("update "+tableOf(t, d.s, "record_row")+" set answers = ? where id = ?", string(byPrompt), stray.ID).Error; err != nil {
+		t.Fatalf("write the row an older process left: %v", err)
+	}
+
+	if err := mwanachamaagency.Provision(d.db, d.s); err != nil {
+		t.Fatalf("Provision again: %v", err)
+	}
+	rows, err := w.mgr.ListRecordRows(ctx, w.draftID, mwanachamaagency.RecordRowFilter{RecordID: d.record.ID})
+	if err != nil {
+		t.Fatalf("ListRecordRows: %v", err)
+	}
+	moved := false
+	for _, row := range rows {
+		if row.ID == stray.ID {
+			moved = row.Answers[amount.Key] == "7" && len(row.Answers) == 2
+		}
+	}
+	if !moved {
+		t.Errorf("the row an older process left by prompt was not moved to keys: %+v", rows)
+	}
+}

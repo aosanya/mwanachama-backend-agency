@@ -478,9 +478,14 @@ to move. It is the first thing the field-permission issue builds on this page.
 record, gives the fields that have no key the key `legacyFieldKey` works out and
 the code the prompt proposes, rewrites the answers and place references of that
 record's rows from prompt to key in the same transaction, and then regenerates
-the generated workflows of the drafts it changed so their forms carry the keys.
-Stamps and amendment lines stay as they were. It only adds: a record whose fields
-all have keys is not touched, so a second run changes nothing.
+the generated workflows of the drafts it changed so their forms carry the keys
+(the same pass that every record save makes, so it also settles a generated
+workflow that was missing or doubled). Stamps and amendment lines stay as they
+were. A record whose fields all have keys is not touched, and a second run changes
+nothing. Every run also reads every row, in batches of 500, and moves a row that
+still names a field by prompt (a row an older process wrote after the record was
+keyed); a row that is already keyed is left alone. The statements run inside one
+transaction and have been run on SQLite only.
 
 Outside this repo the hub's `agency_add_live_record_row` and
 `agency_list_live_record_rows` write and read `answers`, and the app shows them.
