@@ -459,7 +459,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	if err := homeRolesResolve(models.HomePartsOf(doc), doc.Home); err != nil {
 		return fail(err)
 	}
-	if err := m.applyHomeNodes(ctx, tx, draftID, "", doc.Home, now); err != nil {
+	if err := m.applyHomeNodes(ctx, tx, draftID, "", models.HomePartsOf(doc).KeyRecordRefs(doc.Home), now); err != nil {
 		return fail(err)
 	}
 

@@ -12,11 +12,12 @@ import (
 
 const (
 	recordCodeFallback = "record"
-	recordEntityType   = "record"
-	recordKeyPrefix    = "RC"
 )
 
-var defaultRecordCodeSuffix = regexp.MustCompile(`^_[0-9]+$`)
+var (
+	defaultRecordCodeSuffix = regexp.MustCompile(`^_[0-9]+$`)
+	recordUUIDKey           = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+)
 
 func RecordCodeOf(name string) string {
 	return codeFromText(name, recordCodeFallback)
@@ -70,9 +71,7 @@ func (m *agencyManager) insertRecord(ctx context.Context, r models.Record) (mode
 		if r.Code, err = settleRecordCode(r.Code, r.Name, taken); err != nil {
 			return err
 		}
-		if r.Key, err = claimCode(ctx, tx, m.table(roleCodeSequence), recordEntityType, recordKeyPrefix); err != nil {
-			return err
-		}
+		r.Key = newID()
 		row, err := m.encode(roleRecord, r)
 		if err != nil {
 			return err

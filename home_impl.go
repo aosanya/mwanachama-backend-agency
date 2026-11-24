@@ -36,6 +36,11 @@ func (m *agencyManager) CreateHomeEntry(ctx context.Context, in models.HomeEntry
 		if err := m.requireHomeRoles(ctx, tx, in.DraftID, []models.DocumentHomeNode{{Key: in.Key, Roles: in.Roles}}); err != nil {
 			return err
 		}
+		parts, err := m.homeRecordParts(ctx, tx, in.DraftID)
+		if err != nil {
+			return err
+		}
+		in = parts.KeyRecordRefsOfEntry(in)
 		now := models.NowRFC3339()
 		row := in
 		row.ID, row.Ordinality, row.CreatedAt, row.LastUpdated, row.Deleted = newID(), place, now, now, false
@@ -102,6 +107,18 @@ func (m *agencyManager) requireHomeRoles(ctx context.Context, tx *gorm.DB, draft
 	return homeRolesResolve(parts, nodes)
 }
 
+func (m *agencyManager) homeRecordParts(ctx context.Context, tx *gorm.DB, draftID string) (models.HomeParts, error) {
+	records, err := list[models.Record](m, scopeQuery(tx.WithContext(ctx).Table(m.table(roleRecord)), draftID), roleRecord)
+	if err != nil {
+		return models.HomeParts{}, err
+	}
+	parts := models.HomeParts{}
+	for _, record := range records {
+		parts.Records = append(parts.Records, models.HomePart{Code: record.Code, Alt: record.Key, Name: record.Name})
+	}
+	return parts, nil
+}
+
 func homeRolesResolve(parts models.HomeParts, nodes []models.DocumentHomeNode) error {
 	if err := parts.CheckHomeRoles(nodes); err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidHomeEntry, err)
@@ -125,6 +142,11 @@ func (m *agencyManager) SetHome(ctx context.Context, draftID string, entries []m
 		if err := m.requireHomeRoles(ctx, tx, draftID, nodes); err != nil {
 			return err
 		}
+		parts, err := m.homeRecordParts(ctx, tx, draftID)
+		if err != nil {
+			return err
+		}
+		nodes = parts.KeyRecordRefs(nodes)
 		if err := m.deleteWhere(ctx, tx, roleHomeEntry, "draft_id = ?", draftID); err != nil {
 			return err
 		}

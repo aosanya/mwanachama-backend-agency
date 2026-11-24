@@ -172,3 +172,46 @@ func (p HomeParts) checkHomeNode(n DocumentHomeNode) error {
 func homeRefProblem(kind, key, ref string, err error) error {
 	return fmt.Errorf("the home entry %q names the %s %q, which %w", key, kind, ref, err)
 }
+
+func (p HomeParts) RecordKeyOf(ref string) string {
+	part, err := ResolveHomePart(p.Records, ref)
+	switch {
+	case err != nil:
+		return ref
+	case part.Alt != "":
+		return part.Alt
+	}
+	return part.Code
+}
+
+func (p HomeParts) KeyRecordRefs(nodes []DocumentHomeNode) []DocumentHomeNode {
+	if nodes == nil {
+		return nil
+	}
+	out := make([]DocumentHomeNode, len(nodes))
+	for i, n := range nodes {
+		if n.PageOf != "" {
+			n.PageOf = p.RecordKeyOf(n.PageOf)
+		}
+		if n.Target != nil {
+			target := *n.Target
+			if target.Type == HomeTargetRecord && target.Ref != "" {
+				target.Ref = p.RecordKeyOf(target.Ref)
+			}
+			n.Target = &target
+		}
+		n.Entries = p.KeyRecordRefs(n.Entries)
+		out[i] = n
+	}
+	return out
+}
+
+func (p HomeParts) KeyRecordRefsOfEntry(e HomeEntry) HomeEntry {
+	if e.PageOf != "" {
+		e.PageOf = p.RecordKeyOf(e.PageOf)
+	}
+	if e.TargetType == HomeTargetRecord && e.Target != "" {
+		e.Target = p.RecordKeyOf(e.Target)
+	}
+	return e
+}
