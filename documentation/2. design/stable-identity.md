@@ -2,7 +2,7 @@
 
 `AgencyManager` embeds the shared `identity.Owner` (shared S56), so a host that resolves a manager per instance already holds the owner for it.
 
-`StableIdentity(ctx, object, id)` answers the raw `agency/<instance>/<Code>` for a row, for the objects that mint a Code: `goal` (`G-n`), `objective` (`O-n`), `workflow` (`W-n`), `work_item` (`WI-n`), `role` (`R-n`), `rule` (`RU-n`), `record` (`RC-n`) and `value` (`V-n`). The instance is the spec's instance, the same one that prefixes the tables. The prefix before the dash is unique across types, so a raw names its object. A Code survives a draft fork unchanged (AG16), so the raw is the same for a role in every draft while its row id is not.
+`StableIdentity(ctx, object, id)` answers the raw `agency/<instance>/<Code>` for a row, for the objects that mint a Code: `goal` (`G-n`), `objective` (`O-n`), `workflow` (`W-n`), `work_item` (`WI-n`), `role` (`R-n`), `rule` (`RU-n`), `record` (its hidden key `RC-n`, not its readable code, so a rename of the code leaves the identity whole) and `value` (`V-n`). The instance is the spec's instance, the same one that prefixes the tables. The prefix before the dash is unique across types, so a raw names its object. A Code survives a draft fork unchanged (AG16), so the raw is the same for a role in every draft while its row id is not.
 
 `Resolve(ctx, raw)` answers the current `(object, id)`:
 

@@ -26,7 +26,10 @@ with `ErrPublishValidationFailed`) when a role declares:
 
 - a code not in the vocabulary, unless it is a `record.<record code>.<action>`
   code that a record of the draft gives (ISS-151, see
-  [workflow-records.md](workflow-records.md)), or
+  [workflow-records.md](workflow-records.md)). The record code is the record's
+  readable code, such as `record.tender.edit`; the counter code `RC-n` is
+  deprecated as a record code (D58) and is no longer given by any record. A
+  rename of the code moves the roles that carry it in the same save, or
 - a `record.` code that no record of the draft gives (the field part of a code,
   `record.<record code>.<action>.<field code>`, is settled with the field
   permissions; a field's code is its own stored label on a hidden key, so a

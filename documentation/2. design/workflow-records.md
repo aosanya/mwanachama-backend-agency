@@ -12,7 +12,8 @@ A record is `models.Record`, stored in the `record` object of
 
 | Field | Meaning |
 |---|---|
-| `code` | `RC-1`, minted once and never edited. Rows quote it, and it stays the same in every later version. |
+| `code` | A readable label made from the name, such as `tender` (see A record's code and key). Unique in the draft and renamable. Roles carry permissions on it: `record.tender.edit`. |
+| `key` | The hidden identity, `RC-1`, minted once and never edited. Rows, steps, generated workflows and a workflow's subject name the record by it, and it stays the same in every later version. The counter code `RC-n` is deprecated as a code (D58) and lives on only as this key. |
 | `workflow_id` | The workflow that keeps the record, in the same draft. |
 | `name` | What the record is called, such as Payments. Unique inside its workflow, ignoring case. |
 | `role_id` | The one role that adds rows, in the same draft. |
@@ -174,7 +175,7 @@ when set (record `WorkItemRow`, so an agency without them hashes as before):
 
 | Field | Values | Meaning |
 |---|---|---|
-| `row_record` | a record code such as `RC-1` | The record whose row the step writes. |
+| `row_record` | a record key such as `RC-1` (a readable code is saved as the key) | The record whose row the step writes. |
 | `row_action` | `add`, `edit`, `delete` | What the step does to it. |
 
 Create and update refuse with `ErrInvalidWorkItem` (400): one of the two without
@@ -315,10 +316,11 @@ record's code and `row_action` set:
 The workflow name is the verb and the item with its article: `Add a tender`,
 `Edit an office holder`. The item is `item_name`, else the record's
 `form_name`, else its name. The step is titled like its workflow, has the
-ordinality 1 and the code `RC-1.add.1`.
+ordinality 1 and the code `RC-1.add.1`. `RC-1` in these codes is the record's
+key, so renaming the record's code does not remake the generated workflows.
 
 On a workflow, three fields: `generated` (true), `generated_for` (the record's
-code) and `replaced_by` (the code of the designed workflow that stands in for
+key) and `replaced_by` (the code of the designed workflow that stands in for
 it, copied from the record's `*_replaced_by`; the generated workflow stays in
 the agency and the hub hides it from Start). They are columns of `workflow` and
 fields of `DocumentWorkflow`.
@@ -396,7 +398,7 @@ The code that checks is `role_record_permissions.go`; the codes come from
 
 Deleting a record does not touch the roles that still carry its codes. The Issue
 scan (`checkPermissions`) raises an `error` for each such code, `Role R-4
-"Clerk" carries permission "record.RC-1.add", which no record gives`, so a
+"Clerk" carries permission "record.tender.add", which no record gives`, so a
 publish is refused and names the role and the code (D9). The scan's other
 refusals (D18) are built in their own issue. A code of a record that exists is
 accepted by the scan and carried into the publication document with the role.
@@ -493,45 +495,98 @@ A write by prompt is still understood and saved by key; a read now returns keys,
 so the hub and the app must move to the field list's keys (or codes) when the hub
 takes the new sibling tag.
 
-## Where a record's code is made and read (ISS-195, decision D58)
+## A record's code and key (ISS-195, decision D58)
 
-Until ISS-195 a record's `code` is the counter code `RC-n`, minted by
-`createWithCode` in `CreateRecord` from the `record` entity of the code sequence
-table, copied unchanged by a fork, an import and a publication, and never edited
-(`UpdateRecord` puts the stored code back). D58 deprecates the counter code. This
-section lists every place that makes or reads the code, so the change can be made
-once and checked against the list.
+The counter code `RC-n` is deprecated as a record's code. A record has two names
+of its own, set the same way as a field's code and key (see A field's code and
+key above):
 
-| Where | What it does with the code |
+| Name | Meaning |
 |---|---|
-| `CreateRecord` in `record_impl.go` | Mints `RC-n` through `createWithCode`. |
-| `UpdateRecord` in `record_impl.go` | Keeps the stored code; also feeds it to `keyedFields` as the record's identity for the field keys. |
-| `validateRowAnswers`, `recordFieldsOf`, `keyedFieldsOrRefused` in `record_impl.go` and `record_field.go`, and `keyRecordsAndRows` in `provision_field_keys.go` | Use the code as the record's identity when `legacyFieldKey` works out a key for a field that has none. |
-| `CreateRecordRow` in `record_impl.go` | Writes the code into the row's `record_code`; `ListRecordRows` narrows by it. |
-| `refuseDuplicate` and `settleReplacement` in `record_row_correction.go` | Compare a row's `record_code` with the record's code. |
-| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | Name the generated workflows `RC-1.add`, their steps `RC-1.add.1`, and set `generated_for` and the step's `row_record` to the code. |
-| `validateRowStepReferences` in `row_step.go` | Finds the record a step writes by `code = row_record`. |
-| `validateWorkflowSubject` in `workflow_subject.go`, `validateDocumentSubjects` and `checkWorkflowSubjects` | Find the record a workflow acts on by its code. |
-| `checkRowSteps` in `record_issue_impl.go` | Reads the codes of the draft's records to find the record of a row step. |
-| `HomePartsOf` in `models/home_refs.go` | Offers the code as the handle a home entry's `target` or `page_of` names. |
-| `RecordPermissionCode` and `RecordPermissionsOf` in `record_permissions.go` | Build `record.RC-1.add`; the roles' permission lists carry these codes. |
-| `recordPermissionCodesOf` and `validateDocumentRolePermissions` in `role_record_permissions.go` | Check a role's `record.` codes against the codes the draft's records give. |
-| `StableIdentity` and `Resolve` in `identity_owner.go` | Make and read the identity of a record from its code. |
-| `advanceCodeSequences` in `import.go` | Moves the `record` counter past the `RC-n` codes an imported document brings. |
-| `buildDocument` and `applyDocumentToDraft` in `document.go`, the record copy in `forkScope` | Carry the code whole into a publication, an import and a fork. |
-| `contentHashFor` in `publication_impl.go` | Leaves the code out of the hash of a record. |
-| `record_code_step.go` and `WorkItem.RecordCode` | A `fill_form` step may name, by code, a record the platform derives; the sibling does not look it up. |
-| The hub's imports | Read `record_code` of a row and `row_record` of a step; they are outside this repo. |
+| `key` | The hidden identity, minted once from the `record` counter (`RC-1`, `RC-2`) and never edited. Everything that points at a record points at the key. |
+| `code` | A readable label made from the name, such as `payments` for `Payments` or `tender_register` for `Tender register`. Lower case letters, digits and underscores, starting with a letter. Unique in the draft (not only in the workflow). It may be renamed. |
 
-What ISS-178 did for the fields is the model: `record_field.go` keeps the
-helpers (`FieldCodeOf`, `uniqueFieldCode`, `validFieldCode`, `settleKeys`,
-`settleCodes`), a field's `key` is minted once and is what the answers are saved
-under, and its `code` is a label that may be renamed.
+A code never looks like a key: a code that is `RC-9`, that has a capital, a space,
+a dash or a dot, that starts with a digit or that has the shape of a field key
+(`f_` and sixteen hex digits) is malformed.
+
+### How a record gets its code and key
+
+`record_code.go` settles every record that is written:
+
+- **Create.** The key is the next `RC-n`. A code that is given must be well
+  formed and not held by another record of the draft, or the create is refused
+  with `ErrInvalidRecord` (400). A record with no code gets one proposed from its
+  name (`FieldCodeOf`'s rule: `Payments` gives `payments`, a name that starts
+  with a digit gives `record_2024`), with `_2`, `_3` added when the draft already
+  has it. A second writer racing for the same code meets the unique
+  `draft_code_unique` index and is answered `ErrConflict`.
+- **Update.** The update replaces the whole record. A code left out keeps the
+  record's code; a code sent that differs renames the record. The key never
+  changes, whatever is sent.
+- **Fork from a draft.** The records are copied whole, key and code with them.
+- **Import and fork from a publication.** `settleDocumentRecords` runs first. A
+  record that has a key keeps it, and its code must be well formed and unique in
+  the file (`ErrInvalidRecord`, nothing kept). A record with no key, as every
+  record of a file or publication made before ISS-195, takes its old code as its
+  key and gets a code proposed from its name; a record that carries a well formed
+  code and no key (a hand written file) keeps the code and takes it as the key
+  too. Records are settled in the order of the file, the ones that already hold a
+  well formed code first, so the same old file imported twice gives the same codes
+  and keys. The roles of the file have their `record.RC-1.add` codes moved to the
+  readable code, a workflow's `subject_record` and a step's `row_record` written
+  as a readable code are saved as the key, and `advanceCodeSequences` raises the
+  `record` counter past every key the file brought so a new record never takes a
+  key that is held.
+- **Provision.** `carryRecordKeysForward` (in `provision_record_codes.go`, run at
+  the start of `carryFieldKeysForward`) settles every stored record that has no
+  key the same way, writes the code and the key columns, and moves the
+  permissions of the roles of that draft in the same transaction. It reads and
+  writes no row of `record_row`; the generated workflows are named from the key,
+  so they are left as they are. A second run changes nothing.
+
+### Renaming a code
+
+The key stays and the roles follow in the same save (D38): `UpdateRecord` moves
+every permission `record.<old code>.<action>` (and the field part after it, when
+field permissions exist) of every role of the draft to the new code, in the
+transaction that writes the record. A permission of another record whose code
+starts with the old one (`payments_extra` beside `payments`) is not touched. A
+rename that is refused changes nothing. The old code stops naming the record at
+once, so a role created afterwards that carries it is refused. A rename is a
+change to the record, so it is a change to publish: the record's code is part of
+the content hash unless it is the one its name proposes (so an agency published
+before ISS-195 does not read as changed because of the code alone, though its
+roles' permission codes are new).
+
+### What reads the code and what reads the key
+
+| Where | Names the record by |
+|---|---|
+| `RecordPermissionCode` and `RecordPermissionsOf` in `record_permissions.go`; `recordPermissionCodesOf` and `validateDocumentRolePermissions` in `role_record_permissions.go` | The code: `record.tender.edit`. |
+| `ListRecords` (the `code` filter), the Issue scan's messages | The code. |
+| `models.RecordRow.RecordCode` (`CreateRecordRow`), and the duplicate and replace checks in `record_row_correction.go` | The key, so a row keeps naming its record after a rename and the rows of an older database are left as they were. |
+| `ListRecordRows` with `record_code` | The code or the key: a code is turned into the key of the record of the draft that holds it, and a value that is no code is read as a key. |
+| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The key: `RC-1.add`, `RC-1.add.1`, `generated_for`, and the step's `row_record`. |
+| `row_record` of a step (`validateRowStepReferences`), `subject_record` of a workflow (`validateWorkflowSubject`), `checkRowSteps`, `checkWorkflowSubjects`, `validateDocumentSubjects` | The key. A readable code written there is saved as the key (`recordKeyOfRef`, and `settleDocumentRecords` for a file), so a rename never leaves them behind. |
+| `HomePartsOf` in `models/home_refs.go` | Both: a home entry's `target` or `page_of` resolves by the code or the key, as written; it is not rewritten, so a home entry written by code must be changed when the code is. |
+| `keyedFields`, `recordFieldsOf`, `legacyFieldKey` | The key (`Record.Identity()`, the key or, for a record that has none, the code), so the field keys worked out for an old file and for a migrated database stay the same. |
+| `StableIdentity` and `Resolve` in `identity_owner.go`; `advanceCodeSequences` in `import.go` | The key. |
+| `WorkItem.RecordCode` | Unchanged: a `fill_form` step names a record the platform derives; the sibling does not look it up. |
+| The hub's imports | Outside this repo: they read a row's `record_code` and a step's `row_record`, which are keys, and a record's `code` and `key`. |
+
+### Decisions left to the owner
+
+- The key of a new record is the next `RC-n`, so generated workflow codes stay
+  `RC-1.add`. A random key such as the field's `f_...` would match the field, but
+  would make those codes unreadable.
+- A home entry that names a record by code is not rewritten on a rename.
 
 ## A workflow's subject and the row a run is started on
 
 A workflow may name a **subject record**: `subject_record` on `Workflow` and on
-the document workflow holds a record code, such as `RC-1`, of the same draft. It
+the document workflow holds a record key, such as `RC-1`, of the same draft (the
+record's readable code is understood too and is saved as the key). It
 says the workflow acts on one row of that record, so a run of it is started on
 a row. An empty `subject_record` means no subject, and the workflow behaves as
 every workflow did before the field existed.
