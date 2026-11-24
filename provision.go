@@ -29,7 +29,10 @@ func Provision(db *gorm.DB, s *spec.Spec) error {
 			return err
 		}
 	}
-	return carryObjectiveLinksForward(db, s)
+	if err := carryObjectiveLinksForward(db, s); err != nil {
+		return err
+	}
+	return carryFieldKeysForward(db, s)
 }
 
 func collapseDuplicateObjectiveLinks(db *gorm.DB, s *spec.Spec) error {

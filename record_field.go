@@ -192,8 +192,12 @@ func (s fieldSettlement) settleCodes(out []models.StepQuestion) error {
 	return nil
 }
 
+func keyedFieldsOrRefused(recordCode string, questions []models.StepQuestion) ([]models.StepQuestion, error) {
+	return settleFields(fieldSettlement{recordCode: recordCode, makeKey: legacyFieldKey}, questions)
+}
+
 func keyedFields(recordCode string, questions []models.StepQuestion) []models.StepQuestion {
-	settled, err := settleFields(fieldSettlement{recordCode: recordCode, makeKey: legacyFieldKey}, questions)
+	settled, err := keyedFieldsOrRefused(recordCode, questions)
 	if err != nil {
 		return questions
 	}
