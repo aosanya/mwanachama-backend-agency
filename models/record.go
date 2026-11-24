@@ -5,6 +5,7 @@ import "encoding/json"
 type Record struct {
 	ID           string         `json:"id"`
 	Code         string         `json:"code"`
+	Key          string         `json:"key"`
 	DraftID      string         `json:"draft_id,omitempty"`
 	WorkflowID   string         `json:"workflow_id"`
 	Name         string         `json:"name"`
@@ -22,6 +23,20 @@ type Record struct {
 	AddReplacedBy    string `json:"add_replaced_by"`
 	EditReplacedBy   string `json:"edit_replaced_by"`
 	DeleteReplacedBy string `json:"delete_replaced_by"`
+}
+
+func (r Record) Identity() string {
+	if r.Key != "" {
+		return r.Key
+	}
+	return r.Code
+}
+
+func (r DocumentRecord) Identity() string {
+	if r.Key != "" {
+		return r.Key
+	}
+	return r.Code
 }
 
 type RecordRow struct {
@@ -55,6 +70,7 @@ type RecordRow struct {
 type DocumentRecord struct {
 	ID           string         `json:"id"`
 	Code         string         `json:"code"`
+	Key          string         `json:"key,omitempty"`
 	WorkflowID   string         `json:"workflow_id"`
 	Name         string         `json:"name"`
 	RoleID       string         `json:"role_id"`

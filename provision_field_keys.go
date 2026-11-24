@@ -15,6 +15,9 @@ import (
 )
 
 func carryFieldKeysForward(db *gorm.DB, s *spec.Spec) error {
+	if err := carryRecordKeysForward(db, s); err != nil {
+		return err
+	}
 	records, rows := tableFor(s, roleRecord), tableFor(s, roleRecordRow)
 	held, err := tablesNamed(db, []string{records, rows})
 	if err != nil {
@@ -50,7 +53,7 @@ func keyRecordsAndRows(tx *gorm.DB, s *spec.Spec, records, rows string) ([]strin
 		if err := specstore.Decode(recordObject, raw, &record); err != nil {
 			return nil, err
 		}
-		settled := keyedFields(record.Code, record.Questions)
+		settled := keyedFields(record.Identity(), record.Questions)
 		if !equalFieldIdentity(settled, record.Questions) {
 			record.Questions = settled
 			cells, err := specstore.Encode(recordObject, record)

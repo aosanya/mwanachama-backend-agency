@@ -339,7 +339,7 @@ func TestRecordField_TheGeneratedStepsFollowACodeRename(t *testing.T) {
 	}
 	seen := 0
 	for _, s := range steps {
-		if s.RowRecord != o.record.Code || s.RowAction == models.RowActionDelete {
+		if s.RowRecord != o.record.Key || s.RowAction == models.RowActionDelete {
 			continue
 		}
 		seen++

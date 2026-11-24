@@ -64,7 +64,7 @@ func TestRecordRoutes(t *testing.T) {
 
 	rows := send(http.MethodGet, "/record-rows?draft_id="+draftID+"&record_id="+record.ID, "")
 	var got []models.RecordRow
-	if err := json.Unmarshal(rows.Body.Bytes(), &got); err != nil || len(got) != 1 || got[0].RecordCode != record.Code {
+	if err := json.Unmarshal(rows.Body.Bytes(), &got); err != nil || len(got) != 1 || got[0].RecordCode != record.Key {
 		t.Fatalf("list rows: status = %d, body = %s", rows.Code, rows.Body.String())
 	}
 

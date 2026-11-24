@@ -39,7 +39,7 @@ func (r rowStepWorld) step(t *testing.T, workflowName, action string) models.Wor
 	wf := r.world.workflow(t, workflowName)
 	wi := models.WorkItem{
 		DraftID: r.world.draftID, WorkflowID: wf.ID, Title: workflowName, Ordinality: 1, Kind: models.StepKindFillForm,
-		RoleID: r.record.RoleID, RowRecord: r.record.Code, RowAction: action,
+		RoleID: r.record.RoleID, RowRecord: r.record.Key, RowAction: action,
 		FormName: r.record.FormName, Questions: r.record.Questions,
 	}
 	if action == "delete" {
@@ -57,7 +57,7 @@ func TestRowStep_AFillFormStepNamesTheRecordAndTheActionAndReadsThemBack(t *test
 			t.Fatalf("CreateWorkItem %s: %v", action, err)
 		}
 		got, err := r.world.mgr.GetWorkItem(ctx, made.ID)
-		if err != nil || got.RowRecord != r.record.Code || got.RowAction != action {
+		if err != nil || got.RowRecord != r.record.Key || got.RowAction != action {
 			t.Errorf("%s: read back %+v, %v", action, got, err)
 		}
 	}
@@ -147,7 +147,7 @@ func TestRowStep_UpdateKeepsTheFieldsAConsoleBodyLeavesOutAndAClearingBodyClears
 		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 	got, _ := r.world.mgr.GetWorkItem(ctx, made.ID)
-	if got.RowRecord != r.record.Code || got.RowAction != "add" {
+	if got.RowRecord != r.record.Key || got.RowAction != "add" {
 		t.Errorf("a body that leaves the fields out keeps them: %+v", got)
 	}
 
@@ -175,8 +175,8 @@ func TestRowStep_AForkAPublicationAndAnImportCarryIt(t *testing.T) {
 	check := func(label, draftID string) {
 		t.Helper()
 		steps := copiedSteps(t, r.world.mgr, draftID)
-		if steps["Tender add form"].RowRecord != r.record.Code || steps["Tender add form"].RowAction != "add" ||
-			steps["Tender edit form"].RowRecord != r.record.Code || steps["Tender edit form"].RowAction != "edit" {
+		if steps["Tender add form"].RowRecord != r.record.Key || steps["Tender add form"].RowAction != "add" ||
+			steps["Tender edit form"].RowRecord != r.record.Key || steps["Tender edit form"].RowAction != "edit" {
 			t.Errorf("%s: row fields lost: add %+v edit %+v", label, steps["Tender add form"], steps["Tender edit form"])
 		}
 	}
@@ -192,7 +192,7 @@ func TestRowStep_AForkAPublicationAndAnImportCarryIt(t *testing.T) {
 	}
 	carried := 0
 	for _, wi := range pub.Document.WorkItems {
-		if wi.RowRecord == r.record.Code && (wi.Title == "Tender add form" || wi.Title == "Tender edit form") && (wi.RowAction == "add" || wi.RowAction == "edit") {
+		if wi.RowRecord == r.record.Key && (wi.Title == "Tender add form" || wi.Title == "Tender edit form") && (wi.RowAction == "add" || wi.RowAction == "edit") {
 			carried++
 		}
 	}
@@ -234,9 +234,9 @@ func TestRowStep_TheIssueScanNamesARowStepWhoseRecordIsGone(t *testing.T) {
 		t.Fatalf("ListIssues: %v", err)
 	}
 	for _, i := range issues {
-		if i.Severity == models.IssueSeverityError && i.EntityType == "work_item" && strings.Contains(i.Message, "Tender add form") && strings.Contains(i.Message, r.record.Code) {
+		if i.Severity == models.IssueSeverityError && i.EntityType == "work_item" && strings.Contains(i.Message, "Tender add form") && strings.Contains(i.Message, r.record.Key) {
 			return
 		}
 	}
-	t.Errorf("no error names the step and the missing record %s: %+v", r.record.Code, issues)
+	t.Errorf("no error names the step and the missing record %s: %+v", r.record.Key, issues)
 }

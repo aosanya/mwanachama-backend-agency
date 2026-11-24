@@ -37,6 +37,7 @@ func (m *agencyManager) CreateWorkflow(ctx context.Context, w models.Workflow) (
 	if err := m.validateOpenDraftID(ctx, w.DraftID); err != nil {
 		return models.Workflow{}, err
 	}
+	w.SubjectRecord = m.recordKeyOfRef(ctx, m.db, w.DraftID, w.SubjectRecord)
 	if err := m.validateWorkflowSubject(ctx, m.db, w.DraftID, w.SubjectRecord); err != nil {
 		return models.Workflow{}, fmt.Errorf("CreateWorkflow: %w", err)
 	}
@@ -104,6 +105,7 @@ func (m *agencyManager) UpdateWorkflow(ctx context.Context, w models.Workflow) (
 		if err := validateWorkflowShape(w); err != nil {
 			return err
 		}
+		w.SubjectRecord = m.recordKeyOfRef(ctx, tx, existing.DraftID, w.SubjectRecord)
 		if w.SubjectRecord != existing.SubjectRecord {
 			if err := m.validateWorkflowSubject(ctx, tx, existing.DraftID, w.SubjectRecord); err != nil {
 				return err

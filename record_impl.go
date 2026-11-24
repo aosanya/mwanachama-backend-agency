@@ -109,11 +109,7 @@ func (m *agencyManager) CreateRecord(ctx context.Context, r models.Record) (mode
 	r.CreatedAt = models.NowRFC3339()
 	r.LastUpdated = r.CreatedAt
 
-	err = m.createWithCode(ctx, roleRecord, "record", "RC", func(code string) any {
-		r.Code = code
-		return r
-	})
-	if err != nil {
+	if r, err = m.insertRecord(ctx, r); err != nil {
 		return models.Record{}, fmt.Errorf("CreateRecord: %w", err)
 	}
 	err = m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return m.ensureGenerated(ctx, tx, r.DraftID) })
@@ -158,14 +154,16 @@ func (m *agencyManager) UpdateRecord(ctx context.Context, r models.Record) (mode
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
-		r.Code = existing.Code
+		if err := m.settleRecordRename(ctx, tx, existing, &r); err != nil {
+			return err
+		}
 		r.DraftID = existing.DraftID
 		r.CreatedAt = existing.CreatedAt
 		r.LastUpdated = models.NowRFC3339()
 		r.Name = strings.TrimSpace(r.Name)
 		r.ItemName = strings.TrimSpace(r.ItemName)
 		settled, err := settleFields(fieldSettlement{
-			recordCode: existing.Code, before: keyedFields(existing.Code, existing.Questions), known: true, makeKey: randomFieldKey,
+			recordCode: existing.Identity(), before: keyedFields(existing.Identity(), existing.Questions), known: true, makeKey: randomFieldKey,
 		}, r.Questions)
 		if err != nil {
 			return err
@@ -179,6 +177,9 @@ func (m *agencyManager) UpdateRecord(ctx context.Context, r models.Record) (mode
 			return err
 		}
 		out = r
+		if err := m.renameRecordCode(ctx, tx, existing, r.Code); err != nil {
+			return err
+		}
 		return m.ensureGenerated(ctx, tx, existing.DraftID)
 	})
 	if err != nil {
@@ -240,7 +241,7 @@ func validateRowAnswers(ctx context.Context, record models.Record, answers map[s
 			return nil, invalidRow("the detail %q is required", extra.Prompt)
 		}
 	}
-	for _, q := range keyedFields(record.Code, record.Questions) {
+	for _, q := range keyedFields(record.Identity(), record.Questions) {
 		answer := strings.TrimSpace(kept[q.Key])
 		if answer == "" {
 			if q.Required && !allowance.waives(q.Prompt) {
@@ -337,7 +338,7 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 	row.PlaceRefs = recordFieldsOf(record).keyed(row.PlaceRefs)
 	row.ID = newID()
 	row.Deleted = false
-	row.RecordCode = record.Code
+	row.RecordCode = record.Identity()
 	row.CreatedAt = rowClock().Format(models.TimeLayout)
 	row.LastUpdated = row.CreatedAt
 	row.CorrectedOn = ""
@@ -359,7 +360,7 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 func (m *agencyManager) ListRecordRows(ctx context.Context, draftID string, filter RecordRowFilter) ([]models.RecordRow, error) {
 	q := scopeQuery(m.q(ctx, roleRecordRow).Order("created_at"), draftID)
 	q = eqFilter(q, "record_id", filter.RecordID)
-	q = eqFilter(q, "record_code", filter.RecordCode)
+	q = eqFilter(q, "record_code", m.recordKeyNamed(ctx, draftID, filter.RecordCode))
 	q = eqFilter(q, "order_id", filter.OrderID)
 	q = eqFilter(q, "subject_row_id", filter.SubjectRowID)
 	q = tagFilter(q, filter.Tags)

@@ -27,11 +27,14 @@ with `ErrPublishValidationFailed`) when a role declares:
 - a code not in the vocabulary, unless it is a record code that a record of the draft
   gives: `record.<record code>.<add|edit|view>.<field code or *>` or
   `record.<record code>.delete` (ISS-151, ISS-182, see
-  [workflow-records.md](workflow-records.md)), or
+  [workflow-records.md](workflow-records.md)). The record code is the record's
+  readable code, such as `record.tender.edit.closing_date`; the counter code `RC-n`
+  is deprecated as a record code (D58) and is no longer given by any record. A
+  rename of the record code moves the roles that carry it in the same save, or
 - a `record.` code that no record of the draft gives, among them the plain
   `record.<record code>.add`, `.edit` and `.view`, which no longer exist, a field the
   record does not have, and a `delete` with a field part (a field's code is its own
-  stored label on a hidden key; following a rename is not built yet, see
+  stored label on a hidden key; following a rename of a field code is not built yet, see
   [workflow-records.md](workflow-records.md)), or
 - a permission locked to owners (decision 265). Locked permissions are held by owners
   whatever the definition says, so no role may claim one.

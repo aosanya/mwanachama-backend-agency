@@ -484,7 +484,7 @@ func TestGenerated_ARecordWithNoAddingRoleBlocksThePublishWithAFinding(t *testin
 	g := newGenWorld(t)
 	ctx := context.Background()
 	g.setRecordColumn(t, "role_id", "")
-	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, "RC-1", "adding role"); len(got) == 0 {
+	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, g.record.Code, "adding role"); len(got) == 0 {
 		t.Errorf("a record with no adding role is an error")
 	}
 	if _, err := g.world.mgr.PublishAgency(ctx, g.world.draftID, "", ""); !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {

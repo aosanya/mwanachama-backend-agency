@@ -27,7 +27,7 @@ func (m *agencyManager) settleReplacement(ctx context.Context, row *models.Recor
 	if old.ReturnedOn != "" {
 		return invalidRow("the row to replace was returned")
 	}
-	if old.RecordCode != record.Code {
+	if old.RecordCode != record.Identity() {
 		return invalidRow("the row to replace belongs to another record")
 	}
 	if row.OrderID == "" {

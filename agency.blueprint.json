@@ -596,7 +596,8 @@
       "description": "A named list a workflow keeps beside its steps: who adds rows to it and the form each row is added with.",
       "fields": [
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
-        {"name": "code", "type": "string", "description": "Stable human-readable handle such as RC-1, minted once and never edited. Rows quote it so they survive a new version.", "immutable": true},
+        {"name": "code", "type": "string", "description": "A readable label made from the record's name, such as tender: lower case letters, digits and underscores, starting with a letter, unique in the draft. Roles carry permissions on it (record.tender.edit). It may be renamed; a rename keeps the key and moves the roles in the same save."},
+        {"name": "key", "type": "string", "description": "The record's hidden, stable identity, minted once and never edited, such as RC-1. Rows, steps, generated workflows and a workflow's subject name the record by it, so a rename of the code leaves them whole.", "immutable": true},
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
         {"name": "workflow_id", "type": "string", "description": "The workflow that keeps this record, in the same draft.", "required": true},
         {"name": "name", "type": "string", "description": "What the record is called, such as Payments.", "required": true},
@@ -615,7 +616,9 @@
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
       ],
       "indexes": [
-        {"name": "code", "description": "Finds a record by the handle its rows quote.", "fields": ["code"]},
+        {"name": "code", "description": "Finds a record by its readable code.", "fields": ["code"]},
+        {"name": "key", "description": "Finds a record by the key its rows quote.", "fields": ["key"]},
+        {"name": "draft_code_unique", "description": "Refuses a second record with the same code in one draft, so two writers racing cannot both take it.", "fields": ["draft_id", "code"], "unique": true, "not_deleted": true},
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
       ]
     },
@@ -626,7 +629,7 @@
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "draft_id", "type": "string", "description": "The draft whose record this row was added to.", "required": true},
         {"name": "record_id", "type": "string", "description": "The record the row belongs to.", "required": true},
-        {"name": "record_code", "type": "string", "description": "That record's handle, which stays the same in every later version.", "required": true},
+        {"name": "record_code", "type": "string", "description": "That record's key, which stays the same in every later version and when the record's code is renamed.", "required": true},
         {"name": "role_id", "type": "string", "description": "The role the person adding the row acted as."},
         {"name": "added_by", "type": "string", "description": "Who added the row, as the app names them."},
         {"name": "answers", "type": "json", "description": "The answer to each field of the record's form, by the field's key. An approval stamp or an amendment line, which is no field of the form, is kept under its own text."},

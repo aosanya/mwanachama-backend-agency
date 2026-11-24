@@ -186,7 +186,7 @@ func TestRecordRow_IsRefusedForARoleThatDoesNotAddRows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the Group coordinator adds a row: %v", err)
 	}
-	if made.ID == "" || made.RecordCode != o.record.Code || made.CreatedAt == "" {
+	if made.ID == "" || made.RecordCode != o.record.Key || made.CreatedAt == "" {
 		t.Errorf("row = %+v", made)
 	}
 

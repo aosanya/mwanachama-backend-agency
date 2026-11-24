@@ -40,15 +40,19 @@ func legacyFieldKey(recordCode string, q models.StepQuestion, sameBefore int) st
 	return fieldKeyPrefix + hex.EncodeToString(sum[:])[:fieldKeyDigits]
 }
 
-func FieldCodeOf(prompt string) string {
-	code := strings.Trim(notCodeCharacter.ReplaceAllString(strings.ToLower(prompt), "_"), "_")
+func codeFromText(text, fallback string) string {
+	code := strings.Trim(notCodeCharacter.ReplaceAllString(strings.ToLower(text), "_"), "_")
 	if len(code) > fieldCodeLimit {
 		code = strings.Trim(code[:fieldCodeLimit], "_")
 	}
 	if code == "" || code[0] < 'a' || code[0] > 'z' {
-		code = strings.Trim(fieldCodeFallback+"_"+code, "_")
+		code = strings.Trim(fallback+"_"+code, "_")
 	}
 	return code
+}
+
+func FieldCodeOf(prompt string) string {
+	return codeFromText(prompt, fieldCodeFallback)
 }
 
 func uniqueFieldCode(proposed string, taken map[string]bool) string {
@@ -233,7 +237,7 @@ func recordFieldsOf(r models.Record) recordFields {
 	f := recordFields{
 		byKey: map[string]models.StepQuestion{}, byCode: map[string]models.StepQuestion{}, byPrompt: map[string]models.StepQuestion{},
 	}
-	for _, q := range keyedFields(r.Code, r.Questions) {
+	for _, q := range keyedFields(r.Identity(), r.Questions) {
 		f.byKey[q.Key] = q
 		f.byCode[q.Code] = q
 		if _, seen := f.byPrompt[q.Prompt]; !seen {

@@ -67,8 +67,16 @@ func (s *issueScan) add(sev models.IssueSeverity, entityType, entityID, format s
 }
 
 func (s *issueScan) codeSet(role string) (map[string]bool, error) {
+	return s.columnSet(role, "code")
+}
+
+func (s *issueScan) keySet(role string) (map[string]bool, error) {
+	return s.columnSet(role, "key")
+}
+
+func (s *issueScan) columnSet(role, column string) (map[string]bool, error) {
 	var codes []string
-	if err := s.scoped(role).Pluck("code", &codes).Error; err != nil {
+	if err := s.scoped(role).Pluck(column, &codes).Error; err != nil {
 		return nil, err
 	}
 	set := make(map[string]bool, len(codes))

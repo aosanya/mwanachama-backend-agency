@@ -35,12 +35,12 @@ func (m *agencyManager) validateRowStepReferences(ctx context.Context, tx *gorm.
 		return m.refuseStepBesideRowStep(ctx, tx, wi)
 	}
 	var record models.Record
-	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRecord)), wi.DraftID).Where("code = ?", wi.RowRecord)
+	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRecord)), wi.DraftID).Where("key = ?", wi.RowRecord)
 	if err := m.take(q, roleRecord, &record, ErrRecordNotFound); err != nil {
 		return invalidStep("the record %s is not a record of this draft", QuoteIfUnsafe(wi.RowRecord))
 	}
 	if want := record.RoleOfRowAction(wi.RowAction); wi.RoleID != want {
-		return invalidStep("a step that %ss a row of %s is held by the role that does so, %s", wi.RowAction, record.Code, QuoteIfUnsafe(want))
+		return invalidStep("a step that %ss a row of %s is held by the role that does so, %s", wi.RowAction, record.Identity(), QuoteIfUnsafe(want))
 	}
 	if err := rowStepFormFits(wi, record); err != nil {
 		return err
@@ -60,7 +60,7 @@ func rowStepFormFits(wi models.WorkItem, record models.Record) error {
 		return nil
 	}
 	if wi.FormName != record.FormName || !reflect.DeepEqual(withoutFieldIdentity(wi.Questions), withoutFieldIdentity(record.Questions)) {
-		return invalidStep("a step that %ss a row takes the form of the record %s: %q and its questions", wi.RowAction, record.Code, record.FormName)
+		return invalidStep("a step that %ss a row takes the form of the record %s: %q and its questions", wi.RowAction, record.Identity(), record.FormName)
 	}
 	return nil
 }
