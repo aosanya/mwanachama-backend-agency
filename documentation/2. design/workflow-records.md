@@ -12,43 +12,32 @@ A record is `models.Record`, stored in the `record` object of
 
 | Field | Meaning |
 |---|---|
-| `code` | A readable label made from the name, such as `tender` (see A record's code and key). Unique in the draft and renamable. Roles carry permissions on it: `record.tender.edit`. |
+| `code` | A readable label made from the name, such as `tender` (see A record's code and key). Unique in the draft and renamable. Roles carry permissions on it: `record.tender.edit.*`. |
 | `key` | The hidden identity, minted once and never edited: a UUID for a record made since ISS-201 (D61), the counter code `RC-1` for an older one. Rows, steps, generated workflows and a workflow's subject name the record by it, and it stays the same in every later version. The counter code `RC-n` is deprecated as a code (D58) and lives on only as an older record's key. |
 | `workflow_id` | The workflow that keeps the record, in the same draft. |
 | `name` | What the record is called, such as Payments. Unique inside its workflow, ignoring case. |
-| `role_id` | The one role that adds rows, in the same draft. |
-| `viewer_role_id` | The one role whose members each see their own row of the record (decision 90, HS675), in the same draft. Empty when no role but the one that adds rows sees them. A group is accepted where a role is, as for `role_id`. |
 | `form_name`, `questions` | The form each row is added with, in the same shape as a step's form. Each question of a record is a field with a `key` and a `code` (see A field's code and key). |
 | `item_name` | What one row is called, singular, such as Tender or Office holder. Optional; the generated workflows are named from it (see Generated workflows). |
-| `edit_role_id`, `delete_role_id` | The one role that edits, and the one that deletes, a row through the generated workflows. Optional; empty means `role_id`. In the same draft. |
 | `add_replaced_by`, `edit_replaced_by`, `delete_replaced_by` | The code of a designed workflow of the same draft that stands in for the generated add, edit or delete workflow. Optional; it must exist and must not be generated. |
 
+A record has no role of its own. Who adds, edits, sees and deletes its rows is
+given to roles as permissions on the record's code (see Record permissions
+below); the four fields `role_id`, `edit_role_id`, `viewer_role_id` and
+`delete_role_id` that a record once carried are gone (ISS-155, decisions D1, D6,
+D35 and D36). See A record carries no role below.
+
 Create and update refuse with `ErrInvalidRecord` (400) a record with no name,
-no role, two roles, two viewer roles, no workflow, no form name, no question, an
-invalid question or a name another record of the workflow already has. A role
-(adding or viewing) or a workflow that is not in the draft is `ErrRoleNotFound`
-or `ErrWorkflowNotFound` (404). The viewer role is optional, and an update that
-sends it empty, or leaves it out, clears it, as the update replaces the whole
-record and does not merge into it. `agency_update_record` says so in its
-description and `routes/record_viewer_test.go` pins it. Whether an update should
-keep what it leaves out is the owner's call (HS672); until then a client that
-means to keep the viewer sends it again.
+no workflow, no form name, no question, an invalid question or a name another
+record of the workflow already has. A workflow that is not in the draft is
+`ErrWorkflowNotFound` (404). The update replaces the whole record and does not
+merge into it, so a client sends `item_name` and the three `*_replaced_by`
+fields again to keep them.
 
-`viewer_role_id` is declared the way `role_id` is: a column of `record` in
-`agency.blueprint.json`, a field of `models.Record` and `models.DocumentRecord`,
-checked in `validateRecord`, remapped onto the forked role in `CreateDraft` and
-in restoring a publication, and named by the Issue scan when its role is gone.
-`create_record`, `update_record` and `get_record` in `agency.operations.json`
-serve it as `viewer_role_id` on the tool and on `/records`; no handler is
-hand-written. The content hash adds it only when it is set, so an agency
-published before the field existed does not read as changed.
+Storing nothing about a viewer, the sibling does not decide who may read a row.
+The live read in wakala-api (`agency_list_live_record_rows`) decides it from the
+`record.<code>.view.*` and field codes of the person's roles.
 
-Storing the field does not yet change who may read a row. The live read in
-wakala-api (`agency_list_live_record_rows`) still shows every row to the role
-that adds rows and to anyone else only the rows whose picked-from-a-list answer
-names them; making `viewer_role_id` the gate is open for the owner.
-
-A fork copies the records onto the forked roles and workflows. A publication
+A fork copies the records onto the forked workflows. A publication
 document carries them as `records` on `AgencyDocument`, and forking a draft from
 a publication restores them. The content hash includes them, so changing only a
 record is a change that can be published. The hash also now includes a step's
@@ -72,12 +61,15 @@ The studio has no screen for adding one. `models.RecordRow` is stored in the
 
 A row names the draft whose record it was added to (any draft that exists, not
 only an open one, because the app serves the published draft), the `record_id`,
-the `role_id` the person acted as, who added it, and the `answers` by the
+the `role_id` the person acted as (the role of the row, which stays), who added it, and the `answers` by the
 field's key. The row keeps the record's `record_code`, so it can be read across
 versions.
 
-A row is refused with `ErrRecordRowRefused` (403) unless its `role_id` is the
-record's `role_id`. Answers are refused with `ErrInvalidRecordRow` (400) when
+A row is refused with `ErrRecordRowRefused` (403) unless its `role_id` is a role
+of the draft whose permissions carry `record.<code>.add.*` or a
+`record.<code>.add.<field code>` of the record (`roleAddsRows` in
+`role_record_permissions.go`). A group, an empty role and a role that carries
+only view, edit or delete codes are refused. Answers are refused with `ErrInvalidRecordRow` (400) when
 they answer a question the form does not ask, leave a required question blank,
 or do not fit the question: yes or no, a number for a number or an amount, a
 date as `2006-01-02`, or one of the typed options of a pick-one question. The
@@ -115,8 +107,8 @@ shows its edits at once (open question Q98).
 
 | Tool | Meaning |
 |---|---|
-| `agency_list_live_records` | Each record with its form and `can_add_rows`, true for the agency owner and for the person seated in the record's role. |
-| `agency_list_live_record_rows` | The current rows of one record by `record_code`, oldest first, narrowed by `order_id`; `history` true reads the rows a replacing row corrected instead. A role that adds rows sees every row, anyone else only the rows whose picked-from-a-list answer names them. |
+| `agency_list_live_records` | Each record with its form and `can_add_rows`, true for the agency owner and for a person whose seat carries an add permission of the record. |
+| `agency_list_live_record_rows` | The current rows of one record by `record_code`, oldest first, narrowed by `order_id`; `history` true reads the rows a replacing row corrected instead. A role that carries the view codes sees the fields they name, anyone else only the rows whose picked-from-a-list answer names them. |
 | `agency_add_live_record_row` | Adds a row with `answers`, an optional `order_id` and an optional `replaces`. A repeat within 60 seconds is refused, 409 on the route. |
 | `agency_get_my_roles` | The caller's `membership` (`owner`, `agent` or `resident`) and the one agency role her seat holds, if any. |
 | `agency_list_my_open_steps` | The workflow steps of the roles the caller holds, with each step's kind, role, form name and questions. It does not know whether a step has been done. A caller who holds no role gets none. |
@@ -181,8 +173,7 @@ when set (record `WorkItemRow`, so an agency without them hashes as before):
 
 Create and update refuse with `ErrInvalidWorkItem` (400): one of the two without
 the other, an unknown action, a step that is not `fill_form`, a record code that
-is not a record of the same draft, a step whose role is not the record's role
-for that action (`role_id`, or `edit_role_id` and `delete_role_id` when set), an
+is not a record of the same draft, an
 `add` or `edit` whose form name and questions differ from the record's, a
 `delete` that does not ask exactly one required `free_text` question (the
 reason), and a workflow that holds a row step beside any other step. An update
@@ -308,11 +299,11 @@ made by the sibling from its records and never authored. Every live record has
 three, one step each, all `fill_form` steps with `row_record` set to the
 record's code and `row_action` set:
 
-| Workflow code | `row_action` | Held by | Form |
+| Workflow code | `row_action` | Role of the step | Form |
 |---|---|---|---|
-| `<key>.add` | `add` | `role_id` | the record's form and questions |
-| `<key>.edit` | `edit` | `edit_role_id`, else `role_id` | the record's form and questions |
-| `<key>.delete` | `delete` | `delete_role_id`, else `role_id` | `Why delete this <item>` asking `Why is it removed` |
+| `<key>.add` | `add` | none | the record's form and questions |
+| `<key>.edit` | `edit` | none | the record's form and questions |
+| `<key>.delete` | `delete` | none | `Why delete this <item>` asking `Why is it removed` |
 
 The workflow name is the verb and the item with its article: `Add a tender`,
 `Edit an office holder`. The item is `item_name`, else the record's
@@ -356,6 +347,49 @@ counts once and a record change is the change that regenerates them.
 
 The publish guard is `checkGeneratedWorkflows` in `generated_workflows.go`,
 one of the Issue scan's checks that `validationErrors` runs before a publish.
+
+## A record carries no role (ISS-155, decisions D1, D6, D35, D36)
+
+`role_id`, `edit_role_id`, `delete_role_id` and `viewer_role_id` left
+`models.Record`, `models.DocumentRecord`, the `record` object of
+`agency.blueprint.json`, the fork, the publication document and the content
+hash. Nothing reads them: the Issue scan no longer names a record whose role is
+gone, and a record without an adding role is no longer a finding.
+
+| Field that is gone | The codes that replace it |
+|---|---|
+| `role_id` | `record.<code>.add.*` or `record.<code>.add.<field>` |
+| `edit_role_id` | `record.<code>.edit.*` or `record.<code>.edit.<field>` |
+| `viewer_role_id` | `record.<code>.view.*` or `record.<code>.view.<field>` |
+| `delete_role_id` | `record.<code>.delete` |
+
+- **Refused, not folded.** A document, a publication being forked, or a request
+  body that still carries one of the four with a value is refused with
+  `ErrInvalidRecord` (400), naming the field and the codes above for that
+  record: `role_id is gone from a record: give a role record.tender.add.* or
+  record.tender.add.<field> instead`. A field sent empty is not a carry and is
+  accepted. Nothing of an import is kept when one record is refused. There is no
+  fold of the old fields into role permissions: the roles are the owner's to
+  give.
+- **How the refusal is read.** `models.Record` and `models.DocumentRecord` read
+  the four names in `UnmarshalJSON` into an unexported list
+  (`CarriedGoneRoleFields`) and drop the values; `refuseGoneRoleFields` in
+  `record_role_fields.go` makes the refusal. `CreateRecord`, `UpdateRecord` and
+  `applyDocumentToDraft` (import and fork from a publication) call it. Reading a
+  stored publication that still holds the fields works, so older versions can be
+  listed; forking one of them is refused until its records are rewritten.
+- **The generated step holds no role.** `generatedPlansOf` leaves `RoleID`
+  empty on the add, edit and delete steps, and `RoleOfRowAction` is removed.
+  Who may do the step is the permission codes. A designed row step keeps the role
+  it names (D12) and is no longer checked against the record.
+- **A row's role stays.** `RecordRow.role_id` is the role the person acted as.
+  `CreateRecordRow` accepts it only when that role carries an add code of the
+  record.
+- **The hash.** A record hashes its id, workflow, name, form, questions and
+  deleted flag, and the optional code, item name and stand-ins. Every agency
+  with a record therefore reads as changed once, which is the breaking change.
+- **Fixtures.** The hub-demo files carry the add code on the role that used to
+  be the record's `role_id`.
 
 ## Record permissions (ISS-150, ISS-182, decisions D20, D21, D29, D30, D36, D37)
 
@@ -765,12 +799,11 @@ All are `error`, so none can be published:
 - a sent form, a route target or an otherwise target that no longer exists, or
   that now belongs to another workflow;
 - a recipient role that no longer exists;
-- a record whose role, viewer role or workflow no longer exists;
+- a record whose workflow no longer exists;
 - a row step whose record no longer exists;
 - a workflow whose subject record no longer exists;
-- a live record without an adding role;
 - for a live record, a missing, duplicated, altered or stale generated
-  workflow (different name, stand-in, step, role, form or questions than the
+  workflow (different name, stand-in, step, form or questions than the
   record now gives it), naming the record and the workflow code, and a
   generated workflow whose record is gone;
 - a record whose `*_replaced_by` names no designed workflow of the draft.

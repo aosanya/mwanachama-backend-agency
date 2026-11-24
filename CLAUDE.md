@@ -68,6 +68,18 @@ changes. `RecordRow.SubjectRowID` (`subject_row_id`) beside `OrderID` is the
 row a run was started on, shared by every row of the run. Both are optional.
 Design record: [documentation/2. design/workflow-records.md](documentation/2.%20design/workflow-records.md).
 
+## A record carries no role (ISS-155, D36)
+
+A record has no `role_id`, `edit_role_id`, `delete_role_id` or `viewer_role_id`:
+who adds, edits, sees and deletes its rows is the roles' permissions on its
+code (`record.<code>.add.*`, `.edit.<field>`, `.view.*`, `.delete`). A document,
+a publication being forked or a request body that still carries one of the four
+with a value is refused with `ErrInvalidRecord` naming the field and the
+replacing codes; nothing is folded. The generated steps hold no role, and a row
+is added only by a role that carries an add code of the record. See
+[documentation/2. design/workflow-records.md](documentation/2.%20design/workflow-records.md),
+"A record carries no role".
+
 ## Porting notes
 
 - **AG3 landed 2026-09-09: `models/`, `gormstore/`, root `doc.go`/
