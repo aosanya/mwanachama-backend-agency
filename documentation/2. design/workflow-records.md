@@ -372,7 +372,7 @@ are added there and nowhere else, and a `delete` code drops any field part.
 | `record.<record code>.view.*` | May see every field the record has at the time of the check. |
 | `record.<record code>.delete` | May delete a row. No field part and no star (D29). |
 
-The IAS tender record has ten fields, so it gives ten add, ten edit and ten view
+A tender record has ten fields, so it gives ten add, ten edit and ten view
 field codes, the three stars and `record.tender.delete`: 34 codes. Add, edit and
 view come first by action, each action listing the fields in the record's order and
 then its star; delete comes last. A record with no fields gives the three stars and

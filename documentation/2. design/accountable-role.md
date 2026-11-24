@@ -124,6 +124,6 @@ ISS-179. When a tag carries this change the hub has to:
   mirror creates for the agency module is no longer written; the mirror needs
   the new `accountable_role_id` column on `work_items`, and rows already in the
   table are converted by a one-off statement or a re-import.
-- The IAS agency file: its 36 entries become 13 step fields (the 23 that repeat a
+- A mined agency file with 36 entries: they become 13 step fields (the 23 that repeat a
   step's own role are dropped). That conversion belongs to the hub issue that
   owns the file, not to this module.
