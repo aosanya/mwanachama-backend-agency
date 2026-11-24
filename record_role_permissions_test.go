@@ -47,7 +47,7 @@ func (w recordPermissionWorld) refusalNames(t *testing.T, err error, role, code 
 
 func TestRolePermissions_CreateTakesTheCodesOfARecordOfTheDraftBesideCatalogueCodes(t *testing.T) {
 	w := newRecordPermissionWorld(t)
-	want := []string{w.code("add"), "report.read", w.code("view")}
+	want := []string{w.fieldCode("add", amountField), "report.read", w.fieldCode("view", amountField)}
 	created, err := w.mgr.CreateRole(context.Background(), models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: want})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
@@ -74,7 +74,7 @@ func TestRolePermissions_UpdateTakesAndRefusesTheSameCodes(t *testing.T) {
 	w := newRecordPermissionWorld(t)
 	ctx := context.Background()
 	role := w.roles[farmer]
-	role.Permissions = []string{w.code("edit"), "report.read"}
+	role.Permissions = []string{w.fieldCode("edit", amountField), "report.read"}
 	if _, err := w.mgr.UpdateRole(ctx, role); err != nil {
 		t.Fatalf("UpdateRole: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestRolePermissions_UpdateTakesAndRefusesTheSameCodes(t *testing.T) {
 	_, err := w.mgr.UpdateRole(ctx, role)
 	w.refusalNames(t, err, farmer, "record.nothing.edit")
 	kept, err := w.mgr.GetRole(ctx, role.ID)
-	if err != nil || !reflect.DeepEqual(kept.Permissions, []string{w.code("edit"), "report.read"}) {
+	if err != nil || !reflect.DeepEqual(kept.Permissions, []string{w.fieldCode("edit", amountField), "report.read"}) {
 		t.Fatalf("GetRole = %+v, %v; want the accepted list kept", kept, err)
 	}
 }
@@ -106,8 +106,8 @@ func TestRolePermissions_ARecordOfAnotherDraftGivesNoCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	_, err = w.mgr.CreateRole(ctx, models.Role{DraftID: other.ID, Name: "Clerk", Permissions: []string{w.code("add")}})
-	w.refusalNames(t, err, "Clerk", w.code("add"))
+	_, err = w.mgr.CreateRole(ctx, models.Role{DraftID: other.ID, Name: "Clerk", Permissions: []string{w.fieldCode("add", amountField)}})
+	w.refusalNames(t, err, "Clerk", w.fieldCode("add", amountField))
 }
 
 func TestRolePermissions_CatalogueOnlyRolesBehaveAsBefore(t *testing.T) {
@@ -146,7 +146,7 @@ func clerkOf(t *testing.T, roles []models.Role) models.Role {
 func TestRolePermissions_PublishCarriesTheRecordCodesAndAForkKeepsThem(t *testing.T) {
 	w := newRecordPermissionWorld(t)
 	ctx := context.Background()
-	want := []string{w.code("add"), w.code("view"), "report.read"}
+	want := []string{w.fieldCode("add", amountField), w.fieldCode("view", amountField), "report.read"}
 	pub := publishedWithClerk(t, w, want)
 
 	var inDocument []string
@@ -174,14 +174,14 @@ func TestRolePermissions_PublishCarriesTheRecordCodesAndAForkKeepsThem(t *testin
 func TestRolePermissions_ImportTakesTheCodesOfTheDocumentsRecordsAndRefusesTheRest(t *testing.T) {
 	w := newRecordPermissionWorld(t)
 	ctx := context.Background()
-	pub := publishedWithClerk(t, w, []string{w.code("add"), "report.read"})
+	pub := publishedWithClerk(t, w, []string{w.fieldCode("add", amountField), "report.read"})
 
 	imported, err := w.mgr.ImportDocument(ctx, "same document", pub.Document)
 	if err != nil {
 		t.Fatalf("ImportDocument of a document whose codes its records give: %v", err)
 	}
 	roles, err := w.mgr.ListRoles(ctx, imported.Draft.ID, mwanachamaagency.RoleFilter{})
-	if err != nil || !reflect.DeepEqual(clerkOf(t, roles).Permissions, []string{w.code("add"), "report.read"}) {
+	if err != nil || !reflect.DeepEqual(clerkOf(t, roles).Permissions, []string{w.fieldCode("add", amountField), "report.read"}) {
 		t.Fatalf("imported roles = %+v, %v", roles, err)
 	}
 
@@ -200,17 +200,17 @@ func TestRolePermissions_ImportTakesTheCodesOfTheDocumentsRecordsAndRefusesTheRe
 
 func TestRolePermissions_PublishAcceptsTheCodesOfARecordOfTheDraft(t *testing.T) {
 	w := newRecordPermissionWorld(t)
-	publishedWithClerk(t, w, []string{w.code("add"), w.code("edit"), w.code("delete"), w.code("view")})
+	publishedWithClerk(t, w, []string{w.fieldCode("add", amountField), w.fieldCode("edit", amountField), w.code("delete"), w.fieldCode("view", amountField)})
 }
 
 func TestRolePermissions_DeletingARecordLeavesTheCodesAsAnErrorIssueAndRefusesThePublish(t *testing.T) {
 	w := newRecordPermissionWorld(t)
 	ctx := context.Background()
-	role, err := w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: []string{w.code("add"), "report.read"}})
+	role, err := w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: []string{w.fieldCode("add", amountField), "report.read"}})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	dangling := w.code("add")
+	dangling := w.fieldCode("add", amountField)
 	if err := w.mgr.DeleteRecord(ctx, w.record.ID); err != nil {
 		t.Fatalf("DeleteRecord: %v", err)
 	}

@@ -19,13 +19,16 @@ func codesAndNames(permissions []models.Permission) ([]string, []string) {
 	return codes, names
 }
 
-func TestRecordPermissions_TenderGivesFourCodesAndNames(t *testing.T) {
-	got := mwanachamaagency.RecordPermissionsOf(models.Record{Code: "tender", Name: "Tenders", ItemName: "Tender"})
-	codes, names := codesAndNames(got)
-	wantCodes := []string{"record.tender.add", "record.tender.edit", "record.tender.delete", "record.tender.view"}
-	wantNames := []string{"Add a tender", "Edit a tender", "Delete a tender", "See every tender"}
-	if !reflect.DeepEqual(codes, wantCodes) {
-		t.Fatalf("codes = %v, want %v", codes, wantCodes)
+func TestRecordPermissions_TenderNamesEachFieldStarAndDelete(t *testing.T) {
+	tender := tenderRecord()
+	tender.Questions = tender.Questions[5:6]
+	got := mwanachamaagency.RecordPermissionsOf(tender)
+	_, names := codesAndNames(got)
+	wantNames := []string{
+		"Add a tender: Closing date", "Add a tender: every field",
+		"Edit a tender: Closing date", "Edit a tender: every field",
+		"See a tender: Closing date", "See a tender: every field",
+		"Delete a tender",
 	}
 	if !reflect.DeepEqual(names, wantNames) {
 		t.Fatalf("names = %v, want %v", names, wantNames)
@@ -33,7 +36,7 @@ func TestRecordPermissions_TenderGivesFourCodesAndNames(t *testing.T) {
 }
 
 func TestRecordPermissions_AreUnlockedWithEmptyActionsAndNoModule(t *testing.T) {
-	for _, p := range mwanachamaagency.RecordPermissionsOf(models.Record{Code: "tender", ItemName: "Tender"}) {
+	for _, p := range mwanachamaagency.RecordPermissionsOf(tenderRecord()) {
 		if p.Locked {
 			t.Errorf("%s is locked", p.Code)
 		}
@@ -51,14 +54,14 @@ func TestRecordPermissions_ItemNameFallsBackToFormNameThenName(t *testing.T) {
 		record models.Record
 		want   string
 	}{
-		{models.Record{Code: "day_worked", ItemName: "Day worked", FormName: "Log a day", Name: "Days"}, "Add a day worked"},
-		{models.Record{Code: "bid_decision", FormName: "Bid decision", Name: "Decisions"}, "Add a bid decision"},
-		{models.Record{Code: "office_holder", Name: "Office holder"}, "Add an office holder"},
+		{models.Record{Code: "day_worked", ItemName: "Day worked", FormName: "Log a day", Name: "Days"}, "Delete a day worked"},
+		{models.Record{Code: "bid_decision", FormName: "Bid decision", Name: "Decisions"}, "Delete a bid decision"},
+		{models.Record{Code: "office_holder", Name: "Office holder"}, "Delete an office holder"},
 	}
 	for _, c := range cases {
 		got := mwanachamaagency.RecordPermissionsOf(c.record)
-		if got[0].Name != c.want {
-			t.Errorf("%s: add name = %q, want %q", c.record.Code, got[0].Name, c.want)
+		if last := got[len(got)-1].Name; last != c.want {
+			t.Errorf("%s: delete name = %q, want %q", c.record.Code, last, c.want)
 		}
 	}
 }
@@ -66,16 +69,31 @@ func TestRecordPermissions_ItemNameFallsBackToFormNameThenName(t *testing.T) {
 func TestRecordPermissions_DayWorkedAndBidDecisionCodes(t *testing.T) {
 	for _, code := range []string{"day_worked", "bid_decision", "RC-1"} {
 		codes, _ := codesAndNames(mwanachamaagency.RecordPermissionsOf(models.Record{Code: code, Name: "Anything"}))
-		want := []string{"record." + code + ".add", "record." + code + ".edit", "record." + code + ".delete", "record." + code + ".view"}
+		want := []string{"record." + code + ".add.*", "record." + code + ".edit.*", "record." + code + ".view.*", "record." + code + ".delete"}
 		if !reflect.DeepEqual(codes, want) {
 			t.Errorf("%s: codes = %v, want %v", code, codes, want)
 		}
 	}
 }
 
-func TestRecordPermissionCode_IsOneForm(t *testing.T) {
-	if got := mwanachamaagency.RecordPermissionCode("tender", "add"); got != "record.tender.add" {
-		t.Fatalf("RecordPermissionCode = %q", got)
+func TestRecordPermissionCode_BuildsEveryFormAndKeepsDeleteWholeRow(t *testing.T) {
+	cases := []struct {
+		action string
+		field  []string
+		want   string
+	}{
+		{"add", []string{"closing_date"}, "record.tender.add.closing_date"},
+		{"edit", []string{"closing_date"}, "record.tender.edit.closing_date"},
+		{"view", []string{"closing_date"}, "record.tender.view.closing_date"},
+		{"view", []string{mwanachamaagency.RecordFieldStar}, "record.tender.view.*"},
+		{"delete", nil, "record.tender.delete"},
+		{"delete", []string{"closing_date"}, "record.tender.delete"},
+		{"delete", []string{mwanachamaagency.RecordFieldStar}, "record.tender.delete"},
+	}
+	for _, c := range cases {
+		if got := mwanachamaagency.RecordPermissionCode("tender", c.action, c.field...); got != c.want {
+			t.Errorf("RecordPermissionCode(%q, %v) = %q, want %q", c.action, c.field, got, c.want)
+		}
 	}
 }
 
