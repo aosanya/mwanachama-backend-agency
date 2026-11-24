@@ -3,6 +3,7 @@ package mwanachamaagency
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"gorm.io/gorm"
@@ -10,42 +11,97 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func recordPermissionCodesOf(records []models.Record) map[string]bool {
-	given := make(map[string]bool, len(records)*8)
+type recordPermissionCodes struct {
+	given   map[string]bool
+	records []string
+}
+
+type recordCodeFault struct {
+	code   string
+	record string
+	field  string
+	plain  bool
+}
+
+func recordPermissionCodesOf(records []models.Record) recordPermissionCodes {
+	codes := recordPermissionCodes{given: make(map[string]bool, len(records)*8)}
 	for _, r := range records {
+		codes.records = append(codes.records, r.Code)
 		for _, p := range RecordPermissionsOf(r) {
-			given[p.Code] = true
+			codes.given[p.Code] = true
 		}
 	}
-	return given
+	return codes
 }
 
 func isRecordPermission(code string) bool {
 	return strings.HasPrefix(code, RecordPermissionPrefix)
 }
 
-func recordCodesNoRecordGives(permissions []string, given map[string]bool) []string {
-	var missing []string
-	for _, code := range permissions {
-		if isRecordPermission(code) && !given[code] {
-			missing = append(missing, code)
+func (c recordPermissionCodes) recordOf(code string) (record, rest string, found bool) {
+	for _, candidate := range c.records {
+		prefix := RecordPermissionPrefix + candidate + "."
+		if strings.HasPrefix(code, prefix) && len(candidate) >= len(record) {
+			record, rest, found = candidate, strings.TrimPrefix(code, prefix), true
 		}
 	}
-	return missing
+	return record, rest, found
 }
 
-func refuseRecordCodesNoRecordGives(roleName string, permissions []string, given map[string]bool) error {
-	missing := recordCodesNoRecordGives(permissions, given)
-	if len(missing) == 0 {
+func (c recordPermissionCodes) faultOf(code string) recordCodeFault {
+	record, rest, found := c.recordOf(code)
+	if !found {
+		return recordCodeFault{code: code}
+	}
+	action, field, _ := strings.Cut(rest, ".")
+	if !slices.Contains(recordFieldActions, action) {
+		return recordCodeFault{code: code, record: record}
+	}
+	if field == "" {
+		return recordCodeFault{code: code, record: record, plain: true}
+	}
+	return recordCodeFault{code: code, record: record, field: field}
+}
+
+func (f recordCodeFault) reason(shown, noRecord string) string {
+	switch {
+	case f.plain:
+		return fmt.Sprintf("%s, which is now %s.* for every field or %s.<field> for one", shown, f.code, f.code)
+	case f.field != "":
+		return fmt.Sprintf("%s, but record %q has no field %q", shown, f.record, f.field)
+	case f.record != "":
+		return fmt.Sprintf("%s, which record %q does not give", shown, f.record)
+	default:
+		return fmt.Sprintf("%s, %s", shown, noRecord)
+	}
+}
+
+func (c recordPermissionCodes) faultsIn(permissions []string) []recordCodeFault {
+	var faults []recordCodeFault
+	for _, code := range permissions {
+		if isRecordPermission(code) && !c.given[code] {
+			faults = append(faults, c.faultOf(code))
+		}
+	}
+	return faults
+}
+
+func refuseRecordCodesNoRecordGives(roleName string, permissions []string, codes recordPermissionCodes) error {
+	faults := codes.faultsIn(permissions)
+	if len(faults) == 0 {
 		return nil
 	}
-	return fmt.Errorf("%w: role %q carries %s, which no record of its draft gives", ErrUnknownPermission, roleName, strings.Join(missing, ", "))
+	reasons := make([]string, 0, len(faults))
+	for _, f := range faults {
+		reasons = append(reasons, f.reason(f.code, "which no record of its draft gives"))
+	}
+	return fmt.Errorf("%w: role %q carries %s", ErrUnknownPermission, roleName, strings.Join(reasons, "; "))
 }
 
-func (m *agencyManager) recordPermissionCodes(ctx context.Context, tx *gorm.DB, draftID string) (map[string]bool, error) {
+func (m *agencyManager) recordPermissionCodes(ctx context.Context, tx *gorm.DB, draftID string) (recordPermissionCodes, error) {
 	records, err := list[models.Record](m, scopeQuery(tx.WithContext(ctx).Table(m.table(roleRecord)), draftID), roleRecord)
 	if err != nil {
-		return nil, fmt.Errorf("recordPermissionCodes: %w", err)
+		return recordPermissionCodes{}, fmt.Errorf("recordPermissionCodes: %w", err)
 	}
 	return recordPermissionCodesOf(records), nil
 }
