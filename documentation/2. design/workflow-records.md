@@ -447,9 +447,13 @@ The code that checks is `role_record_permissions.go`; the codes come from
 Deleting a record does not touch the roles that still carry its codes. The Issue
 scan (`checkPermissions`) raises an `error` for each such code, `Role R-4
 "Clerk" carries permission "record.tender.edit.closing_date", which no record gives`, so a
-publish is refused and names the role and the code (D9); the same happens when a
-field is removed from a record while a role names it, and a role that holds the star
-is unaffected (D30). The scan's other
+publish is refused and names the role and the code (D9); when a field is removed from
+a record while a role names it, the finding reads `Role R-4 "Clerk" carries permission
+"record.tender.edit.closing_date", but record "tender" has no field "closing_date"`, and a
+role that holds the star is unaffected (D30). A role save that carries a plain
+`record.tender.edit` is refused with `which is now record.tender.edit.* for every field
+or record.tender.edit.<field> for one` (D36); the wording is built once, from the code,
+in `role_record_permissions.go`, and the scan reads it from there. The scan's other
 refusals (D18) are built in their own issue. A code of a record that exists is
 accepted by the scan and carried into the publication document with the role.
 
