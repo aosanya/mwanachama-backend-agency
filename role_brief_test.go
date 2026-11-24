@@ -315,3 +315,55 @@ func TestRoleBrief_LeavesOutTheStepsOfAWorkflowTheSeatIsNotOn(t *testing.T) {
 		t.Errorf("lead's brief wrong: %+v", lb.WorkItems)
 	}
 }
+
+func TestRoleBrief_AStepShowsInTheBriefOfItsActingRoleAndItsAccountableRole(t *testing.T) {
+	ctx := context.Background()
+	mgr := newTestManager(t)
+	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	draftID := o.DraftID
+	clerk, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "clerk"})
+	must(t, err)
+	chair, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "chair"})
+	must(t, err)
+
+	wf, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Minutes"})
+	must(t, err)
+	_, err = mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: draftID, WorkflowID: wf.ID, ObjectiveID: o.ID})
+	must(t, err)
+	_, err = mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Draft", Prompt: "PROMPT-DRAFT", Kind: models.StepKindNotify, FormName: "Minutes form", Questions: noticeQuestions, RoleID: clerk.ID, AccountableRoleID: chair.ID})
+	must(t, err)
+	_, err = mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "File", Prompt: "PROMPT-FILE", Kind: models.StepKindNotify, FormName: "Minutes form", Questions: noticeQuestions, RoleID: clerk.ID, AccountableRoleID: clerk.ID})
+	must(t, err)
+	_, err = mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Stamp", Prompt: "PROMPT-STAMP", Kind: models.StepKindNotify, FormName: "Minutes form", Questions: noticeQuestions, RoleID: clerk.ID})
+	must(t, err)
+	_, err = mgr.PublishAgency(ctx, draftID, "", "")
+	must(t, err)
+
+	clerkBrief, err := mgr.GetRoleBrief(ctx, clerk.ID)
+	must(t, err)
+	chairBrief, err := mgr.GetRoleBrief(ctx, chair.ID)
+	must(t, err)
+
+	if got := briefStepTitles(clerkBrief); strings.Join(got, ",") != "Draft,File,Stamp" {
+		t.Errorf("the acting role should list every step it does once, got %v:\n%s", got, clerkBrief.Text)
+	}
+	if got := briefStepTitles(chairBrief); strings.Join(got, ",") != "Draft" {
+		t.Errorf("the accountable role should list the step it answers for, got %v:\n%s", got, chairBrief.Text)
+	}
+	for _, w := range clerkBrief.WorkItems {
+		if w.Accountable != (w.Title == "File") {
+			t.Errorf("acting-role entry %q has accountable=%v", w.Title, w.Accountable)
+		}
+	}
+	if len(chairBrief.WorkItems) == 1 && !chairBrief.WorkItems[0].Accountable {
+		t.Errorf("accountable role's entry is not marked accountable: %+v", chairBrief.WorkItems[0])
+	}
+}
+
+func briefStepTitles(b models.RoleBrief) []string {
+	titles := make([]string, 0, len(b.WorkItems))
+	for _, w := range b.WorkItems {
+		titles = append(titles, w.Title)
+	}
+	return titles
+}

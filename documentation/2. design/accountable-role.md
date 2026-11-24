@@ -3,7 +3,7 @@
 The four-value RACI label (responsible, accountable, consulted, informed) on a
 `role_assignment` row is dropped. A step keeps one plain field,
 `accountable_role_id`: the one role that answers for the step. The role brief
-reads that field, or the step's own `role_id` when the field is empty.
+lists the step under that role and under the step's own `role_id`.
 
 Why: in the one agency file that used the rows, every one of the 36 labels was
 accountable, 23 repeated the step's own role, and 13 sat on steps with no role
@@ -68,11 +68,15 @@ Declared:
 applies the rule to every repo; this module's objective-level rows were already
 ignored since AGD-009 and are now not read at all).
 
-The role brief of a seat lists a step when the step's effective role is the
-  seat. The effective role is `accountable_role_id`, or `role_id` when
-  `accountable_role_id` is empty. Objectives are those of the workflows that
-  have such a step. `BriefWorkItem` and `BriefObjective` no longer carry labels;
-  a work item says whether the seat is accountable for it (`accountable`).
+The role brief of a seat lists a step when the seat is the step's own `role_id`
+or its `accountable_role_id` (owner decision D59). A step whose two roles differ
+shows in the brief of both, so the role that acts on the step does not lose it
+to the role that answers for it. A step whose two roles are the same role, or
+that has only one of the two fields, shows once. Objectives are those of the
+workflows that have such a step. `BriefWorkItem` and `BriefObjective` no longer
+carry labels; a work item says whether the seat is accountable for it
+(`accountable`), so the entry under the acting role is unmarked and the entry
+under the accountable role is marked.
 
 ## Old files and old publications
 
