@@ -121,6 +121,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 			ItemName: r.ItemName, EditRoleID: r.EditRoleID, DeleteRoleID: r.DeleteRoleID,
 			AddReplacedBy: r.AddReplacedBy, EditReplacedBy: r.EditReplacedBy, DeleteReplacedBy: r.DeleteReplacedBy,
 		})
+		doc.RecordPermissions = append(doc.RecordPermissions, RecordPermissionsOf(r)...)
 	}
 
 	measures, err := list[models.Measure](m, scoped(roleMeasure).Order("created_at"), roleMeasure)
