@@ -443,7 +443,7 @@ func TestGenerated_ThePublishGuardNamesAMissingAlteredOrStaleGeneratedWorkflow(t
 	if err := missing.db.Exec("delete from "+wf(missing)+" where code = ?", generatedCodeOf(missing.record, "edit")).Error; err != nil {
 		t.Fatal(err)
 	}
-	if got := findingsOf(t, missing.world.mgr, missing.world.draftID, models.IssueSeverityError, missing.record.Key, generatedCodeOf(missing.record, "edit")); len(got) == 0 {
+	if got := findingsOf(t, missing.world.mgr, missing.world.draftID, models.IssueSeverityError, missing.record.Code, generatedCodeOf(missing.record, "edit")); len(got) == 0 {
 		t.Errorf("a missing generated workflow is an error naming the record and the workflow")
 	}
 
@@ -457,7 +457,7 @@ func TestGenerated_ThePublishGuardNamesAMissingAlteredOrStaleGeneratedWorkflow(t
 
 	stale := newGenWorld(t)
 	stale.setRecordColumn(t, "questions", `[{"prompt":"Title","answer_type":"free_text","required":true}]`)
-	if got := findingsOf(t, stale.world.mgr, stale.world.draftID, models.IssueSeverityError, stale.record.Key); len(got) == 0 {
+	if got := findingsOf(t, stale.world.mgr, stale.world.draftID, models.IssueSeverityError, stale.record.Code); len(got) == 0 {
 		t.Errorf("a stale generated workflow, made from questions the record no longer has, is an error")
 	}
 
@@ -493,7 +493,7 @@ func TestGenerated_ADuplicatedGeneratedWorkflowIsAFindingAndRegeneratingKeepsOne
 	if got := g.generatedIn(t, g.world.draftID); len(got) != 3 || got[generatedCodeOf(g.record, "add")].ID != original.ID {
 		t.Errorf("regenerating keeps the first and removes the copy: %v", got)
 	}
-	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, g.record.Key); len(got) != 0 {
+	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, g.record.Code); len(got) != 0 {
 		t.Errorf("a regenerated draft passes the guard: %v", got)
 	}
 }
