@@ -270,16 +270,18 @@ func TestRoleBrief_AStepWithItsOwnRoleAndNoAccountableListsUnderItsOwnRole(t *te
 	}
 }
 
-func TestRoleBrief_AStepWithBothListsUnderTheAccountableRoleOnly(t *testing.T) {
+func TestRoleBrief_AStepWithBothListsUnderBothRoles(t *testing.T) {
 	w := newStepWorld(t)
 	wf := w.workflow(t, "Tender")
 	step := accountableStep(t, w, wf, "Fill the bid", coordinator, farmer)
 
-	if got := briefStepCodes(publishedBrief(t, w, w.roles[farmer])); len(got) != 1 || got[0] != step.Code {
-		t.Errorf("accountable role's steps %v, want %s", got, step.Code)
+	accountable := publishedBrief(t, w, w.roles[farmer])
+	if got := briefStepCodes(accountable); len(got) != 1 || got[0] != step.Code || !accountable.WorkItems[0].Accountable {
+		t.Errorf("accountable role's steps %v, want %s marked accountable", got, step.Code)
 	}
-	if got := briefStepCodes(publishedBrief(t, w, w.roles[coordinator])); len(got) != 0 {
-		t.Errorf("a step with an accountable role also listed under its own role: %v", got)
+	acting := publishedBrief(t, w, w.roles[coordinator])
+	if got := briefStepCodes(acting); len(got) != 1 || got[0] != step.Code || acting.WorkItems[0].Accountable {
+		t.Errorf("acting role's steps %v, want %s not marked accountable", got, step.Code)
 	}
 }
 

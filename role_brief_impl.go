@@ -65,7 +65,7 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 	workflowsOfRole := map[string]bool{}
 	var workflowOrder []string
 	for _, w := range doc.WorkItems {
-		if effectiveRoleID(w) != role.ID {
+		if !seatsOnStep(w, role.ID) {
 			continue
 		}
 		stepsOfRole[w.ID] = true
@@ -127,11 +127,8 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 	return brief, nil
 }
 
-func effectiveRoleID(w models.DocumentWorkItem) string {
-	if w.AccountableRoleID != "" {
-		return w.AccountableRoleID
-	}
-	return w.RoleID
+func seatsOnStep(w models.DocumentWorkItem, roleID string) bool {
+	return w.RoleID == roleID || w.AccountableRoleID == roleID
 }
 
 func briefControls(doc models.AgencyDocument, scopeByTarget map[string]string) []models.BriefStatement {
