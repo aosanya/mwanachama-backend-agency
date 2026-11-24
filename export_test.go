@@ -7,3 +7,5 @@ func SetRowClock(now func() time.Time) func() {
 	rowClock = now
 	return func() { rowClock = previous }
 }
+
+var BriefFromDocument = briefFromDocument
