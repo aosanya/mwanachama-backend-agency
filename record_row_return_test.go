@@ -33,7 +33,7 @@ func TestReturnRecordRow_MarksTheRowReturnedWithWhoWhyAndWhenAndKeepsItInHistory
 		t.Errorf("a returned row no longer counts as done, yet the default listing holds %+v", got)
 	}
 	kept := rowsOf(t, o, mwanachamaagency.RecordRowFilter{OrderID: "order-a", IncludeReturned: true})
-	if len(kept) != 1 || kept[0].ID != made.ID || kept[0].ReturnedBy != "member-2" || kept[0].ReturnedReason != "The amount is not in the budget" || kept[0].ReturnedOn == "" || kept[0].Answers["Enter the amount paid"] != "100" {
+	if len(kept) != 1 || kept[0].ID != made.ID || kept[0].ReturnedBy != "member-2" || kept[0].ReturnedReason != "The amount is not in the budget" || kept[0].ReturnedOn == "" || answerTo(o.record, kept[0], "Enter the amount paid") != "100" {
 		t.Errorf("the returned row stays in history with its answers and its reason: %+v", kept)
 	}
 }

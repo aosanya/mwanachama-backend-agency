@@ -30,7 +30,7 @@ func TestRecordRow_KeepsTheOrderItWasAddedFromAndListsByIt(t *testing.T) {
 		}
 	}
 	forA, err := o.world.mgr.ListRecordRows(ctx, o.world.draftID, mwanachamaagency.RecordRowFilter{RecordCode: o.record.Code, OrderID: "order-a"})
-	if err != nil || len(forA) != 1 || forA[0].OrderID != "order-a" || forA[0].Answers["Enter the amount paid"] != "100" {
+	if err != nil || len(forA) != 1 || forA[0].OrderID != "order-a" || answerTo(o.record, forA[0], "Enter the amount paid") != "100" {
 		t.Fatalf("rows of order-a = %+v, %v", forA, err)
 	}
 	all, err := o.world.mgr.ListRecordRows(ctx, o.world.draftID, mwanachamaagency.RecordRowFilter{RecordCode: o.record.Code})

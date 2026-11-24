@@ -53,8 +53,8 @@ func TestRecordRow_AMultiSelectAnswerIsAListOfTheQuestionsOptionsJoinedWithASemi
 	if err != nil {
 		t.Fatalf("a list of offered options: %v", err)
 	}
-	if kept.Answers["Expertise areas"] != "Financial inclusion; Sustainable finance" {
-		t.Errorf("stored %q, want the text as sent", kept.Answers["Expertise areas"])
+	if answerTo(record, kept, "Expertise areas") != "Financial inclusion; Sustainable finance" {
+		t.Errorf("stored %q, want the text as sent", answerTo(record, kept, "Expertise areas"))
 	}
 	if _, err := w.mgr.CreateRecordRow(ctx, row("Banking and central banking", "")); err != nil {
 		t.Errorf("one offered option: %v", err)

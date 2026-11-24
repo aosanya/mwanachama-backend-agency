@@ -96,6 +96,11 @@ func (m *agencyManager) CreateRecord(ctx context.Context, r models.Record) (mode
 	}
 	r.Name = strings.TrimSpace(r.Name)
 	r.ItemName = strings.TrimSpace(r.ItemName)
+	settled, err := settleFields(fieldSettlement{makeKey: randomFieldKey}, r.Questions)
+	if err != nil {
+		return models.Record{}, fmt.Errorf("CreateRecord: %w", err)
+	}
+	r.Questions = settled
 	if err := m.validateRecord(ctx, m.db, r); err != nil {
 		return models.Record{}, fmt.Errorf("CreateRecord: %w", err)
 	}
@@ -104,7 +109,7 @@ func (m *agencyManager) CreateRecord(ctx context.Context, r models.Record) (mode
 	r.CreatedAt = models.NowRFC3339()
 	r.LastUpdated = r.CreatedAt
 
-	err := m.createWithCode(ctx, roleRecord, "record", "RC", func(code string) any {
+	err = m.createWithCode(ctx, roleRecord, "record", "RC", func(code string) any {
 		r.Code = code
 		return r
 	})
@@ -159,6 +164,13 @@ func (m *agencyManager) UpdateRecord(ctx context.Context, r models.Record) (mode
 		r.LastUpdated = models.NowRFC3339()
 		r.Name = strings.TrimSpace(r.Name)
 		r.ItemName = strings.TrimSpace(r.ItemName)
+		settled, err := settleFields(fieldSettlement{
+			recordCode: existing.Code, before: keyedFields(existing.Code, existing.Questions), known: true, makeKey: randomFieldKey,
+		}, r.Questions)
+		if err != nil {
+			return err
+		}
+		r.Questions = settled
 
 		if err := m.validateRecord(ctx, tx, r); err != nil {
 			return err
@@ -200,36 +212,47 @@ func (m *agencyManager) DeleteRecord(ctx context.Context, id string) error {
 
 const amendmentPromptPrefix = "Changed: "
 
-func validateRowAnswers(ctx context.Context, questions []models.StepQuestion, answers map[string]string) error {
+func validateRowAnswers(ctx context.Context, record models.Record, answers map[string]string) (map[string]string, error) {
 	allowance := rowAllowanceOf(ctx)
-	asked := make(map[string]models.StepQuestion, len(questions))
-	for _, q := range questions {
-		asked[q.Prompt] = q
-	}
-	for prompt := range answers {
-		_, extra := allowance.extraNamed(prompt)
-		if _, ok := asked[prompt]; !ok && !extra && !isApprovalStampPrompt(prompt) && !strings.HasPrefix(prompt, amendmentPromptPrefix) {
-			return invalidRow("%q is not a question of the form", prompt)
+	fields := recordFieldsOf(record)
+	kept := make(map[string]string, len(answers))
+	named := map[string]string{}
+	for name, answer := range answers {
+		if q, ok := fields.named(name); ok {
+			if earlier, twice := named[q.Key]; twice {
+				return nil, invalidRow("the question %q is answered twice, as %q and as %q", q.Prompt, earlier, name)
+			}
+			named[q.Key] = name
+			kept[q.Key] = answer
+			continue
 		}
+		if _, extra := allowance.extraNamed(name); !extra && !isApprovalStampPrompt(name) && !strings.HasPrefix(name, amendmentPromptPrefix) {
+			return nil, invalidRow("%q is not a question of the form", name)
+		}
+		kept[name] = answer
+	}
+	asked := make(map[string]bool, len(record.Questions))
+	for _, q := range record.Questions {
+		asked[q.Prompt] = true
 	}
 	for _, extra := range allowance.Extra {
-		if _, ok := asked[extra.Prompt]; !ok && extra.Required && strings.TrimSpace(answers[extra.Prompt]) == "" {
-			return invalidRow("the detail %q is required", extra.Prompt)
+		if !asked[extra.Prompt] && extra.Required && strings.TrimSpace(kept[extra.Prompt]) == "" {
+			return nil, invalidRow("the detail %q is required", extra.Prompt)
 		}
 	}
-	for _, q := range questions {
-		answer := strings.TrimSpace(answers[q.Prompt])
+	for _, q := range keyedFields(record.Code, record.Questions) {
+		answer := strings.TrimSpace(kept[q.Key])
 		if answer == "" {
 			if q.Required && !allowance.waives(q.Prompt) {
-				return invalidRow("the question %q is required", q.Prompt)
+				return nil, invalidRow("the question %q is required", q.Prompt)
 			}
 			continue
 		}
 		if err := validateRowAnswer(q, answer); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return kept, nil
 }
 
 func validateRowAnswer(q models.StepQuestion, answer string) error {
@@ -303,9 +326,12 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 	if row.RoleID == "" || row.RoleID != record.RoleID {
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w: only the role that adds rows to %q may", ErrRecordRowRefused, record.Name)
 	}
-	if err := validateRowAnswers(ctx, record.Questions, row.Answers); err != nil {
+	kept, err := validateRowAnswers(ctx, record, row.Answers)
+	if err != nil {
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
 	}
+	row.Answers = kept
+	row.PlaceRefs = recordFieldsOf(record).keyed(row.PlaceRefs)
 	row.ID = newID()
 	row.Deleted = false
 	row.RecordCode = record.Code

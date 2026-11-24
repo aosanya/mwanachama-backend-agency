@@ -390,10 +390,14 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	}
 
 	for _, r := range doc.Records {
+		fields, err := keyedFieldsOrRefused(r.Code, r.Questions)
+		if err != nil {
+			return fail(fmt.Errorf("the record %s: %w", r.Code, err))
+		}
 		row := models.Record{
 			ID: recordIDs[r.ID], Code: r.Code, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
 			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), ViewerRoleID: remap(roleIDs, r.ViewerRoleID),
-			FormName: r.FormName, Questions: r.Questions, CreatedAt: now, LastUpdated: now,
+			FormName: r.FormName, Questions: fields, CreatedAt: now, LastUpdated: now,
 			ItemName: r.ItemName, EditRoleID: remap(roleIDs, r.EditRoleID), DeleteRoleID: remap(roleIDs, r.DeleteRoleID),
 			AddReplacedBy: r.AddReplacedBy, EditReplacedBy: r.EditReplacedBy, DeleteReplacedBy: r.DeleteReplacedBy,
 		}

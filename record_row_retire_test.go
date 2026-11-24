@@ -37,7 +37,7 @@ func TestRetireRecordRow_MarksTheRowRetiredWithWhoWhyAndWhenAndKeepsIt(t *testin
 		t.Errorf("a retired row is hidden from the default listing, got %+v", got)
 	}
 	kept := rowsOf(t, o, mwanachamaagency.RecordRowFilter{IncludeRetired: true})
-	if len(kept) != 1 || !kept[0].Deleted || kept[0].DeletedBy != "member-2" || kept[0].DeletedReason != "Entered twice" || kept[0].Answers["Enter the amount paid"] != "100" {
+	if len(kept) != 1 || !kept[0].Deleted || kept[0].DeletedBy != "member-2" || kept[0].DeletedReason != "Entered twice" || answerTo(o.record, kept[0], "Enter the amount paid") != "100" {
 		t.Errorf("the retired row is kept with its answers and its reason: %+v", kept)
 	}
 }
