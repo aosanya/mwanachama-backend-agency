@@ -53,14 +53,11 @@ func TestModuleSpec_SurvivesImportAndPublication(t *testing.T) {
 		Objectives: []models.DocumentObjective{
 			{ID: "o1", Code: "O-1", GoalID: "g1", Title: "Publish only what imports"},
 		},
-		Roles: []models.DocumentRole{{ID: "r1", Code: "R-1", Name: "owner"}},
-		RoleAssignments: []models.DocumentRoleAssignment{
-			{WorkItemID: "wi1", RoleID: "r1", Label: string(models.RACILabelAccountable)},
-		},
+		Roles:              []models.DocumentRole{{ID: "r1", Code: "R-1", Name: "owner"}},
 		Workflows:          []models.DocumentWorkflow{{ID: "w1", Code: "W-1", Name: "Catalog pipeline"}},
 		WorkflowObjectives: []models.DocumentWorkflowObjective{{ID: "wo1", WorkflowID: "w1", ObjectiveID: "o1"}},
 		WorkItems: []models.DocumentWorkItem{
-			{ID: "wi1", Code: "WI-1", WorkflowID: "w1", Title: "Mine an archetype"},
+			{ID: "wi1", Code: "WI-1", WorkflowID: "w1", Title: "Mine an archetype", AccountableRoleID: "r1"},
 		},
 		Modules: []models.DocumentModule{
 			{ID: "m1", Code: "catalog", Enabled: true, Spec: json.RawMessage(catalogSpec)},

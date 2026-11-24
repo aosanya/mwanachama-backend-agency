@@ -15,7 +15,6 @@ type TableNames struct {
 	AgencyPublications string
 	Roles              string
 	WorkflowObjectives string
-	RoleAssignments    string
 	Modules            string
 	Values             string
 	ValueAttachments   string
@@ -59,7 +58,6 @@ func TablesFor(s *spec.Spec) TableNames {
 		EventFlowSteps:     table(roleEventFlowStep),
 		AgencyPublications: table(rolePublication),
 		Roles:              table(roleRole),
-		RoleAssignments:    table(roleRoleAssignment),
 		WorkflowObjectives: table(roleWorkflowObjective),
 		Modules:            table(roleModule),
 		Values:             table(roleValue),

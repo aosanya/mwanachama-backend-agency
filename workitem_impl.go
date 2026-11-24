@@ -132,9 +132,6 @@ func (m *agencyManager) DeleteWorkItem(ctx context.Context, id string) error {
 		if err := m.deleteWhere(ctx, tx, roleScenarioInput, "step_id = ?", id); err != nil {
 			return err
 		}
-		if err := m.deleteWhere(ctx, tx, roleRoleAssignment, "work_item_id = ?", id); err != nil {
-			return err
-		}
 		return m.deleteWhere(ctx, tx, roleWorkItem, "id = ?", id)
 	})
 	if err != nil {
@@ -149,4 +146,14 @@ func (m *agencyManager) findWorkItem(ctx context.Context, tx *gorm.DB, id string
 		return models.WorkItem{}, err
 	}
 	return wi, nil
+}
+
+func (m *agencyManager) clearAccountableRole(ctx context.Context, tx *gorm.DB, role models.Role) error {
+	res := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkItem)), role.DraftID).
+		Where("accountable_role_id = ?", role.ID).
+		Updates(map[string]any{"accountable_role_id": "", "last_updated": models.NowRFC3339()})
+	if res.Error != nil {
+		return fmt.Errorf("clearAccountableRole: %w", res.Error)
+	}
+	return nil
 }

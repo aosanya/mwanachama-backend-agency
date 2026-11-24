@@ -55,7 +55,7 @@ func TestDeleteObjective_CascadesWorkflowObjectives(t *testing.T) {
 	}
 }
 
-func TestDeleteObjective_LeavesTheRoleAssignmentsOfSteps(t *testing.T) {
+func TestDeleteObjective_LeavesTheAccountableRoleOfSteps(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, step := seedLiveAgency(t, mgr, ctx)
@@ -63,29 +63,27 @@ func TestDeleteObjective_LeavesTheRoleAssignmentsOfSteps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, WorkItemID: step.ID, RoleID: role.ID, Label: models.RACILabelAccountable,
-	})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	step.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, step); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
 	if err := mgr.DeleteObjective(ctx, o.ID); err != nil {
 		t.Fatalf("DeleteObjective: %v", err)
 	}
 
-	if _, err := mgr.GetRoleAssignment(ctx, assignment.ID); err != nil {
-		t.Fatalf("expected the step's RoleAssignment to survive the Objective's deletion, got %v", err)
+	if got, err := mgr.GetWorkItem(ctx, step.ID); err != nil || got.AccountableRoleID != role.ID {
+		t.Fatalf("expected the step's accountable role to survive the Objective's deletion, got %+v, %v", got, err)
 	}
 	if _, err := mgr.GetRole(ctx, role.ID); err != nil {
 		t.Fatalf("expected the Role to survive the Objective's deletion, got %v", err)
 	}
 }
 
-func TestDeleteRole_CascadesRoleAssignments(t *testing.T) {
+func TestDeleteRole_EmptiesTheAccountableRoleOfItsSteps(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, _, o, _, step := seedLiveAgency(t, mgr, ctx)
+	_, _, o, w, step := seedLiveAgency(t, mgr, ctx)
 	doomedRole, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
@@ -94,17 +92,13 @@ func TestDeleteRole_CascadesRoleAssignments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	doomed, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, WorkItemID: step.ID, RoleID: doomedRole.ID, Label: models.RACILabelResponsible,
-	})
+	other, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: o.DraftID, WorkflowID: w.ID, Title: "Review", AccountableRoleID: keptRole.ID})
 	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	kept, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, WorkItemID: step.ID, RoleID: keptRole.ID, Label: models.RACILabelResponsible,
-	})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	step.AccountableRoleID = doomedRole.ID
+	if _, err := mgr.UpdateWorkItem(ctx, step); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
 	if err := mgr.DeleteRole(ctx, doomedRole.ID); err != nil {
@@ -114,14 +108,11 @@ func TestDeleteRole_CascadesRoleAssignments(t *testing.T) {
 	if _, err := mgr.GetRole(ctx, doomedRole.ID); err == nil {
 		t.Fatal("expected the Role itself to be gone")
 	}
-	if _, err := mgr.GetRoleAssignment(ctx, doomed.ID); !errors.Is(err, mwanachamaagency.ErrRoleAssignmentNotFound) {
-		t.Fatalf("expected the cascaded RoleAssignment to be gone, got %v", err)
+	if got, err := mgr.GetWorkItem(ctx, step.ID); err != nil || got.AccountableRoleID != "" {
+		t.Fatalf("expected the step to survive with no accountable role, got %+v, %v", got, err)
 	}
-	if _, err := mgr.GetRoleAssignment(ctx, kept.ID); err != nil {
-		t.Fatalf("expected the other Role's assignment to survive, got %v", err)
-	}
-	if _, err := mgr.GetWorkItem(ctx, step.ID); err != nil {
-		t.Fatalf("expected the step to survive the Role's deletion, got %v", err)
+	if got, err := mgr.GetWorkItem(ctx, other.ID); err != nil || got.AccountableRoleID != keptRole.ID {
+		t.Fatalf("expected the other Role's step to keep its accountable role, got %+v, %v", got, err)
 	}
 }
 

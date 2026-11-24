@@ -140,6 +140,11 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 				"id": r.ID, "send_back_decision": r.SendBackDecision, "send_back_reason": r.SendBackReason,
 			}))
 		}
+		if r.AccountableRoleID != "" {
+			records = append(records, hashRecord("WorkItemAccountable", map[string]any{
+				"id": r.ID, "accountable_role_id": r.AccountableRoleID,
+			}))
+		}
 		if r.RecordCode != "" {
 			records = append(records, hashRecord("WorkItemRecordCode", map[string]any{
 				"id": r.ID, "record_code": r.RecordCode,
@@ -252,17 +257,6 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 			"parent": homeKeys[r.ParentID], "key": r.Key, "title": r.Title, "titles": r.Titles, "icon": r.Icon,
 			"permission": r.Permission, "roles": r.Roles, "page_of": r.PageOf, "target_type": string(r.TargetType), "target": r.Target,
 			"step": r.Step, "scope": r.Scope, "conditions": r.Conditions, "ordinality": r.Ordinality, "deleted": r.Deleted,
-		}))
-	}
-
-	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment), roleRoleAssignment)
-	if err != nil {
-		return "", fmt.Errorf("contentHashFor: %w", err)
-	}
-	for _, r := range assignments {
-		records = append(records, hashRecord("RoleAssignment", map[string]any{
-			"id": r.ID, "work_item_id": r.WorkItemID, "role_id": r.RoleID,
-			"label": string(r.Label), "deleted": r.Deleted,
 		}))
 	}
 

@@ -104,11 +104,9 @@ func TestDeleteGoal_CascadesObjectivesAndWorkflowObjectives(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: draftID, WorkItemID: step.ID, RoleID: role.ID, Label: models.RACILabelAccountable,
-	})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	step.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, step); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
 	if err := mgr.DeleteGoal(ctx, g.ID); err != nil {
@@ -133,8 +131,8 @@ func TestDeleteGoal_CascadesObjectivesAndWorkflowObjectives(t *testing.T) {
 	if _, err := mgr.GetWorkItem(ctx, step.ID); err != nil {
 		t.Fatalf("expected the step to survive the Goal's deletion, got %v", err)
 	}
-	if _, err := mgr.GetRoleAssignment(ctx, assignment.ID); err != nil {
-		t.Fatalf("expected the step's RoleAssignment to survive the Goal's deletion, got %v", err)
+	if got, err := mgr.GetWorkItem(ctx, step.ID); err != nil || got.AccountableRoleID != role.ID {
+		t.Fatalf("expected the step's accountable role to survive the Goal's deletion, got %+v, %v", got, err)
 	}
 	if _, err := mgr.GetRole(ctx, role.ID); err != nil {
 		t.Fatalf("expected the Role to survive the Goal's deletion, got %v", err)

@@ -31,7 +31,7 @@ func accountableStep(t *testing.T, w stepWorld, wf models.Workflow, title string
 func publishedBrief(t *testing.T, w stepWorld, role models.Role) models.RoleBrief {
 	t.Helper()
 	ctx := context.Background()
-	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "", ""); err != nil {
+	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "", ""); err != nil && !errors.Is(err, mwanachamaagency.ErrNoChangesDetected) {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 	brief, err := w.mgr.GetRoleBrief(ctx, role.ID)
@@ -168,7 +168,7 @@ func TestAccountableRole_ADraftForkAndThePublicationCarryIt(t *testing.T) {
 		t.Errorf("the publication document still has a role_assignments key: %s", raw)
 	}
 
-	fork, err := w.mgr.CreateDraft(ctx, "fork", "", "")
+	fork, err := w.mgr.CreateDraft(ctx, "fork", w.draftID, "draft")
 	must(t, err)
 	forkSteps, err := w.mgr.ListWorkItems(ctx, fork.ID, mwanachamaagency.WorkItemFilter{})
 	must(t, err)
@@ -290,8 +290,8 @@ func TestRoleBrief_AnOldPublicationWithRoleAssignmentsStillReads(t *testing.T) {
 	pub := models.AgencyPublication{Version: 1, Tag: "v1", Document: doc}
 	brief, err := mwanachamaagency.BriefFromDocument(pub, "r1")
 	must(t, err)
-	if len(brief.WorkItems) != 1 || brief.WorkItems[0].Code != "WI-1" || !brief.WorkItems[0].Accountable {
-		t.Errorf("an old publication's accountable row is not read: %+v", brief.WorkItems)
+	if len(brief.WorkItems) != 2 || brief.WorkItems[0].Code != "WI-1" || !brief.WorkItems[0].Accountable || brief.WorkItems[1].Code != "WI-2" || brief.WorkItems[1].Accountable {
+		t.Errorf("an old publication's accountable row is not read, or the own-role step is not listed: %+v", brief.WorkItems)
 	}
 }
 

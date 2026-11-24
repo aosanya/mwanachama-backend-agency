@@ -32,7 +32,6 @@ var carriers = map[string]string{
 	"workflow_objective": "WorkflowObjective",
 	"event_flow_step":    "EventFlowStep",
 	"role":               "Role",
-	"role_assignment":    "RoleAssignment",
 	"module":             "Module",
 	"value":              "Value",
 	"value_attachment":   "ValueAttachment",

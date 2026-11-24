@@ -206,6 +206,7 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 		wi.DraftID, wi.CreatedAt, wi.LastUpdated = newDraftID, now, now
 		wi.WorkflowID = remap(workflowIDs, wi.WorkflowID)
 		wi.RoleID = remap(roleIDs, wi.RoleID)
+		wi.AccountableRoleID = remap(roleIDs, wi.AccountableRoleID)
 		wi.RunWorkflowID = remap(workflowIDs, wi.RunWorkflowID)
 		wi.CancelWorkflowID = remap(workflowIDs, wi.CancelWorkflowID)
 		wi.AgentRoleID = remap(roleIDs, wi.AgentRoleID)
@@ -309,19 +310,6 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 	for _, mod := range modules {
 		mod.ID, mod.DraftID, mod.CreatedAt, mod.LastUpdated = newID(), newDraftID, now, now
 		if err := m.copyRow(ctx, tx, roleModule, mod); err != nil {
-			return err
-		}
-	}
-
-	assignments, err := list[models.RoleAssignment](m, scopeQuery(tx.Table(m.table(roleRoleAssignment)), sourceScope), roleRoleAssignment)
-	if err != nil {
-		return fmt.Errorf("CreateDraft: %w", err)
-	}
-	for _, a := range assignments {
-		a.ID, a.DraftID, a.CreatedAt, a.LastUpdated = newID(), newDraftID, now, now
-		a.RoleID = remap(roleIDs, a.RoleID)
-		a.WorkItemID = remap(stepIDs, a.WorkItemID)
-		if err := m.copyRow(ctx, tx, roleRoleAssignment, a); err != nil {
 			return err
 		}
 	}

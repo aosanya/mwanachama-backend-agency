@@ -44,8 +44,9 @@ func TestAG69_PublicationTagForgesLinesInEveryDraftListingThroughAFork(t *testin
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{RoleID: role.ID, WorkItemID: workItem.ID, Label: models.RACILabelAccountable, DraftID: draft.ID}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	workItem.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, workItem); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
 	server := newTestServer(mgr)

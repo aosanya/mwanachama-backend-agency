@@ -21,7 +21,6 @@ const (
 	roleWorkItem          = "work_item"
 	roleEventFlowStep     = "event_flow_step"
 	roleRole              = "role"
-	roleRoleAssignment    = "role_assignment"
 	roleWorkflowObjective = "workflow_objective"
 	roleModule            = "module"
 	roleValue             = "value"
@@ -81,7 +80,6 @@ func carriers() map[string]any {
 		roleWorkItem:          models.WorkItem{},
 		roleEventFlowStep:     models.EventFlowStep{},
 		roleRole:              models.Role{},
-		roleRoleAssignment:    models.RoleAssignment{},
 		roleWorkflowObjective: models.WorkflowObjective{},
 		roleModule:            models.Module{},
 		roleValue:             models.Value{},

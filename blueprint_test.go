@@ -12,7 +12,7 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-const declaredRoles = 39
+const declaredRoles = 38
 
 func TestBlueprintParses(t *testing.T) {
 	b, err := Blueprint()
@@ -40,7 +40,6 @@ func TestEveryDeclaredColumnHasACarrierField(t *testing.T) {
 		"event_flow_step":    models.EventFlowStep{},
 		"role":               models.Role{},
 		"workflow_objective": models.WorkflowObjective{},
-		"role_assignment":    models.RoleAssignment{},
 		"module":             models.Module{},
 		"value":              models.Value{},
 		"value_attachment":   models.ValueAttachment{},
@@ -107,12 +106,6 @@ func TestVocabularyMatchesTheBlueprint(t *testing.T) {
 		"draft.status": {
 			string(models.DraftStatusOpen),
 			string(models.DraftStatusArchived),
-		},
-		"role_assignment.label": {
-			string(models.RACILabelResponsible),
-			string(models.RACILabelAccountable),
-			string(models.RACILabelConsulted),
-			string(models.RACILabelInformed),
 		},
 		"work_item.kind": {
 			string(models.StepKindFillForm),

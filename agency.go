@@ -37,9 +37,6 @@ type AgencyManager interface {
 	GetGoal(ctx context.Context, id string) (models.Goal, error)
 	ListGoals(ctx context.Context, draftID string, filter GoalFilter) ([]models.Goal, error)
 	UpdateGoal(ctx context.Context, g models.Goal) (models.Goal, error)
-	// DeleteGoal cascades: every Objective scoped to it, and every
-	// RoleAssignment and WorkItem scoped to each of those Objectives, is
-	// deleted too.
 	DeleteGoal(ctx context.Context, id string) error
 
 	// Objective. A Goal may have several — each one a granular unit that
@@ -57,10 +54,6 @@ type AgencyManager interface {
 	ListWorkflows(ctx context.Context, draftID string, filter WorkflowFilter) ([]models.Workflow, error)
 	ListDefaultWorkflows(ctx context.Context) ([]models.Workflow, error)
 	UpdateWorkflow(ctx context.Context, w models.Workflow) (models.Workflow, error)
-	// DeleteWorkflow cascades: every WorkItem owned by it is deleted too —
-	// same reasoning as DeleteGoal's cascade above (see its doc comment).
-	// A deleted Workflow also removes its WorkflowObjective rows, and a
-	// deleted step removes its RoleAssignment rows, in the same transaction.
 	DeleteWorkflow(ctx context.Context, id string) error
 
 	CreateRisk(ctx context.Context, r models.Risk) (models.Risk, error)
@@ -99,8 +92,6 @@ type AgencyManager interface {
 	GetWorkItem(ctx context.Context, id string) (models.WorkItem, error)
 	ListWorkItems(ctx context.Context, draftID string, filter WorkItemFilter) ([]models.WorkItem, error)
 	UpdateWorkItem(ctx context.Context, wi models.WorkItem) (models.WorkItem, error)
-	// DeleteWorkItem carries no RACI of its own (RoleAssignment is
-	// Objective-scoped, AG12), so there is nothing to cascade into.
 	DeleteWorkItem(ctx context.Context, id string) error
 
 	// Draft lifecycle. Every business-entity row belongs to some Draft —
@@ -175,9 +166,6 @@ type AgencyManager interface {
 	GetRole(ctx context.Context, id string) (models.Role, error)
 	GetRoleBrief(ctx context.Context, roleID string) (models.RoleBrief, error)
 	ListRoles(ctx context.Context, draftID string, filter RoleFilter) ([]models.Role, error)
-	// DeleteRole cascades into every RoleAssignment naming the Role, the
-	// mirror of DeleteObjective's cascade from the other side of the same
-	// join table.
 	UpdateRole(ctx context.Context, r models.Role) (models.Role, error)
 	SetRolePermissions(ctx context.Context, id string, permissions []string) (models.Role, error)
 	DeleteRole(ctx context.Context, id string) error
@@ -186,13 +174,6 @@ type AgencyManager interface {
 	GetWorkflowObjective(ctx context.Context, id string) (models.WorkflowObjective, error)
 	ListWorkflowObjectives(ctx context.Context, draftID string, filter WorkflowObjectiveFilter) ([]models.WorkflowObjective, error)
 	DeleteWorkflowObjective(ctx context.Context, id string) error
-
-	CreateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
-	GetRoleAssignment(ctx context.Context, id string) (models.RoleAssignment, error)
-	ListRoleAssignments(ctx context.Context, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error)
-	ListRoleAssignmentsForWorkItem(ctx context.Context, workItemID, draftID string, filter RoleAssignmentFilter) ([]models.RoleAssignment, error)
-	UpdateRoleAssignment(ctx context.Context, a models.RoleAssignment) (models.RoleAssignment, error)
-	DeleteRoleAssignment(ctx context.Context, id string) error
 
 	CreateModule(ctx context.Context, mod models.Module) (models.Module, error)
 	GetModule(ctx context.Context, id string) (models.Module, error)

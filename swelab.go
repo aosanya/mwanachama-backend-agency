@@ -27,7 +27,6 @@ type SWELabSeed struct {
 	Workflows          []models.Workflow
 	WorkflowObjectives []models.WorkflowObjective
 	WorkItems          []models.WorkItem
-	RoleAssignments    []models.RoleAssignment
 }
 
 func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
@@ -72,42 +71,18 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 	}
 	seed.Workflows = []models.Workflow{workflow}
 
-	type assignment struct {
-		persona string
-		label   models.RACILabel
-	}
 	items := []struct {
-		goalTitle   string
-		workItem    string
-		assignments []assignment
+		goalTitle string
+		workItem  string
 	}{
-		{
-			goalTitle: "Ship reliable software",
-			workItem:  "Review pull request",
-			assignments: []assignment{
-				{"code-reviewer", models.RACILabelResponsible},
-				{"tech-lead", models.RACILabelAccountable},
-				{"security-auditor", models.RACILabelConsulted},
-				{"developer", models.RACILabelInformed},
-			},
-		},
-		{
-			goalTitle: "Resolve reported defects",
-			workItem:  "Triage a bug report",
-			assignments: []assignment{
-				{"bug-hunter", models.RACILabelResponsible},
-				{"tech-lead", models.RACILabelAccountable},
-			},
-		},
-		{
-			goalTitle: "Keep the architecture coherent",
-			workItem:  "Approve architecture change",
-			assignments: []assignment{
-				{"software-architect", models.RACILabelResponsible},
-				{"tech-lead", models.RACILabelAccountable},
-				{"contracts-reviewer", models.RACILabelConsulted},
-			},
-		},
+		{goalTitle: "Ship reliable software", workItem: "Review pull request"},
+		{goalTitle: "Resolve reported defects", workItem: "Triage a bug report"},
+		{goalTitle: "Keep the architecture coherent", workItem: "Approve architecture change"},
+	}
+
+	techLead, ok := seed.Roles["tech-lead"]
+	if !ok {
+		return SWELabSeed{}, fmt.Errorf("SeedSWELab: %q is not a seeded persona", "tech-lead")
 	}
 
 	for _, item := range items {
@@ -132,26 +107,12 @@ func SeedSWELab(ctx context.Context, m AgencyManager) (SWELabSeed, error) {
 		seed.WorkflowObjectives = append(seed.WorkflowObjectives, link)
 
 		workItem, err := m.CreateWorkItem(ctx, models.WorkItem{
-			DraftID: draftID, WorkflowID: workflow.ID, Title: item.workItem,
+			DraftID: draftID, WorkflowID: workflow.ID, Title: item.workItem, AccountableRoleID: techLead.ID,
 		})
 		if err != nil {
 			return SWELabSeed{}, fmt.Errorf("SeedSWELab: create work item %q: %w", item.workItem, err)
 		}
 		seed.WorkItems = append(seed.WorkItems, workItem)
-
-		for _, a := range item.assignments {
-			role, ok := seed.Roles[a.persona]
-			if !ok {
-				return SWELabSeed{}, fmt.Errorf("SeedSWELab: %q is not a seeded persona", a.persona)
-			}
-			ra, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{
-				DraftID: draftID, WorkItemID: workItem.ID, RoleID: role.ID, Label: a.label,
-			})
-			if err != nil {
-				return SWELabSeed{}, fmt.Errorf("SeedSWELab: assign %q to %q: %w", a.persona, item.workItem, err)
-			}
-			seed.RoleAssignments = append(seed.RoleAssignments, ra)
-		}
 	}
 
 	return seed, nil

@@ -33,9 +33,9 @@ func newBriefFixture(t *testing.T) briefFixture {
 	f.objectiveOther, err = mgr.CreateObjective(ctx, models.Objective{DraftID: f.draftID, GoalID: goal.ID, Title: "Audit the books"})
 	must(t, err)
 	_, mineStep := flowWithStep(t, mgr, ctx, f.draftID, "Mine flow", "Mine", "PROMPT-MINE", o)
-	assignOn(t, mgr, ctx, f.draftID, seat, mineStep, models.RACILabelAccountable)
+	assignOn(t, mgr, ctx, f.draftID, seat, mineStep)
 	_, theirStep := flowWithStep(t, mgr, ctx, f.draftID, "Theirs flow", "Theirs", "PROMPT-THEIRS", f.objectiveOther)
-	assignOn(t, mgr, ctx, f.draftID, f.other, theirStep, models.RACILabelAccountable)
+	assignOn(t, mgr, ctx, f.draftID, f.other, theirStep)
 
 	f.seatRule, err = mgr.CreateRule(ctx, models.Rule{DraftID: f.draftID, Text: "RULE-SEAT"})
 	must(t, err)
@@ -78,9 +78,12 @@ func flowWithStep(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.
 	return wf, step
 }
 
-func assignOn(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string, role models.Role, step models.WorkItem, label models.RACILabel) {
+func assignOn(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context, draftID string, role models.Role, step models.WorkItem) {
 	t.Helper()
-	_, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: draftID, RoleID: role.ID, WorkItemID: step.ID, Label: label})
+	current, err := mgr.GetWorkItem(ctx, step.ID)
+	must(t, err)
+	current.AccountableRoleID = role.ID
+	_, err = mgr.UpdateWorkItem(ctx, current)
 	must(t, err)
 }
 
@@ -113,7 +116,7 @@ func TestRoleBrief_EveryPartAppears(t *testing.T) {
 			t.Errorf("brief text lacks %q:\n%s", want, b.Text)
 		}
 	}
-	if len(b.Objectives) != 1 || b.Objectives[0].GoalTitle != "Grow adoption" || b.Objectives[0].Label != string(models.RACILabelAccountable) {
+	if len(b.Objectives) != 1 || b.Objectives[0].GoalTitle != "Grow adoption" {
 		t.Errorf("objectives part wrong: %+v", b.Objectives)
 	}
 	if len(b.Controls) != 4 || len(b.WorkItems) != 1 {
@@ -197,26 +200,19 @@ func TestRoleBrief_ObjectivesComeThroughTheWorkflowsOfMySteps(t *testing.T) {
 
 	_, drafting := flowWithStep(t, mgr, ctx, draftID, "Drafting", "Draft it", "PROMPT-DRAFT", o, second)
 	_, filing := flowWithStep(t, mgr, ctx, draftID, "Filing", "File it", "PROMPT-FILE", second)
-	assignOn(t, mgr, ctx, draftID, scribe, drafting, models.RACILabelResponsible)
-	assignOn(t, mgr, ctx, draftID, scribe, drafting, models.RACILabelAccountable)
-	assignOn(t, mgr, ctx, draftID, scribe, filing, models.RACILabelConsulted)
+	assignOn(t, mgr, ctx, draftID, scribe, drafting)
+	assignOn(t, mgr, ctx, draftID, scribe, filing)
 	_, err = mgr.PublishAgency(ctx, draftID, "", "")
 	must(t, err)
 
 	b, err := mgr.GetRoleBrief(ctx, scribe.ID)
 	must(t, err)
-	labels := map[string]string{}
+	titles := map[string]bool{}
 	for _, bo := range b.Objectives {
-		labels[bo.Title] = bo.Label
+		titles[bo.Title] = true
 	}
-	if len(b.Objectives) != 2 {
-		t.Fatalf("expected both objectives reached through the two workflows, got %+v", b.Objectives)
-	}
-	if labels["Grow adoption"] != "responsible, accountable" {
-		t.Errorf("the objective reached through one workflow should carry both labels held on its step, got %q", labels["Grow adoption"])
-	}
-	if labels["Second aim"] != "responsible, accountable, consulted" {
-		t.Errorf("the objective linked to both workflows should merge the labels of both, got %q", labels["Second aim"])
+	if len(b.Objectives) != 2 || !titles["Grow adoption"] || !titles["Second aim"] {
+		t.Fatalf("expected both objectives reached through the two workflows, once each, got %+v", b.Objectives)
 	}
 	if len(b.WorkItems) != 2 {
 		t.Errorf("expected a work item per workflow the seat has a step in, got %+v", b.WorkItems)
@@ -228,7 +224,7 @@ func TestRoleBrief_ObjectivesComeThroughTheWorkflowsOfMySteps(t *testing.T) {
 	}
 }
 
-func TestRoleBrief_NoAssignmentMeansNoObjectives(t *testing.T) {
+func TestRoleBrief_NoStepMeansNoObjectives(t *testing.T) {
 	ctx := context.Background()
 	mgr := newTestManager(t)
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
@@ -271,14 +267,14 @@ func TestRoleBrief_FollowsAStepAssignmentMovedInANewPublication(t *testing.T) {
 	if otherInDraft.ID == "" || mineInDraft.ID == "" {
 		t.Fatalf("forked draft lacks the auditor or the Mine step: %+v %+v", roles, items)
 	}
-	assignOn(t, f.mgr, ctx, d.ID, otherInDraft, mineInDraft, models.RACILabelInformed)
+	assignOn(t, f.mgr, ctx, d.ID, otherInDraft, mineInDraft)
 	_, err = f.mgr.PublishAgency(ctx, d.ID, "", "")
 	must(t, err)
 
 	b, err := f.mgr.GetRoleBrief(ctx, f.other.Code)
 	must(t, err)
 	if !strings.Contains(b.Text, "PROMPT-MINE") || !strings.Contains(b.Text, "Grow adoption") {
-		t.Errorf("auditor, now informed on Mine, should see its prompt and objective:\n%s", b.Text)
+		t.Errorf("auditor, now accountable for Mine, should see its prompt and objective:\n%s", b.Text)
 	}
 }
 
@@ -295,9 +291,9 @@ func TestRoleBrief_LeavesOutTheStepsOfAWorkflowTheSeatIsNotOn(t *testing.T) {
 	wf, first := flowWithStep(t, mgr, ctx, draftID, "Charter", "Write", "PROMPT-WRITE", o)
 	second, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Sign", Prompt: "PROMPT-SIGN-LEAD-ONLY"})
 	must(t, err)
-	assignOn(t, mgr, ctx, draftID, scribe, first, models.RACILabelResponsible)
-	assignOn(t, mgr, ctx, draftID, scribe, first, models.RACILabelConsulted)
-	assignOn(t, mgr, ctx, draftID, lead, second, models.RACILabelAccountable)
+	assignOn(t, mgr, ctx, draftID, scribe, first)
+	assignOn(t, mgr, ctx, draftID, scribe, first)
+	assignOn(t, mgr, ctx, draftID, lead, second)
 	_, err = mgr.PublishAgency(ctx, draftID, "", "")
 	must(t, err)
 
@@ -309,17 +305,13 @@ func TestRoleBrief_LeavesOutTheStepsOfAWorkflowTheSeatIsNotOn(t *testing.T) {
 	if len(b.WorkItems) != 1 || b.WorkItems[0].Title != "Write" {
 		t.Fatalf("expected only the Write step, got %+v", b.WorkItems)
 	}
-	want := []string{"responsible", "consulted"}
-	if got := b.WorkItems[0].Labels; strings.Join(got, ",") != strings.Join(want, ",") {
-		t.Errorf("labels = %v, want %v", got, want)
-	}
-	if !strings.Contains(b.Text, "[responsible, consulted]") {
-		t.Errorf("brief text does not show the labels held on the step:\n%s", b.Text)
+	if !b.WorkItems[0].Accountable || !strings.Contains(b.Text, "[accountable]") {
+		t.Errorf("brief does not show the seat is accountable for the step:\n%s", b.Text)
 	}
 
 	lb, err := mgr.GetRoleBrief(ctx, lead.ID)
 	must(t, err)
-	if len(lb.WorkItems) != 1 || lb.WorkItems[0].Title != "Sign" || strings.Join(lb.WorkItems[0].Labels, ",") != "accountable" {
+	if len(lb.WorkItems) != 1 || lb.WorkItems[0].Title != "Sign" || !lb.WorkItems[0].Accountable {
 		t.Errorf("lead's brief wrong: %+v", lb.WorkItems)
 	}
 }

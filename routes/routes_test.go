@@ -20,19 +20,19 @@ func TestRoutes_AnswersTheDeclaredAddresses(t *testing.T) {
 	rts := routes.Routes(mgr, nil)
 
 	want := map[string]bool{
-		"POST /agency":                    true,
-		"GET /agency":                     true,
-		"POST /goals":                     true,
-		"GET /goals":                      true,
-		"POST /work-items":                true,
-		"GET /drafts":                     true,
-		"POST /drafts/{draft_id}/archive": true,
-		"DELETE /roles/{role_id}":         true,
-		"GET /work-items/{work_item_id}/role-assignments": true,
-		"POST /workflow-objectives":                       true,
-		"POST /objectives":                                true,
-		"DELETE /values/{value_id}":                       true,
-		"DELETE /rules/{rule_id}":                         true,
+		"POST /agency":                     true,
+		"GET /agency":                      true,
+		"POST /goals":                      true,
+		"GET /goals":                       true,
+		"POST /work-items":                 true,
+		"GET /drafts":                      true,
+		"POST /drafts/{draft_id}/archive":  true,
+		"DELETE /roles/{role_id}":          true,
+		"PATCH /work-items/{work_item_id}": true,
+		"POST /workflow-objectives":        true,
+		"POST /objectives":                 true,
+		"DELETE /values/{value_id}":        true,
+		"DELETE /rules/{rule_id}":          true,
 	}
 	got := map[string]bool{}
 	for _, rt := range rts {

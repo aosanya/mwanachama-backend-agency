@@ -246,6 +246,7 @@
         {"name": "prompt", "type": "text", "description": "The instruction handed to whoever or whatever performs this step."},
         {"name": "kind", "type": "enum", "description": "What the step is: fill a form, send a form, notify, say yes or no, route the answers of a form that was sent, run another workflow, or chat with an agent. Empty for a step that is only an instruction.", "values": ["fill_form", "send_form", "notify", "yes_no", "route", "run_workflow", "chat", "compute", "post"]},
         {"name": "role_id", "type": "string", "description": "The one role that acts on this step, in the same draft. Empty when the agency itself takes the step; a send-form or route step is always the agency's."},
+        {"name": "accountable_role_id", "type": "string", "description": "The one role that answers for this step, in the same draft. Empty when nobody is named, and then the role brief reads the step's own role. It may be set on a step of any kind, including a step with no role of its own."},
         {"name": "run_workflow_id", "type": "string", "description": "The workflow a run-workflow step starts, in the same draft. Empty for every other kind."},
         {"name": "form_name", "type": "string", "description": "What the form this step takes is called. Empty for a route or run-workflow step, which take none."},
         {"name": "questions", "type": "json", "description": "The questions of the step's form, in the order they are asked: each a prompt, an answer type of yes_no, single_choice, multi_select, free_text, date, time, number, currency, photo or file (the forms module's ten), whether it is required, a helper line, the typed options or the named list they come from, and a fixed value for a question the step always answers the same way."},
@@ -319,7 +320,7 @@
     },
     {
       "role": "role",
-      "description": "A seat somebody or something holds, and what RACI assigns to an objective.",
+      "description": "A seat somebody or something holds.",
       "fields": [
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "code", "type": "string", "description": "Stable human-readable handle such as R-1, minted once and never edited.", "immutable": true},
@@ -336,26 +337,6 @@
       "indexes": [
         {"name": "code", "description": "Finds a seat by the handle a person quotes.", "fields": ["code"]},
         {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]}
-      ]
-    },
-    {
-      "role": "role_assignment",
-      "description": "One RACI label: which seat takes part in which step, and how. Only a label; what a step does and who acts stays in the step's own fields.",
-      "fields": [
-        {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
-        {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
-        {"name": "work_item_id", "type": "string", "description": "The step the seat is labelled on. Must be in the same draft as this link.", "required": true},
-        {"name": "role_id", "type": "string", "description": "The seat being labelled. Must be in the same draft as this link.", "required": true},
-        {"name": "label", "type": "enum", "description": "How the seat relates to the step. Any number of seats may hold any label, accountable included; the same seat with the same label twice on one step is refused.", "required": true, "values": ["responsible", "accountable", "consulted", "informed"]},
-        {"name": "created_at", "type": "timestamp", "description": "When the link was made.", "immutable": true},
-        {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
-        {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
-      ],
-      "indexes": [
-        {"name": "draft", "description": "Every listing reads one draft's rows.", "fields": ["draft_id"]},
-        {"name": "role", "description": "Answers which steps one seat is labelled on, and backs its delete cascade.", "fields": ["role_id"]},
-        {"name": "work_item", "description": "Reads the labels of one step, and backs its delete cascade.", "fields": ["work_item_id"]},
-        {"name": "role_label_unique", "description": "Refuses a second copy of one label for one seat on one step, so two writers racing cannot both add it. Rows kept from before AGD-009 name no step and are left out.", "fields": ["work_item_id", "role_id", "label"], "unique": true, "where": [{"field": "work_item_id", "op": "not_empty"}]}
       ]
     },
     {

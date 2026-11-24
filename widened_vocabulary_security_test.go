@@ -70,12 +70,10 @@ func widenedAgencySpec(t *testing.T, widen map[string]map[string]string) *spec.S
 func TestWidenedAgencyVocabularyOpensNoGate(t *testing.T) {
 	const (
 		lockedStatus = "locked"
-		leadLabel    = "lead"
 		deptTarget   = "department"
 	)
 	s := widenedAgencySpec(t, map[string]map[string]string{
 		"draft":            {"status": lockedStatus},
-		"role_assignment":  {"label": leadLabel},
 		"value_attachment": {"target_type": deptTarget},
 	})
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
@@ -91,18 +89,7 @@ func TestWidenedAgencyVocabularyOpensNoGate(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	_, _, obj, _, step := seedLiveAgency(t, mgr, ctx)
-	role, err := mgr.CreateRole(ctx, models.Role{DraftID: obj.DraftID, Name: "Owner"})
-	if err != nil {
-		t.Fatalf("precondition: CreateRole: %v", err)
-	}
-
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: obj.DraftID, WorkItemID: step.ID, RoleID: role.ID, Label: models.RACILabel(leadLabel),
-	}); !errors.Is(err, mwanachamaagency.ErrInvalidRACILabel) {
-		t.Errorf("a RACI link under the domain-declared label %q was accepted: err = %v, want ErrInvalidRACILabel", leadLabel, err)
-	}
-
+	_, _, obj, _, _ := seedLiveAgency(t, mgr, ctx)
 	v, err := mgr.CreateValue(ctx, models.Value{DraftID: obj.DraftID, Text: "Correctness first"})
 	if err != nil {
 		t.Fatalf("precondition: CreateValue: %v", err)

@@ -74,11 +74,7 @@ func newScenarioWorld(t *testing.T, opts ...mwanachamaagency.Option) scenarioWor
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, WorkItemID: firstStep.ID, RoleID: owner.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
+	assignOn(t, mgr, ctx, o.DraftID, owner, firstStep)
 	sw := stepWorld{mgr: mgr, draftID: o.DraftID, objective: o, roles: map[string]models.Role{}}
 	for _, name := range []string{coordinator, farmer, supplier} {
 		r, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: name})

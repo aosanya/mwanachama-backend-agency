@@ -65,11 +65,6 @@ type RoleFilter struct {
 	Name        string `query:"name"`
 	Description string `query:"description"`
 }
-type RoleAssignmentFilter struct {
-	Label      string `query:"label"`
-	WorkItemID string `query:"-"`
-	RoleID     string `query:"role_id"`
-}
 type WorkflowObjectiveFilter struct {
 	WorkflowID  string `query:"workflow_id"`
 	ObjectiveID string `query:"objective_id"`

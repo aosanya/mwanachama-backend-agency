@@ -62,37 +62,6 @@ func TestCreateObjective_MultiplePerGoal(t *testing.T) {
 	}
 }
 
-func TestListRoleAssignmentsForWorkItem(t *testing.T) {
-	mgr, draftID := newTestManagerWithDraft(t)
-	wf, _ := mgr.CreateWorkflow(t.Context(), models.Workflow{DraftID: draftID, Name: "Onboarding"})
-	step, err := mgr.CreateWorkItem(t.Context(), models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Write charter"})
-	if err != nil {
-		t.Fatalf("CreateWorkItem: %v", err)
-	}
-	role, err := mgr.CreateRole(t.Context(), models.Role{DraftID: draftID, Name: "tech-lead"})
-	if err != nil {
-		t.Fatalf("CreateRole: %v", err)
-	}
-	if _, err := mgr.CreateRoleAssignment(t.Context(), models.RoleAssignment{DraftID: draftID, WorkItemID: step.ID, RoleID: role.ID, Label: models.RACILabelAccountable}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
-
-	listReq := httptest.NewRequest(http.MethodGet, "/work-items/"+step.ID+"/role-assignments?draft_id="+draftID, nil)
-	listReq.SetPathValue("work_item_id", step.ID)
-	listRec := httptest.NewRecorder()
-	serve(mgr, listRec, listReq)
-	if listRec.Code != http.StatusOK {
-		t.Fatalf("list status = %d, body = %s", listRec.Code, listRec.Body.String())
-	}
-	var assignments []models.RoleAssignment
-	if err := json.Unmarshal(listRec.Body.Bytes(), &assignments); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if len(assignments) != 1 || assignments[0].Label != models.RACILabelAccountable || assignments[0].WorkItemID != step.ID {
-		t.Fatalf("unexpected assignments: %+v", assignments)
-	}
-}
-
 func TestLinkWorkflowToObjective(t *testing.T) {
 	mgr, draftID := newTestManagerWithDraft(t)
 	g, _ := mgr.CreateGoal(t.Context(), models.Goal{DraftID: draftID, Title: "Grow adoption"})

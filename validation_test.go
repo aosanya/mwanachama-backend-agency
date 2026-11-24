@@ -140,52 +140,26 @@ func TestScan_WorkflowObjectiveWhoseObjectiveIsGone(t *testing.T) {
 	}
 }
 
-func TestScan_DanglingRoleAssignment(t *testing.T) {
+func TestScan_AccountableRoleWhoseRoleIsGone(t *testing.T) {
 	mgr, db, s := newTestManagerDB(t)
 	ctx := context.Background()
 	w := newLinkedWorld(t, mgr, ctx)
 
-	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, WorkItemID: w.step.ID, RoleID: w.role.ID, Label: models.RACILabelAccountable,
-	})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	step := w.step
+	step.AccountableRoleID = w.role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, step); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
 	if err := db.Exec("delete from "+tableOf(t, s, "role")+" where id = ?", w.role.ID).Error; err != nil {
 		t.Fatalf("deleting the Role row directly: %v", err)
 	}
 
-	issue, ok := findIssue(t, mgr, ctx, w.draftID, "role_assignment", assignment.ID)
+	issue, ok := findIssue(t, mgr, ctx, w.draftID, "work_item", step.ID)
 	if !ok {
-		t.Fatalf("expected a dangling-Role issue for assignment %s", assignment.ID)
+		t.Fatalf("expected a dangling-Role issue for step %s", step.ID)
 	}
-	if issue.Severity != models.IssueSeverityError {
-		t.Errorf("expected error severity, got %q", issue.Severity)
-	}
-}
-
-func TestScan_RoleAssignmentWhoseStepIsGone(t *testing.T) {
-	mgr, db, s := newTestManagerDB(t)
-	ctx := context.Background()
-	w := newLinkedWorld(t, mgr, ctx)
-
-	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, WorkItemID: w.step.ID, RoleID: w.role.ID, Label: models.RACILabelResponsible,
-	})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
-
-	if err := db.Exec("delete from "+tableOf(t, s, "work_item")+" where id = ?", w.step.ID).Error; err != nil {
-		t.Fatalf("deleting the step row directly: %v", err)
-	}
-
-	issue, ok := findIssue(t, mgr, ctx, w.draftID, "role_assignment", assignment.ID)
-	if !ok {
-		t.Fatalf("expected a dangling-step issue for assignment %s", assignment.ID)
-	}
-	if issue.Severity != models.IssueSeverityError || !strings.Contains(issue.Message, "Work item") {
+	if issue.Severity != models.IssueSeverityError || !strings.Contains(issue.Message, "accountable") {
 		t.Errorf("unexpected issue %+v", issue)
 	}
 }

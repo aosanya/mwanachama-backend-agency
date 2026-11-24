@@ -86,7 +86,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 		docStep := models.DocumentWorkItem{
 			ID: wi.ID, Code: wi.Code, WorkflowID: wi.WorkflowID,
 			Title: wi.Title, Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
-			Kind: wi.Kind, RoleID: wi.RoleID, RunWorkflowID: wi.RunWorkflowID,
+			Kind: wi.Kind, RoleID: wi.RoleID, AccountableRoleID: wi.AccountableRoleID, RunWorkflowID: wi.RunWorkflowID,
 			FormName: wi.FormName, Questions: wi.Questions, Tool: wi.Tool,
 			RecipientRoleID: wi.RecipientRoleID, SentStepID: wi.SentStepID,
 			Routes: wi.Routes, OtherwiseStepID: wi.OtherwiseStepID,
@@ -158,16 +158,6 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	doc.Home, err = m.homeDocument(ctx, tx, draftID)
 	if err != nil {
 		return fail(err)
-	}
-
-	assignments, err := list[models.RoleAssignment](m, scoped(roleRoleAssignment).Order("created_at"), roleRoleAssignment)
-	if err != nil {
-		return fail(err)
-	}
-	for _, ra := range assignments {
-		doc.RoleAssignments = append(doc.RoleAssignments, models.DocumentRoleAssignment{
-			ID: ra.ID, WorkItemID: ra.WorkItemID, RoleID: ra.RoleID, Label: string(ra.Label),
-		})
 	}
 
 	values, err := list[models.Value](m, scoped(roleValue).Order("created_at"), roleValue)
@@ -302,6 +292,7 @@ func (m *agencyManager) libraryDocuments(scoped func(string) *gorm.DB, doc *mode
 
 func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, draftID string, doc models.AgencyDocument, now string) error {
 	fail := func(err error) error { return fmt.Errorf("applyDocumentToDraft: %w", err) }
+	doc = foldLegacyRoleAssignments(doc)
 	if err := validateDocumentSubjects(doc); err != nil {
 		return fail(err)
 	}
@@ -371,8 +362,9 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		row := models.WorkItem{
 			ID: stepIDs[wi.ID], Code: wi.Code, DraftID: draftID, WorkflowID: workflowIDs[wi.WorkflowID],
 			Title: wi.Title, Description: wi.Description, Ordinality: wi.Ordinality, Prompt: wi.Prompt,
-			Kind: wi.Kind, RoleID: remap(roleIDs, wi.RoleID), RunWorkflowID: workflowIDs[wi.RunWorkflowID],
-			FormName: wi.FormName, Questions: wi.Questions, Tool: wi.Tool,
+			Kind: wi.Kind, RoleID: remap(roleIDs, wi.RoleID), AccountableRoleID: remap(roleIDs, wi.AccountableRoleID),
+			RunWorkflowID: workflowIDs[wi.RunWorkflowID],
+			FormName:      wi.FormName, Questions: wi.Questions, Tool: wi.Tool,
 			RecipientRoleID: remap(roleIDs, wi.RecipientRoleID), SentStepID: remap(stepIDs, wi.SentStepID),
 			Routes: remapRoutes(stepIDs, wi.Routes), OtherwiseStepID: remap(stepIDs, wi.OtherwiseStepID),
 			TimeLimitMinutes: wi.TimeLimitMinutes, CancelWorkflowID: workflowIDs[wi.CancelWorkflowID],
@@ -461,27 +453,6 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	}
 	if err := m.applyHomeNodes(ctx, tx, draftID, "", doc.Home, now); err != nil {
 		return fail(err)
-	}
-
-	assigned := make(map[[3]string]bool, len(doc.RoleAssignments))
-	for _, ra := range doc.RoleAssignments {
-		stepID, stepKnown := stepIDs[ra.WorkItemID]
-		roleID, roleKnown := roleIDs[ra.RoleID]
-		if ra.WorkItemID == "" || !stepKnown || !roleKnown || !models.RACILabel(ra.Label).Valid() {
-			continue
-		}
-		key := [3]string{stepID, roleID, ra.Label}
-		if assigned[key] {
-			continue
-		}
-		assigned[key] = true
-		row := models.RoleAssignment{
-			ID: newID(), DraftID: draftID, WorkItemID: stepID, RoleID: roleID,
-			Label: models.RACILabel(ra.Label), CreatedAt: now, LastUpdated: now,
-		}
-		if err := m.copyRow(ctx, tx, roleRoleAssignment, row); err != nil {
-			return fail(err)
-		}
 	}
 
 	for _, v := range doc.Values {

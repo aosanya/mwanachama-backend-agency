@@ -44,10 +44,9 @@ func seedPublishableAgency(t *testing.T, mgr mwanachamaagency.AgencyManager) str
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: d.ID, RoleID: role.ID, WorkItemID: step.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	step.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, step); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 	return d.ID
 }
@@ -185,7 +184,7 @@ func TestPublishAgency_WorkflowWithNoObjectiveIsConflict(t *testing.T) {
 	}
 }
 
-func TestPublishAgency_DocumentCarriesBothJoins(t *testing.T) {
+func TestPublishAgency_DocumentCarriesTheJoinAndTheAccountableRole(t *testing.T) {
 	mgr := newTestManager(t)
 	draftID := seedPublishableAgency(t, mgr)
 
@@ -198,7 +197,6 @@ func TestPublishAgency_DocumentCarriesBothJoins(t *testing.T) {
 	var body struct {
 		Document struct {
 			WorkflowObjectives []map[string]any `json:"workflow_objectives"`
-			RoleAssignments    []map[string]any `json:"role_assignments"`
 			WorkItems          []map[string]any `json:"work_items"`
 		} `json:"document"`
 	}
@@ -208,11 +206,11 @@ func TestPublishAgency_DocumentCarriesBothJoins(t *testing.T) {
 	if len(body.Document.WorkflowObjectives) != 1 {
 		t.Fatalf("expected one workflow objective in the document, got %s", rec.Body.String())
 	}
-	if len(body.Document.RoleAssignments) != 1 || body.Document.RoleAssignments[0]["work_item_id"] == nil {
-		t.Fatalf("expected one step-scoped role assignment in the document, got %+v", body.Document.RoleAssignments)
+	if len(body.Document.WorkItems) != 1 || body.Document.WorkItems[0]["accountable_role_id"] == nil {
+		t.Fatalf("expected the step to carry its accountable role in the document, got %+v", body.Document.WorkItems)
 	}
-	if _, has := body.Document.RoleAssignments[0]["objective_id"]; has {
-		t.Errorf("a role assignment must not carry an objective_id any more: %+v", body.Document.RoleAssignments[0])
+	if _, has := body.Document.WorkItems[0]["role_assignments"]; has {
+		t.Errorf("a work item must not carry role assignments: %+v", body.Document.WorkItems[0])
 	}
 	if _, has := body.Document.WorkItems[0]["objective_id"]; has {
 		t.Errorf("a work item must not carry an objective_id any more: %+v", body.Document.WorkItems[0])

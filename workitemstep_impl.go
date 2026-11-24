@@ -30,6 +30,9 @@ func validateStepShape(wi models.WorkItem) error {
 	if strings.ContainsAny(wi.RoleID, ", \t\r\n;") {
 		return invalidStep("a step has one role, got %q", wi.RoleID)
 	}
+	if strings.ContainsAny(wi.AccountableRoleID, ", \t\r\n;") {
+		return invalidStep("a step has one accountable role, got %q", wi.AccountableRoleID)
+	}
 	if err := validateStepLimit(wi); err != nil {
 		return err
 	}
@@ -228,6 +231,13 @@ func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB,
 	}
 	if wi.RoleID != "" {
 		if err := m.actorOfDraft(ctx, tx, wi.DraftID, wi.RoleID); err != nil {
+			return err
+		}
+	}
+	if wi.AccountableRoleID != "" {
+		var accountable models.Role
+		q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRole)), wi.DraftID).Where("id = ?", wi.AccountableRoleID)
+		if err := m.take(q, roleRole, &accountable, ErrRoleNotFound); err != nil {
 			return err
 		}
 	}

@@ -26,14 +26,29 @@ func distinctWorkflowObjectivePairs(doc models.AgencyDocument) map[[2]string]boo
 	return pairs
 }
 
-func stepScopedAssignments(doc models.AgencyDocument) int {
+func stepsWithAnAccountableRole(doc models.AgencyDocument) int {
 	n := 0
-	for _, ra := range doc.RoleAssignments {
-		if ra.WorkItemID != "" {
+	for _, w := range doc.WorkItems {
+		if w.AccountableRoleID != "" {
 			n++
 		}
 	}
 	return n
+}
+
+func accountableRolesOf(t *testing.T, mgr mwanachamaagency.AgencyManager, draftID string) []models.WorkItem {
+	t.Helper()
+	steps, err := mgr.ListWorkItems(context.Background(), draftID, mwanachamaagency.WorkItemFilter{})
+	if err != nil {
+		t.Fatalf("ListWorkItems: %v", err)
+	}
+	var out []models.WorkItem
+	for _, s := range steps {
+		if s.AccountableRoleID != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 func readDocument(t *testing.T, path string) models.AgencyDocument {
@@ -100,10 +115,7 @@ func TestImportDocument_MwanachamaWakala(t *testing.T) {
 			v, err := mgr.ListWorkflowObjectives(ctx, draftID, mwanachamaagency.WorkflowObjectiveFilter{})
 			return len(v), err
 		}), len(distinctWorkflowObjectivePairs(doc))},
-		{"RACI links", count(t, func() (int, error) {
-			v, err := mgr.ListRoleAssignments(ctx, draftID, mwanachamaagency.RoleAssignmentFilter{})
-			return len(v), err
-		}), stepScopedAssignments(doc)},
+		{"accountable roles", len(accountableRolesOf(t, mgr, draftID)), stepsWithAnAccountableRole(doc)},
 		{"attachments", out.Attachments, len(doc.ValueAttachments) + len(doc.RuleAttachments) + len(doc.ControlAttachments)},
 	} {
 		if tc.got != tc.want {
@@ -144,16 +156,9 @@ func TestImportDocument_ReferencesResolve(t *testing.T) {
 		workItems[wi.ID] = true
 	}
 
-	assignments, err := mgr.ListRoleAssignments(ctx, draftID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil {
-		t.Fatalf("ListRoleAssignments: %v", err)
-	}
-	for _, a := range assignments {
-		if !roles[a.RoleID] {
-			t.Errorf("RACI link %s names a seat that is not in the draft", a.ID)
-		}
-		if !workItems[a.WorkItemID] {
-			t.Errorf("RACI link %s names a step that is not in the draft", a.ID)
+	for _, wi := range items {
+		if wi.AccountableRoleID != "" && !roles[wi.AccountableRoleID] {
+			t.Errorf("step %s names an accountable seat that is not in the draft", wi.ID)
 		}
 	}
 
@@ -344,12 +349,8 @@ func TestImportDocument_OlderShapeIgnoresObjectiveLevelAssignments(t *testing.T)
 	if err != nil {
 		t.Fatalf("the old objective-level assignments must be ignored without an error, got %v", err)
 	}
-	assignments, err := mgr.ListRoleAssignments(ctx, out.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil {
-		t.Fatalf("ListRoleAssignments: %v", err)
-	}
-	if len(assignments) != 0 {
-		t.Fatalf("expected the objective-level assignments dropped, got %+v", assignments)
+	if accountable := accountableRolesOf(t, mgr, out.Draft.ID); len(accountable) != 0 {
+		t.Fatalf("expected the objective-level assignments dropped, got %+v", accountable)
 	}
 	if len(listWorkflows(t, mgr, ctx, out.Draft.ID)) != 2 || len(listObjectives(t, mgr, ctx, out.Draft.ID)) != 2 {
 		t.Fatal("the rest of the older document must still import")
@@ -376,7 +377,7 @@ func TestImportDocument_OlderShapeScansClean(t *testing.T) {
 	}
 }
 
-func TestImportDocument_NewShapeCarriesBothJoins(t *testing.T) {
+func TestImportDocument_NewShapeCarriesTheJoinAndFoldsOldRoleAssignments(t *testing.T) {
 	raw := `{
 		"agency": {"name": "Ward office"},
 		"goals": [{"id": "g1", "code": "G-1", "title": "Hear residents"}],
@@ -410,9 +411,8 @@ func TestImportDocument_NewShapeCarriesBothJoins(t *testing.T) {
 	if err != nil || len(links) != 1 {
 		t.Fatalf("ListWorkflowObjectives: %v, %+v", err, links)
 	}
-	assignments, err := mgr.ListRoleAssignments(ctx, out.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(assignments) != 4 {
-		t.Fatalf("expected all four step-scoped assignments, two Accountables on one step included, got %v, %+v", err, assignments)
+	if accountable := accountableRolesOf(t, mgr, out.Draft.ID); len(accountable) != 2 {
+		t.Fatalf("expected the two steps that carry an accountable row to name one accountable role each, got %+v", accountable)
 	}
 	issues, err := mgr.ListIssues(ctx, out.Draft.ID, mwanachamaagency.IssueFilter{Severity: string(models.IssueSeverityError)})
 	if err != nil || len(issues) != 0 {
@@ -438,9 +438,8 @@ func TestImportDocument_PublishedDocumentRoundTrips(t *testing.T) {
 	if err != nil || len(links) != len(pub.Document.WorkflowObjectives) || len(links) != 1 {
 		t.Fatalf("ListWorkflowObjectives: %v, %+v", err, links)
 	}
-	assignments, err := target.ListRoleAssignments(ctx, out.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(assignments) != len(pub.Document.RoleAssignments) || len(assignments) != 1 {
-		t.Fatalf("ListRoleAssignments: %v, %+v", err, assignments)
+	if accountable := accountableRolesOf(t, target, out.Draft.ID); len(accountable) != stepsWithAnAccountableRole(pub.Document) || len(accountable) != 1 {
+		t.Fatalf("expected the one accountable role of the published step to import, got %+v", accountable)
 	}
 	if _, err := target.PublishAgency(ctx, out.Draft.ID, "", ""); err != nil {
 		t.Fatalf("the imported copy should publish: %v", err)

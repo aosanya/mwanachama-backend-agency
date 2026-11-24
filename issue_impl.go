@@ -24,7 +24,6 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 	s := issueScan{ctx: ctx, m: m, tx: tx, draftID: draftID, groups: groups, now: models.NowRFC3339()}
 	for _, check := range []func() error{
 		s.checkStructure,
-		s.checkRoleAssignments,
 		s.checkWorkflowObjectives,
 		s.checkWorkItems,
 		s.checkRegistered,
@@ -99,46 +98,6 @@ func (s *issueScan) checkStructure() error {
 	for _, g := range goals {
 		if !goalsWithObjective[g.ID] {
 			s.add(models.IssueSeverityError, "goal", g.ID, "Goal %s %q has no Objectives", g.Code, g.Title)
-		}
-	}
-	return nil
-}
-
-func (s *issueScan) checkRoleAssignments() error {
-	roles, err := list[models.Role](s.m, s.scoped(roleRole), roleRole)
-	if err != nil {
-		return err
-	}
-	workItems, err := list[models.WorkItem](s.m, s.scoped(roleWorkItem), roleWorkItem)
-	if err != nil {
-		return err
-	}
-	assignments, err := list[models.RoleAssignment](s.m, s.scoped(roleRoleAssignment), roleRoleAssignment)
-	if err != nil {
-		return err
-	}
-
-	roleIDs := make(map[string]bool, len(roles))
-	for _, r := range roles {
-		roleIDs[r.ID] = true
-	}
-	workItemIDs := make(map[string]bool, len(workItems))
-	for _, w := range workItems {
-		workItemIDs[w.ID] = true
-	}
-
-	for _, a := range assignments {
-		if !a.Label.Valid() {
-			s.add(models.IssueSeverityError, "role_assignment", a.ID,
-				"Role assignment %s has label %s, which is not responsible, accountable, consulted or informed", a.ID, QuoteIfUnsafe(string(a.Label)))
-		}
-		if !roleIDs[a.RoleID] {
-			s.add(models.IssueSeverityError, "role_assignment", a.ID,
-				"Role assignment %s refers to Role %s, which does not exist", a.ID, QuoteIfUnsafe(a.RoleID))
-		}
-		if !workItemIDs[a.WorkItemID] {
-			s.add(models.IssueSeverityError, "role_assignment", a.ID,
-				"Role assignment %s refers to Work item %s, which does not exist", a.ID, QuoteIfUnsafe(a.WorkItemID))
 		}
 	}
 	return nil
@@ -220,6 +179,10 @@ func (s *issueScan) checkWorkItems() error {
 		if w.RoleID != "" && !roleIDs[w.RoleID] {
 			s.add(models.IssueSeverityError, "work_item", w.ID,
 				"Work item %s %q is acted on by Role %s, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.RoleID))
+		}
+		if w.AccountableRoleID != "" && !roleIDs[w.AccountableRoleID] {
+			s.add(models.IssueSeverityError, "work_item", w.ID,
+				"Work item %s %q names Role %s as accountable, which does not exist", w.Code, w.Title, QuoteIfUnsafe(w.AccountableRoleID))
 		}
 		if w.RunWorkflowID != "" && !workflowIDs[w.RunWorkflowID] {
 			s.add(models.IssueSeverityError, "work_item", w.ID,

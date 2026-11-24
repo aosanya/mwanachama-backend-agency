@@ -15,17 +15,16 @@ import (
 )
 
 type olderDatabase struct {
-	db       *gorm.DB
-	s        *spec.Spec
-	mgr      mwanachamaagency.AgencyManager
-	draftA   string
-	draftB   string
-	w1, w2   models.Workflow
-	w3       models.Workflow
-	o1, o2   models.Objective
-	items    string
-	links    string
-	assigned string
+	db     *gorm.DB
+	s      *spec.Spec
+	mgr    mwanachamaagency.AgencyManager
+	draftA string
+	draftB string
+	w1, w2 models.Workflow
+	w3     models.Workflow
+	o1, o2 models.Objective
+	items  string
+	links  string
 }
 
 func newOlderDatabase(t *testing.T) olderDatabase {
@@ -56,9 +55,8 @@ func newOlderDatabase(t *testing.T) olderDatabase {
 	}
 	o := olderDatabase{
 		db: db, s: s, mgr: mgr, draftA: a.ID, draftB: b.ID,
-		items:    tableOf(t, s, "work_item"),
-		links:    tableOf(t, s, "workflow_objective"),
-		assigned: tableOf(t, s, "role_assignment"),
+		items: tableOf(t, s, "work_item"),
+		links: tableOf(t, s, "workflow_objective"),
 	}
 	g, _ := mgr.CreateGoal(ctx, models.Goal{DraftID: a.ID, Title: "G"})
 	o.o1, _ = mgr.CreateObjective(ctx, models.Objective{DraftID: a.ID, GoalID: g.ID, Title: "O1"})
@@ -99,9 +97,6 @@ func newOlderDatabase(t *testing.T) olderDatabase {
 
 	if err := db.Exec(`delete from ` + o.links).Error; err != nil {
 		t.Fatalf("clear the links an older database never had: %v", err)
-	}
-	if err := db.Exec(`insert into `+o.assigned+` (id, draft_id, work_item_id, role_id, label) values ('old-1', ?, '', 'r', 'accountable')`, a.ID).Error; err != nil {
-		t.Fatalf("plant an objective-level assignment: %v", err)
 	}
 	return o
 }
@@ -197,17 +192,13 @@ func TestProvisionCarriesStepObjectivesForwardWhenTheLinkTableDoesNotExistYet(t 
 	}
 }
 
-func TestProvisionKeepsObjectiveLevelRoleAssignmentsAndStepObjectiveIDs(t *testing.T) {
+func TestProvisionKeepsStepObjectiveIDs(t *testing.T) {
 	o := newOlderDatabase(t)
 
 	if err := mwanachamaagency.Provision(o.db, o.s); err != nil {
 		t.Fatalf("Provision: %v", err)
 	}
 
-	var kept int64
-	if err := o.db.Raw(`select count(*) from ` + o.assigned + ` where id = 'old-1' and work_item_id = ''`).Scan(&kept).Error; err != nil || kept != 1 {
-		t.Errorf("the objective-level role assignment: kept = %d, err %v", kept, err)
-	}
 	var withObjective int64
 	if err := o.db.Raw(`select count(*) from ` + o.items + ` where objective_id is not null and objective_id <> ''`).Scan(&withObjective).Error; err != nil || withObjective != 9 {
 		t.Errorf("steps still carrying objective_id = %d, err %v, want 9", withObjective, err)

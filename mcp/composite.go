@@ -15,12 +15,12 @@ func registerCompositeTools(server *mcp.Server, resolve ManagerResolver) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:  "agency_design_from_spec",
 		Title: "Design Agency From Spec",
-		Description: "Build out an Agency's roles, goals/objectives/workflows/work items, and RACI assignments from one structured spec, composing the granular agency_* tools internally. Every entity is created inside the Draft named by draft_id — fork one with agency_create_draft first. " +
+		Description: "Build out an Agency's roles, goals/objectives/workflows/work items, and the role accountable for each work item from one structured spec, composing the granular agency_* tools internally. Every entity is created inside the Draft named by draft_id — fork one with agency_create_draft first. " +
 			"Entities reference each other by a caller-chosen \"key\" (not a real id); a reference must name a key defined earlier in that section or in a section this tool applies first. " +
-			"Order applied: agency (only if none exists yet), roles, goals, objectives (goal_key), workflows (each lists the objectives it serves by objective_keys or objective_ids), work_items (workflow_key), raci (work_item_key). " +
+			"Order applied: agency (only if none exists yet), roles, goals, objectives (goal_key), workflows (each lists the objectives it serves by objective_keys or objective_ids), work_items (workflow_key, accountable_role_key). " +
 			"A workflow may serve several objectives; a work item belongs to no objective of its own. " +
-			"A workflow or raci entry may instead reference an already-existing Objective/Role/WorkItem directly by its real id (objective_ids, role_id, work_item_id) if it isn't also being created in this same spec — use this to create one new Role (or Workflow) and tie it to something that already exists in a single call, instead of a separate create-then-assign round trip. " +
-			"A step may have any number of roles under any RACI label; only the same role with the same label on the same step twice is refused. " +
+			"A workflow or work item may instead reference an already-existing Objective or Role directly by its real id (objective_ids, accountable_role_id) if it isn't also being created in this same spec — use this to create one new Role (or Workflow) and tie it to something that already exists in a single call. " +
+			"A step names at most one accountable role. " +
 			"One call carries at most 1000 entries across all sections together; a bigger spec is refused before anything is written, so send it in several calls. " +
 			"One entity failing does not stop the rest — check the result's errors field.",
 	}, mcpDesignAgencyFromSpec(resolve))
@@ -63,14 +63,9 @@ type specWorkItem struct {
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
 	Prompt      string `json:"prompt,omitempty" jsonschema:"instructions for whoever/whatever executes this WorkItem"`
-}
 
-type specRACI struct {
-	RoleKey     string `json:"role_key,omitempty" jsonschema:"a key from this spec's roles list — set this or role_id, not both"`
-	RoleID      string `json:"role_id,omitempty" jsonschema:"an already-existing Role's real id, when it isn't also being created in this spec's roles list"`
-	WorkItemKey string `json:"work_item_key,omitempty" jsonschema:"a key from this spec's work_items list — set this or work_item_id, not both"`
-	WorkItemID  string `json:"work_item_id,omitempty" jsonschema:"an already-existing WorkItem's real id, when it isn't also being created in this spec's work_items list"`
-	Label       string `json:"label" jsonschema:"responsible, accountable, consulted, or informed"`
+	AccountableRoleKey string `json:"accountable_role_key,omitempty" jsonschema:"a key from this spec's roles list — the one role accountable for this step; set this or accountable_role_id, not both"`
+	AccountableRoleID  string `json:"accountable_role_id,omitempty" jsonschema:"an already-existing Role's real id, when it isn't also being created in this spec's roles list"`
 }
 
 type mcpDesignFromSpecParams struct {
@@ -82,11 +77,10 @@ type mcpDesignFromSpecParams struct {
 	Objectives []specObjective `json:"objectives,omitempty"`
 	Workflows  []specWorkflow  `json:"workflows,omitempty"`
 	WorkItems  []specWorkItem  `json:"work_items,omitempty"`
-	RACI       []specRACI      `json:"raci,omitempty"`
 }
 
 func (p mcpDesignFromSpecParams) entityCount() int {
-	n := len(p.Roles) + len(p.Goals) + len(p.Objectives) + len(p.Workflows) + len(p.WorkItems) + len(p.RACI)
+	n := len(p.Roles) + len(p.Goals) + len(p.Objectives) + len(p.Workflows) + len(p.WorkItems)
 	for _, w := range p.Workflows {
 		n += len(w.ObjectiveKeys) + len(w.ObjectiveIDs)
 	}
@@ -94,15 +88,14 @@ func (p mcpDesignFromSpecParams) entityCount() int {
 }
 
 type mcpDesignFromSpecResult struct {
-	AgencyCreated   bool              `json:"agency_created"`
-	Roles           map[string]string `json:"roles,omitempty"`
-	Goals           map[string]string `json:"goals,omitempty"`
-	Objectives      map[string]string `json:"objectives,omitempty"`
-	Workflows       map[string]string `json:"workflows,omitempty"`
-	WorkItems       map[string]string `json:"work_items,omitempty"`
-	WorkflowLinks   []string          `json:"workflow_objectives,omitempty"`
-	RoleAssignments []string          `json:"role_assignments,omitempty"`
-	Errors          []string          `json:"errors,omitempty"`
+	AgencyCreated bool              `json:"agency_created"`
+	Roles         map[string]string `json:"roles,omitempty"`
+	Goals         map[string]string `json:"goals,omitempty"`
+	Objectives    map[string]string `json:"objectives,omitempty"`
+	Workflows     map[string]string `json:"workflows,omitempty"`
+	WorkItems     map[string]string `json:"work_items,omitempty"`
+	WorkflowLinks []string          `json:"workflow_objectives,omitempty"`
+	Errors        []string          `json:"errors,omitempty"`
 }
 
 func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp.CallToolRequest, mcpDesignFromSpecParams) (*mcp.CallToolResult, mcpDesignFromSpecResult, error) {
@@ -201,7 +194,12 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 				out.Errors = append(out.Errors, fmt.Sprintf("work_item %q: unknown workflow_key %q", wi.Key, wi.WorkflowKey))
 				continue
 			}
-			row, err := m.CreateWorkItem(ctx, models.WorkItem{DraftID: p.DraftID, WorkflowID: workflowID, Title: wi.Title, Description: wi.Description, Prompt: wi.Prompt})
+			accountableRoleID, err := resolveAccountableRole(out.Roles, wi)
+			if err != nil {
+				out.Errors = append(out.Errors, fmt.Sprintf("work_item %q: %v", wi.Key, err))
+				continue
+			}
+			row, err := m.CreateWorkItem(ctx, models.WorkItem{DraftID: p.DraftID, WorkflowID: workflowID, Title: wi.Title, Description: wi.Description, Prompt: wi.Prompt, AccountableRoleID: accountableRoleID})
 			if err != nil {
 				out.Errors = append(out.Errors, fmt.Sprintf("work_item %q: %v", wi.Key, err))
 				continue
@@ -212,56 +210,26 @@ func mcpDesignAgencyFromSpec(resolve ManagerResolver) func(context.Context, *mcp
 			out.WorkItems = workItemIDs
 		}
 
-		for i, ra := range p.RACI {
-			if ra.RoleKey != "" && ra.RoleID != "" {
-				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: set role_key or role_id, not both", i))
-				continue
-			}
-			if ra.WorkItemKey != "" && ra.WorkItemID != "" {
-				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: set work_item_key or work_item_id, not both", i))
-				continue
-			}
-			roleID := ra.RoleID
-			if ra.RoleKey != "" {
-				id, ok := out.Roles[ra.RoleKey]
-				if !ok {
-					out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: unknown role_key %q", i, ra.RoleKey))
-					continue
-				}
-				roleID = id
-			}
-			if roleID == "" {
-				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: must set role_key or role_id", i))
-				continue
-			}
-
-			workItemID := ra.WorkItemID
-			if ra.WorkItemKey != "" {
-				id, ok := workItemIDs[ra.WorkItemKey]
-				if !ok {
-					out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: unknown work_item_key %q", i, ra.WorkItemKey))
-					continue
-				}
-				workItemID = id
-			}
-			if workItemID == "" {
-				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: must set work_item_key or work_item_id", i))
-				continue
-			}
-
-			row, err := m.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: p.DraftID, RoleID: roleID, WorkItemID: workItemID, Label: models.RACILabel(ra.Label)})
-			if err != nil {
-				out.Errors = append(out.Errors, fmt.Sprintf("raci[%d]: %v", i, err))
-				continue
-			}
-			out.RoleAssignments = append(out.RoleAssignments, row.ID)
-		}
-
 		s := summary(
-			"Applied spec: %d role(s), %d goal(s), %d objective(s), %d workflow(s), %d workflow objective link(s), %d work item(s), %d RACI assignment(s), %d error(s)",
+			"Applied spec: %d role(s), %d goal(s), %d objective(s), %d workflow(s), %d workflow objective link(s), %d work item(s), %d error(s)",
 			len(out.Roles), len(out.Goals), len(out.Objectives),
-			len(out.Workflows), len(out.WorkflowLinks), len(out.WorkItems), len(out.RoleAssignments), len(out.Errors),
+			len(out.Workflows), len(out.WorkflowLinks), len(out.WorkItems), len(out.Errors),
 		)
 		return s, out, nil
+	}
+}
+
+func resolveAccountableRole(roles map[string]string, wi specWorkItem) (string, error) {
+	switch {
+	case wi.AccountableRoleKey != "" && wi.AccountableRoleID != "":
+		return "", fmt.Errorf("set accountable_role_key or accountable_role_id, not both")
+	case wi.AccountableRoleKey != "":
+		id, ok := roles[wi.AccountableRoleKey]
+		if !ok {
+			return "", fmt.Errorf("unknown accountable_role_key %q", wi.AccountableRoleKey)
+		}
+		return id, nil
+	default:
+		return wi.AccountableRoleID, nil
 	}
 }

@@ -1,6 +1,6 @@
 // Package mwanachamaagency models an Agency as a declarative document — an
-// org chart, a strategy (Goals/Objectives, Values/Rules), and a RACI
-// matrix — rather than a live operational store.
+// org chart, a strategy (Goals/Objectives, Values/Rules), and the role
+// accountable for each step — rather than a live operational store.
 //
 // Its objects are declared, not written: agency.blueprint.json names every
 // object, field and index, agency.agency.json names what this domain calls

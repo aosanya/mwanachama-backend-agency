@@ -177,7 +177,7 @@ func (m *agencyManager) DeleteRole(ctx context.Context, id string) error {
 		if err := m.sendBack(ctx, tx, existing.DraftID, usageKey("role", existing.Code)); err != nil {
 			return err
 		}
-		if err := m.deleteWhere(ctx, tx, roleRoleAssignment, "role_id = ?", id); err != nil {
+		if err := m.clearAccountableRole(ctx, tx, existing); err != nil {
 			return err
 		}
 		return m.deleteWhere(ctx, tx, roleRole, "id = ?", id)
