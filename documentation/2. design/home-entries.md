@@ -14,10 +14,10 @@ An agency file may carry a top-level `home`: a list of nodes in the order a pers
 | `icon` | An icon name the app draws. Not checked here: the set belongs to the app. |
 | `permission` | A code of the permission catalogue. |
 | `roles` | Roles of the agency, each a code or a name. Each must resolve to one role of the same draft or file: the code is matched first, then the name, ignoring case; a name that matches no role or two roles is refused. A role the file marks deleted is not a role. The row keeps what was written. |
-| `page_of` | On a section: a record code or name. The section is the page of one row of that record and is not listed. One section per record code in a draft. |
+| `page_of` | On a section: a record code, key or name, saved as the record's key (ISS-201, D62). The section is the page of one row of that record and is not listed. One section per record in a draft. |
 | `target` | `{ "type", "ref", "step", "scope", "where" }` on an entry. |
 
-Target types: `record` (`ref` a record code or name), `workflow` (`ref` a workflow code or name), `backlog` (`ref` a name), `menu` (`ref` as `section/item`), `files`, `start` and `ongoing` (no `ref`). `step` is a work item code or name and only on a workflow. `scope` is `row.order` and only on a workflow inside a row page. `where` is at most 5 conditions on a record, each `{ "question", "operator", "value" }` with an operator of `is`, `is_not`, `contains`, `more_than`, `less_than`, `on_or_before` or `on_or_after`, and a value that is a text or `{ "row": "<question prompt>" }`, the answer of the tapped row, only inside a row page. A section holds at most 40 nodes, a draft at most 300, a `ref` at most 200 characters.
+Target types: `record` (`ref` a record code, key or name, saved as the record's key), `workflow` (`ref` a workflow code or name), `backlog` (`ref` a name), `menu` (`ref` as `section/item`), `files`, `start` and `ongoing` (no `ref`). `step` is a work item code or name and only on a workflow. `scope` is `row.order` and only on a workflow inside a row page. `where` is at most 5 conditions on a record, each `{ "question", "operator", "value" }` with an operator of `is`, `is_not`, `contains`, `more_than`, `less_than`, `on_or_before` or `on_or_after`, and a value that is a text or `{ "row": "<question prompt>" }`, the answer of the tapped row, only inside a row page. A section holds at most 40 nodes, a draft at most 300, a `ref` at most 200 characters.
 
 ## What is stored
 
