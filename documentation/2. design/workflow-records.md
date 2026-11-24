@@ -351,26 +351,62 @@ counts once and a record change is the change that regenerates them.
 The publish guard is `checkGeneratedWorkflows` in `generated_workflows.go`,
 one of the Issue scan's checks that `validationErrors` runs before a publish.
 
-## Record permissions (ISS-150)
+## Record permissions (ISS-150, ISS-182, decisions D20, D21, D29, D30, D36, D37)
 
-Every record gives four permissions, derived by `RecordPermissionsOf(record)` in
-`record_permissions.go`. The code is `record.<record code>.<action>`, built only
-by `RecordPermissionCode(recordCode, action)`, which the generated workflow
-naming reuses later so that the two never drift apart.
+Every record gives its permissions, derived by `RecordPermissionsOf(record)` in
+`record_permissions.go`. ISS-150 gave four plain codes; ISS-182 replaced them with
+field-level codes, so the plain `record.<record code>.add`, `.edit` and `.view` no
+longer exist (D36). The code is built only by
+`RecordPermissionCode(recordCode, action, field...)`, which the generated workflow
+naming reuses later so that the two never drift apart. The star and the field part
+are added there and nowhere else, and a `delete` code drops any field part.
+
+| Code form | Meaning |
+|---|---|
+| `record.<record code>.add.<field code>` | May fill that field when adding a row. |
+| `record.<record code>.add.*` | May fill every field the record has at the time of the check. |
+| `record.<record code>.edit.<field code>` | May change that field of a row. |
+| `record.<record code>.edit.*` | May change every field the record has at the time of the check. |
+| `record.<record code>.view.<field code>` | May see that field of a row. |
+| `record.<record code>.view.*` | May see every field the record has at the time of the check. |
+| `record.<record code>.delete` | May delete a row. No field part and no star (D29). |
+
+The IAS tender record has ten fields, so it gives ten add, ten edit and ten view
+field codes, the three stars and `record.tender.delete`: 34 codes. Add, edit and
+view come first by action, each action listing the fields in the record's order and
+then its star; delete comes last. A record with no fields gives the three stars and
+delete.
+
+- **The field part is the field's stored code** (ISS-178, D37), for example
+  `closing_date`, read from `StepQuestion.Code`. It is never worked out from the
+  prompt when the permissions are derived, so rewording a prompt changes no code. A
+  field with no stored code gives no field code (a saved record always has codes; a
+  document that carries none is given the same codes the import stores, see below).
+- **The star is stored as written** in a role's list and means every field the
+  record has when the check runs, so a field added later is covered by a star and
+  never by a role that names fields (D30). A named field that the record no longer
+  has leaves its code on the role until the scan refuses the publish.
+- **Add and edit need no view** (D43, D44): a role may carry `edit.<field>` or
+  `add.<field>` without any view code, and nothing refuses it.
+- **No tag, group or seat** appears in a code (D24, D35).
 
 | Code | Name | Meaning |
 |---|---|---|
-| `record.tender.add` | `Add a tender` | Add a row. |
-| `record.tender.edit` | `Edit a tender` | Edit a row. |
+| `record.tender.add.closing_date` | `Add a tender: Closing date` | Fill that field when adding. |
+| `record.tender.add.*` | `Add a tender: every field` | Fill every field when adding. |
+| `record.tender.edit.closing_date` | `Edit a tender: Closing date` | Change that field. |
+| `record.tender.view.closing_date` | `See a tender: Closing date` | See that field. |
 | `record.tender.delete` | `Delete a tender` | Delete a row. |
-| `record.tender.view` | `See every tender` | See every row. |
 
-The item in the name is the record's `item_name`, else its `form_name`, else its
-name, lower-cased, with `a` or `an` as in the generated workflow names (`Add an
-office holder`). Each permission is not locked, has an empty `actions` list (an
-empty list, not none) and no module. The static catalogue of 109 is unchanged;
-no catalogue code starts with `record.`, so a derived code never equals one, and
-`record_permissions_test.go` pins both.
+The names are built in one function, `recordPermissionName`; what a field code and a
+star should read on the role page and the Role card is an open owner question, so
+the wording above is provisional and the answer changes that one function only. The
+item in the name is the record's `item_name`, else its `form_name`, else its name,
+lower-cased, with `a` or `an` as in the generated workflow names (`Add an office
+holder`); the field in the name is its prompt, else its code. Each permission is not
+locked, has an empty `actions` list (an empty list, not none) and no module. The
+static catalogue of 109 is unchanged; no catalogue code starts with `record.`, so a
+derived code never equals one, and `record_permissions_test.go` pins both.
 
 ### Record permissions in a role's list (ISS-151, decisions D9 and D14)
 
@@ -381,13 +417,16 @@ that carries catalogue codes only behaves exactly as it did.
 
 A `record.` code is accepted when `RecordPermissionsOf` gives it for a record of
 the same draft, and refused otherwise (`ErrUnknownPermission`, naming the role
-and the code), for example `record.nothing.add` or `record.tender.sell`. The
-refusal is made by:
+and the code), for example `record.nothing.add.closing_date`, `record.tender.sell`,
+the plain `record.tender.add`, a field the record does not have, or
+`record.tender.delete.closing_date`. The refusal is made by:
 
 - `CreateRole`, and `UpdateRole` when the update carries `permissions`;
 - `SetRolePermissions`;
 - `ImportDocument` and a fork from a publication, which both apply a document:
-  the codes are checked against the document's own records;
+  the codes are checked against the document's own records, with their fields
+  settled the way the import settles them (`keyedFields`), so a document written
+  before field codes existed is judged by the codes the import will store;
 - a fork from a draft copies the roles and the records together, so the codes
   stay valid.
 
@@ -396,8 +435,10 @@ The code that checks is `role_record_permissions.go`; the codes come from
 
 Deleting a record does not touch the roles that still carry its codes. The Issue
 scan (`checkPermissions`) raises an `error` for each such code, `Role R-4
-"Clerk" carries permission "record.RC-1.add", which no record gives`, so a
-publish is refused and names the role and the code (D9). The scan's other
+"Clerk" carries permission "record.RC-1.edit.closing_date", which no record gives`, so a
+publish is refused and names the role and the code (D9); the same happens when a
+field is removed from a record while a role names it, and a role that holds the star
+is unaffected (D30). The scan's other
 refusals (D18) are built in their own issue. A code of a record that exists is
 accepted by the scan and carried into the publication document with the role.
 
@@ -452,10 +493,12 @@ code. A rename is a change to the record, so it is a change to publish; the live
 Instance takes the new code at the next publish. The old code stops naming the
 field at once (a row written with it is refused as not a question of the form).
 
-When field permissions exist (`record.<record code>.<action>.<field code>`, D36 and
-D37), a role that carries the old code follows the rename in the same save. That
-follow-up is not built here: no role carries a field code yet, so there is nothing
-to move. It is the first thing the field-permission issue builds on this page.
+Field permissions exist since ISS-182 (`record.<record code>.<action>.<field code>`,
+D36 and D37), so a role can now carry a field's code. Following a rename, so that a
+role that carries the old code takes the new one in the same save (D38), is **not
+built yet** and is a follow-up issue: today the old code stays on the role until the
+scan raises the error above, and the role is edited by hand. The star needs no
+follow-up.
 
 ### What reads a field, and by which name
 
