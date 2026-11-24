@@ -412,5 +412,6 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `payment.receive_unpaid_list` | Receive the list of who has not paid | no | `comm` | Names the seat that is sent the list of who has not paid. It carries no action of its own, so holding it opens nothing. |
 | `person_raised_items.read` | See the wishes and issues one resident raised | no | `forms` | List the wishes and issues one resident raised. |
 | `risk.record` | Record proof on a risk and keep its actions | no | `riskmanager` | Record evidence on a risk, and update and set the status of its actions. |
+| `tag.manage` | Create, rename and delete a tag | no | none | Create, rename and delete a tag of the Instance. Giving a tag to a group and taking one off stay with group administration. |
 
 `permission_doc_test.go` keeps this page and the catalogue in step. It reads every table on this page whose first column is headed `Code` or `Permission` and takes the code in backticks that opens each row. It fails naming each catalogue permission that has no such row, and each such row whose code is not in the catalogue. A table headed anything else is not read, so a table of questions or objects may open a row with a backticked word. Setting `ROLE_PERMISSIONS_DOC` to a path runs the test on another copy of the page.
