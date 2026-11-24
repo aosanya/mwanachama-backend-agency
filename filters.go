@@ -52,6 +52,8 @@ type RecordRowFilter struct {
 	OrderID      string `query:"order_id"`
 	SubjectRowID string `query:"subject_row_id"`
 
+	Tags []string `query:"tags"`
+
 	IncludeRetired  bool `query:"include_retired"`
 	IncludeReturned bool `query:"include_returned"`
 }

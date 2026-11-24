@@ -2090,7 +2090,7 @@
       "call": "CreateRecordRow",
       "action": "agency.record_row.create",
       "title": "Add record row",
-      "description": "Add one row to a record, as the member app does. The row is refused unless role_id is the role that adds rows to the record, and its answers must fit the record's form: answers names each field by its key (its code or its prompt is also understood), the row is saved under the key, naming one field twice is refused, and the answers come back by key. The row is signed by the caller; an added_by in the request is ignored. Rows are kept in the agency and are never copied into a new version. subject_row_id is the row, of the record the workflow names as its subject, that the run was started on; it must be a row of the draft, every row of one order_id carries the same one, and a row that leaves it out takes the one its order already carries.",
+      "description": "Add one row to a record, as the member app does. The row is refused unless role_id is the role that adds rows to the record, and its answers must fit the record's form: answers names each field by its key (its code or its prompt is also understood), the row is saved under the key, naming one field twice is refused, and the answers come back by key. The row is signed by the caller; an added_by in the request is ignored. Rows are kept in the agency and are never copied into a new version. subject_row_id is the row, of the record the workflow names as its subject, that the run was started on; it must be a row of the draft, every row of one order_id carries the same one, and a row that leaves it out takes the one its order already carries. tags is the list of tag ids the new row carries, kept as plain strings, and may be empty; the agency checks only that none is blank.",
       "args": [
         {
           "from": "body",
@@ -2117,7 +2117,7 @@
       "call": "ListRecordRows",
       "action": "agency.record_row.list",
       "title": "List record rows",
-      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version, to one order by order_id, or to the rows of the runs started on one row by subject_row_id. Retired rows are left out unless include_retired is true, and returned rows unless include_returned is true.",
+      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version, to one order by order_id, or to the rows of the runs started on one row by subject_row_id. tags keeps the rows that carry any of the tag ids it names, and the tag all, or no tags, keeps every row. Retired rows are left out unless include_retired is true, and returned rows unless include_returned is true.",
       "args": [
         {
           "from": "query",

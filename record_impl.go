@@ -331,6 +331,9 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
 	}
 	row.Answers = kept
+	if row.Tags, err = cleanTags(row.Tags); err != nil {
+		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
+	}
 	row.PlaceRefs = recordFieldsOf(record).keyed(row.PlaceRefs)
 	row.ID = newID()
 	row.Deleted = false
@@ -359,6 +362,7 @@ func (m *agencyManager) ListRecordRows(ctx context.Context, draftID string, filt
 	q = eqFilter(q, "record_code", filter.RecordCode)
 	q = eqFilter(q, "order_id", filter.OrderID)
 	q = eqFilter(q, "subject_row_id", filter.SubjectRowID)
+	q = tagFilter(q, filter.Tags)
 	if !filter.IncludeRetired {
 		q = notRetired(q)
 	}
@@ -370,5 +374,14 @@ func (m *agencyManager) ListRecordRows(ctx context.Context, draftID string, filt
 	if err != nil {
 		return nil, fmt.Errorf("ListRecordRows: %w", err)
 	}
-	return out, nil
+	kept := make([]models.RecordRow, 0, len(out))
+	for _, row := range out {
+		if row.Tags == nil {
+			row.Tags = []string{}
+		}
+		if reachesEveryRow(filter.Tags) || carriesAny(row.Tags, filter.Tags) {
+			kept = append(kept, row)
+		}
+	}
+	return kept, nil
 }
