@@ -351,6 +351,27 @@ counts once and a record change is the change that regenerates them.
 The publish guard is `checkGeneratedWorkflows` in `generated_workflows.go`,
 one of the Issue scan's checks that `validationErrors` runs before a publish.
 
+## Record permissions (ISS-150)
+
+Every record gives four permissions, derived by `RecordPermissionsOf(record)` in
+`record_permissions.go`. The code is `record.<record code>.<action>`, built only
+by `RecordPermissionCode(recordCode, action)`, which the generated workflow
+naming reuses later so that the two never drift apart.
+
+| Code | Name | Meaning |
+|---|---|---|
+| `record.tender.add` | `Add a tender` | Add a row. |
+| `record.tender.edit` | `Edit a tender` | Edit a row. |
+| `record.tender.delete` | `Delete a tender` | Delete a row. |
+| `record.tender.view` | `See every tender` | See every row. |
+
+The item in the name is the record's `item_name`, else its `form_name`, else its
+name, lower-cased, with `a` or `an` as in the generated workflow names (`Add an
+office holder`). Each permission is not locked, has an empty `actions` list (an
+empty list, not none) and no module. The static catalogue of 109 is unchanged;
+no catalogue code starts with `record.`, so a derived code never equals one, and
+`record_permissions_test.go` pins both.
+
 ## A workflow's subject and the row a run is started on
 
 A workflow may name a **subject record**: `subject_record` on `Workflow` and on
