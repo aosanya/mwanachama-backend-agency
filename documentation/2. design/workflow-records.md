@@ -419,6 +419,33 @@ locked, has an empty `actions` list (an empty list, not none) and no module. The
 static catalogue of 109 is unchanged; no catalogue code starts with `record.`, so a
 derived code never equals one, and `record_permissions_test.go` pins both.
 
+### A publication lists the record permissions its records give (ISS-152, decisions D24, D30, D36, D38)
+
+A publication document carries, beside its records and roles, `record_permissions`:
+the permissions every record of the draft gives, so a version states what it grants
+and the hub reads the version, not the draft. It is a list of `models.Permission`
+(`code`, `name`, `locked`, `actions`), in the order of the records and, inside a
+record, in the order `RecordPermissionsOf` gives them: the add, edit and view code of
+each field, each action closed by its star as written, then `record.<record code>.delete`.
+A tender with `title`, `issuer` and `closing_date` lists 13 codes; a record with one
+field lists 7.
+
+- **It is derived, never a source.** `buildDocument` appends `RecordPermissionsOf(record)`
+  for each record when a draft is published. A fork of a draft or of a publication
+  restores the records and ignores the list; the next publish derives it again from the
+  records the fork holds, so a record edited in the fork lists its new codes.
+- **It holds no tag, group or seat** (D24, D35): those are set after the publish. It
+  holds no plain `add`, `edit` or `view` code either (D36).
+- **It is omitted when no record exists** (`omitempty`), so the document of an agency
+  without records is the document it was before.
+- **The content hash adds it only when records exist.** `contentHashFor` writes one
+  `RecordPermissions` entry per record, so an agency without records hashes as before.
+  A renamed field code, a new field or a changed item name is a change to publish,
+  because the live Instance takes the new codes at the next publish (D38).
+
+Code: `buildDocument` in `document.go`, `contentHashFor` in `publication_impl.go`;
+tests in `record_publication_permissions_test.go`.
+
 ### Record permissions in a role's list (ISS-151, decisions D9 and D14)
 
 A role's `permissions` list takes the generated codes beside the catalogue
