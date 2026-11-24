@@ -272,3 +272,7 @@ func (f recordFields) keyed(named map[string]string) map[string]string {
 	}
 	return out
 }
+
+func ProposeFieldCodes(prompts []string) []string {
+	return nil
+}
