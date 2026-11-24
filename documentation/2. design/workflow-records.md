@@ -398,18 +398,23 @@ delete.
 
 | Code | Name | Meaning |
 |---|---|---|
-| `record.tender.add.closing_date` | `Add a tender: Closing date` | Fill that field when adding. |
-| `record.tender.add.*` | `Add a tender: every field` | Fill every field when adding. |
-| `record.tender.edit.closing_date` | `Edit a tender: Closing date` | Change that field. |
-| `record.tender.view.closing_date` | `See a tender: Closing date` | See that field. |
+| `record.tender.add.closing_date` | `Add the closing date of a tender` | Fill that field when adding. |
+| `record.tender.add.*` | `Add every field of a tender` | Fill every field when adding. |
+| `record.tender.edit.closing_date` | `Edit the closing date of a tender` | Change that field. |
+| `record.tender.view.closing_date` | `See the closing date of a tender` | See that field. |
 | `record.tender.delete` | `Delete a tender` | Delete a row. |
 
-The names are built in one function, `recordPermissionName`; what a field code and a
-star should read on the role page and the Role card is an open owner question, so
-the wording above is provisional and the answer changes that one function only. The
-item in the name is the record's `item_name`, else its `form_name`, else its name,
-lower-cased, with `a` or `an` as in the generated workflow names (`Add an office
-holder`); the field in the name is its prompt, else its code. Each permission is not
+The names are built in one function, `recordPermissionName` (ISS-205, D66). The role
+page and the Role card show the long wording, a full sentence, with the permission's
+code beside it. A field permission reads `<Verb> the <field> of <a item>`, a star reads
+`<Verb> every field of <a item>`, and delete reads `Delete <a item>`. The verbs are
+`Add`, `Edit` and `See` (the view permission). The item in the name is the record's
+`item_name`, else its `form_name`, else its name, lower-cased, with `a` or `an` as in the
+generated workflow names (`Add an office holder`). The field in the name is its prompt
+with the first letter lowered (`Closing date` reads `the closing date`), kept as
+written when the second letter is a capital (`USD amount`), and its code when it has no
+prompt. The name carries no code; the code is the permission's own `code` field, and
+the page that lists permissions shows it beside the name. Each permission is not
 locked, has an empty `actions` list (an empty list, not none) and no module. The
 static catalogue of 109 is unchanged; no catalogue code starts with `record.`, so a
 derived code never equals one, and `record_permissions_test.go` pins both.

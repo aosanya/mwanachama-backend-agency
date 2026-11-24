@@ -2,6 +2,7 @@ package mwanachamaagency
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
@@ -28,9 +29,9 @@ func recordPermissionName(item, action string, field *models.StepQuestion) strin
 	case action == models.RowActionDelete:
 		return "Delete " + article
 	case field == nil:
-		return recordActionVerb(action) + " " + article + ": every field"
+		return recordActionVerb(action) + " every field of " + article
 	default:
-		return recordActionVerb(action) + " " + article + ": " + fieldLabelOf(*field)
+		return recordActionVerb(action) + " the " + fieldWordingOf(*field) + " of " + article
 	}
 }
 
@@ -45,11 +46,17 @@ func recordActionVerb(action string) string {
 	}
 }
 
-func fieldLabelOf(field models.StepQuestion) string {
-	if prompt := strings.TrimSpace(field.Prompt); prompt != "" {
+func fieldWordingOf(field models.StepQuestion) string {
+	prompt := strings.TrimSpace(field.Prompt)
+	if prompt == "" {
+		return field.Code
+	}
+	runes := []rune(prompt)
+	if len(runes) > 1 && unicode.IsUpper(runes[1]) {
 		return prompt
 	}
-	return field.Code
+	runes[0] = unicode.ToLower(runes[0])
+	return string(runes)
 }
 
 func RecordPermissionsOf(r models.Record) []models.Permission {

@@ -19,19 +19,45 @@ func codesAndNames(permissions []models.Permission) ([]string, []string) {
 	return codes, names
 }
 
-func TestRecordPermissions_TenderNamesEachFieldStarAndDelete(t *testing.T) {
+func TestRecordPermissions_TenderNamesEachFieldStarAndDeleteInTheLongWordingBesideItsCode(t *testing.T) {
 	tender := tenderRecord()
 	tender.Questions = tender.Questions[5:6]
 	got := mwanachamaagency.RecordPermissionsOf(tender)
-	_, names := codesAndNames(got)
-	wantNames := []string{
-		"Add a tender: Closing date", "Add a tender: every field",
-		"Edit a tender: Closing date", "Edit a tender: every field",
-		"See a tender: Closing date", "See a tender: every field",
-		"Delete a tender",
+	type named struct{ Code, Name string }
+	var gotNamed []named
+	for _, p := range got {
+		gotNamed = append(gotNamed, named{p.Code, p.Name})
 	}
-	if !reflect.DeepEqual(names, wantNames) {
-		t.Fatalf("names = %v, want %v", names, wantNames)
+	want := []named{
+		{"record.tender.add.closing_date", "Add the closing date of a tender"},
+		{"record.tender.add.*", "Add every field of a tender"},
+		{"record.tender.edit.closing_date", "Edit the closing date of a tender"},
+		{"record.tender.edit.*", "Edit every field of a tender"},
+		{"record.tender.view.closing_date", "See the closing date of a tender"},
+		{"record.tender.view.*", "See every field of a tender"},
+		{"record.tender.delete", "Delete a tender"},
+	}
+	if !reflect.DeepEqual(gotNamed, want) {
+		t.Fatalf("code and name = %v, want %v", gotNamed, want)
+	}
+}
+
+func TestRecordPermissions_AFieldNamedByItsCodeWhenItHasNoPrompt(t *testing.T) {
+	record := models.Record{Code: "tender", ItemName: "Tender", Questions: []models.StepQuestion{{Key: "f_0000000000000001", Code: "closing_date", AnswerType: models.AnswerFreeText}}}
+	_, names := codesAndNames(mwanachamaagency.RecordPermissionsOf(record))
+	if names[0] != "Add the closing_date of a tender" {
+		t.Fatalf("name = %q", names[0])
+	}
+}
+
+func TestRecordPermissions_AFieldPromptKeepsItsAcronymAndLowersItsFirstLetter(t *testing.T) {
+	record := models.Record{Code: "bid", ItemName: "Bid", Questions: []models.StepQuestion{
+		{Key: "f_0000000000000001", Code: "currency", Prompt: "USD amount", AnswerType: models.AnswerFreeText},
+		{Key: "f_0000000000000002", Code: "issuer", Prompt: "Issuer", AnswerType: models.AnswerFreeText},
+	}}
+	_, names := codesAndNames(mwanachamaagency.RecordPermissionsOf(record))
+	if names[0] != "Add the USD amount of a bid" || names[1] != "Add the issuer of a bid" {
+		t.Fatalf("names = %v", names[:2])
 	}
 }
 
