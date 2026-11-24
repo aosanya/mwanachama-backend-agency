@@ -26,7 +26,7 @@ func TestRecordRow_AMultiSelectAnswerIsAListOfTheQuestionsOptionsJoinedWithASemi
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
-	w.letAdd(t, w.roles[coordinator], record)
+	mayAdd(t, w.mgr, record)
 	row := func(expertise, languages string) models.RecordRow {
 		answers := map[string]string{"Expertise areas": expertise}
 		if languages != "" {

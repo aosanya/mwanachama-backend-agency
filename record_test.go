@@ -29,14 +29,6 @@ func paymentsRecord(w stepWorld, workflow models.Workflow) models.Record {
 	}
 }
 
-func (w stepWorld) letAdd(t *testing.T, role models.Role, record models.Record) {
-	t.Helper()
-	permissions := append(append([]string{}, role.Permissions...), mwanachamaagency.RecordPermissionCode(record.Code, models.RowActionAdd, mwanachamaagency.RecordFieldStar))
-	if _, err := w.mgr.SetRolePermissions(context.Background(), role.ID, permissions); err != nil {
-		t.Fatalf("SetRolePermissions: %v", err)
-	}
-}
-
 func routeToOpenOtherwiseThankYou(sent, open, thanks models.WorkItem) ([]models.StepRoute, string) {
 	return []models.StepRoute{{
 		Match:    models.RouteMatchAll,
@@ -379,6 +371,7 @@ func TestRecord_DeletingARoleLeavesNoFindingOnARecord(t *testing.T) {
 	if err := w.mgr.DeleteRole(ctx, w.roles[coordinator].ID); err != nil {
 		t.Fatalf("DeleteRole: %v", err)
 	}
+	mayAdd(t, w.mgr, o.record)
 	issues, err := w.mgr.ListIssues(ctx, w.draftID, mwanachamaagency.IssueFilter{EntityType: "record"})
 	if err != nil {
 		t.Fatalf("ListIssues: %v", err)

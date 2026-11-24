@@ -511,7 +511,7 @@ func newRecordCodesDatabase(t *testing.T) olderRecordCodesDatabase {
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
-	w.letAdd(t, w.roles[coordinator], record)
+	mayAdd(t, w.mgr, record)
 	clerk := roleCarrying(t, w, "Clerk", "record.payments.add.*", "record.payments.view.*", "report.read")
 	o := routedOrder{world: w, workflow: workflow, record: record}
 	row, err := mgr.CreateRecordRow(ctx, rowAdded(w, o, map[string]string{"Select the farmer": "Wanjiru", "Enter the amount paid": "1200"}))

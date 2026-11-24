@@ -156,8 +156,20 @@ func TestIssueScan_AnAgencyWithoutRecordsScansAsBefore(t *testing.T) {
 
 func mayAdd(t *testing.T, mgr mwanachamaagency.AgencyManager, record models.Record) {
 	t.Helper()
+	ctx := context.Background()
 	code := mwanachamaagency.RecordPermissionCode(record.Code, models.RowActionAdd, mwanachamaagency.RecordFieldStar)
-	if _, err := mgr.CreateRole(context.Background(), models.Role{DraftID: record.DraftID, Name: "Adder of " + record.Name, Permissions: []string{code}}); err != nil {
-		t.Fatalf("CreateRole adder of %s: %v", record.Name, err)
+	found, err := mgr.ListRoles(ctx, record.DraftID, mwanachamaagency.RoleFilter{Name: coordinator})
+	if err != nil {
+		t.Fatalf("ListRoles: %v", err)
+	}
+	if len(found) == 0 {
+		if _, err := mgr.CreateRole(ctx, models.Role{DraftID: record.DraftID, Name: "Adder of " + record.Name, Permissions: []string{code}}); err != nil {
+			t.Fatalf("CreateRole adder of %s: %v", record.Name, err)
+		}
+		return
+	}
+	role := found[0]
+	if _, err := mgr.SetRolePermissions(ctx, role.ID, append(append([]string{}, role.Permissions...), code)); err != nil {
+		t.Fatalf("SetRolePermissions: %v", err)
 	}
 }
