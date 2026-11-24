@@ -16,11 +16,7 @@ import (
 func olderDocumentOf(t *testing.T, o routedOrder) models.AgencyDocument {
 	t.Helper()
 	w := o.world
-	if _, err := w.mgr.CreateRoleAssignment(context.Background(), models.RoleAssignment{
-		DraftID: w.draftID, WorkItemID: o.steps["Open"].ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
+	assignOn(t, w.mgr, context.Background(), w.draftID, w.roles[coordinator], o.steps["Open"])
 	pub, err := w.mgr.PublishAgency(context.Background(), w.draftID, "older-1", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)

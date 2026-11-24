@@ -299,11 +299,7 @@ func TestRecordField_RenamingACodeIsAChangeToPublishAndKeysAloneAreNot(t *testin
 	o := buildRoutedOrder(t)
 	w := o.world
 	ctx := context.Background()
-	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, WorkItemID: o.steps["Open"].ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
+	assignOn(t, w.mgr, ctx, w.draftID, w.roles[coordinator], o.steps["Open"])
 	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "release-1", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}
