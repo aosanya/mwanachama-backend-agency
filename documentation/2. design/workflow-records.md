@@ -493,6 +493,41 @@ A write by prompt is still understood and saved by key; a read now returns keys,
 so the hub and the app must move to the field list's keys (or codes) when the hub
 takes the new sibling tag.
 
+## Where a record's code is made and read (ISS-195, decision D58)
+
+Until ISS-195 a record's `code` is the counter code `RC-n`, minted by
+`createWithCode` in `CreateRecord` from the `record` entity of the code sequence
+table, copied unchanged by a fork, an import and a publication, and never edited
+(`UpdateRecord` puts the stored code back). D58 deprecates the counter code. This
+section lists every place that makes or reads the code, so the change can be made
+once and checked against the list.
+
+| Where | What it does with the code |
+|---|---|
+| `CreateRecord` in `record_impl.go` | Mints `RC-n` through `createWithCode`. |
+| `UpdateRecord` in `record_impl.go` | Keeps the stored code; also feeds it to `keyedFields` as the record's identity for the field keys. |
+| `validateRowAnswers`, `recordFieldsOf`, `keyedFieldsOrRefused` in `record_impl.go` and `record_field.go`, and `keyRecordsAndRows` in `provision_field_keys.go` | Use the code as the record's identity when `legacyFieldKey` works out a key for a field that has none. |
+| `CreateRecordRow` in `record_impl.go` | Writes the code into the row's `record_code`; `ListRecordRows` narrows by it. |
+| `refuseDuplicate` and `settleReplacement` in `record_row_correction.go` | Compare a row's `record_code` with the record's code. |
+| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | Name the generated workflows `RC-1.add`, their steps `RC-1.add.1`, and set `generated_for` and the step's `row_record` to the code. |
+| `validateRowStepReferences` in `row_step.go` | Finds the record a step writes by `code = row_record`. |
+| `validateWorkflowSubject` in `workflow_subject.go`, `validateDocumentSubjects` and `checkWorkflowSubjects` | Find the record a workflow acts on by its code. |
+| `checkRowSteps` in `record_issue_impl.go` | Reads the codes of the draft's records to find the record of a row step. |
+| `HomePartsOf` in `models/home_refs.go` | Offers the code as the handle a home entry's `target` or `page_of` names. |
+| `RecordPermissionCode` and `RecordPermissionsOf` in `record_permissions.go` | Build `record.RC-1.add`; the roles' permission lists carry these codes. |
+| `recordPermissionCodesOf` and `validateDocumentRolePermissions` in `role_record_permissions.go` | Check a role's `record.` codes against the codes the draft's records give. |
+| `StableIdentity` and `Resolve` in `identity_owner.go` | Make and read the identity of a record from its code. |
+| `advanceCodeSequences` in `import.go` | Moves the `record` counter past the `RC-n` codes an imported document brings. |
+| `buildDocument` and `applyDocumentToDraft` in `document.go`, the record copy in `forkScope` | Carry the code whole into a publication, an import and a fork. |
+| `contentHashFor` in `publication_impl.go` | Leaves the code out of the hash of a record. |
+| `record_code_step.go` and `WorkItem.RecordCode` | A `fill_form` step may name, by code, a record the platform derives; the sibling does not look it up. |
+| The hub's imports | Read `record_code` of a row and `row_record` of a step; they are outside this repo. |
+
+What ISS-178 did for the fields is the model: `record_field.go` keeps the
+helpers (`FieldCodeOf`, `uniqueFieldCode`, `validFieldCode`, `settleKeys`,
+`settleCodes`), a field's `key` is minted once and is what the answers are saved
+under, and its `code` is a label that may be renamed.
+
 ## A workflow's subject and the row a run is started on
 
 A workflow may name a **subject record**: `subject_record` on `Workflow` and on
