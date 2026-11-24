@@ -19,6 +19,9 @@ func (m *agencyManager) CreateRole(ctx context.Context, r models.Role) (models.R
 		return models.Role{}, err
 	}
 	r.Permissions = models.DistinctPermissions(r.Permissions)
+	if err := m.checkRoleRecordPermissions(ctx, m.db, r.DraftID, r.Name, r.Permissions); err != nil {
+		return models.Role{}, fmt.Errorf("CreateRole: %w", err)
+	}
 	r.ID = newID()
 	r.Deleted = false
 	r.CreatedAt = models.NowRFC3339()
@@ -85,6 +88,11 @@ func (m *agencyManager) UpdateRole(ctx context.Context, r models.Role) (models.R
 		r.Code = existing.Code
 		r.DraftID = existing.DraftID
 		r.Permissions = models.DistinctPermissions(r.Permissions)
+		if r.Carries("permissions") {
+			if err := m.checkRoleRecordPermissions(ctx, tx, existing.DraftID, r.Name, r.Permissions); err != nil {
+				return err
+			}
+		}
 		r.CreatedAt = existing.CreatedAt
 		r.LastUpdated = models.NowRFC3339()
 
@@ -114,6 +122,9 @@ func (m *agencyManager) SetRolePermissions(ctx context.Context, id string, permi
 		if err := m.requireOpenDraft(ctx, tx, existing.DraftID); err != nil {
 			return err
 		}
+		if err := m.checkRoleRecordPermissions(ctx, tx, existing.DraftID, existing.Name, wanted); err != nil {
+			return err
+		}
 		existing.Permissions = append([]string{}, wanted...)
 		existing.LastUpdated = models.NowRFC3339()
 		if err := m.writeUpdate(ctx, tx, roleRole, existing.ID, existing, ErrRoleNotFound, "draft_id"); err != nil {
@@ -131,6 +142,9 @@ func (m *agencyManager) SetRolePermissions(ctx context.Context, id string, permi
 func checkRolePermissions(codes []string) error {
 	var unknown, locked []string
 	for _, code := range codes {
+		if isRecordPermission(code) {
+			continue
+		}
 		p, ok := models.LookupPermission(code)
 		switch {
 		case !ok:
