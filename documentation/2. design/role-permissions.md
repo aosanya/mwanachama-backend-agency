@@ -27,7 +27,11 @@ with `ErrPublishValidationFailed`) when a role declares:
 - a code not in the vocabulary, unless it is a `record.<record code>.<action>`
   code that a record of the draft gives (ISS-151, see
   [workflow-records.md](workflow-records.md)), or
-- a `record.` code that no record of the draft gives, or
+- a `record.` code that no record of the draft gives (the field part of a code,
+  `record.<record code>.<action>.<field code>`, is settled with the field
+  permissions; a field's code is its own stored label on a hidden key, so a
+  renamed code is followed by the roles that carry it, see
+  [workflow-records.md](workflow-records.md)), or
 - a permission locked to owners (decision 265). Locked permissions are held by owners
   whatever the definition says, so no role may claim one.
 

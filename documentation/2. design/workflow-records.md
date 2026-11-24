@@ -17,7 +17,7 @@ A record is `models.Record`, stored in the `record` object of
 | `name` | What the record is called, such as Payments. Unique inside its workflow, ignoring case. |
 | `role_id` | The one role that adds rows, in the same draft. |
 | `viewer_role_id` | The one role whose members each see their own row of the record (decision 90, HS675), in the same draft. Empty when no role but the one that adds rows sees them. A group is accepted where a role is, as for `role_id`. |
-| `form_name`, `questions` | The form each row is added with, in the same shape as a step's form. |
+| `form_name`, `questions` | The form each row is added with, in the same shape as a step's form. Each question of a record is a field with a `key` and a `code` (see A field's code and key). |
 | `item_name` | What one row is called, singular, such as Tender or Office holder. Optional; the generated workflows are named from it (see Generated workflows). |
 | `edit_role_id`, `delete_role_id` | The one role that edits, and the one that deletes, a row through the generated workflows. Optional; empty means `role_id`. In the same draft. |
 | `add_replaced_by`, `edit_replaced_by`, `delete_replaced_by` | The code of a designed workflow of the same draft that stands in for the generated add, edit or delete workflow. Optional; it must exist and must not be generated. |
@@ -70,8 +70,8 @@ The studio has no screen for adding one. `models.RecordRow` is stored in the
 
 A row names the draft whose record it was added to (any draft that exists, not
 only an open one, because the app serves the published draft), the `record_id`,
-the `role_id` the person acted as, who added it, and the `answers` by question
-prompt. The row keeps the record's `record_code`, so it can be read across
+the `role_id` the person acted as, who added it, and the `answers` by the
+field's key. The row keeps the record's `record_code`, so it can be read across
 versions.
 
 A row is refused with `ErrRecordRowRefused` (403) unless its `role_id` is the
@@ -401,35 +401,92 @@ publish is refused and names the role and the code (D9). The scan's other
 refusals (D18) are built in their own issue. A code of a record that exists is
 accepted by the scan and carried into the publication document with the role.
 
-## Where a record's fields and answers live (ISS-178, before the change)
-
-This is the inventory ISS-178 starts from. Decisions D37 and D38 of ISS-174 give
-every field a readable code and a stable hidden key, and save rows under the
-key.
+## A field's code and key (ISS-178, decisions D37 and D38)
 
 A record's fields are its `questions`, a list of `models.StepQuestion` stored as
-one json column of `record` (the same type a step's form uses). A field had no
-identity of its own: its prompt was its name, so a renamed prompt was another
-field.
+one json column of `record`; a step's form uses the same type. Every field of a
+record has two names of its own besides its prompt:
 
-How a row's answers were keyed, and what reads them:
-
-| Where | What it does with the prompt |
+| Name | Meaning |
 |---|---|
-| `models.RecordRow.Answers`, `PlaceRefs` | `map[string]string` keyed by the question's prompt; the `answers` and `place_refs` columns of `record_row`. |
-| `validateRowAnswers` in `record_impl.go`, called by `CreateRecordRow` | Refuses an answer whose prompt is not a question of the record's form, refuses a blank required question, checks each answer against its question's type. |
-| `validateRowAnswer`, `validateMultiSelectAnswer` in `record_impl.go` | Check one answer against its question; their messages quote the prompt. |
-| `RowAllowance.Extra` and `Waived` in `row_allowance.go` | Name an extra detail, or a waived required question, by prompt. |
-| `approval_stamp.go`, and the `Changed: ` prefix in `record_impl.go` | Four fixed stamp prompts and the amendment lines are answers that are not questions of the form; they are kept as text. |
-| `refuseDuplicate` in `record_row_correction.go` | Compares two rows with `maps.Equal` on `Answers`. |
-| `ListRecordRows`, `record_row_retire.go`, `record_row_return.go` | Read and keep `Answers` as stored; they never look inside it. |
-| `ListInputSources` in `input_source_impl.go`, `recordSourceType` and `recordSource` in `compute_step.go` | Name a record field by prompt (`StepBinding.Question`). |
-| `rowStepFormFits` in `row_step.go`, `sameQuestions` in `generated_workflows.go` | Compare a step's questions with the record's, whole. |
-| `document.go`, `publication_impl.go` | Carry the questions in the publication document and in the content hash. |
+| `key` | A hidden, stable identity such as `f_3b5f1a39c58f1114`. The agency mints it when the field is made and nothing edits it. Answers are saved under it. |
+| `code` | A readable label on the key, such as `closing_date`: lower case letters, digits and underscores, starting with a letter, at most 40 characters when proposed. Unique inside the record. It may be renamed. |
+| `prompt` | What the person is asked. It may be reworded; the field stays the same field. |
+
+A step's questions leave `key` and `code` empty. They only matter for a record.
+
+### How a field gets its key and code
+
+`record_field.go` settles the fields of every record that is written:
+
+- **Create.** Each field gets a new random key. A code that is given must follow
+  the rule above and must not repeat inside the record, or the create is refused
+  (`ErrInvalidRecord`, 400). A field with no code gets one proposed from its
+  prompt (`Closing date` gives `closing_date`, `Amount (USD)!` gives
+  `amount_usd`), with `_2`, `_3` added when the record already has it. A code that
+  looks like a key (`f_` and sixteen hex digits) is refused so a code can never
+  be read as a key.
+- **Update.** The update replaces the whole record, so it sends the fields again.
+  A field that sends its `key` is that field: its prompt, code and the rest may
+  change and the key stays. A key the record never had is refused
+  (`ErrInvalidRecord`). A field that sends no key is matched to an existing field
+  by its code, then by its prompt, and takes that field's key (and its code, when
+  it sends none); a field that matches nothing is a new field and gets a new key.
+  A client that does not know about keys therefore loses nothing.
+- **Fork, publication and restore.** The fields are copied whole, key and code
+  with them, so a row added to one version reads the same field in every later
+  version (rows name their record by `record_code`).
+- **Import, and a fork from a publication made before this change.** A field with
+  no key gets one worked out from the record's code, the prompt and the number of
+  earlier fields with the same prompt (`legacyFieldKey`), and a code proposed from
+  its prompt. Because it is worked out and not drawn at random, the same old file
+  imported twice, the same field read from an old publication and the same field
+  migrated in a stored database all get the same key. A file whose fields repeat a
+  code is refused.
+
+### Renaming a code
+
+A code is a label, so renaming it changes nothing that is saved: the key stays,
+the rows keep their answers under it, and the next generated form carries the new
+code. A rename is a change to the record, so it is a change to publish; the live
+Instance takes the new code at the next publish. The old code stops naming the
+field at once (a row written with it is refused as not a question of the form).
+
+When field permissions exist (`record.<record code>.<action>.<field code>`, D36 and
+D37), a role that carries the old code follows the rename in the same save. That
+follow-up is not built here: no role carries a field code yet, so there is nothing
+to move. It is the first thing the field-permission issue builds on this page.
+
+### What reads a field, and by which name
+
+| Where | How it names a field |
+|---|---|
+| `models.RecordRow.Answers`, `PlaceRefs` | `map[string]string` keyed by the field's `key`; the `answers` and `place_refs` columns of `record_row`. |
+| `validateRowAnswers` in `record_impl.go`, called by `CreateRecordRow` | Takes each name of a row's answers as a key, else a code, else a prompt (the last so a caller that has not moved yet is still understood), and saves it under the key. Naming one field twice, or a field the record does not have, is refused with `ErrInvalidRecordRow`. A blank required field, and an answer that does not fit its type, are refused as before. `PlaceRefs` are turned into keys the same way. |
+| `RowAllowance.Extra` and `Waived` in `row_allowance.go` | An extra detail, and a waived required question, are named by prompt; they are not fields of the form. |
+| `approval_stamp.go`, and the `Changed: ` prefix in `record_impl.go` | The four stamp prompts and the amendment lines are answers that are not fields of the form; they are kept under their own text. A key never looks like one of them. |
+| `refuseDuplicate` in `record_row_correction.go` | Compares two rows' keyed answers with `maps.Equal`. |
+| `ListRecordRows`, `record_row_retire.go`, `record_row_return.go` | Read and keep the answers as stored, by key. |
+| `rowStepFormFits` in `row_step.go` | A designed row step must take the record's form; keys and codes are left out of the comparison, so a stand-in written without them still fits. |
+| `sameQuestions` in `generated_workflows.go` | Compares the generated step's questions with the record's whole, keys and codes included, so a rename rewrites the generated steps. |
+| `document.go`, `publication_impl.go` | The publication document carries `key` and `code`. The content hash leaves keys out, and carries a code only when it is not the one the prompt proposes, so an agency published before this change does not read as changed, and a renamed code does. |
+| `ListInputSources` in `input_source_impl.go`, `recordSourceType` and `recordSource` in `compute_step.go` | Still name a record field by prompt (`StepBinding.Question`). Moving a binding to the key is a separate issue. |
+
+### Rows already stored
+
+`Provision` runs `carryFieldKeysForward` each time it starts. It reads every
+record, gives the fields that have no key the key `legacyFieldKey` works out and
+the code the prompt proposes, rewrites the answers and place references of that
+record's rows from prompt to key in the same transaction, and then regenerates
+the generated workflows of the drafts it changed so their forms carry the keys.
+Stamps and amendment lines stay as they were. It only adds: a record whose fields
+all have keys is not touched, so a second run changes nothing.
 
 Outside this repo the hub's `agency_add_live_record_row` and
-`agency_list_live_record_rows` write and read `answers` by prompt, and the app
-shows them by prompt.
+`agency_list_live_record_rows` write and read `answers`, and the app shows them.
+A write by prompt is still understood and saved by key; a read now returns keys,
+so the hub and the app must move to the field list's keys (or codes) when the hub
+takes the new sibling tag.
 
 ## A workflow's subject and the row a run is started on
 

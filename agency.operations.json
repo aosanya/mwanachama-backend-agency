@@ -2191,7 +2191,7 @@
       "call": "UpdateRecord",
       "action": "agency.record.update",
       "title": "Update record",
-      "description": "Replace a record's name, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. An update replaces the whole record and does not merge into it: a viewer_role_id left out clears it, so send the current one to keep it, and the same holds for item_name, edit_role_id, delete_role_id and the three replaced_by fields. The same refusals as creating one apply. Saving a record regenerates its three workflows in place.",
+      "description": "Replace a record's name, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. An update replaces the whole record and does not merge into it: a viewer_role_id left out clears it, so send the current one to keep it, and the same holds for item_name, edit_role_id, delete_role_id and the three replaced_by fields. The same refusals as creating one apply. Each field of the form has a prompt, a hidden key the agency mints and a readable code; send the key back with every field so a reworded prompt or a renamed code is the same field and keeps its saved answers (a field sent without a key is matched by its code, then by its prompt, and one that matches nothing is new). A code is lower case letters, digits and underscores, unique in the record; one left out is proposed from the prompt. A key the record never had is refused. Saving a record regenerates its three workflows in place.",
       "args": [
         {
           "from": "body",
@@ -2239,7 +2239,7 @@
       "call": "CreateRecordRow",
       "action": "agency.record_row.create",
       "title": "Add record row",
-      "description": "Add one row to a record, as the member app does. The row is refused unless role_id is the role that adds rows to the record, and its answers must fit the record's form. The row is signed by the caller; an added_by in the request is ignored. Rows are kept in the agency and are never copied into a new version. subject_row_id is the row, of the record the workflow names as its subject, that the run was started on; it must be a row of the draft, every row of one order_id carries the same one, and a row that leaves it out takes the one its order already carries.",
+      "description": "Add one row to a record, as the member app does. The row is refused unless role_id is the role that adds rows to the record, and its answers must fit the record's form: answers names each field by its key (its code or its prompt is also understood), the row is saved under the key, naming one field twice is refused, and the answers come back by key. The row is signed by the caller; an added_by in the request is ignored. Rows are kept in the agency and are never copied into a new version. subject_row_id is the row, of the record the workflow names as its subject, that the run was started on; it must be a row of the draft, every row of one order_id carries the same one, and a row that leaves it out takes the one its order already carries.",
       "args": [
         {
           "from": "body",
