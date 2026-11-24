@@ -222,7 +222,7 @@
         {"name": "generated", "type": "bool", "description": "Whether the sibling made this workflow from a record, as one of the record's add, edit and delete workflows. A generated workflow is never authored and cannot be created, edited or deleted through the workflow and step operations."},
         {"name": "generated_for", "type": "string", "description": "The code of the record a generated workflow was made from, such as RC-1. Empty for a designed workflow."},
         {"name": "replaced_by", "type": "string", "description": "The code of the designed workflow that stands in for this generated workflow, copied from the record's add_replaced_by, edit_replaced_by or delete_replaced_by. Empty means none."},
-        {"name": "subject_record", "type": "string", "description": "The code of the record, in the same draft, whose row this workflow acts on, such as RC-1. A run of the workflow is started on one row of that record. Empty means the workflow has no subject and starts as any workflow does."},
+        {"name": "subject_record", "type": "string", "description": "The code of the record, in the same draft, whose row this workflow acts on, such as its key or its code. A run of the workflow is started on one row of that record. Empty means the workflow has no subject and starts as any workflow does."},
         {"name": "created_at", "type": "timestamp", "description": "When the workflow was written.", "immutable": true},
         {"name": "last_updated", "type": "timestamp", "description": "When it last changed."},
         {"name": "deleted", "type": "bool", "description": "Whether it has been retired from every listing."}
@@ -597,7 +597,7 @@
       "fields": [
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "code", "type": "string", "description": "A readable label made from the record's name, such as tender: lower case letters, digits and underscores, starting with a letter, unique in the draft. Roles carry permissions on it (record.tender.edit). It may be renamed; a rename keeps the key and moves the roles in the same save."},
-        {"name": "key", "type": "string", "description": "The record's hidden, stable identity, minted once and never edited, such as RC-1. Rows, steps, generated workflows and a workflow's subject name the record by it, so a rename of the code leaves them whole.", "immutable": true},
+        {"name": "key", "type": "string", "description": "The record's hidden, stable identity, minted once and never edited: a UUID for a newly made record, such as 3f2b8c1e-5d6a-4e0b-9a41-7c2d8e9f0a11, and the counter code RC-1 for an older one. Rows, steps, generated workflows and a workflow's subject name the record by it, so a rename of the code leaves them whole.", "immutable": true},
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
         {"name": "workflow_id", "type": "string", "description": "The workflow that keeps this record, in the same draft.", "required": true},
         {"name": "name", "type": "string", "description": "What the record is called, such as Payments.", "required": true},

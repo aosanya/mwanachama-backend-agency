@@ -143,18 +143,18 @@ func TestGenerated_ARecordHasAnAddAnEditAndADeleteWorkflowWithOneFormStepEach(t 
 		t.Fatalf("generated workflows = %d, want 3: %v", len(got), got)
 	}
 	want := map[string]struct{ name, action, form string }{
-		"RC-1.add":    {"Add a tender", "add", "Tender"},
-		"RC-1.edit":   {"Edit a tender", "edit", "Tender"},
-		"RC-1.delete": {"Delete a tender", "delete", "Why delete this tender"},
+		g.record.Key + ".add":    {"Add a tender", "add", "Tender"},
+		g.record.Key + ".edit":   {"Edit a tender", "edit", "Tender"},
+		g.record.Key + ".delete": {"Delete a tender", "delete", "Why delete this tender"},
 	}
 	for code, w := range want {
 		wf, ok := got[code]
-		if !ok || wf.Name != w.name || wf.GeneratedFor != "RC-1" {
-			t.Errorf("%s = %+v, want name %q generated for RC-1", code, wf, w.name)
+		if !ok || wf.Name != w.name || wf.GeneratedFor != g.record.Key {
+			t.Errorf("%s = %+v, want name %q generated for the key", code, wf, w.name)
 			continue
 		}
 		step := g.stepOf(t, g.world.draftID, wf)
-		if step.Kind != models.StepKindFillForm || step.RowRecord != "RC-1" || step.RowAction != w.action ||
+		if step.Kind != models.StepKindFillForm || step.RowRecord != g.record.Key || step.RowAction != w.action ||
 			step.RoleID != g.record.RoleID || step.FormName != w.form || step.Ordinality != 1 {
 			t.Errorf("%s step = %+v", code, step)
 		}
@@ -177,8 +177,8 @@ func TestGenerated_TheNameComesFromTheItemNameThenTheFormName(t *testing.T) {
 		t.Fatalf("UpdateRecord: %v", err)
 	}
 	got := g.generatedIn(t, g.world.draftID)
-	if got["RC-1.add"].Name != "Add an office holder" || got["RC-1.edit"].Name != "Edit an office holder" || got["RC-1.delete"].Name != "Delete an office holder" {
-		t.Errorf("names = %q, %q, %q", got["RC-1.add"].Name, got["RC-1.edit"].Name, got["RC-1.delete"].Name)
+	if got[g.record.Key+".add"].Name != "Add an office holder" || got[g.record.Key+".edit"].Name != "Edit an office holder" || got[g.record.Key+".delete"].Name != "Delete an office holder" {
+		t.Errorf("names = %q, %q, %q", got[g.record.Key+".add"].Name, got[g.record.Key+".edit"].Name, got[g.record.Key+".delete"].Name)
 	}
 }
 
@@ -186,7 +186,7 @@ func TestGenerated_RegeneratingKeepsTheIdsAndTheCodes(t *testing.T) {
 	g := newGenWorld(t)
 	ctx := context.Background()
 	before := g.generatedIn(t, g.world.draftID)
-	stepBefore := g.stepOf(t, g.world.draftID, before["RC-1.add"])
+	stepBefore := g.stepOf(t, g.world.draftID, before[g.record.Key+".add"])
 	for i := 0; i < 2; i++ {
 		if err := g.world.mgr.EnsureGeneratedWorkflows(ctx, g.world.draftID); err != nil {
 			t.Fatalf("EnsureGeneratedWorkflows: %v", err)
@@ -201,7 +201,7 @@ func TestGenerated_RegeneratingKeepsTheIdsAndTheCodes(t *testing.T) {
 			t.Errorf("%s changed id from %s to %s", code, w.ID, after[code].ID)
 		}
 	}
-	if stepAfter := g.stepOf(t, g.world.draftID, after["RC-1.add"]); stepAfter.ID != stepBefore.ID || stepAfter.Code != stepBefore.Code {
+	if stepAfter := g.stepOf(t, g.world.draftID, after[g.record.Key+".add"]); stepAfter.ID != stepBefore.ID || stepAfter.Code != stepBefore.Code {
 		t.Errorf("the step changed from %+v to %+v", stepBefore, stepAfter)
 	}
 }
@@ -217,7 +217,7 @@ func TestGenerated_AChangedRecordUpdatesTheStepAndFormInPlace(t *testing.T) {
 		t.Fatalf("UpdateRecord: %v", err)
 	}
 	after := g.generatedIn(t, g.world.draftID)
-	for _, code := range []string{"RC-1.add", "RC-1.edit"} {
+	for _, code := range []string{g.record.Key + ".add", g.record.Key + ".edit"} {
 		if after[code].ID != before[code].ID {
 			t.Errorf("%s was replaced instead of updated", code)
 		}
@@ -226,7 +226,7 @@ func TestGenerated_AChangedRecordUpdatesTheStepAndFormInPlace(t *testing.T) {
 			t.Errorf("%s step = role %s with %d questions", code, step.RoleID, len(step.Questions))
 		}
 	}
-	del := g.stepOf(t, g.world.draftID, after["RC-1.delete"])
+	del := g.stepOf(t, g.world.draftID, after[g.record.Key+".delete"])
 	if del.RoleID != record.RoleID || len(del.Questions) != 1 {
 		t.Errorf("the delete step follows the role and keeps its one question: %+v", del)
 	}
@@ -242,7 +242,7 @@ func TestGenerated_EditAndDeleteAreHeldByTheirOwnRolesWhenTheRecordNamesThem(t *
 		t.Fatalf("UpdateRecord: %v", err)
 	}
 	got := g.generatedIn(t, g.world.draftID)
-	roles := map[string]string{"RC-1.add": record.RoleID, "RC-1.edit": record.EditRoleID, "RC-1.delete": record.DeleteRoleID}
+	roles := map[string]string{g.record.Key + ".add": record.RoleID, g.record.Key + ".edit": record.EditRoleID, g.record.Key + ".delete": record.DeleteRoleID}
 	for code, role := range roles {
 		if step := g.stepOf(t, g.world.draftID, got[code]); step.RoleID != role {
 			t.Errorf("%s is held by %s, want %s", code, step.RoleID, role)
@@ -258,7 +258,7 @@ func TestGenerated_AGeneratedWorkflowCannotBeCreatedEditedRenamedOrDeletedThroug
 	g := newGenWorld(t)
 	ctx := context.Background()
 	mgr := g.world.mgr
-	add := g.generatedIn(t, g.world.draftID)["RC-1.add"]
+	add := g.generatedIn(t, g.world.draftID)[g.record.Key+".add"]
 	step := g.stepOf(t, g.world.draftID, add)
 
 	renamed := add
@@ -289,7 +289,7 @@ func TestGenerated_AGeneratedWorkflowCannotBeCreatedEditedRenamedOrDeletedThroug
 		t.Errorf("moving a step into it: want ErrGeneratedWorkflow, got %v", err)
 	}
 
-	forged, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: g.world.draftID, Name: "Forged", Generated: true, GeneratedFor: "RC-1", ReplacedBy: "W-1"})
+	forged, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: g.world.draftID, Name: "Forged", Generated: true, GeneratedFor: g.record.Key, ReplacedBy: "W-1"})
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestGenerated_AGeneratedWorkflowCannotBeCreatedEditedRenamedOrDeletedThroug
 func TestGenerated_ADesignedWorkflowMayRunAGeneratedOne(t *testing.T) {
 	g := newGenWorld(t)
 	ctx := context.Background()
-	add := g.generatedIn(t, g.world.draftID)["RC-1.add"]
+	add := g.generatedIn(t, g.world.draftID)[g.record.Key+".add"]
 	caller := g.world.workflow(t, "Win a client")
 	made, err := g.world.mgr.CreateWorkItem(ctx, models.WorkItem{
 		DraftID: g.world.draftID, WorkflowID: caller.ID, Title: "Add the client", Ordinality: 1, Kind: models.StepKindRunWorkflow, RunWorkflowID: add.ID,
@@ -318,7 +318,7 @@ func TestGenerated_ADesignedWorkflowMayRunAGeneratedOne(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fork: %v", err)
 	}
-	forkedAdd := g.generatedIn(t, fork.ID)["RC-1.add"]
+	forkedAdd := g.generatedIn(t, fork.ID)[g.record.Key+".add"]
 	if got := copiedSteps(t, g.world.mgr, fork.ID)["Add the client"]; got.RunWorkflowID != forkedAdd.ID || forkedAdd.ID == add.ID {
 		t.Errorf("the fork's step runs %s, want the fork's generated workflow %s", got.RunWorkflowID, forkedAdd.ID)
 	}
@@ -334,7 +334,7 @@ func TestGenerated_AForkAnImportAndAPublicationGiveEveryRecordItsThree(t *testin
 	}
 	inDocument := 0
 	for _, w := range pub.Document.Workflows {
-		if w.Generated && w.GeneratedFor == "RC-1" {
+		if w.Generated && w.GeneratedFor == g.record.Key {
 			inDocument++
 		}
 	}
@@ -452,30 +452,30 @@ func TestGenerated_ThePublishGuardNamesAMissingAlteredOrStaleGeneratedWorkflow(t
 	steps := func(g genWorld) string { return tableOf(t, g.sp, "work_item") }
 
 	missing := newGenWorld(t)
-	if err := missing.db.Exec("delete from "+wf(missing)+" where code = ?", "RC-1.edit").Error; err != nil {
+	if err := missing.db.Exec("delete from "+wf(missing)+" where code = ?", missing.record.Key+".edit").Error; err != nil {
 		t.Fatal(err)
 	}
-	if got := findingsOf(t, missing.world.mgr, missing.world.draftID, models.IssueSeverityError, "RC-1", "RC-1.edit"); len(got) == 0 {
+	if got := findingsOf(t, missing.world.mgr, missing.world.draftID, models.IssueSeverityError, missing.record.Key, missing.record.Key+".edit"); len(got) == 0 {
 		t.Errorf("a missing generated workflow is an error naming the record and the workflow")
 	}
 
 	altered := newGenWorld(t)
-	if err := altered.db.Exec("update "+steps(altered)+" set row_action = ? where workflow_id in (select id from "+wf(altered)+" where code = ?)", "delete", "RC-1.add").Error; err != nil {
+	if err := altered.db.Exec("update "+steps(altered)+" set row_action = ? where workflow_id in (select id from "+wf(altered)+" where code = ?)", "delete", altered.record.Key+".add").Error; err != nil {
 		t.Fatal(err)
 	}
-	if got := findingsOf(t, altered.world.mgr, altered.world.draftID, models.IssueSeverityError, "RC-1.add"); len(got) == 0 {
+	if got := findingsOf(t, altered.world.mgr, altered.world.draftID, models.IssueSeverityError, altered.record.Key+".add"); len(got) == 0 {
 		t.Errorf("an altered generated step is an error naming the workflow")
 	}
 
 	stale := newGenWorld(t)
 	stale.setRecordColumn(t, "questions", `[{"prompt":"Title","answer_type":"free_text","required":true}]`)
-	if got := findingsOf(t, stale.world.mgr, stale.world.draftID, models.IssueSeverityError, "RC-1"); len(got) == 0 {
+	if got := findingsOf(t, stale.world.mgr, stale.world.draftID, models.IssueSeverityError, stale.record.Key); len(got) == 0 {
 		t.Errorf("a stale generated workflow, made from questions the record no longer has, is an error")
 	}
 
 	reroled := newGenWorld(t)
 	reroled.setRecordColumn(t, "edit_role_id", reroled.world.roles[farmer].ID)
-	if got := findingsOf(t, reroled.world.mgr, reroled.world.draftID, models.IssueSeverityError, "RC-1.edit"); len(got) == 0 {
+	if got := findingsOf(t, reroled.world.mgr, reroled.world.draftID, models.IssueSeverityError, reroled.record.Key+".edit"); len(got) == 0 {
 		t.Errorf("a generated edit workflow held by another role than the record's edit role is an error")
 	}
 }
@@ -496,7 +496,7 @@ func TestGenerated_ADuplicatedGeneratedWorkflowIsAFindingAndRegeneratingKeepsOne
 	g := newGenWorld(t)
 	ctx := context.Background()
 	wfTable := tableOf(t, g.sp, "workflow")
-	original := g.generatedIn(t, g.world.draftID)["RC-1.add"]
+	original := g.generatedIn(t, g.world.draftID)[g.record.Key+".add"]
 	var copyRow map[string]any
 	if err := g.db.Table(wfTable).Where("id = ?", original.ID).Take(&copyRow).Error; err != nil {
 		t.Fatal(err)
@@ -505,16 +505,16 @@ func TestGenerated_ADuplicatedGeneratedWorkflowIsAFindingAndRegeneratingKeepsOne
 	if err := g.db.Table(wfTable).Create(copyRow).Error; err != nil {
 		t.Fatal(err)
 	}
-	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, "RC-1.add"); len(got) == 0 {
+	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, g.record.Key+".add"); len(got) == 0 {
 		t.Errorf("a duplicated generated workflow is an error")
 	}
 	if err := g.world.mgr.EnsureGeneratedWorkflows(ctx, g.world.draftID); err != nil {
 		t.Fatalf("EnsureGeneratedWorkflows: %v", err)
 	}
-	if got := g.generatedIn(t, g.world.draftID); len(got) != 3 || got["RC-1.add"].ID != original.ID {
+	if got := g.generatedIn(t, g.world.draftID); len(got) != 3 || got[g.record.Key+".add"].ID != original.ID {
 		t.Errorf("regenerating keeps the first and removes the copy: %v", got)
 	}
-	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, "RC-1"); len(got) != 0 {
+	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, g.record.Key); len(got) != 0 {
 		t.Errorf("a regenerated draft passes the guard: %v", got)
 	}
 }
@@ -534,7 +534,7 @@ func TestGenerated_AWorkflowCanStandInForOneOfTheThreeAndTheGeneratedOneSaysSo(t
 	ctx := context.Background()
 	mgr := g.world.mgr
 	designed := g.world.workflow(t, "Win a client")
-	add := g.generatedIn(t, g.world.draftID)["RC-1.add"]
+	add := g.generatedIn(t, g.world.draftID)[g.record.Key+".add"]
 
 	record := g.record
 	record.AddReplacedBy = "W-99"
@@ -550,17 +550,17 @@ func TestGenerated_AWorkflowCanStandInForOneOfTheThreeAndTheGeneratedOneSaysSo(t
 		t.Fatalf("UpdateRecord: %v", err)
 	}
 	got := g.generatedIn(t, g.world.draftID)
-	if got["RC-1.add"].ReplacedBy != designed.Code || got["RC-1.edit"].ReplacedBy != "" {
-		t.Errorf("replaced_by = %q and %q", got["RC-1.add"].ReplacedBy, got["RC-1.edit"].ReplacedBy)
+	if got[g.record.Key+".add"].ReplacedBy != designed.Code || got[g.record.Key+".edit"].ReplacedBy != "" {
+		t.Errorf("replaced_by = %q and %q", got[g.record.Key+".add"].ReplacedBy, got[g.record.Key+".edit"].ReplacedBy)
 	}
-	if warn := findingsOf(t, mgr, g.world.draftID, models.IssueSeverityWarning, designed.Code, "RC-1.add"); len(warn) == 0 {
+	if warn := findingsOf(t, mgr, g.world.draftID, models.IssueSeverityWarning, designed.Code, g.record.Key+".add"); len(warn) == 0 {
 		t.Errorf("a stand-in with no run_workflow step naming the generated workflow is a warning")
 	}
 
-	if _, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: g.world.draftID, WorkflowID: designed.ID, Title: "Add the client", Ordinality: 1, Kind: models.StepKindRunWorkflow, RunWorkflowID: got["RC-1.add"].ID}); err != nil {
+	if _, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: g.world.draftID, WorkflowID: designed.ID, Title: "Add the client", Ordinality: 1, Kind: models.StepKindRunWorkflow, RunWorkflowID: got[g.record.Key+".add"].ID}); err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	if warn := findingsOf(t, mgr, g.world.draftID, models.IssueSeverityWarning, designed.Code, "RC-1.add"); len(warn) != 0 {
+	if warn := findingsOf(t, mgr, g.world.draftID, models.IssueSeverityWarning, designed.Code, g.record.Key+".add"); len(warn) != 0 {
 		t.Errorf("a stand-in that runs the generated workflow has no warning: %v", warn)
 	}
 	if errs := findingsOf(t, mgr, g.world.draftID, models.IssueSeverityError); len(errs) != 0 {

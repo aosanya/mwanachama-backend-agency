@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -262,16 +261,32 @@ func olderRecordCodesDocument(t *testing.T, o routedOrder) models.AgencyDocument
 	return oldRecordIdentityIn(pub.Document, o.record)
 }
 
+const olderRecordKey = "RC-1"
+
 func oldRecordIdentityIn(doc models.AgencyDocument, record models.Record) models.AgencyDocument {
 	doc.Records = append([]models.DocumentRecord(nil), doc.Records...)
 	for i := range doc.Records {
-		doc.Records[i].Key, doc.Records[i].Code = "", record.Key
+		doc.Records[i].Key, doc.Records[i].Code = "", olderRecordKey
+	}
+	doc.Workflows = append([]models.DocumentWorkflow(nil), doc.Workflows...)
+	for i := range doc.Workflows {
+		doc.Workflows[i].Code = strings.Replace(doc.Workflows[i].Code, record.Key+".", olderRecordKey+".", 1)
+		if doc.Workflows[i].GeneratedFor == record.Key {
+			doc.Workflows[i].GeneratedFor = olderRecordKey
+		}
+	}
+	doc.WorkItems = append([]models.DocumentWorkItem(nil), doc.WorkItems...)
+	for i := range doc.WorkItems {
+		doc.WorkItems[i].Code = strings.Replace(doc.WorkItems[i].Code, record.Key+".", olderRecordKey+".", 1)
+		if doc.WorkItems[i].RowRecord == record.Key {
+			doc.WorkItems[i].RowRecord = olderRecordKey
+		}
 	}
 	doc.Roles = append([]models.DocumentRole(nil), doc.Roles...)
 	for i := range doc.Roles {
 		var kept []string
 		for _, p := range doc.Roles[i].Permissions {
-			kept = append(kept, strings.Replace(p, "record.payments.", "record."+record.Key+".", 1))
+			kept = append(kept, strings.Replace(p, "record.payments.", "record."+olderRecordKey+".", 1))
 		}
 		doc.Roles[i].Permissions = kept
 	}
@@ -300,8 +315,8 @@ func TestImport_AnOldFileGivesEveryRecordAReadableCodeAndKeepsTheCounterCodeAsIt
 	if len(a) != 1 || len(b) != 1 {
 		t.Fatalf("imported records = %+v and %+v", a, b)
 	}
-	if a[0].Code != "payments" || a[0].Key != o.record.Key {
-		t.Errorf("imported record = code %q key %q, want payments and %q", a[0].Code, a[0].Key, o.record.Key)
+	if a[0].Code != "payments" || a[0].Key != olderRecordKey {
+		t.Errorf("imported record = code %q key %q, want payments and %q", a[0].Code, a[0].Key, olderRecordKey)
 	}
 	if b[0].Code != a[0].Code || b[0].Key != a[0].Key {
 		t.Errorf("the same file imported twice gave %q/%q and %q/%q", a[0].Code, a[0].Key, b[0].Code, b[0].Key)
@@ -350,7 +365,7 @@ func TestImport_ANewRecordAfterAFileWithCounterKeysGetsAKeyThatIsFree(t *testing
 	w := o.world
 	ctx := context.Background()
 	doc := olderRecordCodesDocument(t, o)
-	old := o.record.Key
+	old := olderRecordKey
 	doc.Records[0].Code = "RC-40"
 	for i := range doc.WorkItems {
 		if doc.WorkItems[i].RowRecord == old {
@@ -383,8 +398,8 @@ func TestImport_ANewRecordAfterAFileWithCounterKeysGetsAKeyThatIsFree(t *testing
 	if len(records) != 1 || records[0].Key != "RC-40" {
 		t.Fatalf("imported records = %+v, want the key RC-40 kept", records)
 	}
-	if n, _ := strconv.Atoi(strings.TrimPrefix(made.Key, "RC-")); n <= 40 {
-		t.Errorf("a new record was given the key %s, but the imported record holds RC-40", made.Key)
+	if !uuidShape.MatchString(made.Key) {
+		t.Errorf("a new record was given the key %s, want a UUID beside the imported RC-40", made.Key)
 	}
 }
 
@@ -409,8 +424,8 @@ func TestFork_APublicationMadeBeforeReadableCodesForksIntoRecordsWithReadableCod
 		t.Fatalf("CreateDraft: %v", err)
 	}
 	records, _ := w.mgr.ListRecords(ctx, fork.ID, mwanachamaagency.RecordFilter{})
-	if len(records) != 1 || records[0].Code != "payments" || records[0].Key != d.record.Key {
-		t.Fatalf("forked records = %+v, want payments with the key %s", records, d.record.Key)
+	if len(records) != 1 || records[0].Code != "payments" || records[0].Key != olderRecordKey {
+		t.Fatalf("forked records = %+v, want payments with the key %s", records, olderRecordKey)
 	}
 	roles, _ := w.mgr.ListRoles(ctx, fork.ID, mwanachamaagency.RoleFilter{Name: "Clerk"})
 	if len(roles) != 1 || !reflect.DeepEqual(roles[0].Permissions, []string{"record.payments.add.*", "record.payments.view.*", "report.read"}) {
@@ -506,10 +521,19 @@ func newRecordCodesDatabase(t *testing.T) olderRecordCodesDatabase {
 
 func (d olderRecordCodesDatabase) makeOlder(t *testing.T) {
 	t.Helper()
-	if err := d.db.Exec("update "+tableOf(t, d.s, "record")+" set code = ?, key = '' where id = ?", d.record.Key, d.record.ID).Error; err != nil {
+	if err := d.db.Exec("update "+tableOf(t, d.s, "record")+" set code = ?, key = '' where id = ?", olderRecordKey, d.record.ID).Error; err != nil {
 		t.Fatalf("write the older record: %v", err)
 	}
-	older, _ := json.Marshal([]string{"record." + d.record.Key + ".add.*", "record." + d.record.Key + ".view.*", "report.read"})
+	rewrites := []struct{ role, column string }{
+		{"record_row", "record_code"}, {"workflow", "code"}, {"workflow", "generated_for"}, {"work_item", "code"}, {"work_item", "row_record"},
+	}
+	for _, r := range rewrites {
+		sql := "update " + tableOf(t, d.s, r.role) + " set " + r.column + " = replace(" + r.column + ", ?, ?) where " + r.column + " like ?"
+		if err := d.db.Exec(sql, d.record.Key, olderRecordKey, d.record.Key+"%").Error; err != nil {
+			t.Fatalf("write the older %s of %s: %v", r.column, r.role, err)
+		}
+	}
+	older, _ := json.Marshal([]string{"record." + olderRecordKey + ".add.*", "record." + olderRecordKey + ".view.*", "report.read"})
 	if err := d.db.Exec("update "+tableOf(t, d.s, "role")+" set permissions = ? where id = ?", string(older), d.clerk.ID).Error; err != nil {
 		t.Fatalf("write the older role: %v", err)
 	}
@@ -531,8 +555,8 @@ func TestProvision_AnOlderDatabaseGivesItsRecordsAReadableCodeAndMovesTheRolesWi
 	if err != nil {
 		t.Fatalf("GetRecord: %v", err)
 	}
-	if after.Code != "payments" || after.Key != d.record.Key {
-		t.Errorf("migrated record = code %q key %q, want payments and %q", after.Code, after.Key, d.record.Key)
+	if after.Code != "payments" || after.Key != olderRecordKey {
+		t.Errorf("migrated record = code %q key %q, want payments and %q", after.Code, after.Key, olderRecordKey)
 	}
 	if got := permissionsOf(t, w, d.clerk.ID); !reflect.DeepEqual(got, []string{"record.payments.add.*", "record.payments.view.*", "report.read"}) {
 		t.Errorf("Clerk = %v, want the permissions on the readable code", got)
@@ -573,7 +597,7 @@ func TestProvision_TwoOlderRecordsWithTheSameNameGetDifferentCodes(t *testing.T)
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
-	if err := d.db.Exec("update "+tableOf(t, d.s, "record")+" set code = ?, key = '' where id = ?", second.Key, second.ID).Error; err != nil {
+	if err := d.db.Exec("update "+tableOf(t, d.s, "record")+" set code = ?, key = '' where id = ?", "RC-2", second.ID).Error; err != nil {
 		t.Fatalf("write the second older record: %v", err)
 	}
 	if err := mwanachamaagency.Provision(d.db, d.s); err != nil {
@@ -602,7 +626,7 @@ func TestProvision_AnOlderPublicationStillForksAfterTheDatabaseWasMigrated(t *te
 		t.Fatalf("CreateDraft: %v", err)
 	}
 	records, _ := w.mgr.ListRecords(ctx, fork.ID, mwanachamaagency.RecordFilter{})
-	if len(records) != 1 || records[0].Code != "payments" || records[0].Key != d.record.Key {
+	if len(records) != 1 || records[0].Code != "payments" || records[0].Key != olderRecordKey {
 		t.Errorf("forked records = %+v", records)
 	}
 }

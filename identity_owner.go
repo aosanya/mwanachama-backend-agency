@@ -66,6 +66,9 @@ func (m *agencyManager) Resolve(ctx context.Context, raw string) (string, string
 	}
 	prefix, _, _ := strings.Cut(r.Identity, "-")
 	object, ok := objectOfCodePrefix(prefix)
+	if !ok && recordUUIDKey.MatchString(r.Identity) {
+		object, ok = roleRecord, true
+	}
 	if !ok {
 		return "", "", fmt.Errorf("%s: %w", raw, identity.ErrNotFound)
 	}
