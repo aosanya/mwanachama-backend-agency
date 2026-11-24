@@ -116,7 +116,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	}
 	for _, r := range records {
 		doc.Records = append(doc.Records, models.DocumentRecord{
-			ID: r.ID, Code: r.Code, WorkflowID: r.WorkflowID, Name: r.Name,
+			ID: r.ID, Code: r.Code, Key: r.Key, WorkflowID: r.WorkflowID, Name: r.Name,
 			RoleID: r.RoleID, ViewerRoleID: r.ViewerRoleID, FormName: r.FormName, Questions: r.Questions,
 			ItemName: r.ItemName, EditRoleID: r.EditRoleID, DeleteRoleID: r.DeleteRoleID,
 			AddReplacedBy: r.AddReplacedBy, EditReplacedBy: r.EditReplacedBy, DeleteReplacedBy: r.DeleteReplacedBy,
@@ -302,6 +302,10 @@ func (m *agencyManager) libraryDocuments(scoped func(string) *gorm.DB, doc *mode
 
 func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, draftID string, doc models.AgencyDocument, now string) error {
 	fail := func(err error) error { return fmt.Errorf("applyDocumentToDraft: %w", err) }
+	doc, err := settleDocumentRecords(doc)
+	if err != nil {
+		return fail(err)
+	}
 	if err := validateDocumentSubjects(doc); err != nil {
 		return fail(err)
 	}
@@ -390,12 +394,12 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	}
 
 	for _, r := range doc.Records {
-		fields, err := keyedFieldsOrRefused(r.Code, r.Questions)
+		fields, err := keyedFieldsOrRefused(r.Identity(), r.Questions)
 		if err != nil {
 			return fail(fmt.Errorf("the record %s: %w", r.Code, err))
 		}
 		row := models.Record{
-			ID: recordIDs[r.ID], Code: r.Code, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
+			ID: recordIDs[r.ID], Code: r.Code, Key: r.Key, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
 			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), ViewerRoleID: remap(roleIDs, r.ViewerRoleID),
 			FormName: r.FormName, Questions: fields, CreatedAt: now, LastUpdated: now,
 			ItemName: r.ItemName, EditRoleID: remap(roleIDs, r.EditRoleID), DeleteRoleID: remap(roleIDs, r.DeleteRoleID),

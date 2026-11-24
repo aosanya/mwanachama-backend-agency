@@ -18,7 +18,7 @@ func (m *agencyManager) validateWorkflowSubject(ctx context.Context, tx *gorm.DB
 		return nil
 	}
 	var record models.Record
-	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRecord)), draftID).Where("code = ?", subject)
+	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRecord)), draftID).Where("key = ?", subject)
 	err := m.take(q, roleRecord, &record, ErrRecordNotFound)
 	if errors.Is(err, ErrRecordNotFound) {
 		return unknownSubjectRecord(subject)
@@ -29,7 +29,7 @@ func (m *agencyManager) validateWorkflowSubject(ctx context.Context, tx *gorm.DB
 func validateDocumentSubjects(doc models.AgencyDocument) error {
 	held := make(map[string]bool, len(doc.Records))
 	for _, r := range doc.Records {
-		held[r.Code] = true
+		held[r.Identity()] = true
 	}
 	for _, w := range doc.Workflows {
 		if w.SubjectRecord != "" && !held[w.SubjectRecord] {
@@ -44,7 +44,7 @@ func (s *issueScan) checkWorkflowSubjects() error {
 	if err != nil {
 		return err
 	}
-	codes, err := s.codeSet(roleRecord)
+	codes, err := s.keySet(roleRecord)
 	if err != nil {
 		return err
 	}

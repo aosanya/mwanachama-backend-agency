@@ -52,7 +52,7 @@ func generatedPlansOf(r models.Record) []generatedPlan {
 	}
 	var plans []generatedPlan
 	for _, action := range models.RowActions() {
-		code := generatedCode(r.Code, action)
+		code := generatedCode(r.Identity(), action)
 		name := generatedVerbs[action] + " " + withArticle(item)
 		formName, questions := r.FormName, r.Questions
 		if action == models.RowActionDelete {
@@ -61,12 +61,12 @@ func generatedPlansOf(r models.Record) []generatedPlan {
 		plans = append(plans, generatedPlan{
 			record: r, action: action,
 			workflow: models.Workflow{
-				DraftID: r.DraftID, Code: code, Name: name, Generated: true, GeneratedFor: r.Code, ReplacedBy: replacedBy[action],
+				DraftID: r.DraftID, Code: code, Name: name, Generated: true, GeneratedFor: r.Identity(), ReplacedBy: replacedBy[action],
 				Description: fmt.Sprintf("Made from the record %s: %s a row of it.", r.Name, strings.ToLower(generatedVerbs[action])),
 			},
 			step: models.WorkItem{
 				DraftID: r.DraftID, Code: code + ".1", Title: name, Ordinality: 1, Kind: models.StepKindFillForm,
-				RoleID: r.RoleOfRowAction(action), RowRecord: r.Code, RowAction: action, FormName: formName, Questions: questions,
+				RoleID: r.RoleOfRowAction(action), RowRecord: r.Identity(), RowAction: action, FormName: formName, Questions: questions,
 			},
 		})
 	}

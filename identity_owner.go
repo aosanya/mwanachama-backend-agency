@@ -40,14 +40,15 @@ func (m *agencyManager) StableIdentity(ctx context.Context, object, id string) (
 	if _, ok := codePrefixes[object]; !ok {
 		return "", fmt.Errorf("%s: %w", object, ErrNoStableIdentity)
 	}
+	column := identityColumnOf(object)
 	var rows []map[string]any
-	if err := m.q(ctx, object).Select("code").Where("id = ?", id).Limit(1).Find(&rows).Error; err != nil {
+	if err := m.q(ctx, object).Select(column).Where("id = ?", id).Limit(1).Find(&rows).Error; err != nil {
 		return "", fmt.Errorf("StableIdentity: %w", err)
 	}
 	if len(rows) == 0 {
 		return "", fmt.Errorf("%s %s: %w", object, id, identity.ErrNotFound)
 	}
-	code, _ := rows[0]["code"].(string)
+	code, _ := rows[0][column].(string)
 	raw, err := identity.New(identityModule, m.st.Spec().Instance, code)
 	if err != nil {
 		return "", fmt.Errorf("%s %s: %w", object, id, err)
@@ -74,7 +75,7 @@ func (m *agencyManager) Resolve(ctx context.Context, raw string) (string, string
 	}
 	var rows []map[string]any
 	if err := m.q(ctx, object).Select("id").
-		Where("draft_id = ? AND code = ?", draftID, r.Identity).Limit(1).Find(&rows).Error; err != nil {
+		Where("draft_id = ? AND "+identityColumnOf(object)+" = ?", draftID, r.Identity).Limit(1).Find(&rows).Error; err != nil {
 		return "", "", fmt.Errorf("Resolve: %w", err)
 	}
 	if len(rows) == 0 {
@@ -96,4 +97,11 @@ func (m *agencyManager) resolvingDraft(ctx context.Context) (string, error) {
 	}
 	id, _ := rows[0]["id"].(string)
 	return id, nil
+}
+
+func identityColumnOf(object string) string {
+	if object == roleRecord {
+		return "key"
+	}
+	return "code"
 }

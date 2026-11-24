@@ -13,6 +13,7 @@ func (m *agencyManager) CreateWorkItem(ctx context.Context, wi models.WorkItem) 
 	if err := m.validateOpenDraftID(ctx, wi.DraftID); err != nil {
 		return models.WorkItem{}, err
 	}
+	wi.RowRecord = m.recordKeyOfRef(ctx, m.db, wi.DraftID, wi.RowRecord)
 	if err := m.validateStep(ctx, m.db, wi); err != nil {
 		return models.WorkItem{}, fmt.Errorf("CreateWorkItem: %w", err)
 	}
@@ -98,6 +99,7 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 		wi.CreatedAt = existing.CreatedAt
 		wi.LastUpdated = models.NowRFC3339()
 
+		wi.RowRecord = m.recordKeyOfRef(ctx, tx, wi.DraftID, wi.RowRecord)
 		if err := m.validateStep(ctx, tx, wi); err != nil {
 			return err
 		}

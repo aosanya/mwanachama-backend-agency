@@ -38,13 +38,13 @@ func (s subjectWorld) workflowNaming(t *testing.T, name, subject string) (models
 
 func TestWorkflowSubject_CreateKeepsTheRecordCodeAndReadsItBack(t *testing.T) {
 	s := buildSubjectWorld(t)
-	made, err := s.workflowNaming(t, "Pipeline", s.record.Code)
+	made, err := s.workflowNaming(t, "Pipeline", s.record.Key)
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
 	got, err := s.world.mgr.GetWorkflow(context.Background(), made.ID)
-	if err != nil || got.SubjectRecord != s.record.Code {
-		t.Fatalf("read back subject_record %q, %v, want %q", got.SubjectRecord, err, s.record.Code)
+	if err != nil || got.SubjectRecord != s.record.Key {
+		t.Fatalf("read back subject_record %q, %v, want %q", got.SubjectRecord, err, s.record.Key)
 	}
 }
 
@@ -65,7 +65,7 @@ func TestWorkflowSubject_ARecordOfAnotherDraftIsNotKnown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	_, err = s.world.mgr.CreateWorkflow(context.Background(), models.Workflow{DraftID: other.ID, Name: "Pipeline", SubjectRecord: s.record.Code})
+	_, err = s.world.mgr.CreateWorkflow(context.Background(), models.Workflow{DraftID: other.ID, Name: "Pipeline", SubjectRecord: s.record.Key})
 	if !errors.Is(err, mwanachamaagency.ErrInvalidWorkflow) {
 		t.Fatalf("CreateWorkflow error = %v, want ErrInvalidWorkflow", err)
 	}
@@ -92,13 +92,13 @@ func TestWorkflowSubject_UpdateSetsItRefusesAnUnknownOneAndClearsIt(t *testing.T
 	}
 
 	var update models.Workflow
-	consoleBody(t, &update, map[string]any{"name": "Pipeline", "subject_record": s.record.Code})
+	consoleBody(t, &update, map[string]any{"name": "Pipeline", "subject_record": s.record.Key})
 	update.ID = made.ID
 	if _, err := s.world.mgr.UpdateWorkflow(ctx, update); err != nil {
 		t.Fatalf("UpdateWorkflow set: %v", err)
 	}
-	if got, _ := s.world.mgr.GetWorkflow(ctx, made.ID); got.SubjectRecord != s.record.Code {
-		t.Fatalf("subject_record after the update = %q, want %q", got.SubjectRecord, s.record.Code)
+	if got, _ := s.world.mgr.GetWorkflow(ctx, made.ID); got.SubjectRecord != s.record.Key {
+		t.Fatalf("subject_record after the update = %q, want %q", got.SubjectRecord, s.record.Key)
 	}
 
 	var unknown models.Workflow
@@ -123,7 +123,7 @@ func TestWorkflowSubject_UpdateSetsItRefusesAnUnknownOneAndClearsIt(t *testing.T
 func TestWorkflowSubject_AnUpdateThatDoesNotSendItKeepsIt(t *testing.T) {
 	s := buildSubjectWorld(t)
 	ctx := context.Background()
-	made, err := s.workflowNaming(t, "Pipeline", s.record.Code)
+	made, err := s.workflowNaming(t, "Pipeline", s.record.Key)
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
@@ -133,15 +133,15 @@ func TestWorkflowSubject_AnUpdateThatDoesNotSendItKeepsIt(t *testing.T) {
 	if _, err := s.world.mgr.UpdateWorkflow(ctx, update); err != nil {
 		t.Fatalf("UpdateWorkflow: %v", err)
 	}
-	if got, _ := s.world.mgr.GetWorkflow(ctx, made.ID); got.SubjectRecord != s.record.Code {
-		t.Errorf("subject_record after a rename = %q, want %q", got.SubjectRecord, s.record.Code)
+	if got, _ := s.world.mgr.GetWorkflow(ctx, made.ID); got.SubjectRecord != s.record.Key {
+		t.Errorf("subject_record after a rename = %q, want %q", got.SubjectRecord, s.record.Key)
 	}
 }
 
 func TestWorkflowSubject_TheIssueScanReportsAWorkflowWhoseRecordIsGone(t *testing.T) {
 	s := buildSubjectWorld(t)
 	ctx := context.Background()
-	if _, err := s.workflowNaming(t, "Pipeline", s.record.Code); err != nil {
+	if _, err := s.workflowNaming(t, "Pipeline", s.record.Key); err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
 	if err := s.world.mgr.DeleteRecord(ctx, s.record.ID); err != nil {
@@ -152,11 +152,11 @@ func TestWorkflowSubject_TheIssueScanReportsAWorkflowWhoseRecordIsGone(t *testin
 		t.Fatalf("ListIssues: %v", err)
 	}
 	for _, issue := range issues {
-		if issue.Severity == models.IssueSeverityError && strings.Contains(issue.Message, s.record.Code) && strings.Contains(issue.Message, "Pipeline") {
+		if issue.Severity == models.IssueSeverityError && strings.Contains(issue.Message, s.record.Key) && strings.Contains(issue.Message, "Pipeline") {
 			return
 		}
 	}
-	t.Errorf("no error names the workflow and the missing record %s: %+v", s.record.Code, issues)
+	t.Errorf("no error names the workflow and the missing record %s: %+v", s.record.Key, issues)
 }
 
 func subjectDocument(subject string) models.AgencyDocument {
@@ -236,15 +236,15 @@ func TestImportDocument_AnOlderFileWithNoSubjectImportsAsBefore(t *testing.T) {
 func TestWorkflowSubject_ForkKeepsItAndThePublishedDocumentCarriesIt(t *testing.T) {
 	s := buildSubjectWorld(t)
 	ctx := context.Background()
-	if _, err := s.workflowNaming(t, "Pipeline", s.record.Code); err != nil {
+	if _, err := s.workflowNaming(t, "Pipeline", s.record.Key); err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
 	}
 	fork, err := s.world.mgr.CreateDraft(ctx, "fork", s.world.draftID, "draft")
 	if err != nil {
 		t.Fatalf("CreateDraft: %v", err)
 	}
-	if got := workflowInDraft(t, s.world.mgr, fork.ID, "Pipeline"); got.SubjectRecord != s.record.Code {
-		t.Errorf("the forked workflow carries %q, want %q", got.SubjectRecord, s.record.Code)
+	if got := workflowInDraft(t, s.world.mgr, fork.ID, "Pipeline"); got.SubjectRecord != s.record.Key {
+		t.Errorf("the forked workflow carries %q, want %q", got.SubjectRecord, s.record.Key)
 	}
 
 	pub, err := s.world.mgr.PublishAgency(ctx, s.world.draftID, "", "")
@@ -257,11 +257,11 @@ func TestWorkflowSubject_ForkKeepsItAndThePublishedDocumentCarriesIt(t *testing.
 			carried = w.SubjectRecord
 		}
 	}
-	if carried != s.record.Code {
-		t.Errorf("the published document carries %q, want %q", carried, s.record.Code)
+	if carried != s.record.Key {
+		t.Errorf("the published document carries %q, want %q", carried, s.record.Key)
 	}
 	raw, err := json.Marshal(pub.Document)
-	if err != nil || !strings.Contains(string(raw), `"subject_record":"`+s.record.Code+`"`) {
+	if err != nil || !strings.Contains(string(raw), `"subject_record":"`+s.record.Key+`"`) {
 		t.Errorf("the published document does not spell subject_record: %v", err)
 	}
 }
@@ -277,7 +277,7 @@ func TestWorkflowSubject_ChangingItIsAChangeToPublish(t *testing.T) {
 		t.Fatalf("first PublishAgency: %v", err)
 	}
 	var update models.Workflow
-	consoleBody(t, &update, map[string]any{"name": "Pipeline", "subject_record": s.record.Code})
+	consoleBody(t, &update, map[string]any{"name": "Pipeline", "subject_record": s.record.Key})
 	update.ID = made.ID
 	if _, err := s.world.mgr.UpdateWorkflow(ctx, update); err != nil {
 		t.Fatalf("UpdateWorkflow: %v", err)

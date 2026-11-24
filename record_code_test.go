@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"gorm.io/gorm"
@@ -347,15 +350,21 @@ func TestImport_ANewRecordAfterAFileWithCounterKeysGetsAKeyThatIsFree(t *testing
 	w := o.world
 	ctx := context.Background()
 	doc := olderRecordCodesDocument(t, o)
+	old := o.record.Key
 	doc.Records[0].Code = "RC-40"
 	for i := range doc.WorkItems {
-		if doc.WorkItems[i].RowRecord != "" {
+		if doc.WorkItems[i].RowRecord == old {
 			doc.WorkItems[i].RowRecord = "RC-40"
 		}
 	}
 	for i := range doc.Workflows {
-		if doc.Workflows[i].GeneratedFor != "" {
+		if doc.Workflows[i].GeneratedFor == old {
 			doc.Workflows[i].GeneratedFor = "RC-40"
+		}
+	}
+	for i := range doc.Roles {
+		for j, p := range doc.Roles[i].Permissions {
+			doc.Roles[i].Permissions[j] = strings.Replace(p, "record."+old+".", "record.RC-40.", 1)
 		}
 	}
 	imported, err := w.mgr.ImportDocument(ctx, "high counter", doc)
@@ -364,11 +373,18 @@ func TestImport_ANewRecordAfterAFileWithCounterKeysGetsAKeyThatIsFree(t *testing
 	}
 	wf := w.workflow(t, "Later")
 	made, err := w.mgr.CreateRecord(ctx, models.Record{
-		DraftID: imported.Draft.ID, WorkflowID: wf.ID, Name: "Later", RoleID: w.roles[coordinator].ID, FormName: "Later",
+		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Later", RoleID: w.roles[coordinator].ID, FormName: "Later",
 		Questions: []models.StepQuestion{ask("When", models.AnswerDate)},
 	})
-	if err == nil && made.Key == "RC-40" {
-		t.Errorf("a new record was given the key RC-40, which the imported record already holds")
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+	records, _ := w.mgr.ListRecords(ctx, imported.Draft.ID, mwanachamaagency.RecordFilter{})
+	if len(records) != 1 || records[0].Key != "RC-40" {
+		t.Fatalf("imported records = %+v, want the key RC-40 kept", records)
+	}
+	if n, _ := strconv.Atoi(strings.TrimPrefix(made.Key, "RC-")); n <= 40 {
+		t.Errorf("a new record was given the key %s, but the imported record holds RC-40", made.Key)
 	}
 }
 
@@ -588,5 +604,40 @@ func TestProvision_AnOlderPublicationStillForksAfterTheDatabaseWasMigrated(t *te
 	records, _ := w.mgr.ListRecords(ctx, fork.ID, mwanachamaagency.RecordFilter{})
 	if len(records) != 1 || records[0].Code != "payments" || records[0].Key != d.record.Key {
 		t.Errorf("forked records = %+v", records)
+	}
+}
+
+func TestRecordCode_RacingCreatesOfOneCodeStoreOneAndClassifyTheRest(t *testing.T) {
+	mgr := newSharedCacheManager(t, "racerc")
+	ctx := context.Background()
+	_, _, objective, _, _ := seedLiveAgency(t, mgr, ctx)
+	role, err := mgr.CreateRole(ctx, models.Role{DraftID: objective.DraftID, Name: "Clerk"})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	workflow, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: objective.DraftID, Name: "Orders"})
+	if err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	var mu sync.Mutex
+	next := 0
+	created, failures := raceWriters(4, func() error {
+		mu.Lock()
+		next++
+		name := fmt.Sprintf("Register %d", next)
+		mu.Unlock()
+		_, err := mgr.CreateRecord(ctx, models.Record{
+			DraftID: objective.DraftID, WorkflowID: workflow.ID, Name: name, Code: "tender", RoleID: role.ID, FormName: "Tender",
+			Questions: []models.StepQuestion{ask("Closing date", models.AnswerDate)},
+		})
+		return err
+	})
+	if created != 1 {
+		t.Errorf("%d records took the code tender, want 1", created)
+	}
+	for _, err := range failures {
+		if !errors.Is(err, mwanachamaagency.ErrInvalidRecord) && !errors.Is(err, mwanachamaagency.ErrConflict) {
+			t.Errorf("a racing create failed with an unclassified error: %v", err)
+		}
 	}
 }

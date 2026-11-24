@@ -83,7 +83,7 @@ func TestEveryToolTakesAnInstance(t *testing.T) {
 func TestStoreOwnedValuesAreNotArguments(t *testing.T) {
 	for _, tool := range declaredTools(t) {
 		for _, owned := range []string{"id", "code", "created_at", "last_updated", "deleted"} {
-			if !writes(tool.Name) {
+			if !writes(tool.Name) || (owned == "code" && nameOwnedByCaller(tool.Name)) {
 				continue
 			}
 			if _, offered := tool.Properties[owned]; offered {
@@ -91,6 +91,10 @@ func TestStoreOwnedValuesAreNotArguments(t *testing.T) {
 			}
 		}
 	}
+}
+
+func nameOwnedByCaller(name string) bool {
+	return name == "agency_create_record" || name == "agency_update_record"
 }
 
 func writes(name string) bool {

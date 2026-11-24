@@ -269,7 +269,7 @@ func (m *agencyManager) advanceCodeSequences(ctx context.Context, tx *gorm.DB, d
 	for _, c := range codedRoles {
 		var codes []string
 		if err := scopeQuery(tx.WithContext(ctx).Table(m.table(c.role)), draftID).
-			Pluck("code", &codes).Error; err != nil {
+			Pluck(identityColumnOf(c.role), &codes).Error; err != nil {
 			return fmt.Errorf("advanceCodeSequences: %w", err)
 		}
 		highest := 0

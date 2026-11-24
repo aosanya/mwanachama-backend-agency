@@ -466,7 +466,7 @@
       "action": "agency.workflow.create",
       "status": 201,
       "title": "Create workflow",
-      "description": "Add a named sequence of work the organization performs. opens_in says where it starts for the person: chat, or form (the default, so leave it out for a form). A workflow that opens in a chat holds one chat step. cancels_order is true for a workflow that cancels an order, so the picker on a waiting step lists it beside the built-in Cancel (false by default). subject_record is the code of a record of the draft, such as RC-1, whose row a run of the workflow is started on; a record the draft does not keep is refused, and leaving it out means the workflow has no subject.",
+      "description": "Add a named sequence of work the organization performs. opens_in says where it starts for the person: chat, or form (the default, so leave it out for a form). A workflow that opens in a chat holds one chat step. cancels_order is true for a workflow that cancels an order, so the picker on a waiting step lists it beside the built-in Cancel (false by default). subject_record is the code or the key of a record of the draft whose row a run of the workflow is started on (it is saved as the record's key, so renaming the record's code leaves it whole); a record the draft does not keep is refused, and leaving it out means the workflow has no subject.",
       "args": [
         {
           "from": "body",
@@ -486,7 +486,7 @@
       "call": "ListWorkflows",
       "action": "agency.workflow.list",
       "title": "List workflows",
-      "description": "List one draft's workflows in their listed order, narrowed by the filter. Each carries in_use (an order is under way on it), orders_under_way, order_versions (the versions those orders are on) and version (the version published now, 0 before the first publish). A generated workflow, made by the agency from a record, reads back generated true, generated_for (the record's code), replaced_by (the designed workflow that stands in for it, when the record names one) and its code RC-n.add, RC-n.edit or RC-n.delete; it holds one fill_form step that writes the record's row. A workflow that names a subject record reads back subject_record.",
+      "description": "List one draft's workflows in their listed order, narrowed by the filter. Each carries in_use (an order is under way on it), orders_under_way, order_versions (the versions those orders are on) and version (the version published now, 0 before the first publish). A generated workflow, made by the agency from a record, reads back generated true, generated_for (the record's key), replaced_by (the designed workflow that stands in for it, when the record names one) and its code, the record's key followed by .add, .edit or .delete, such as RC-1.add; it holds one fill_form step that writes the record's row. A workflow that names a subject record reads back subject_record.",
       "args": [
         {
           "from": "query",
@@ -548,7 +548,7 @@
       "call": "UpdateWorkflow",
       "action": "agency.workflow.update",
       "title": "Update workflow",
-      "description": "Replace a workflow's name, description, position, event-flow definition, opens_in (chat or form; a workflow that holds a chat step stays a chat) cancels_order (true for a workflow that cancels an order) and subject_record (the code of a record of the draft; empty clears it; left out keeps it). A generated workflow is refused with 409.",
+      "description": "Replace a workflow's name, description, position, event-flow definition, opens_in (chat or form; a workflow that holds a chat step stays a chat) cancels_order (true for a workflow that cancels an order) and subject_record (the code or the key of a record of the draft, saved as the key; empty clears it; left out keeps it). A generated workflow is refused with 409.",
       "args": [
         {
           "from": "body",
@@ -2124,7 +2124,7 @@
       "call": "CreateRecord",
       "action": "agency.record.create",
       "title": "Create record",
-      "description": "Add a record to a workflow: a named list the workflow keeps beside its steps, the one role that adds rows, optionally the one role whose members each see their own row (viewer_role_id), and the form each row is added with. The roles and the workflow must be in the draft. A record may also carry item_name (what one row is called, singular, such as Tender: the generated workflows are named from it), edit_role_id and delete_role_id (the roles that edit and delete a row; empty means the role that adds rows) and add_replaced_by, edit_replaced_by and delete_replaced_by (the code of a designed workflow of the draft that stands in for the generated add, edit or delete workflow). Every record has three generated workflows, RC-n.add, RC-n.edit and RC-n.delete, made and kept by the agency (see list_workflows, generated).",
+      "description": "Add a record to a workflow: a named list the workflow keeps beside its steps, the one role that adds rows, optionally the one role whose members each see their own row (viewer_role_id), and the form each row is added with. The roles and the workflow must be in the draft. A record may also carry item_name (what one row is called, singular, such as Tender: the generated workflows are named from it), edit_role_id and delete_role_id (the roles that edit and delete a row; empty means the role that adds rows) and add_replaced_by, edit_replaced_by and delete_replaced_by (the code of a designed workflow of the draft that stands in for the generated add, edit or delete workflow). A record has a code, a readable label made from its name (Tender register gives tender_register; a code sent must be lower case letters, digits and underscores, start with a letter and be unique in the draft, or the create is refused), and a hidden key the agency mints once (RC-n). Roles carry permissions on the code (record.tender_register.edit). Every record has three generated workflows, named from its key (RC-n.add, RC-n.edit and RC-n.delete), made and kept by the agency (see list_workflows, generated).",
       "args": [
         {
           "from": "body",
@@ -2191,7 +2191,7 @@
       "call": "UpdateRecord",
       "action": "agency.record.update",
       "title": "Update record",
-      "description": "Replace a record's name, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. An update replaces the whole record and does not merge into it: a viewer_role_id left out clears it, so send the current one to keep it, and the same holds for item_name, edit_role_id, delete_role_id and the three replaced_by fields. The same refusals as creating one apply. Each field of the form has a prompt, a hidden key the agency mints and a readable code; send the key back with every field so a reworded prompt or a renamed code is the same field and keeps its saved answers (a field sent without a key is matched by its code, then by its prompt, and one that matches nothing is new). A code is lower case letters, digits and underscores, unique in the record; one left out is proposed from the prompt. A key the record never had is refused. Saving a record regenerates its three workflows in place.",
+      "description": "Replace a record's name, code, workflow, role that adds rows, role that sees its own row (viewer_role_id, empty for none) and form. An update replaces the whole record and does not merge into it: a viewer_role_id left out clears it, so send the current one to keep it, and the same holds for item_name, edit_role_id, delete_role_id and the three replaced_by fields. The same refusals as creating one apply. Each field of the form has a prompt, a hidden key the agency mints and a readable code; send the key back with every field so a reworded prompt or a renamed code is the same field and keeps its saved answers (a field sent without a key is matched by its code, then by its prompt, and one that matches nothing is new). A code is lower case letters, digits and underscores, unique in the record; one left out is proposed from the prompt. A key the record never had is refused. A code left out keeps the record's code; a code sent renames the record: the key stays, and every role of the draft that carries the old code in a permission (record.<old code>.<action>) is rewritten to the new one in the same save. A code that is malformed or that another record of the draft holds is refused with 400 and nothing changes. Saving a record regenerates its three workflows in place.",
       "args": [
         {
           "from": "body",
@@ -2266,7 +2266,7 @@
       "call": "ListRecordRows",
       "action": "agency.record_row.list",
       "title": "List record rows",
-      "description": "List the rows added in one draft, narrowed to a record by its id or by its code, which stays the same in every version, to one order by order_id, or to the rows of the runs started on one row by subject_row_id. Retired rows are left out unless include_retired is true, and returned rows unless include_returned is true.",
+      "description": "List the rows added in one draft, narrowed to a record by its id, or by its code or its key (a row quotes the key, which stays the same in every version and when the record's code is renamed), to one order by order_id, or to the rows of the runs started on one row by subject_row_id. Retired rows are left out unless include_retired is true, and returned rows unless include_returned is true.",
       "args": [
         {
           "from": "query",

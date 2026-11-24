@@ -160,7 +160,7 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 		records = append(records, hashRecord("Record", map[string]any{
 			"id": r.ID, "workflow_id": r.WorkflowID, "name": r.Name, "role_id": r.RoleID,
 			"form_name": r.FormName, "questions": withoutDefaultFieldIdentity(r.Questions), "deleted": r.Deleted,
-		}, optionalField{"viewer_role_id", r.ViewerRoleID}, optionalField{"item_name", r.ItemName},
+		}, optionalField{"code", nonDefaultRecordCode(r)}, optionalField{"viewer_role_id", r.ViewerRoleID}, optionalField{"item_name", r.ItemName},
 			optionalField{"edit_role_id", r.EditRoleID}, optionalField{"delete_role_id", r.DeleteRoleID},
 			optionalField{"add_replaced_by", r.AddReplacedBy}, optionalField{"edit_replaced_by", r.EditReplacedBy},
 			optionalField{"delete_replaced_by", r.DeleteReplacedBy}))

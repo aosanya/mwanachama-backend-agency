@@ -23,6 +23,20 @@ type Record struct {
 	DeleteReplacedBy string `json:"delete_replaced_by"`
 }
 
+func (r Record) Identity() string {
+	if r.Key != "" {
+		return r.Key
+	}
+	return r.Code
+}
+
+func (r DocumentRecord) Identity() string {
+	if r.Key != "" {
+		return r.Key
+	}
+	return r.Code
+}
+
 type RecordRow struct {
 	ID           string            `json:"id"`
 	DraftID      string            `json:"draft_id,omitempty"`

@@ -97,7 +97,7 @@ func (s *issueScan) checkRowSteps() error {
 	if err != nil {
 		return err
 	}
-	codes, err := s.codeSet(roleRecord)
+	codes, err := s.keySet(roleRecord)
 	if err != nil {
 		return err
 	}

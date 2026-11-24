@@ -13,6 +13,7 @@ var (
 
 type HomePart struct {
 	Code string
+	Alt  string
 	Name string
 }
 
@@ -32,7 +33,7 @@ type HomeParts struct {
 func ResolveHomePart(parts []HomePart, ref string) (HomePart, error) {
 	ref = strings.TrimSpace(ref)
 	for _, part := range parts {
-		if part.Code == ref {
+		if part.Code == ref || (part.Alt != "" && part.Alt == ref) {
 			return part, nil
 		}
 	}
@@ -80,7 +81,7 @@ func HomePartsOf(doc AgencyDocument) HomeParts {
 		if record.Deleted {
 			continue
 		}
-		parts.Records = append(parts.Records, HomePart{Code: record.Code, Name: record.Name})
+		parts.Records = append(parts.Records, HomePart{Code: record.Code, Alt: record.Key, Name: record.Name})
 	}
 	for _, workflow := range doc.Workflows {
 		if workflow.Deleted {
