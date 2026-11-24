@@ -401,6 +401,36 @@ publish is refused and names the role and the code (D9). The scan's other
 refusals (D18) are built in their own issue. A code of a record that exists is
 accepted by the scan and carried into the publication document with the role.
 
+## Where a record's fields and answers live (ISS-178, before the change)
+
+This is the inventory ISS-178 starts from. Decisions D37 and D38 of ISS-174 give
+every field a readable code and a stable hidden key, and save rows under the
+key.
+
+A record's fields are its `questions`, a list of `models.StepQuestion` stored as
+one json column of `record` (the same type a step's form uses). A field had no
+identity of its own: its prompt was its name, so a renamed prompt was another
+field.
+
+How a row's answers were keyed, and what reads them:
+
+| Where | What it does with the prompt |
+|---|---|
+| `models.RecordRow.Answers`, `PlaceRefs` | `map[string]string` keyed by the question's prompt; the `answers` and `place_refs` columns of `record_row`. |
+| `validateRowAnswers` in `record_impl.go`, called by `CreateRecordRow` | Refuses an answer whose prompt is not a question of the record's form, refuses a blank required question, checks each answer against its question's type. |
+| `validateRowAnswer`, `validateMultiSelectAnswer` in `record_impl.go` | Check one answer against its question; their messages quote the prompt. |
+| `RowAllowance.Extra` and `Waived` in `row_allowance.go` | Name an extra detail, or a waived required question, by prompt. |
+| `approval_stamp.go`, and the `Changed: ` prefix in `record_impl.go` | Four fixed stamp prompts and the amendment lines are answers that are not questions of the form; they are kept as text. |
+| `refuseDuplicate` in `record_row_correction.go` | Compares two rows with `maps.Equal` on `Answers`. |
+| `ListRecordRows`, `record_row_retire.go`, `record_row_return.go` | Read and keep `Answers` as stored; they never look inside it. |
+| `ListInputSources` in `input_source_impl.go`, `recordSourceType` and `recordSource` in `compute_step.go` | Name a record field by prompt (`StepBinding.Question`). |
+| `rowStepFormFits` in `row_step.go`, `sameQuestions` in `generated_workflows.go` | Compare a step's questions with the record's, whole. |
+| `document.go`, `publication_impl.go` | Carry the questions in the publication document and in the content hash. |
+
+Outside this repo the hub's `agency_add_live_record_row` and
+`agency_list_live_record_rows` write and read `answers` by prompt, and the app
+shows them by prompt.
+
 ## A workflow's subject and the row a run is started on
 
 A workflow may name a **subject record**: `subject_record` on `Workflow` and on
