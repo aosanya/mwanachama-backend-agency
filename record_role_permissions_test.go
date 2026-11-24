@@ -447,6 +447,7 @@ func TestRolePermissions_FieldCodesStarsAndDeleteAreTakenOnEveryPath(t *testing.
 	if _, err := w.mgr.SetRolePermissions(ctx, w.roles[supplier].ID, want); err != nil {
 		t.Fatalf("SetRolePermissions: %v", err)
 	}
+	mayAdd(t, w.mgr, w.record)
 	pub, err := w.mgr.PublishAgency(ctx, w.draftID, "fields-1", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)

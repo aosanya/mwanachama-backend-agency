@@ -53,6 +53,8 @@ func buildRecordedWorld(t *testing.T) recordedWorld {
 	if err != nil {
 		t.Fatalf("CreateRecord day worked: %v", err)
 	}
+	mayAdd(t, w.mgr, tender)
+	mayAdd(t, w.mgr, day)
 	return recordedWorld{world: w, tender: tender, day: day}
 }
 
