@@ -3,6 +3,7 @@ package models
 type Record struct {
 	ID           string         `json:"id"`
 	Code         string         `json:"code"`
+	Key          string         `json:"key"`
 	DraftID      string         `json:"draft_id,omitempty"`
 	WorkflowID   string         `json:"workflow_id"`
 	Name         string         `json:"name"`
@@ -52,6 +53,7 @@ type RecordRow struct {
 type DocumentRecord struct {
 	ID           string         `json:"id"`
 	Code         string         `json:"code"`
+	Key          string         `json:"key,omitempty"`
 	WorkflowID   string         `json:"workflow_id"`
 	Name         string         `json:"name"`
 	RoleID       string         `json:"role_id"`
