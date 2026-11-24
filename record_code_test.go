@@ -389,7 +389,7 @@ func TestImport_ANewRecordAfterAFileWithCounterKeysGetsAKeyThatIsFree(t *testing
 	}
 	wf := w.workflow(t, "Later")
 	made, err := w.mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Later", RoleID: w.roles[coordinator].ID, FormName: "Later",
+		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Later", FormName: "Later",
 		Questions: []models.StepQuestion{ask("When", models.AnswerDate)},
 	})
 	if err != nil {
@@ -511,6 +511,7 @@ func newRecordCodesDatabase(t *testing.T) olderRecordCodesDatabase {
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, record)
 	clerk := roleCarrying(t, w, "Clerk", "record.payments.add.*", "record.payments.view.*", "report.read")
 	o := routedOrder{world: w, workflow: workflow, record: record}
 	row, err := mgr.CreateRecordRow(ctx, rowAdded(w, o, map[string]string{"Select the farmer": "Wanjiru", "Enter the amount paid": "1200"}))
@@ -636,10 +637,6 @@ func TestRecordCode_RacingCreatesOfOneCodeStoreOneAndClassifyTheRest(t *testing.
 	mgr := newSharedCacheManager(t, "racerc")
 	ctx := context.Background()
 	_, _, objective, _, _ := seedLiveAgency(t, mgr, ctx)
-	role, err := mgr.CreateRole(ctx, models.Role{DraftID: objective.DraftID, Name: "Clerk"})
-	if err != nil {
-		t.Fatalf("CreateRole: %v", err)
-	}
 	workflow, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: objective.DraftID, Name: "Orders"})
 	if err != nil {
 		t.Fatalf("CreateWorkflow: %v", err)
@@ -652,7 +649,7 @@ func TestRecordCode_RacingCreatesOfOneCodeStoreOneAndClassifyTheRest(t *testing.
 		name := fmt.Sprintf("Register %d", next)
 		mu.Unlock()
 		_, err := mgr.CreateRecord(ctx, models.Record{
-			DraftID: objective.DraftID, WorkflowID: workflow.ID, Name: name, Code: "tender", RoleID: role.ID, FormName: "Tender",
+			DraftID: objective.DraftID, WorkflowID: workflow.ID, Name: name, Code: "tender", FormName: "Tender",
 			Questions: []models.StepQuestion{ask("Closing date", models.AnswerDate)},
 		})
 		return err

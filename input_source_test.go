@@ -46,7 +46,7 @@ func buildLoanWorld(t *testing.T) loanWorld {
 		t.Fatalf("CreateWorkItem confirm: %v", err)
 	}
 	record, err := w.mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Loan terms", RoleID: w.roles[coordinator].ID,
+		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Loan terms",
 		FormName: "Terms", Questions: []models.StepQuestion{
 			ask("Months", models.AnswerNumber),
 			{Prompt: "Attachments", AnswerType: models.AnswerMultiSelect, Required: true, Options: []string{"Identity card", "Pay slip"}},

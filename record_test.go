@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"reflect"
-	"strings"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -22,7 +21,7 @@ type routedOrder struct {
 
 func paymentsRecord(w stepWorld, workflow models.Workflow) models.Record {
 	return models.Record{
-		DraftID: w.draftID, WorkflowID: workflow.ID, Name: "Payments", RoleID: w.roles[coordinator].ID,
+		DraftID: w.draftID, WorkflowID: workflow.ID, Name: "Payments",
 		FormName: "Payment", Questions: []models.StepQuestion{
 			pickOne("Select the farmer", "The farmers in the order"),
 			ask("Enter the amount paid", models.AnswerCurrency),
@@ -115,7 +114,7 @@ func TestRecord_GroupOrderReadsBackWithEightStepsAndItsPaymentsRecord(t *testing
 		t.Fatalf("the Group order keeps %d records, want 1", len(records))
 	}
 	got := records[0]
-	if got.Name != "Payments" || got.WorkflowID != o.workflow.ID || got.RoleID != w.roles[coordinator].ID ||
+	if got.Name != "Payments" || got.WorkflowID != o.workflow.ID ||
 		got.FormName != "Payment" || got.Code == "" ||
 		!reflect.DeepEqual(withoutIdentity(got.Questions), paymentsRecord(w, o.workflow).Questions) {
 		t.Errorf("Payments came back as %+v", got)
@@ -126,7 +125,7 @@ func TestRecord_GroupOrderReadsBackWithEightStepsAndItsPaymentsRecord(t *testing
 	}
 }
 
-func TestRecord_NeedsANameARoleAWorkflowAndAForm(t *testing.T) {
+func TestRecord_NeedsANameAWorkflowAndAForm(t *testing.T) {
 	o := buildRoutedOrder(t)
 	ctx := context.Background()
 	w := o.world
@@ -135,8 +134,6 @@ func TestRecord_NeedsANameARoleAWorkflowAndAForm(t *testing.T) {
 
 	invalid := map[string]func(*models.Record){
 		"no name":                   func(r *models.Record) { r.Name = " " },
-		"no role":                   func(r *models.Record) { r.RoleID = "" },
-		"two roles":                 func(r *models.Record) { r.RoleID = w.roles[coordinator].ID + "," + w.roles[farmer].ID },
 		"no workflow":               func(r *models.Record) { r.WorkflowID = "" },
 		"no form name":              func(r *models.Record) { r.FormName = "" },
 		"no questions":              func(r *models.Record) { r.Questions = nil },
@@ -152,29 +149,19 @@ func TestRecord_NeedsANameARoleAWorkflowAndAForm(t *testing.T) {
 	}
 
 	in := base
-	in.RoleID = "no-such-role"
-	if _, err := w.mgr.CreateRecord(ctx, in); !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
-		t.Errorf("a role that does not exist: want ErrRoleNotFound, got %v", err)
-	}
-	in = base
 	in.WorkflowID = "no-such-workflow"
 	if _, err := w.mgr.CreateRecord(ctx, in); !errors.Is(err, mwanachamaagency.ErrWorkflowNotFound) {
 		t.Errorf("a workflow that does not exist: want ErrWorkflowNotFound, got %v", err)
 	}
 
-	o.record.RoleID = "no-such-role"
-	if _, err := w.mgr.UpdateRecord(ctx, o.record); !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
-		t.Errorf("update to a role that does not exist: want ErrRoleNotFound, got %v", err)
-	}
-	o.record.RoleID = w.roles[supplier].ID
 	o.record.Name = "Paid"
 	updated, err := w.mgr.UpdateRecord(ctx, o.record)
-	if err != nil || updated.RoleID != w.roles[supplier].ID || updated.Name != "Paid" || updated.Code != o.record.Code {
+	if err != nil || updated.Name != "Paid" || updated.Code != o.record.Code {
 		t.Errorf("UpdateRecord = %+v, %v", updated, err)
 	}
 }
 
-func TestRecordRow_IsRefusedForARoleThatDoesNotAddRows(t *testing.T) {
+func TestRecordRow_IsRefusedForARoleThatCarriesNoAddPermissionOfTheRecord(t *testing.T) {
 	o := buildRoutedOrder(t)
 	ctx := context.Background()
 	w := o.world
@@ -262,14 +249,8 @@ func TestRecordRow_AForkCarriesTheRecordButNotItsRows(t *testing.T) {
 		t.Fatalf("CreateDraft: %v", err)
 	}
 	records, _ := w.mgr.ListRecords(ctx, fork.ID, mwanachamaagency.RecordFilter{})
-	roles, _ := w.mgr.ListRoles(ctx, fork.ID, mwanachamaagency.RoleFilter{})
-	roleNames := map[string]string{}
-	for _, r := range roles {
-		roleNames[r.ID] = r.Name
-	}
-	if len(records) != 1 || records[0].ID == o.record.ID || records[0].Code != o.record.Code ||
-		roleNames[records[0].RoleID] != coordinator || records[0].DraftID != fork.ID {
-		t.Fatalf("forked records = %+v (role %q)", records, roleNames[records[0].RoleID])
+	if len(records) != 1 || records[0].ID == o.record.ID || records[0].Code != o.record.Code || records[0].DraftID != fork.ID {
+		t.Fatalf("forked records = %+v", records)
 	}
 	forkedWorkflows, _ := w.mgr.ListWorkflows(ctx, fork.ID, mwanachamaagency.WorkflowFilter{})
 	forkedWorkflowNames := map[string]string{}
@@ -323,7 +304,7 @@ func checkRoutedOrderIn(t *testing.T, w stepWorld, draftID string) {
 		t.Errorf("route = %+v", route)
 	}
 	records, _ := w.mgr.ListRecords(ctx, draftID, mwanachamaagency.RecordFilter{})
-	if len(records) != 1 || records[0].Name != "Payments" || roleNames[records[0].RoleID] != coordinator {
+	if len(records) != 1 || records[0].Name != "Payments" {
 		t.Errorf("records = %+v", records)
 	}
 }
@@ -365,7 +346,7 @@ func TestRecord_ChangingOnlyARecordIsAChangeToPublish(t *testing.T) {
 	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "release-2", ""); !errors.Is(err, mwanachamaagency.ErrNoChangesDetected) {
 		t.Fatalf("publishing the same content: want ErrNoChangesDetected, got %v", err)
 	}
-	o.record.RoleID = w.roles[supplier].ID
+	o.record.Name = "Payments made"
 	if _, err := w.mgr.UpdateRecord(ctx, o.record); err != nil {
 		t.Fatalf("UpdateRecord: %v", err)
 	}
@@ -383,19 +364,20 @@ func TestRecord_ChangingOnlyARecordIsAChangeToPublish(t *testing.T) {
 	}
 }
 
-func TestRecord_TheIssueScanNamesWhatARecordRelies(t *testing.T) {
+func TestRecord_DeletingARoleLeavesNoFindingOnARecord(t *testing.T) {
 	o := buildRoutedOrder(t)
 	ctx := context.Background()
 	w := o.world
 	if err := w.mgr.DeleteRole(ctx, w.roles[coordinator].ID); err != nil {
 		t.Fatalf("DeleteRole: %v", err)
 	}
+	mayAdd(t, w.mgr, o.record)
 	issues, err := w.mgr.ListIssues(ctx, w.draftID, mwanachamaagency.IssueFilter{EntityType: "record"})
 	if err != nil {
 		t.Fatalf("ListIssues: %v", err)
 	}
-	if len(issues) != 1 || !strings.Contains(issues[0].Message, "adds rows as Role") {
-		t.Fatalf("issues = %+v, want one naming the missing role", issues)
+	if len(issues) != 0 {
+		t.Fatalf("issues = %+v, want none: a record names no role", issues)
 	}
 }
 

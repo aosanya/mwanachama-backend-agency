@@ -109,7 +109,7 @@ framework and are not in this list. Who holds a role stays Q72.
 
 ### Groups as actors (HS364)
 
-A step's `role_id` and `recipient_role_id` and a record's `role_id` accept a
+A step's `role_id` and `recipient_role_id` accept a
 role of the step's draft or a group the same `WithGroupLister` offers, so
 create and update agree with the picker. A role is looked up first; only an id
 that is no role of the draft asks the group source. An id that is neither is

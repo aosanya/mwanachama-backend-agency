@@ -66,7 +66,7 @@ func generatedPlansOf(r models.Record) []generatedPlan {
 			},
 			step: models.WorkItem{
 				DraftID: r.DraftID, Code: code + ".1", Title: name, Ordinality: 1, Kind: models.StepKindFillForm,
-				RoleID: r.RoleOfRowAction(action), RowRecord: r.Identity(), RowAction: action, FormName: formName, Questions: questions,
+				RowRecord: r.Identity(), RowAction: action, FormName: formName, Questions: questions,
 			},
 		})
 	}
@@ -180,9 +180,6 @@ func (m *agencyManager) ensureGenerated(ctx context.Context, tx *gorm.DB, draftI
 	for _, record := range state.records {
 		for _, plan := range generatedPlansOf(record) {
 			kept[plan.workflow.Code] = true
-			if record.RoleID == "" {
-				continue
-			}
 			if err := m.settleGenerated(ctx, tx, state, plan, now); err != nil {
 				return err
 			}
@@ -305,16 +302,11 @@ func (s *issueScan) checkGeneratedWorkflows() error {
 }
 
 func (s *issueScan) checkGeneratedFor(state generatedState, record models.Record, expected map[string]bool) {
-	if record.RoleID == "" {
-		s.add(models.IssueSeverityError, "record", record.ID,
-			"Record %s %q has no adding role, so its generated workflows cannot be made", record.Code, record.Name)
-	}
 	for _, plan := range generatedPlansOf(record) {
 		code := plan.workflow.Code
 		expected[code] = true
 		held := state.workflows[code]
 		switch {
-		case record.RoleID == "":
 		case len(held) == 0:
 			s.add(models.IssueSeverityError, "record", record.ID,
 				"Record %s %q has no generated workflow %s (%s)", record.Code, record.Name, code, plan.workflow.Name)

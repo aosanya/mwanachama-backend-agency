@@ -237,10 +237,6 @@ func (m *agencyManager) forkScope(ctx context.Context, tx *gorm.DB, sourceScope,
 	for _, r := range records {
 		r.DraftID, r.CreatedAt, r.LastUpdated = newDraftID, now, now
 		r.WorkflowID = remap(workflowIDs, r.WorkflowID)
-		r.RoleID = remap(roleIDs, r.RoleID)
-		r.ViewerRoleID = remap(roleIDs, r.ViewerRoleID)
-		r.EditRoleID = remap(roleIDs, r.EditRoleID)
-		r.DeleteRoleID = remap(roleIDs, r.DeleteRoleID)
 		if err := m.copyRow(ctx, tx, roleRecord, r); err != nil {
 			return err
 		}

@@ -127,3 +127,25 @@ func validateDocumentRolePermissions(doc models.AgencyDocument) error {
 	}
 	return nil
 }
+
+func carriesAddOf(permissions []string, recordCode string) bool {
+	prefix := RecordPermissionCode(recordCode, models.RowActionAdd) + "."
+	for _, code := range permissions {
+		if strings.HasPrefix(code, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *agencyManager) roleAddsRows(ctx context.Context, tx *gorm.DB, draftID, roleID string, record models.Record) bool {
+	if roleID == "" {
+		return false
+	}
+	var role models.Role
+	q := scopeQuery(tx.WithContext(ctx).Table(m.table(roleRole)), draftID).Where("id = ?", roleID)
+	if err := m.take(q, roleRole, &role, ErrRoleNotFound); err != nil {
+		return false
+	}
+	return carriesAddOf(role.Permissions, record.Code)
+}

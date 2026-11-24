@@ -593,7 +593,7 @@
     },
     {
       "role": "record",
-      "description": "A named list a workflow keeps beside its steps: who adds rows to it and the form each row is added with.",
+      "description": "A named list a workflow keeps beside its steps and the form each row is added with. Roles carry permissions on its code.",
       "fields": [
         {"name": "id", "type": "string", "description": "Storage key, opaque to callers.", "primary": true},
         {"name": "code", "type": "string", "description": "A readable label made from the record's name, such as tender: lower case letters, digits and underscores, starting with a letter, unique in the draft. Roles carry permissions on it (record.tender.edit). It may be renamed; a rename keeps the key and moves the roles in the same save."},
@@ -601,11 +601,7 @@
         {"name": "draft_id", "type": "string", "description": "The draft this row belongs to. Every row belongs to one.", "required": true},
         {"name": "workflow_id", "type": "string", "description": "The workflow that keeps this record, in the same draft.", "required": true},
         {"name": "name", "type": "string", "description": "What the record is called, such as Payments.", "required": true},
-        {"name": "role_id", "type": "string", "description": "The one role that adds rows, in the same draft.", "required": true},
-        {"name": "viewer_role_id", "type": "string", "description": "The one role whose members each see their own row of the record, in the same draft. Empty when no role but the one that adds rows sees them."},
         {"name": "item_name", "type": "string", "description": "What one row is called, singular, such as Tender or Office holder. The generated workflows are named from it: Add a tender, Edit a tender, Delete a tender. Empty means the form name, then the record name."},
-        {"name": "edit_role_id", "type": "string", "description": "The one role, in the same draft, that edits a row through the record's generated edit workflow. Empty means the role that adds rows."},
-        {"name": "delete_role_id", "type": "string", "description": "The one role, in the same draft, that deletes a row through the record's generated delete workflow. Empty means the role that adds rows."},
         {"name": "add_replaced_by", "type": "string", "description": "The code of a designed workflow, in the same draft, that stands in for the generated add workflow. The generated workflow stays and reads back replaced_by. Empty means none."},
         {"name": "edit_replaced_by", "type": "string", "description": "The code of a designed workflow, in the same draft, that stands in for the generated edit workflow. Empty means none."},
         {"name": "delete_replaced_by", "type": "string", "description": "The code of a designed workflow, in the same draft, that stands in for the generated delete workflow. Empty means none."},

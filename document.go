@@ -117,8 +117,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 	for _, r := range records {
 		doc.Records = append(doc.Records, models.DocumentRecord{
 			ID: r.ID, Code: r.Code, Key: r.Key, WorkflowID: r.WorkflowID, Name: r.Name,
-			RoleID: r.RoleID, ViewerRoleID: r.ViewerRoleID, FormName: r.FormName, Questions: r.Questions,
-			ItemName: r.ItemName, EditRoleID: r.EditRoleID, DeleteRoleID: r.DeleteRoleID,
+			FormName: r.FormName, Questions: r.Questions, ItemName: r.ItemName,
 			AddReplacedBy: r.AddReplacedBy, EditReplacedBy: r.EditReplacedBy, DeleteReplacedBy: r.DeleteReplacedBy,
 		})
 		doc.RecordPermissions = append(doc.RecordPermissions, RecordPermissionsOf(r)...)
@@ -293,6 +292,9 @@ func (m *agencyManager) libraryDocuments(scoped func(string) *gorm.DB, doc *mode
 
 func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, draftID string, doc models.AgencyDocument, now string) error {
 	fail := func(err error) error { return fmt.Errorf("applyDocumentToDraft: %w", err) }
+	if err := refuseGoneRoleFieldsInDocument(doc); err != nil {
+		return fail(err)
+	}
 	doc = foldLegacyRoleAssignments(doc)
 	doc, err := settleDocumentRecords(doc)
 	if err != nil {
@@ -393,9 +395,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		}
 		row := models.Record{
 			ID: recordIDs[r.ID], Code: r.Code, Key: r.Key, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
-			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), ViewerRoleID: remap(roleIDs, r.ViewerRoleID),
-			FormName: r.FormName, Questions: fields, CreatedAt: now, LastUpdated: now,
-			ItemName: r.ItemName, EditRoleID: remap(roleIDs, r.EditRoleID), DeleteRoleID: remap(roleIDs, r.DeleteRoleID),
+			Name: r.Name, FormName: r.FormName, Questions: fields, CreatedAt: now, LastUpdated: now, ItemName: r.ItemName,
 			AddReplacedBy: r.AddReplacedBy, EditReplacedBy: r.EditReplacedBy, DeleteReplacedBy: r.DeleteReplacedBy,
 		}
 		if err := m.copyRow(ctx, tx, roleRecord, row); err != nil {
