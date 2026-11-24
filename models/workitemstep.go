@@ -78,6 +78,8 @@ func (a AnswerType) Valid() bool {
 }
 
 type StepQuestion struct {
+	Key                 string     `json:"key,omitempty"`
+	Code                string     `json:"code,omitempty"`
 	Prompt              string     `json:"prompt"`
 	AnswerType          AnswerType `json:"answer_type"`
 	Required            bool       `json:"required"`
