@@ -421,6 +421,8 @@ The tables above leave some permissions out or give them only a paragraph. This 
 A record gives its field permissions as `models.Permission` values, each with a derived `code` and a `name`. One function builds every name, and everything else only carries or shows it.
 
 - Built: `recordPermissionName(item, action, field)` in `record_permissions.go`, called once by `RecordPermissionsOf` in the same file. The code beside it comes from `RecordPermissionCode` in the same file.
-- Tested: `record_permissions_test.go`. `TestRecordPermissions_TenderNamesEachFieldStarAndDelete` pins the names; `TestRecordPermissions_ItemNameFallsBackToFormNameThenName` pins the item in the name; `TestRecordPermissions_EveryFieldLevelPermissionHasAName` pins that none is empty.
+- Tested: `record_permissions_test.go`. `TestRecordPermissions_TenderNamesEachFieldStarAndDeleteInTheLongWordingBesideItsCode` pins each code beside its name; `TestRecordPermissions_ItemNameFallsBackToFormNameThenName` pins the item in the name; `TestRecordPermissions_EveryFieldLevelPermissionHasAName` pins that none is empty.
 - Carried, never built: `role_record_permissions.go` and the scan in `issue_impl.go` read the codes only, so a change of wording moves no role.
 - Shown in the hub console, outside this repository: `data/permissionNames.ts` reads `agency_list_permissions` into a code to name map, and `pages/spec/rolesDetail.tsx` writes the name with the code beside it (ISS-148, ISS-160). The console builds no wording of its own for a record permission.
+
+The wording (D66): a field permission reads `Add the closing date of a tender`, `Edit the closing date of a tender` or `See the closing date of a tender`; a star reads `Add every field of a tender`; delete reads `Delete a tender`. The code is the permission's own `code`, shown beside the name. The full rules are in [workflow-records.md](workflow-records.md).
