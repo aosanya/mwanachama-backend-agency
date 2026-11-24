@@ -13,7 +13,7 @@ A record is `models.Record`, stored in the `record` object of
 | Field | Meaning |
 |---|---|
 | `code` | A readable label made from the name, such as `tender` (see A record's code and key). Unique in the draft and renamable. Roles carry permissions on it: `record.tender.edit`. |
-| `key` | The hidden identity, `RC-1`, minted once and never edited. Rows, steps, generated workflows and a workflow's subject name the record by it, and it stays the same in every later version. The counter code `RC-n` is deprecated as a code (D58) and lives on only as this key. |
+| `key` | The hidden identity, minted once and never edited: a UUID for a record made since ISS-201 (D61), the counter code `RC-1` for an older one. Rows, steps, generated workflows and a workflow's subject name the record by it, and it stays the same in every later version. The counter code `RC-n` is deprecated as a code (D58) and lives on only as an older record's key. |
 | `workflow_id` | The workflow that keeps the record, in the same draft. |
 | `name` | What the record is called, such as Payments. Unique inside its workflow, ignoring case. |
 | `role_id` | The one role that adds rows, in the same draft. |
@@ -176,7 +176,7 @@ when set (record `WorkItemRow`, so an agency without them hashes as before):
 
 | Field | Values | Meaning |
 |---|---|---|
-| `row_record` | a record key such as `RC-1` (a readable code is saved as the key) | The record whose row the step writes. |
+| `row_record` | a record key (a UUID, or `RC-1` for an older record; a readable code is saved as the key) | The record whose row the step writes. |
 | `row_action` | `add`, `edit`, `delete` | What the step does to it. |
 
 Create and update refuse with `ErrInvalidWorkItem` (400): one of the two without
@@ -310,15 +310,18 @@ record's code and `row_action` set:
 
 | Workflow code | `row_action` | Held by | Form |
 |---|---|---|---|
-| `RC-1.add` | `add` | `role_id` | the record's form and questions |
-| `RC-1.edit` | `edit` | `edit_role_id`, else `role_id` | the record's form and questions |
-| `RC-1.delete` | `delete` | `delete_role_id`, else `role_id` | `Why delete this <item>` asking `Why is it removed` |
+| `<key>.add` | `add` | `role_id` | the record's form and questions |
+| `<key>.edit` | `edit` | `edit_role_id`, else `role_id` | the record's form and questions |
+| `<key>.delete` | `delete` | `delete_role_id`, else `role_id` | `Why delete this <item>` asking `Why is it removed` |
 
 The workflow name is the verb and the item with its article: `Add a tender`,
 `Edit an office holder`. The item is `item_name`, else the record's
 `form_name`, else its name. The step is titled like its workflow, has the
-ordinality 1 and the code `RC-1.add.1`. `RC-1` in these codes is the record's
-key, so renaming the record's code does not remake the generated workflows.
+ordinality 1 and the code `<key>.add.1`. `<key>` in these codes is the record's
+key, so renaming the record's code does not remake the generated workflows. For a
+record made since ISS-201 the key is a UUID, so the code reads
+`3f2b8c1e-5d6a-4e0b-9a41-7c2d8e9f0a11.add` until ISS-153 names them; the
+generated workflows of an older record keep `RC-1.add`.
 
 On a workflow, three fields: `generated` (true), `generated_for` (the record's
 key) and `replaced_by` (the code of the designed workflow that stands in for
@@ -547,7 +550,7 @@ key above):
 
 | Name | Meaning |
 |---|---|
-| `key` | The hidden identity, minted once from the `record` counter (`RC-1`, `RC-2`) and never edited. Everything that points at a record points at the key. |
+| `key` | The hidden identity, minted once and never edited: a UUID from `newID()` for a record made since ISS-201, or the counter code (`RC-1`, `RC-2`) an older record was given. Everything that points at a record points at the key. |
 | `code` | A readable label made from the name, such as `payments` for `Payments` or `tender_register` for `Tender register`. Lower case letters, digits and underscores, starting with a letter. Unique in the draft (not only in the workflow). It may be renamed. |
 
 A code never looks like a key: a code that is `RC-9`, that has a capital, a space,
@@ -558,7 +561,7 @@ a dash or a dot, that starts with a digit or that has the shape of a field key
 
 `record_code.go` settles every record that is written:
 
-- **Create.** The key is the next `RC-n`. A code that is given must be well
+- **Create.** The key is a new UUID (ISS-201, D61); the `record` counter is no longer drawn from. A code that is given must be well
   formed and not held by another record of the draft, or the create is refused
   with `ErrInvalidRecord` (400). A record with no code gets one proposed from its
   name (`FieldCodeOf`'s rule: `Payments` gives `payments`, a name that starts
@@ -611,88 +614,76 @@ roles' permission codes are new).
 | `ListRecords` (the `code` filter), the Issue scan's messages | The code. |
 | `models.RecordRow.RecordCode` (`CreateRecordRow`), and the duplicate and replace checks in `record_row_correction.go` | The key, so a row keeps naming its record after a rename and the rows of an older database are left as they were. |
 | `ListRecordRows` with `record_code` | The code or the key: a code is turned into the key of the record of the draft that holds it, and a value that is no code is read as a key. |
-| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The key: `RC-1.add`, `RC-1.add.1`, `generated_for`, and the step's `row_record`. |
+| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The key: `<key>.add`, `<key>.add.1`, `generated_for`, and the step's `row_record`. |
 | `row_record` of a step (`validateRowStepReferences`), `subject_record` of a workflow (`validateWorkflowSubject`), `checkRowSteps`, `checkWorkflowSubjects`, `validateDocumentSubjects` | The key. A readable code written there is saved as the key (`recordKeyOfRef`, and `settleDocumentRecords` for a file), so a rename never leaves them behind. |
-| `HomePartsOf` in `models/home_refs.go` | Both: a home entry's `target` or `page_of` resolves by the code or the key, as written; it is not rewritten, so a home entry written by code must be changed when the code is. |
+| `HomePartsOf` in `models/home_refs.go` | Both: a home entry's `target` or `page_of` resolves by the code or the key. Since ISS-201 a write turns the code into the key (see below), so a rename leaves it whole; an entry written by code before ISS-201 still resolves by the code until the code is renamed. |
 | `keyedFields`, `recordFieldsOf`, `legacyFieldKey` | The key (`Record.Identity()`, the key or, for a record that has none, the code), so the field keys worked out for an old file and for a migrated database stay the same. |
 | `StableIdentity` and `Resolve` in `identity_owner.go`; `advanceCodeSequences` in `import.go` | The key. |
 | `WorkItem.RecordCode` | Unchanged: a `fill_form` step names a record the platform derives; the sibling does not look it up. |
 | The hub's imports | Outside this repo: they read a row's `record_code` and a step's `row_record`, which are keys, and a record's `code` and `key`. |
 
-### Decisions left to the owner
-
-- The key of a new record is the next `RC-n`, so generated workflow codes stay
-  `RC-1.add`. A random key such as the field's `f_...` would match the field, but
-  would make those codes unreadable.
-- A home entry that names a record by code is not rewritten on a rename.
-
 ## A record's key is a UUID, and a home entry names it by the key (ISS-201, decisions D61 and D62)
 
-This section is the inventory the change was made from. The owner decided that the
-hidden key of a newly made record is a UUID, not the next `RC-n` and not a hash
-(the issue first said a hash; the owner's answer is the UUID). Old records keep the
-key they hold. A home entry that names a record by its code is saved as the key.
+The hidden key of a newly made record is a UUID, not the next `RC-n` and not a
+hash (the issue first said a hash; the owner's answer is the UUID). Old records
+keep the key they hold. A home entry that names a record by its code is saved as
+the key. This section is the inventory the change was made from and what it did.
 
 ### Where the key is minted
 
-| Where | What it does today |
+| Where | What it does |
 |---|---|
-| `insertRecord` in `record_code.go` | The only place a key is minted for a record the platform makes: `claimCode` takes the next `RC-n` from the `record` counter in `code_sequence`. |
-| `settleRecordIdentities` in `record_code.go`, for import, fork from a publication and `carryRecordKeysForward` | A record that arrives without a key takes its own old code as the key (`RC-1` stays `RC-1`). It mints nothing. |
-| `advanceCodeSequences` in `import.go` and `numberIn` | Raises the `record` counter past the highest `RC-n` key a file brought. A UUID has no `RC-` part, so it counts as 0 and moves nothing. |
-| `field` keys, `randomFieldKey` and `legacyFieldKey` in `record_field.go` | The model for the field. A new field gets a random `f_` plus sixteen hex digits; only a field read from an old file gets a worked out one (sha256 of the record's key, the prompt and the number of earlier fields with that prompt). |
+| `insertRecord` in `record_code.go` | The only place a key is minted for a record the platform makes. It is `newID()` (`store.go`, a UUID). Before ISS-201 it was `claimCode`, the next `RC-n` of the `record` counter. |
+| `settleRecordIdentities` in `record_code.go`, for import, fork from a publication and `carryRecordKeysForward` | Unchanged. A record that arrives without a key takes its own old code as the key (`RC-1` stays `RC-1`). It mints nothing. |
+| `advanceCodeSequences` in `import.go` and `numberIn` | Unchanged. It raises the `record` counter past the highest `RC-n` key a file brought, so the counter stays past every old key. A UUID has no `RC-` part, so it counts as 0 and moves nothing. |
+| `randomFieldKey` and `legacyFieldKey` in `record_field.go` | The model for the field, and untouched. A new field gets a random `f_` plus sixteen hex digits; only a field read from an old file gets a worked out one (sha256 of the record's key, the prompt and the number of earlier fields with that prompt). |
 
 What the new key is made of: nothing worked out. A record has no property that is
 stable (its name and code are both editable), so a hash of them would repeat for
-two records with the same name or move on a rename. The key is the repo's row id
-generator, `newID()` (`store.go`, a UUID), drawn once at create, the way a new
-field's key is drawn. A hash is kept only where a key must come out the same on a
-second read of old data (`legacyFieldKey`), and a record that has no key is given
-its old code, not a hash.
+two records with the same name or move on a rename. The key is drawn once at
+create, the way a new field's key is, from the repo's row id generator. A hash is
+kept only where a key must come out the same on a second read of old data
+(`legacyFieldKey`), and a record that has no key is given its old code, not a
+hash or a UUID, so the same old file imported twice gives the same keys.
 
 ### Where the key is read
 
 | Where | Reads the key as |
 |---|---|
 | `Record.Identity()` and `DocumentRecord.Identity()` in `models/record.go` | The key, else the code. |
-| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The prefix of a generated workflow's code (`<key>.add`, step `<key>.add.1`), its `generated_for` and the step's `row_record`. A new record's generated workflows therefore turn UUID-based, `3f2a...c1.add`, until ISS-153 names them; the old ones keep `RC-1.add`. A matching generated workflow is found by `generated_for`, not by parsing the code, so they still resolve. |
+| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The prefix of a generated workflow's code (`<key>.add`, step `<key>.add.1`), its `generated_for` and the step's `row_record`. A new record's generated workflows therefore turn UUID-based until ISS-153 names them; the old ones keep `RC-1.add`. A generated workflow is found by its code and checked against its `generated_for`; both are the key as a plain string and nothing parses them, so a UUID resolves as `RC-1` did, and a rename of the code does not remake them. |
 | `CreateRecordRow` in `record_impl.go` and `record_row_correction.go` | `RecordRow.RecordCode` is the key. |
 | `row_step.go`, `workflow_subject.go`, `document.go` | `row_record`, `subject_record` and the document's records, by the key. |
 | `recordFieldsOf`, `keyedFields`, `legacyFieldKey`, `fieldSettlement` | The key, as the seed of an old field's worked out key. |
-| `StableIdentity` and `Resolve` in `identity_owner.go` | `StableIdentity` reads the `key` column. `Resolve` cuts the identity at the first `-` and reads the front as an object prefix (`RC`), so an identity that is a UUID would be cut at a hex group and found no object. It has to look a UUID up as a record key. |
+| `StableIdentity` and `Resolve` in `identity_owner.go` | `StableIdentity` reads the `key` column. `Resolve` cuts the identity at the first `-` and reads the front as an object prefix (`RC`); an identity that is a UUID has no such prefix, so `Resolve` reads it as the key of a record of the open draft. |
 | `carryRecordKeysForward` in `provision_record_codes.go` | Only a stored record with no key. A stored key, `RC-n` or a UUID, is never touched. |
 | The `record` entry in `codedRoles` and `backfillCodes` in `provision.go` | The `record` counter and prefix stay, for the old keys. |
-| `agency.blueprint.json`, the `key` column of `record` | Its description says "such as RC-1". |
+| `agency.blueprint.json` (the `key` column of `record`) and `agency.operations.json` | Their descriptions name the key as a UUID, or `RC-1` for an older record. |
 
 A permission code (`record.<code>.add`) and the `code` filter use the readable code,
 and nothing in the repo splits a key at a dot or a dash except `Resolve`.
 
-### Where a home entry names a record
+### A home entry names a record by its key
 
-| Where | What it does today |
+| Where | What it does |
 |---|---|
 | `HomeEntry.PageOf` and `HomeEntry.Target` (with `TargetType` `record`), `DocumentHomeNode.PageOf` and `Target.Ref` in `models/home.go` | A free string up to 200 characters. |
-| `CreateHomeEntry` and `SetHome` in `home_impl.go`, and `ImportDocument` in `document.go` | Check the roles of the entry and store `target` and `page_of` exactly as written. They look at no record. |
-| `HomePartsOf`, `ResolveHomePart` and `checkHomeNode` in `models/home_refs.go` | Resolve the reference when the home is checked: by the record's code or its key (`Alt`), then by its name. They do not rewrite it. |
+| `CreateHomeEntry` and `SetHome` in `home_impl.go`, and `ImportDocument` and a fork from a publication in `document.go` | Resolve the `page_of` and the `target` of a record entry through `HomeParts.KeyRecordRefs` and save the key. The reference may be the record's code, its key or its name (`ResolveHomePart`'s order: code or key first, then a name that only one record has). |
+| `HomePartsOf`, `ResolveHomePart` and `checkHomeNode` in `models/home_refs.go` | Resolve a reference when the home is checked, by code, key or name. |
 
-So a home entry written with the code `tender` keeps the string `tender`, and a
-rename of the code leaves it naming nothing.
-
-### The rule
-
-- A new record gets a UUID key from `newID()`; the key is never edited.
-- An old record keeps the key it holds. The `record` counter stays so no old key is
-  ever minted again.
-- `Resolve` reads an identity that is not a known prefix as a record key.
-- `CreateHomeEntry`, `SetHome` and the import of a document resolve the `page_of`
-  and the `target` of a record entry (by code, key or name, as `ResolveHomePart`
-  does) and save the key. A reference that matches no record, or more than one, is
-  saved as it was written, since a home may be written before its records are.
+A reference that matches no record, or a name that matches more than one, is saved
+as it was written, since a home may be written before its records are, and
+`HomeParts.CheckHome` still reports it. A file is resolved against its own records
+after their keys are settled, so an old file whose record has no key saves the
+old counter code as the key. A rename of the record's code never touches a home
+entry, because the entry holds the key. An entry saved before ISS-201 holds the
+code it was written with and is not migrated: it still resolves until that code is
+renamed.
 
 ## A workflow's subject and the row a run is started on
 
 A workflow may name a **subject record**: `subject_record` on `Workflow` and on
-the document workflow holds a record key, such as `RC-1`, of the same draft (the
+the document workflow holds a record key (a UUID, or `RC-1` for an older record) of the same draft (the
 record's readable code is understood too and is saved as the key). It
 says the workflow acts on one row of that record, so a run of it is started on
 a row. An empty `subject_record` means no subject, and the workflow behaves as
