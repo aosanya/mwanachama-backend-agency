@@ -202,3 +202,57 @@ func TestRolePermissions_PublishAcceptsTheCodesOfARecordOfTheDraft(t *testing.T)
 	w := newRecordPermissionWorld(t)
 	publishedWithClerk(t, w, []string{w.code("add"), w.code("edit"), w.code("delete"), w.code("view")})
 }
+
+func TestRolePermissions_DeletingARecordLeavesTheCodesAsAnErrorIssueAndRefusesThePublish(t *testing.T) {
+	w := newRecordPermissionWorld(t)
+	ctx := context.Background()
+	role, err := w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: []string{w.code("add"), "report.read"}})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	dangling := w.code("add")
+	if err := w.mgr.DeleteRecord(ctx, w.record.ID); err != nil {
+		t.Fatalf("DeleteRecord: %v", err)
+	}
+
+	kept, err := w.mgr.GetRole(ctx, role.ID)
+	if err != nil || !reflect.DeepEqual(kept.Permissions, []string{dangling, "report.read"}) {
+		t.Fatalf("GetRole = %+v, %v; the role keeps what it carried", kept, err)
+	}
+
+	issues, err := w.mgr.ListIssues(ctx, w.draftID, mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues: %v", err)
+	}
+	var found []models.Issue
+	for _, issue := range issues {
+		if issue.EntityID == role.ID {
+			found = append(found, issue)
+		}
+	}
+	if len(found) != 1 || found[0].Severity != models.IssueSeverityError {
+		t.Fatalf("issues of the role = %+v, want one error", found)
+	}
+	for _, part := range []string{role.Code, "Clerk", dangling, "no record gives"} {
+		if !strings.Contains(found[0].Message, part) {
+			t.Errorf("issue = %q, want it to say %q", found[0].Message, part)
+		}
+	}
+
+	_, err = w.mgr.PublishAgency(ctx, w.draftID, "", "")
+	if !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) || !strings.Contains(err.Error(), "Clerk") || !strings.Contains(err.Error(), dangling) {
+		t.Fatalf("PublishAgency = %v, want ErrPublishValidationFailed naming the role and %s", err, dangling)
+	}
+}
+
+func TestRolePermissions_ACodeNoRecordGivesIsNotCalledAnUnknownCatalogueCode(t *testing.T) {
+	w := newRecordPermissionWorld(t)
+	ctx := context.Background()
+	if _, err := w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Reader", Permissions: []string{"teleport.anyone"}}); err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	_, err := w.mgr.PublishAgency(ctx, w.draftID, "", "")
+	if err == nil || !strings.Contains(err.Error(), "unknown permission") || strings.Contains(err.Error(), "no record gives") {
+		t.Fatalf("PublishAgency = %v, want the catalogue wording kept for a catalogue code", err)
+	}
+}
