@@ -2136,6 +2136,33 @@
       ],
       "tool": "agency_list_record_rows"
     },
+    "add_record_row_tag": {
+      "method": "POST",
+      "path": "/record-rows/{row_id}/tags",
+      "call": "AddRecordRowTag",
+      "action": "agency.record_row.add_tag",
+      "title": "Add record row tag",
+      "description": "Add one tag id to one current row of a record. A tag the row already carries changes nothing. A tag is only ever added: nothing takes one off a row, and correcting a row keeps the tags it carries. The agency holds no tag list and does not check that the tag exists. A row that does not exist, is retired, was returned or was replaced by a correction is refused, and so is a blank tag.",
+      "args": [
+        {
+          "from": "path",
+          "as": "row_id",
+          "description": "The row to tag."
+        },
+        {
+          "from": "body",
+          "as": "tag",
+          "required": true,
+          "description": "The id of the tag to add."
+        }
+      ],
+      "returns": [
+        {
+          "body": true
+        }
+      ],
+      "tool": "agency_add_record_row_tag"
+    },
     "retire_record_row": {
       "method": "POST",
       "path": "/record-rows/{row_id}/retire",
