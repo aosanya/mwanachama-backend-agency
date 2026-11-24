@@ -301,18 +301,35 @@ record's code and `row_action` set:
 
 | Workflow code | `row_action` | Role of the step | Form |
 |---|---|---|---|
-| `<key>.add` | `add` | none | the record's form and questions |
-| `<key>.edit` | `edit` | none | the record's form and questions |
-| `<key>.delete` | `delete` | none | `Why delete this <item>` asking `Why is it removed` |
+| `record.<code>.add` | `add` | none | the record's form and questions |
+| `record.<code>.edit` | `edit` | none | the record's form and questions |
+| `record.<code>.delete` | `delete` | none | `Why delete this <item>` asking `Why is it removed` |
 
 The workflow name is the verb and the item with its article: `Add a tender`,
 `Edit an office holder`. The item is `item_name`, else the record's
 `form_name`, else its name. The step is titled like its workflow, has the
-ordinality 1 and the code `<key>.add.1`. `<key>` in these codes is the record's
-key, so renaming the record's code does not remake the generated workflows. For a
-record made since ISS-201 the key is a UUID, so the code reads
-`3f2b8c1e-5d6a-4e0b-9a41-7c2d8e9f0a11.add` until ISS-153 names them; the
-generated workflows of an older record keep `RC-1.add`.
+ordinality 1 and the code `record.<code>.add.1` (D75). The workflow code is built by
+`generatedCode` in `generated_workflows.go` through `RecordPermissionCode`, so for
+the record `tender` the workflows are `record.tender.add`, `record.tender.edit` and
+`record.tender.delete`, and the add step is `record.tender.add.1`. `<code>` is the
+record's current code. The step code is a name and not a permission: the
+permissions of the record are `record.tender.add.<field>` and
+`record.tender.add.*`, so no permission equals a workflow code. Which role holds a
+generated step is decided by the hub (ISS-157): a role holds the add step when it
+holds add for every required field of the record (`add.*`, or an `add.<field>` for
+each required field), and for a record with no required field when it holds
+`add.*` or at least one `add.<field>`.
+
+A generated workflow belongs to its record by `generated_for`, the record's key,
+and to its action by the last part of its code. Generation matches an existing
+workflow by those two, not by its code. A draft that holds the old codes
+(`<key>.add`, `<key>.add.1`, the key being a UUID or `RC-1`) and a record whose
+code is renamed are therefore renamed in place: the workflow row and its step row
+are updated, so their ids, the role assignments, scenario inputs and `run_workflow`
+steps that name them, and the replaced-by link stay, and the rename never goes
+through `removeGeneratedWorkflow`. A rename of the record's code renames its
+three workflows and their steps at the same time, and the Issue scan names a
+generated workflow or step whose code is not the one the record gives now.
 
 On a workflow, three fields: `generated` (true), `generated_for` (the record's
 key) and `replaced_by` (the code of the designed workflow that stands in for
@@ -324,7 +341,7 @@ When they are made: on every fork of a draft or of a publication, on every
 import, on publish (before the scan and the hash), and whenever a record is
 created, updated or deleted or a workflow is deleted (`ensureGenerated`, also
 the public `EnsureGeneratedWorkflows(ctx, draftID)`). Generation reuses the row
-of a workflow with the same code, so ids stay the same across regenerations
+of the workflow of the same record and action, so ids stay the same across regenerations
 inside a draft, updates the workflow and its step in place when the record's
 questions, role, names or stand-ins changed, removes a second copy and a
 workflow whose record is gone, and never changes a designed workflow. A draft,
@@ -685,7 +702,7 @@ roles' permission codes are new).
 | `ListRecords` (the `code` filter), the Issue scan's messages | The code. |
 | `models.RecordRow.RecordCode` (`CreateRecordRow`), and the duplicate and replace checks in `record_row_correction.go` | The key, so a row keeps naming its record after a rename and the rows of an older database are left as they were. |
 | `ListRecordRows` with `record_code` | The code or the key: a code is turned into the key of the record of the draft that holds it, and a value that is no code is read as a key. |
-| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The key: `<key>.add`, `<key>.add.1`, `generated_for`, and the step's `row_record`. |
+| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The code for the workflow and step codes (`record.<code>.add`, `record.<code>.add.1`); the key for `generated_for` and the step's `row_record`. |
 | `row_record` of a step (`validateRowStepReferences`), `subject_record` of a workflow (`validateWorkflowSubject`), `checkRowSteps`, `checkWorkflowSubjects`, `validateDocumentSubjects` | The key. A readable code written there is saved as the key (`recordKeyOfRef`, and `settleDocumentRecords` for a file), so a rename never leaves them behind. |
 | `HomePartsOf` in `models/home_refs.go` | Both: a home entry's `target` or `page_of` resolves by the code or the key. Since ISS-201 a write turns the code into the key (see below), so a rename leaves it whole; an entry written by code before ISS-201 still resolves by the code until the code is renamed. |
 | `keyedFields`, `recordFieldsOf`, `legacyFieldKey` | The key (`Record.Identity()`, the key or, for a record that has none, the code), so the field keys worked out for an old file and for a migrated database stay the same. |
@@ -722,7 +739,7 @@ hash or a UUID, so the same old file imported twice gives the same keys.
 | Where | Reads the key as |
 |---|---|
 | `Record.Identity()` and `DocumentRecord.Identity()` in `models/record.go` | The key, else the code. |
-| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The prefix of a generated workflow's code (`<key>.add`, step `<key>.add.1`), its `generated_for` and the step's `row_record`. A new record's generated workflows therefore turn UUID-based until ISS-153 names them; the old ones keep `RC-1.add`. A generated workflow is found by its code and checked against its `generated_for`; both are the key as a plain string and nothing parses them, so a UUID resolves as `RC-1` did, and a rename of the code does not remake them. |
+| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | A generated workflow's `generated_for` and the step's `row_record`. Since ISS-153 the workflow code is `record.<code>.add` and the step code `record.<code>.add.1`, built from the code. A generated workflow is found by its `generated_for` and the action at the end of its code, so a UUID resolves as `RC-1` did and a rename of the record's code renames the workflows and steps in place. |
 | `CreateRecordRow` in `record_impl.go` and `record_row_correction.go` | `RecordRow.RecordCode` is the key. |
 | `row_step.go`, `workflow_subject.go`, `document.go` | `row_record`, `subject_record` and the document's records, by the key. |
 | `recordFieldsOf`, `keyedFields`, `legacyFieldKey`, `fieldSettlement` | The key, as the seed of an old field's worked out key. |
