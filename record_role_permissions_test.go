@@ -373,3 +373,147 @@ func TestRolePermissions_ARemovedFieldLeavesItsCodeAsAnErrorWhileTheStarKeepsHol
 		t.Fatalf("issues of the role = %+v, want one error naming %s and not the star", found, named)
 	}
 }
+
+func (w recordPermissionWorld) refusalSays(t *testing.T, err error, parts ...string) {
+	t.Helper()
+	if !errors.Is(err, mwanachamaagency.ErrUnknownPermission) {
+		t.Fatalf("err = %v, want ErrUnknownPermission", err)
+	}
+	for _, part := range parts {
+		if !strings.Contains(err.Error(), part) {
+			t.Errorf("err = %q, want it to say %q", err, part)
+		}
+	}
+}
+
+func (w recordPermissionWorld) refusedOnEveryPath(t *testing.T, permissions []string) map[string]error {
+	t.Helper()
+	ctx := context.Background()
+	refusals := map[string]error{}
+	_, refusals["create"] = w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: permissions})
+	role := w.roles[farmer]
+	role.Permissions = permissions
+	_, refusals["update"] = w.mgr.UpdateRole(ctx, role)
+	_, refusals["set"] = w.mgr.SetRolePermissions(ctx, w.roles[supplier].ID, permissions)
+	pub := publishedWithClerk(t, w, []string{"report.read"})
+	bad := pub.Document
+	bad.Roles = append([]models.DocumentRole(nil), pub.Document.Roles...)
+	for i := range bad.Roles {
+		if bad.Roles[i].Name == "Clerk" {
+			bad.Roles[i].Permissions = permissions
+		}
+	}
+	_, refusals["import"] = w.mgr.ImportDocument(ctx, "bad document", bad)
+	return refusals
+}
+
+func TestRolePermissions_APlainCodeIsRefusedSayingWhatReplacedItOnEveryPath(t *testing.T) {
+	for _, action := range []string{"add", "edit", "view"} {
+		w := newRecordPermissionWorld(t)
+		plain := "record." + w.record.Code + "." + action
+		for path, err := range w.refusedOnEveryPath(t, []string{plain}) {
+			t.Run(action+" on "+path, func(t *testing.T) {
+				w.refusalSays(t, err, plain, plain+".*", plain+".<field>", w.record.Code)
+			})
+		}
+	}
+}
+
+func TestRolePermissions_AFieldTheRecordLacksIsRefusedNamingTheRoleTheCodeAndTheRecordOnEveryPath(t *testing.T) {
+	w := newRecordPermissionWorld(t)
+	missing := w.fieldCode("edit", "nothing")
+	for path, err := range w.refusedOnEveryPath(t, []string{missing}) {
+		t.Run(path, func(t *testing.T) {
+			w.refusalSays(t, err, missing, `record "`+w.record.Code+`"`, `no field "nothing"`)
+		})
+	}
+	_, err := w.mgr.CreateRole(context.Background(), models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: []string{missing}})
+	w.refusalNames(t, err, "Clerk", missing)
+}
+
+func TestRolePermissions_FieldCodesStarsAndDeleteAreTakenOnEveryPath(t *testing.T) {
+	w := newRecordPermissionWorld(t)
+	ctx := context.Background()
+	want := []string{w.fieldCode("edit", amountField), w.fieldCode("view", "*"), w.code("delete")}
+	if _, err := w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: want}); err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	role := w.roles[farmer]
+	role.Permissions = want
+	if _, err := w.mgr.UpdateRole(ctx, role); err != nil {
+		t.Fatalf("UpdateRole: %v", err)
+	}
+	if _, err := w.mgr.SetRolePermissions(ctx, w.roles[supplier].ID, want); err != nil {
+		t.Fatalf("SetRolePermissions: %v", err)
+	}
+	pub, err := w.mgr.PublishAgency(ctx, w.draftID, "fields-1", "")
+	if err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+	imported, err := w.mgr.ImportDocument(ctx, "same document", pub.Document)
+	if err != nil {
+		t.Fatalf("ImportDocument: %v", err)
+	}
+	roles, err := w.mgr.ListRoles(ctx, imported.Draft.ID, mwanachamaagency.RoleFilter{Name: "Clerk"})
+	if err != nil || len(roles) != 1 || !reflect.DeepEqual(roles[0].Permissions, want) {
+		t.Fatalf("imported Clerk = %+v, %v; want permissions %v", roles, err, want)
+	}
+}
+
+func TestRolePermissions_TheStarIsGivenAndTakenForARecordWithNoFields(t *testing.T) {
+	bare := models.Record{Code: "notes", Name: "Notes"}
+	star := mwanachamaagency.RecordPermissionCode("notes", "add", "*")
+	gave := false
+	for _, p := range mwanachamaagency.RecordPermissionsOf(bare) {
+		gave = gave || p.Code == star
+	}
+	if !gave {
+		t.Fatalf("RecordPermissionsOf(no fields) = %+v, want %s", mwanachamaagency.RecordPermissionsOf(bare), star)
+	}
+	w := newRecordPermissionWorld(t)
+	pub := publishedWithClerk(t, w, []string{"report.read"})
+	doc := pub.Document
+	doc.Records = append(append([]models.DocumentRecord(nil), doc.Records...), models.DocumentRecord{Code: "notes", Name: "Notes"})
+	doc.Roles = append([]models.DocumentRole(nil), doc.Roles...)
+	for i := range doc.Roles {
+		if doc.Roles[i].Name == "Clerk" {
+			doc.Roles[i].Permissions = []string{star}
+		}
+	}
+	if _, err := w.mgr.ImportDocument(context.Background(), "bare record", doc); err != nil {
+		t.Fatalf("ImportDocument with the star on a record with no fields: %v", err)
+	}
+}
+
+func TestRolePermissions_TheFindingForARemovedFieldNamesTheRoleTheCodeAndTheField(t *testing.T) {
+	w := newRecordPermissionWorld(t)
+	ctx := context.Background()
+	named := w.fieldCode("edit", amountField)
+	role, err := w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: []string{named}})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	record := w.record
+	record.Questions = record.Questions[:1]
+	if _, err := w.mgr.UpdateRecord(ctx, record); err != nil {
+		t.Fatalf("UpdateRecord: %v", err)
+	}
+	issues, err := w.mgr.ListIssues(ctx, w.draftID, mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues: %v", err)
+	}
+	var found []models.Issue
+	for _, issue := range issues {
+		if issue.EntityID == role.ID {
+			found = append(found, issue)
+		}
+	}
+	if len(found) != 1 || found[0].Severity != models.IssueSeverityError {
+		t.Fatalf("issues of the role = %+v, want one error", found)
+	}
+	for _, part := range []string{role.Code, "Clerk", named, `field "` + amountField + `"`, `record "` + w.record.Code + `"`} {
+		if !strings.Contains(found[0].Message, part) {
+			t.Errorf("finding = %q, want it to say %q", found[0].Message, part)
+		}
+	}
+}
