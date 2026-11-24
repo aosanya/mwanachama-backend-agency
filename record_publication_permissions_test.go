@@ -36,7 +36,7 @@ func buildRecordedWorld(t *testing.T) recordedWorld {
 	ctx := context.Background()
 	wf := workflowWithAStep(t, w, "Bids")
 	tender, err := w.mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Tender", ItemName: "Tender", RoleID: w.roles[coordinator].ID,
+		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Tender", ItemName: "Tender",
 		FormName: "Tender", Questions: []models.StepQuestion{
 			ask("Title", models.AnswerFreeText),
 			ask("Issuer", models.AnswerFreeText),
@@ -47,7 +47,7 @@ func buildRecordedWorld(t *testing.T) recordedWorld {
 		t.Fatalf("CreateRecord tender: %v", err)
 	}
 	day, err := w.mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Day worked", RoleID: w.roles[coordinator].ID,
+		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Day worked",
 		FormName: "Day worked", Questions: []models.StepQuestion{ask("Hours", models.AnswerNumber)},
 	})
 	if err != nil {

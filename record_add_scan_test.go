@@ -109,7 +109,7 @@ func TestIssueScan_AnOptionalFieldNoRoleMayAddIsNotFlagged(t *testing.T) {
 	optional := ask("Closing note", models.AnswerFreeText)
 	optional.Required = false
 	record, err := w.mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: workflow.ID, Name: "Tender", RoleID: w.roles[coordinator].ID,
+		DraftID: w.draftID, WorkflowID: workflow.ID, Name: "Tender",
 		FormName: "Tender", Questions: []models.StepQuestion{ask("Enter the title", models.AnswerFreeText), optional},
 	})
 	if err != nil {

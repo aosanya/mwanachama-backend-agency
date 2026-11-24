@@ -23,7 +23,7 @@ func TestRecordRoutes(t *testing.T) {
 		return rec
 	}
 
-	created := send(http.MethodPost, "/records", `{"draft_id":"`+draftID+`","workflow_id":"`+wf.ID+`","name":"Payments","role_id":"`+coordinator.ID+`",`+
+	created := send(http.MethodPost, "/records", `{"draft_id":"`+draftID+`","workflow_id":"`+wf.ID+`","name":"Payments",`+
 		`"form_name":"Payment","questions":[{"prompt":"Enter the amount paid","answer_type":"currency","required":true}]}`)
 	if created.Code != http.StatusCreated {
 		t.Fatalf("create record: status = %d, body = %s", created.Code, created.Body.String())
@@ -32,11 +32,11 @@ func TestRecordRoutes(t *testing.T) {
 	if err := json.Unmarshal(created.Body.Bytes(), &record); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if record.Code == "" || record.RoleID != coordinator.ID {
+	if record.Code == "" {
 		t.Fatalf("created record = %+v", record)
 	}
 
-	if rec := send(http.MethodPost, "/records", `{"draft_id":"`+draftID+`","workflow_id":"`+wf.ID+`","name":"","role_id":"`+coordinator.ID+`"}`); rec.Code != http.StatusBadRequest {
+	if rec := send(http.MethodPost, "/records", `{"draft_id":"`+draftID+`","workflow_id":"`+wf.ID+`","name":""}`); rec.Code != http.StatusBadRequest {
 		t.Errorf("a record with no name: status = %d, want 400, body = %s", rec.Code, rec.Body.String())
 	}
 	if rec := send(http.MethodGet, "/records/no-such-record", ""); rec.Code != http.StatusNotFound {
@@ -49,6 +49,9 @@ func TestRecordRoutes(t *testing.T) {
 		t.Fatalf("list records: status = %d, body = %s", listed.Code, listed.Body.String())
 	}
 
+	if _, err := mgr.SetRolePermissions(ctx, coordinator.ID, []string{"record." + record.Code + ".add.*"}); err != nil {
+		t.Fatalf("SetRolePermissions: %v", err)
+	}
 	row := func(role string) string {
 		return `{"draft_id":"` + draftID + `","record_id":"` + record.ID + `","role_id":"` + role + `","answers":{"Enter the amount paid":"1200"}}`
 	}

@@ -11,7 +11,7 @@ import (
 
 func consultantsRecord(w stepWorld, workflow models.Workflow) models.Record {
 	return models.Record{
-		DraftID: w.draftID, WorkflowID: workflow.ID, Name: "Consultants", RoleID: w.roles[coordinator].ID,
+		DraftID: w.draftID, WorkflowID: workflow.ID, Name: "Consultants",
 		FormName: "Consultant", Questions: []models.StepQuestion{
 			{Prompt: "Expertise areas", AnswerType: models.AnswerMultiSelect, Required: true, Options: []string{"Financial inclusion", "Sustainable finance", "Banking and central banking"}},
 			{Prompt: "Languages", AnswerType: models.AnswerMultiSelect, Options: []string{"English", "French", "Swahili"}},
@@ -26,6 +26,7 @@ func TestRecordRow_AMultiSelectAnswerIsAListOfTheQuestionsOptionsJoinedWithASemi
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	w.letAdd(t, w.roles[coordinator], record)
 	row := func(expertise, languages string) models.RecordRow {
 		answers := map[string]string{"Expertise areas": expertise}
 		if languages != "" {

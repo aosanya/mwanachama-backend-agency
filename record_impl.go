@@ -26,19 +26,8 @@ func validateRecordShape(r models.Record) error {
 	if strings.TrimSpace(r.Name) == "" {
 		return invalidRecord("a record has a name")
 	}
-	if r.RoleID == "" {
-		return invalidRecord("a record names the role that adds its rows")
-	}
-	if strings.ContainsAny(r.RoleID, ", \t\r\n;") {
-		return invalidRecord("a record has one role that adds rows, got %q", r.RoleID)
-	}
-	if strings.ContainsAny(r.ViewerRoleID, ", \t\r\n;") {
-		return invalidRecord("a record has at most one role that sees its rows, got %q", r.ViewerRoleID)
-	}
-	for _, role := range []string{r.EditRoleID, r.DeleteRoleID} {
-		if strings.ContainsAny(role, ", \t\r\n;") {
-			return invalidRecord("a record has one role that edits and one that deletes its rows, got %q", role)
-		}
+	if err := refuseGoneRoleFields(r.Code, r.Name, r.CarriedGoneRoleFields()); err != nil {
+		return err
 	}
 	if r.WorkflowID == "" {
 		return invalidRecord("a record belongs to a workflow")
@@ -49,22 +38,6 @@ func validateRecordShape(r models.Record) error {
 func (m *agencyManager) validateRecord(ctx context.Context, tx *gorm.DB, r models.Record) error {
 	if err := validateRecordShape(r); err != nil {
 		return err
-	}
-	if err := m.actorOfDraft(ctx, tx, r.DraftID, r.RoleID); err != nil {
-		return err
-	}
-	if r.ViewerRoleID != "" {
-		if err := m.actorOfDraft(ctx, tx, r.DraftID, r.ViewerRoleID); err != nil {
-			return err
-		}
-	}
-	for _, role := range []string{r.EditRoleID, r.DeleteRoleID} {
-		if role == "" {
-			continue
-		}
-		if err := m.actorOfDraft(ctx, tx, r.DraftID, role); err != nil {
-			return err
-		}
 	}
 	var workflow models.Workflow
 	workflowQuery := scopeQuery(tx.WithContext(ctx).Table(m.table(roleWorkflow)), r.DraftID).Where("id = ?", r.WorkflowID)
@@ -324,8 +297,8 @@ func (m *agencyManager) CreateRecordRow(ctx context.Context, row models.RecordRo
 	if err := m.take(q, roleRecord, &record, ErrRecordNotFound); err != nil {
 		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w", err)
 	}
-	if row.RoleID == "" || row.RoleID != record.RoleID {
-		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w: only the role that adds rows to %q may", ErrRecordRowRefused, record.Name)
+	if !m.roleAddsRows(ctx, m.db, row.DraftID, row.RoleID, record) {
+		return models.RecordRow{}, fmt.Errorf("CreateRecordRow: %w: only a role that carries an add permission of %q may", ErrRecordRowRefused, record.Name)
 	}
 	kept, err := validateRowAnswers(ctx, record, row.Answers)
 	if err != nil {

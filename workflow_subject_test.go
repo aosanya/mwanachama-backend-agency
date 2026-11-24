@@ -168,7 +168,7 @@ func subjectDocument(subject string) models.AgencyDocument {
 			{ID: "wf-pipeline", Code: "WF-2", Name: "Pipeline", SubjectRecord: subject},
 		},
 		Records: []models.DocumentRecord{{
-			ID: "rec-1", Code: "RC-1", WorkflowID: "wf-keeps", Name: "Tenders", RoleID: "role-scout", FormName: "Tender",
+			ID: "rec-1", Code: "RC-1", WorkflowID: "wf-keeps", Name: "Tenders", FormName: "Tender",
 			Questions: []models.StepQuestion{{Prompt: "Tender title", AnswerType: models.AnswerFreeText, Required: true}},
 		}},
 	}

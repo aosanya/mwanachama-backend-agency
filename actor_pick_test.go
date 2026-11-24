@@ -163,46 +163,6 @@ func TestWhoIsTold_ARecipientThePickersDoNotOfferIsRefused(t *testing.T) {
 	}
 }
 
-func TestWhoAddsRows_AGroupThePickersOfferAddsTheRecordsRows(t *testing.T) {
-	w := newStepWorldWithGroups(t, groupsOffered(farmersGroupID))
-	ctx := context.Background()
-	wf := w.workflow(t, "Group order")
-
-	in := paymentsRecord(w, wf)
-	in.RoleID = farmersGroupID
-	created, err := w.mgr.CreateRecord(ctx, in)
-	if err != nil {
-		t.Fatalf("a record whose rows an offered group adds: %v", err)
-	}
-	if got, _ := w.mgr.GetRecord(ctx, created.ID); got.RoleID != farmersGroupID {
-		t.Errorf("read back actor = %q, want %q", got.RoleID, farmersGroupID)
-	}
-	created.RoleID = w.roles[supplier].ID
-	if _, err := w.mgr.UpdateRecord(ctx, created); err != nil {
-		t.Errorf("update from a group to a role: %v", err)
-	}
-}
-
-func TestWhoAddsRows_AnActorThePickersDoNotOfferIsRefused(t *testing.T) {
-	w := newStepWorldWithGroups(t, groupsOffered(farmersGroupID))
-	ctx := context.Background()
-	wf := w.workflow(t, "Group order")
-
-	in := paymentsRecord(w, wf)
-	in.RoleID = "group-nobody-offers"
-	if _, err := w.mgr.CreateRecord(ctx, in); !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
-		t.Errorf("a group the pickers do not offer: want ErrRoleNotFound, got %v", err)
-	}
-	ok, err := w.mgr.CreateRecord(ctx, paymentsRecord(w, wf))
-	if err != nil {
-		t.Fatalf("CreateRecord: %v", err)
-	}
-	ok.RoleID = "group-nobody-offers"
-	if _, err := w.mgr.UpdateRecord(ctx, ok); !errors.Is(err, mwanachamaagency.ErrRoleNotFound) {
-		t.Errorf("update to a group the pickers do not offer: want ErrRoleNotFound, got %v", err)
-	}
-}
-
 func TestGroupActors_TheDraftScanFlagsOnlyTheOnesThePickersDoNotOffer(t *testing.T) {
 	groups := groupsOffered(farmersGroupID)
 	w := newStepWorldWithGroups(t, groups)
@@ -216,9 +176,7 @@ func TestGroupActors_TheDraftScanFlagsOnlyTheOnesThePickersDoNotOffer(t *testing
 	if _, err := w.mgr.CreateWorkItem(ctx, sent); err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	rec := paymentsRecord(w, wf)
-	rec.RoleID = farmersGroupID
-	made, err := w.mgr.CreateRecord(ctx, rec)
+	made, err := w.mgr.CreateRecord(ctx, paymentsRecord(w, wf))
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}

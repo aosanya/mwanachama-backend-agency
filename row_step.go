@@ -39,9 +39,6 @@ func (m *agencyManager) validateRowStepReferences(ctx context.Context, tx *gorm.
 	if err := m.take(q, roleRecord, &record, ErrRecordNotFound); err != nil {
 		return invalidStep("the record %s is not a record of this draft", QuoteIfUnsafe(wi.RowRecord))
 	}
-	if want := record.RoleOfRowAction(wi.RowAction); wi.RoleID != want {
-		return invalidStep("a step that %ss a row of %s is held by the role that does so, %s", wi.RowAction, record.Identity(), QuoteIfUnsafe(want))
-	}
 	if err := rowStepFormFits(wi, record); err != nil {
 		return err
 	}

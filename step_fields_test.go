@@ -57,7 +57,7 @@ func TestStepFields_ComputeStepRoundTrips(t *testing.T) {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
 	terms, err := w.mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Loan terms", RoleID: w.roles[coordinator].ID,
+		DraftID: w.draftID, WorkflowID: wf.ID, Name: "Loan terms",
 		FormName: "Terms", Questions: []models.StepQuestion{ask("Months", models.AnswerNumber)},
 	})
 	if err != nil {
