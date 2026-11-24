@@ -450,7 +450,8 @@ scan (`checkPermissions`) raises an `error` for each such code, `Role R-4
 publish is refused and names the role and the code (D9); the same happens when a
 field is removed from a record while a role names it, and a role that holds the star
 is unaffected (D30). The scan's other
-refusals (D18) are built in their own issue. A code of a record that exists is
+refusals (D51) are a record no role may add to and a required field no role holds
+an add code for, listed under What the Issue scan flags. A code of a record that exists is
 accepted by the scan and carried into the publication document with the role.
 
 ## A field's code and key (ISS-178, decisions D37 and D38)
@@ -773,7 +774,22 @@ All are `error`, so none can be published:
   workflow (different name, stand-in, step, role, form or questions than the
   record now gives it), naming the record and the workflow code, and a
   generated workflow whose record is gone;
-- a record whose `*_replaced_by` names no designed workflow of the draft.
+- a record whose `*_replaced_by` names no designed workflow of the draft;
+- a record that no role may add to (ISS-154, D51): no role of the draft carries
+  `record.<code>.add.*` or any `record.<code>.add.<field>`. The finding names the
+  record by code and name;
+- a required field that no role holds an add code for (ISS-154, D51): no role
+  carries `record.<code>.add.*` or `record.<code>.add.<field>` of that field. The
+  finding names the record and the field code. It is raised only for a record
+  that some role may add to, so a record no role may add to is one finding and
+  not one more per field.
+
+The two findings read the permission codes of the roles only (`record_add_scan.go`,
+`checkRecordAdds`). They do not check that a role that may add can also view
+(D44), a role that may edit and cannot view (D43), a delete without view, or
+anything about groups or tags, which exist only after the publish (D24, D35). An
+agency without records scans as before. A template that holds a record therefore
+publishes only once a role carries an add code for it.
 
 A designed workflow that stands in for a generated one but has no
 `run_workflow` step naming it is a `warning`.
