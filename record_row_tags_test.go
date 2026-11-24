@@ -2,7 +2,9 @@ package mwanachamaagency_test
 
 import (
 	"context"
+	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -113,5 +115,110 @@ func TestRecordRowTags_ABlankTagIsRefused(t *testing.T) {
 	in.Tags = []string{"a", " "}
 	if _, err := o.world.mgr.CreateRecordRow(context.Background(), in); err == nil {
 		t.Fatal("a row with a blank tag was made")
+	}
+}
+
+func TestRecordRowTags_AddingATagKeepsTheOnesTheRowHas(t *testing.T) {
+	g := tagged(t)
+	ctx := context.Background()
+	got, err := g.order.world.mgr.AddRecordRowTag(ctx, g.a.ID, "b")
+	if err != nil || !slices.Equal(got.Tags, []string{"a", "b"}) {
+		t.Fatalf("AddRecordRowTag b = %v, %v", got.Tags, err)
+	}
+	again, err := g.order.world.mgr.AddRecordRowTag(ctx, g.a.ID, "b")
+	if err != nil || !slices.Equal(again.Tags, []string{"a", "b"}) {
+		t.Fatalf("AddRecordRowTag b twice = %v, %v", again.Tags, err)
+	}
+	if got := idsOf(g.listed(t, "b")); !slices.Equal(got, sortedIDs(g.a, g.ab)) {
+		t.Errorf("rows carrying b = %v, want both rows that carry it now", got)
+	}
+}
+
+func TestRecordRowTags_ARowWithNoTagsTakesItsFirstOne(t *testing.T) {
+	g := tagged(t)
+	got, err := g.order.world.mgr.AddRecordRowTag(context.Background(), g.none.ID, "c")
+	if err != nil || !slices.Equal(got.Tags, []string{"c"}) {
+		t.Fatalf("AddRecordRowTag c = %v, %v", got.Tags, err)
+	}
+}
+
+func TestRecordRowTags_AddingARefusedTagChangesNothing(t *testing.T) {
+	g := tagged(t)
+	ctx := context.Background()
+	mgr := g.order.world.mgr
+	if _, err := mgr.AddRecordRowTag(ctx, g.a.ID, " "); err == nil {
+		t.Error("a blank tag was added")
+	}
+	if _, err := mgr.AddRecordRowTag(ctx, "no-such-row", "b"); err == nil {
+		t.Error("a tag was added to a row that does not exist")
+	}
+	if _, err := mgr.RetireRecordRow(ctx, g.ab.ID, "member-1", "entered twice"); err != nil {
+		t.Fatalf("RetireRecordRow: %v", err)
+	}
+	if _, err := mgr.AddRecordRowTag(ctx, g.ab.ID, "c"); err == nil {
+		t.Error("a tag was added to a retired row")
+	}
+	fix := paymentRow(g.order, "", "Wanjiru", "150")
+	fix.Replaces = g.a.ID
+	if _, err := mgr.CreateRecordRow(ctx, fix); err != nil {
+		t.Fatalf("replacing row: %v", err)
+	}
+	if _, err := mgr.AddRecordRowTag(ctx, g.a.ID, "c"); err == nil {
+		t.Error("a tag was added to a row a correction replaced")
+	}
+	if got := idsOf(g.listed(t, "c")); len(got) != 0 {
+		t.Errorf("rows carrying c = %v, want none", got)
+	}
+}
+
+func TestRecordRowTags_NothingTakesATagOffARow(t *testing.T) {
+	var tagMethods []string
+	managerType := reflect.TypeOf((*mwanachamaagency.AgencyManager)(nil)).Elem()
+	for i := 0; i < managerType.NumMethod(); i++ {
+		if name := managerType.Method(i).Name; strings.Contains(name, "RecordRowTag") {
+			tagMethods = append(tagMethods, name)
+		}
+	}
+	if !slices.Equal(tagMethods, []string{"AddRecordRowTag"}) {
+		t.Errorf("manager methods on a row's tags = %v, want only AddRecordRowTag", tagMethods)
+	}
+}
+
+func TestRecordRowTags_AReplacingRowCarriesTheTagsOfTheRowItReplaces(t *testing.T) {
+	g := tagged(t)
+	ctx := context.Background()
+	mgr := g.order.world.mgr
+	if _, err := mgr.AddRecordRowTag(ctx, g.a.ID, "b"); err != nil {
+		t.Fatalf("AddRecordRowTag: %v", err)
+	}
+	fix := paymentRow(g.order, "", "Wanjiru", "150")
+	fix.Replaces = g.a.ID
+	made, err := mgr.CreateRecordRow(ctx, fix)
+	if err != nil || !slices.Equal(made.Tags, []string{"a", "b"}) {
+		t.Fatalf("replacing row = %v, %v", made.Tags, err)
+	}
+	listed, err := mgr.ListRecordRows(ctx, g.order.world.draftID, mwanachamaagency.RecordRowFilter{RecordID: g.order.record.ID, Tags: []string{"b"}})
+	if err != nil || !slices.Contains(idsOf(listed), made.ID) {
+		t.Errorf("the replacing row is not listed under b: %v, %v", idsOf(listed), err)
+	}
+}
+
+func TestRecordRowTags_AReplacingRowCannotChangeTheTags(t *testing.T) {
+	g := tagged(t)
+	ctx := context.Background()
+	mgr := g.order.world.mgr
+	fix := paymentRow(g.order, "", "Wanjiru", "150")
+	fix.Replaces = g.ab.ID
+	fix.Tags = []string{"z"}
+	made, err := mgr.CreateRecordRow(ctx, fix)
+	if err != nil || !slices.Equal(made.Tags, []string{"a", "b"}) {
+		t.Fatalf("replacing row that names z = %v, %v", made.Tags, err)
+	}
+	fix = paymentRow(g.order, "", "Wanjiru", "400")
+	fix.Replaces = g.none.ID
+	fix.Tags = []string{"z"}
+	made, err = mgr.CreateRecordRow(ctx, fix)
+	if err != nil || made.Tags == nil || len(made.Tags) != 0 {
+		t.Fatalf("replacing a row with no tags = %#v, %v", made.Tags, err)
 	}
 }
