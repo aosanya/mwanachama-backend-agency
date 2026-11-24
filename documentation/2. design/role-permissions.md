@@ -35,7 +35,15 @@ with `ErrPublishValidationFailed`) when a role declares:
   `record.<record code>.add`, `.edit` and `.view`, which no longer exist, a field the
   record does not have, and a `delete` with a field part (a field's code is its own
   stored label on a hidden key; following a rename of a field code is not built yet, see
-  [workflow-records.md](workflow-records.md)), or
+  [workflow-records.md](workflow-records.md)). The star is accepted as written, even for
+  a record with no fields (D30). The refusal says why, by what the code is (ISS-183, D20, D30, D36):
+  a plain code is told it is now `record.<record code>.<action>.*` for every field or
+  `record.<record code>.<action>.<field>` for one; a code that names a field the record
+  lacks is told `record "tender" has no field "nothing"`; a code of a record the draft
+  lacks is told no record of the draft gives it. The refusal on create, update, set,
+  import and publish names the role and the code, and the finding on a field removed
+  from a record while a role still names it names the role, the code, the record and
+  the field, or
 - a permission locked to owners (decision 265). Locked permissions are held by owners
   whatever the definition says, so no role may claim one.
 
