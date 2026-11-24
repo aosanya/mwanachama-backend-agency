@@ -46,6 +46,13 @@ func TestEveryHubDemoTemplateImportsAndPublishesWithTheAgentRoleHoldingAIUse(t *
 					t.Errorf("%s imported without %s: %v", tpl.agentRole, want, agent)
 				}
 			}
+			records, err := mgr.ListRecords(ctx, out.Draft.ID, mwanachamaagency.RecordFilter{})
+			if err != nil {
+				t.Fatalf("ListRecords: %v", err)
+			}
+			for _, record := range records {
+				mayAdd(t, mgr, record)
+			}
 			if _, err := mgr.PublishAgency(ctx, out.Draft.ID, "demo-1", "production"); err != nil {
 				t.Fatalf("PublishAgency refused the template: %v", err)
 			}

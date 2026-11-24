@@ -74,6 +74,7 @@ func buildPaymentFlow(t *testing.T) paymentFlow {
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, record)
 	fallback := must(models.WorkItem{DraftID: w.draftID, WorkflowID: wf.ID, Title: fallbackTitle, Ordinality: 6})
 	compute := must(models.WorkItem{
 		DraftID: w.draftID, WorkflowID: wf.ID, Title: computeTitle, Ordinality: 2, Kind: models.StepKindCompute,

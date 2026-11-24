@@ -37,6 +37,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkAttachments,
 		s.checkModuleSettings,
 		s.checkPermissions,
+		s.checkRecordAdds,
 		s.checkControls,
 		s.checkConsequenceHazards,
 		s.checkBowties,

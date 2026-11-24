@@ -125,6 +125,7 @@ func publishedWithClerk(t *testing.T, w recordPermissionWorld, permissions []str
 	if _, err := w.mgr.CreateRole(ctx, models.Role{DraftID: w.draftID, Name: "Clerk", Permissions: permissions}); err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
+	mayAdd(t, w.mgr, w.record)
 	pub, err := w.mgr.PublishAgency(ctx, w.draftID, "records-1", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)

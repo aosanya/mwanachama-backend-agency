@@ -75,9 +75,11 @@ func TestRecordViewer_AForkAndAPublicationCarryItOntoTheCopiedRole(t *testing.T)
 	w := newStepWorld(t)
 	ctx := context.Background()
 	wf := w.workflow(t, "Group order")
-	if _, err := w.mgr.CreateRecord(ctx, paymentsSeenByFarmers(w, wf)); err != nil {
+	seen, err := w.mgr.CreateRecord(ctx, paymentsSeenByFarmers(w, wf))
+	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, seen)
 	step := w.item(wf, 1, groupOrderSteps[0])
 	madeStep, err := w.mgr.CreateWorkItem(ctx, step)
 	if err != nil {
@@ -131,6 +133,7 @@ func TestRecordViewer_ChangingOnlyTheViewerIsAChangeToPublish(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, record)
 	step, err := w.mgr.CreateWorkItem(ctx, w.item(wf, 1, groupOrderSteps[0]))
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
@@ -155,9 +158,11 @@ func TestRecordViewer_TheIssueScanNamesAViewerRoleThatNoLongerExists(t *testing.
 	w := newStepWorld(t)
 	ctx := context.Background()
 	wf := w.workflow(t, "Group order")
-	if _, err := w.mgr.CreateRecord(ctx, paymentsSeenByFarmers(w, wf)); err != nil {
+	seen, err := w.mgr.CreateRecord(ctx, paymentsSeenByFarmers(w, wf))
+	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, seen)
 	if err := w.mgr.DeleteRole(ctx, w.roles[farmer].ID); err != nil {
 		t.Fatalf("DeleteRole: %v", err)
 	}
