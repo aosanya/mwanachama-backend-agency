@@ -118,7 +118,7 @@ func TestRecordKey_AnOldRecordKeepsItsCounterKeyThroughProvisionUpdateAndFork(t 
 	}
 }
 
-func TestRecordKey_GeneratedWorkflowsOfANewRecordAreBuiltFromItsUuidAndStillResolve(t *testing.T) {
+func TestRecordKey_GeneratedWorkflowsOfANewRecordAreMadeForItsUuidAndNamedByItsCode(t *testing.T) {
 	o := buildRoutedOrder(t)
 	w := o.world
 	ctx := context.Background()
@@ -129,8 +129,8 @@ func TestRecordKey_GeneratedWorkflowsOfANewRecordAreBuiltFromItsUuidAndStillReso
 		t.Fatalf("%d generated workflows for the key %s, want 3", len(made), key)
 	}
 	for _, wf := range made {
-		if !strings.HasPrefix(wf.Code, key+".") {
-			t.Errorf("generated workflow code = %q, want it built from the key %s", wf.Code, key)
+		if !strings.HasPrefix(wf.Code, "record."+o.record.Code+".") {
+			t.Errorf("generated workflow code = %q, want it built from the record code %s", wf.Code, o.record.Code)
 		}
 	}
 	steps, err := w.mgr.ListWorkItems(ctx, w.draftID, mwanachamaagency.WorkItemFilter{})

@@ -270,16 +270,16 @@ func oldRecordIdentityIn(doc models.AgencyDocument, record models.Record) models
 	}
 	doc.Workflows = append([]models.DocumentWorkflow(nil), doc.Workflows...)
 	for i := range doc.Workflows {
-		doc.Workflows[i].Code = strings.Replace(doc.Workflows[i].Code, record.Key+".", olderRecordKey+".", 1)
 		if doc.Workflows[i].GeneratedFor == record.Key {
 			doc.Workflows[i].GeneratedFor = olderRecordKey
+			doc.Workflows[i].Code = olderRecordKey + doc.Workflows[i].Code[strings.LastIndex(doc.Workflows[i].Code, "."):]
 		}
 	}
 	doc.WorkItems = append([]models.DocumentWorkItem(nil), doc.WorkItems...)
 	for i := range doc.WorkItems {
-		doc.WorkItems[i].Code = strings.Replace(doc.WorkItems[i].Code, record.Key+".", olderRecordKey+".", 1)
 		if doc.WorkItems[i].RowRecord == record.Key {
 			doc.WorkItems[i].RowRecord = olderRecordKey
+			doc.WorkItems[i].Code = olderRecordKey + "." + doc.WorkItems[i].RowAction + ".1"
 		}
 	}
 	doc.Roles = append([]models.DocumentRole(nil), doc.Roles...)

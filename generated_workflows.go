@@ -18,8 +18,29 @@ type generatedPlan struct {
 	step     models.WorkItem
 }
 
-func generatedCode(recordCode, action string) string {
-	return recordCode + "." + action
+type generatedSlot struct {
+	record string
+	action string
+}
+
+func generatedCode(r models.Record, action string) string {
+	code := r.Code
+	if code == "" {
+		code = r.Identity()
+	}
+	return RecordPermissionCode(code, action)
+}
+
+func generatedStepCode(workflowCode string) string {
+	return workflowCode + ".1"
+}
+
+func generatedSlotOf(w models.Workflow) generatedSlot {
+	return generatedSlot{record: w.GeneratedFor, action: w.Code[strings.LastIndex(w.Code, ".")+1:]}
+}
+
+func (p generatedPlan) slot() generatedSlot {
+	return generatedSlot{record: p.workflow.GeneratedFor, action: p.action}
 }
 
 func itemNameOf(r models.Record) string {
@@ -52,7 +73,7 @@ func generatedPlansOf(r models.Record) []generatedPlan {
 	}
 	var plans []generatedPlan
 	for _, action := range models.RowActions() {
-		code := generatedCode(r.Identity(), action)
+		code := generatedCode(r, action)
 		name := generatedVerbs[action] + " " + withArticle(item)
 		formName, questions := r.FormName, r.Questions
 		if action == models.RowActionDelete {
@@ -65,7 +86,7 @@ func generatedPlansOf(r models.Record) []generatedPlan {
 				Description: fmt.Sprintf("Made from the record %s: %s a row of it.", r.Name, strings.ToLower(generatedVerbs[action])),
 			},
 			step: models.WorkItem{
-				DraftID: r.DraftID, Code: code + ".1", Title: name, Ordinality: 1, Kind: models.StepKindFillForm,
+				DraftID: r.DraftID, Code: generatedStepCode(code), Title: name, Ordinality: 1, Kind: models.StepKindFillForm,
 				RowRecord: r.Identity(), RowAction: action, FormName: formName, Questions: questions,
 			},
 		})
@@ -83,6 +104,8 @@ func (p generatedPlan) workflowDifference(w models.Workflow) string {
 	switch {
 	case !w.Generated || w.GeneratedFor != p.workflow.GeneratedFor:
 		return "it is not marked as made from the record"
+	case w.Code != p.workflow.Code:
+		return fmt.Sprintf("it is coded %q, not %q", w.Code, p.workflow.Code)
 	case w.Name != p.workflow.Name:
 		return fmt.Sprintf("it is named %q, not %q", w.Name, p.workflow.Name)
 	case w.ReplacedBy != p.workflow.ReplacedBy:
@@ -93,6 +116,8 @@ func (p generatedPlan) workflowDifference(w models.Workflow) string {
 
 func (p generatedPlan) stepDifference(s models.WorkItem) string {
 	switch {
+	case s.Code != p.step.Code:
+		return fmt.Sprintf("its step is coded %q, not %q", s.Code, p.step.Code)
 	case s.Kind != models.StepKindFillForm:
 		return fmt.Sprintf("its step is %q, not a fill_form step", s.Kind)
 	case s.RowRecord != p.step.RowRecord || s.RowAction != p.step.RowAction:
@@ -111,7 +136,7 @@ func (p generatedPlan) stepDifference(s models.WorkItem) string {
 
 type generatedState struct {
 	records   []models.Record
-	workflows map[string][]models.Workflow
+	workflows map[generatedSlot][]models.Workflow
 	steps     map[string][]models.WorkItem
 }
 
@@ -123,7 +148,7 @@ func (m *agencyManager) generatedStateOf(ctx context.Context, tx *gorm.DB, draft
 	if err != nil {
 		return generatedState{}, err
 	}
-	state := generatedState{workflows: map[string][]models.Workflow{}, steps: map[string][]models.WorkItem{}}
+	state := generatedState{workflows: map[generatedSlot][]models.Workflow{}, steps: map[string][]models.WorkItem{}}
 	for _, r := range records {
 		if !r.Deleted {
 			state.records = append(state.records, r)
@@ -135,7 +160,8 @@ func (m *agencyManager) generatedStateOf(ctx context.Context, tx *gorm.DB, draft
 	}
 	var ids []string
 	for _, w := range workflows {
-		state.workflows[w.Code] = append(state.workflows[w.Code], w)
+		slot := generatedSlotOf(w)
+		state.workflows[slot] = append(state.workflows[slot], w)
 		ids = append(ids, w.ID)
 	}
 	if len(ids) == 0 {
@@ -159,6 +185,10 @@ func (m *agencyManager) insertGeneratedRow(ctx context.Context, tx *gorm.DB, rol
 	return tx.WithContext(ctx).Table(m.table(role)).Create(row).Error
 }
 
+func (m *agencyManager) setGeneratedCode(ctx context.Context, tx *gorm.DB, role, id, code string) error {
+	return tx.WithContext(ctx).Table(m.table(role)).Where("id = ?", id).Update("code", code).Error
+}
+
 func (m *agencyManager) removeGeneratedWorkflow(ctx context.Context, tx *gorm.DB, draftID, workflowID string) error {
 	stepsOfWorkflow := "select id from " + m.table(roleWorkItem) + " where workflow_id = ?"
 	if err := m.deleteInDraft(ctx, tx, roleScenarioInput, draftID, "step_id IN ("+stepsOfWorkflow+")", workflowID); err != nil {
@@ -175,18 +205,18 @@ func (m *agencyManager) ensureGenerated(ctx context.Context, tx *gorm.DB, draftI
 	if err != nil {
 		return err
 	}
-	kept := map[string]bool{}
+	kept := map[generatedSlot]bool{}
 	now := models.NowRFC3339()
 	for _, record := range state.records {
 		for _, plan := range generatedPlansOf(record) {
-			kept[plan.workflow.Code] = true
+			kept[plan.slot()] = true
 			if err := m.settleGenerated(ctx, tx, state, plan, now); err != nil {
 				return err
 			}
 		}
 	}
-	for code, held := range state.workflows {
-		if kept[code] {
+	for slot, held := range state.workflows {
+		if kept[slot] {
 			continue
 		}
 		for _, w := range held {
@@ -199,7 +229,7 @@ func (m *agencyManager) ensureGenerated(ctx context.Context, tx *gorm.DB, draftI
 }
 
 func (m *agencyManager) settleGenerated(ctx context.Context, tx *gorm.DB, state generatedState, plan generatedPlan, now string) error {
-	held := state.workflows[plan.workflow.Code]
+	held := state.workflows[plan.slot()]
 	if len(held) == 0 {
 		wf := plan.workflow
 		wf.ID, wf.CreatedAt, wf.LastUpdated = newID(), now, now
@@ -215,6 +245,9 @@ func (m *agencyManager) settleGenerated(ctx context.Context, tx *gorm.DB, state 
 		}
 	}
 	if plan.workflowDifference(keep) != "" {
+		if err := m.setGeneratedCode(ctx, tx, roleWorkflow, keep.ID, plan.workflow.Code); err != nil {
+			return err
+		}
 		wf := plan.workflow
 		wf.ID, wf.LastUpdated = keep.ID, now
 		if err := m.writeUpdate(ctx, tx, roleWorkflow, keep.ID, wf, ErrWorkflowNotFound); err != nil {
@@ -232,6 +265,9 @@ func (m *agencyManager) settleGenerated(ctx context.Context, tx *gorm.DB, state 
 	}
 	if plan.stepDifference(steps[0]) == "" {
 		return nil
+	}
+	if err := m.setGeneratedCode(ctx, tx, roleWorkItem, steps[0].ID, plan.step.Code); err != nil {
+		return err
 	}
 	step := plan.step
 	step.ID, step.WorkflowID, step.LastUpdated = steps[0].ID, keep.ID, now
@@ -285,14 +321,14 @@ func (s *issueScan) checkGeneratedWorkflows() error {
 	if err != nil {
 		return err
 	}
-	expected := map[string]bool{}
+	expected := map[generatedSlot]bool{}
 	for _, record := range state.records {
 		s.checkGeneratedFor(state, record, expected)
 		s.checkStandIns(record, workflows, steps, state)
 	}
-	for code, held := range state.workflows {
+	for slot, held := range state.workflows {
 		for _, w := range held {
-			if !expected[code] {
+			if !expected[slot] {
 				s.add(models.IssueSeverityError, "workflow", w.ID,
 					"Generated workflow %s %q was made for Record %s, which does not exist", w.Code, w.Name, QuoteIfUnsafe(w.GeneratedFor))
 			}
@@ -301,11 +337,11 @@ func (s *issueScan) checkGeneratedWorkflows() error {
 	return nil
 }
 
-func (s *issueScan) checkGeneratedFor(state generatedState, record models.Record, expected map[string]bool) {
+func (s *issueScan) checkGeneratedFor(state generatedState, record models.Record, expected map[generatedSlot]bool) {
 	for _, plan := range generatedPlansOf(record) {
 		code := plan.workflow.Code
-		expected[code] = true
-		held := state.workflows[code]
+		expected[plan.slot()] = true
+		held := state.workflows[plan.slot()]
 		switch {
 		case len(held) == 0:
 			s.add(models.IssueSeverityError, "record", record.ID,
@@ -350,7 +386,7 @@ func (s *issueScan) checkStandIns(record models.Record, workflows []models.Workf
 				"Record %s %q says Workflow %s stands in for %s, and no designed workflow has that code", record.Code, record.Name, QuoteIfUnsafe(standIn), plan.workflow.Code)
 			continue
 		}
-		held := state.workflows[plan.workflow.Code]
+		held := state.workflows[plan.slot()]
 		if len(held) == 1 && !stepsRun(steps, designed.ID, held[0].ID) {
 			s.add(models.IssueSeverityWarning, "workflow", designed.ID,
 				"Workflow %s %q stands in for %s but has no step that runs it", designed.Code, designed.Name, plan.workflow.Code)
