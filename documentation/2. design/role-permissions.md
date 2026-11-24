@@ -415,3 +415,12 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `tag.manage` | Create, rename and delete a tag | no | none | Create, rename and delete a tag of the Instance. Giving a tag to a group and taking one off stay with group administration. |
 
 `permission_doc_test.go` keeps this page and the catalogue in step. It reads every table on this page whose first column is headed `Code` or `Permission` and takes the code in backticks that opens each row. It fails naming each catalogue permission that has no such row, and each such row whose code is not in the catalogue. A table headed anything else is not read, so a table of questions or objects may open a row with a backticked word. Setting `ROLE_PERMISSIONS_DOC` to a path runs the test on another copy of the page.
+
+## Where the field permission names are built and shown (ISS-205, D66)
+
+A record gives its field permissions as `models.Permission` values, each with a derived `code` and a `name`. One function builds every name, and everything else only carries or shows it.
+
+- Built: `recordPermissionName(item, action, field)` in `record_permissions.go`, called once by `RecordPermissionsOf` in the same file. The code beside it comes from `RecordPermissionCode` in the same file.
+- Tested: `record_permissions_test.go`. `TestRecordPermissions_TenderNamesEachFieldStarAndDelete` pins the names; `TestRecordPermissions_ItemNameFallsBackToFormNameThenName` pins the item in the name; `TestRecordPermissions_EveryFieldLevelPermissionHasAName` pins that none is empty.
+- Carried, never built: `role_record_permissions.go` and the scan in `issue_impl.go` read the codes only, so a change of wording moves no role.
+- Shown in the hub console, outside this repository: `data/permissionNames.ts` reads `agency_list_permissions` into a code to name map, and `pages/spec/rolesDetail.tsx` writes the name with the code beside it (ISS-148, ISS-160). The console builds no wording of its own for a record permission.
