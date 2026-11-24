@@ -173,3 +173,29 @@ func TestRecordRoleFields_AFieldAddCodeLetsARoleAddRowsAndOtherRecordCodesDoNot(
 		t.Errorf("a role that carries %s adds a row: %v", named, err)
 	}
 }
+
+func TestRecordRoleFields_AStoredPublicationThatCarriesOneStillReadsAndIsRefusedWhenForked(t *testing.T) {
+	g := newGenWorld(t)
+	ctx := context.Background()
+	mgr := g.world.mgr
+	pub, err := mgr.PublishAgency(ctx, g.world.draftID, "old-shape", "")
+	must(t, err)
+	var stored string
+	must(t, g.db.Raw("select document from "+tableOf(t, g.sp, "agency_publication")+" where id = ?", pub.ID).Scan(&stored).Error)
+	var document map[string]any
+	must(t, json.Unmarshal([]byte(stored), &document))
+	records := document["records"].([]any)
+	records[0].(map[string]any)["role_id"] = g.world.roles[coordinator].ID
+	rewritten, err := json.Marshal(document)
+	must(t, err)
+	must(t, g.db.Exec("update "+tableOf(t, g.sp, "agency_publication")+" set document = ? where id = ?", string(rewritten), pub.ID).Error)
+
+	listed, err := mgr.ListPublications(ctx, mwanachamaagency.PublicationFilter{})
+	if err != nil || len(listed) == 0 {
+		t.Fatalf("a stored publication that carries role_id does not list: %v", err)
+	}
+	_, err = mgr.CreateDraft(ctx, "revisit", "old-shape", "publication")
+	if !errors.Is(err, mwanachamaagency.ErrInvalidRecord) || !strings.Contains(err.Error(), "role_id") {
+		t.Errorf("forking it: want ErrInvalidRecord naming role_id, got %v", err)
+	}
+}
