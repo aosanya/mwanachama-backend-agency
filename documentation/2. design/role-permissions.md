@@ -24,7 +24,10 @@ published with the rest of its design.
 `checkPermissions` in the Issue scan raises an `error` (so publishing is refused
 with `ErrPublishValidationFailed`) when a role declares:
 
-- a code not in the vocabulary, or
+- a code not in the vocabulary, unless it is a `record.<record code>.<action>`
+  code that a record of the draft gives (ISS-151, see
+  [workflow-records.md](workflow-records.md)), or
+- a `record.` code that no record of the draft gives, or
 - a permission locked to owners (decision 265). Locked permissions are held by owners
   whatever the definition says, so no role may claim one.
 

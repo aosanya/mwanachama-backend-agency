@@ -400,10 +400,18 @@ func (s *issueScan) checkPermissions() error {
 	if err != nil {
 		return err
 	}
+	records, err := list[models.Record](s.m, s.scoped(roleRecord), roleRecord)
+	if err != nil {
+		return err
+	}
+	given := recordPermissionCodesOf(records)
 	for _, r := range roles {
 		for _, code := range r.Permissions {
 			permission, known := models.LookupPermission(code)
 			switch {
+			case given[code]:
+			case isRecordPermission(code):
+				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q carries permission %q, which no record gives", r.Code, r.Name, code)
 			case !known:
 				s.add(models.IssueSeverityError, "role", r.ID, "Role %s %q declares unknown permission %q", r.Code, r.Name, code)
 			case permission.Locked:

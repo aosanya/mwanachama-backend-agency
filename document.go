@@ -305,6 +305,9 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	if err := validateDocumentSubjects(doc); err != nil {
 		return fail(err)
 	}
+	if err := validateDocumentRolePermissions(doc); err != nil {
+		return fail(err)
+	}
 
 	goalIDs := make(map[string]string, len(doc.Goals))
 	for _, g := range doc.Goals {

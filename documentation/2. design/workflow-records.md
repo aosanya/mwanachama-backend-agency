@@ -372,6 +372,35 @@ empty list, not none) and no module. The static catalogue of 109 is unchanged;
 no catalogue code starts with `record.`, so a derived code never equals one, and
 `record_permissions_test.go` pins both.
 
+### Record permissions in a role's list (ISS-151, decisions D9 and D14)
+
+A role's `permissions` list takes the generated codes beside the catalogue
+codes, in the same list. Only a code that starts with `record.` is judged
+against the draft's records; every other code is judged as before, so a role
+that carries catalogue codes only behaves exactly as it did.
+
+A `record.` code is accepted when `RecordPermissionsOf` gives it for a record of
+the same draft, and refused otherwise (`ErrUnknownPermission`, naming the role
+and the code), for example `record.nothing.add` or `record.tender.sell`. The
+refusal is made by:
+
+- `CreateRole`, and `UpdateRole` when the update carries `permissions`;
+- `SetRolePermissions`;
+- `ImportDocument` and a fork from a publication, which both apply a document:
+  the codes are checked against the document's own records;
+- a fork from a draft copies the roles and the records together, so the codes
+  stay valid.
+
+The code that checks is `role_record_permissions.go`; the codes come from
+`RecordPermissionsOf` only. A code of a record of another draft gives nothing.
+
+Deleting a record does not touch the roles that still carry its codes. The Issue
+scan (`checkPermissions`) raises an `error` for each such code, `Role R-4
+"Clerk" carries permission "record.RC-1.add", which no record gives`, so a
+publish is refused and names the role and the code (D9). The scan's other
+refusals (D18) are built in their own issue. A code of a record that exists is
+accepted by the scan and carried into the publication document with the role.
+
 ## A workflow's subject and the row a run is started on
 
 A workflow may name a **subject record**: `subject_record` on `Workflow` and on
