@@ -626,6 +626,69 @@ roles' permission codes are new).
   would make those codes unreadable.
 - A home entry that names a record by code is not rewritten on a rename.
 
+## A record's key is a UUID, and a home entry names it by the key (ISS-201, decisions D61 and D62)
+
+This section is the inventory the change was made from. The owner decided that the
+hidden key of a newly made record is a UUID, not the next `RC-n` and not a hash
+(the issue first said a hash; the owner's answer is the UUID). Old records keep the
+key they hold. A home entry that names a record by its code is saved as the key.
+
+### Where the key is minted
+
+| Where | What it does today |
+|---|---|
+| `insertRecord` in `record_code.go` | The only place a key is minted for a record the platform makes: `claimCode` takes the next `RC-n` from the `record` counter in `code_sequence`. |
+| `settleRecordIdentities` in `record_code.go`, for import, fork from a publication and `carryRecordKeysForward` | A record that arrives without a key takes its own old code as the key (`RC-1` stays `RC-1`). It mints nothing. |
+| `advanceCodeSequences` in `import.go` and `numberIn` | Raises the `record` counter past the highest `RC-n` key a file brought. A UUID has no `RC-` part, so it counts as 0 and moves nothing. |
+| `field` keys, `randomFieldKey` and `legacyFieldKey` in `record_field.go` | The model for the field. A new field gets a random `f_` plus sixteen hex digits; only a field read from an old file gets a worked out one (sha256 of the record's key, the prompt and the number of earlier fields with that prompt). |
+
+What the new key is made of: nothing worked out. A record has no property that is
+stable (its name and code are both editable), so a hash of them would repeat for
+two records with the same name or move on a rename. The key is the repo's row id
+generator, `newID()` (`store.go`, a UUID), drawn once at create, the way a new
+field's key is drawn. A hash is kept only where a key must come out the same on a
+second read of old data (`legacyFieldKey`), and a record that has no key is given
+its old code, not a hash.
+
+### Where the key is read
+
+| Where | Reads the key as |
+|---|---|
+| `Record.Identity()` and `DocumentRecord.Identity()` in `models/record.go` | The key, else the code. |
+| `generatedCode`, `generatedPlansOf` and the Issue scan in `generated_workflows.go` | The prefix of a generated workflow's code (`<key>.add`, step `<key>.add.1`), its `generated_for` and the step's `row_record`. A new record's generated workflows therefore turn UUID-based, `3f2a...c1.add`, until ISS-153 names them; the old ones keep `RC-1.add`. A matching generated workflow is found by `generated_for`, not by parsing the code, so they still resolve. |
+| `CreateRecordRow` in `record_impl.go` and `record_row_correction.go` | `RecordRow.RecordCode` is the key. |
+| `row_step.go`, `workflow_subject.go`, `document.go` | `row_record`, `subject_record` and the document's records, by the key. |
+| `recordFieldsOf`, `keyedFields`, `legacyFieldKey`, `fieldSettlement` | The key, as the seed of an old field's worked out key. |
+| `StableIdentity` and `Resolve` in `identity_owner.go` | `StableIdentity` reads the `key` column. `Resolve` cuts the identity at the first `-` and reads the front as an object prefix (`RC`), so an identity that is a UUID would be cut at a hex group and found no object. It has to look a UUID up as a record key. |
+| `carryRecordKeysForward` in `provision_record_codes.go` | Only a stored record with no key. A stored key, `RC-n` or a UUID, is never touched. |
+| The `record` entry in `codedRoles` and `backfillCodes` in `provision.go` | The `record` counter and prefix stay, for the old keys. |
+| `agency.blueprint.json`, the `key` column of `record` | Its description says "such as RC-1". |
+
+A permission code (`record.<code>.add`) and the `code` filter use the readable code,
+and nothing in the repo splits a key at a dot or a dash except `Resolve`.
+
+### Where a home entry names a record
+
+| Where | What it does today |
+|---|---|
+| `HomeEntry.PageOf` and `HomeEntry.Target` (with `TargetType` `record`), `DocumentHomeNode.PageOf` and `Target.Ref` in `models/home.go` | A free string up to 200 characters. |
+| `CreateHomeEntry` and `SetHome` in `home_impl.go`, and `ImportDocument` in `document.go` | Check the roles of the entry and store `target` and `page_of` exactly as written. They look at no record. |
+| `HomePartsOf`, `ResolveHomePart` and `checkHomeNode` in `models/home_refs.go` | Resolve the reference when the home is checked: by the record's code or its key (`Alt`), then by its name. They do not rewrite it. |
+
+So a home entry written with the code `tender` keeps the string `tender`, and a
+rename of the code leaves it naming nothing.
+
+### The rule
+
+- A new record gets a UUID key from `newID()`; the key is never edited.
+- An old record keeps the key it holds. The `record` counter stays so no old key is
+  ever minted again.
+- `Resolve` reads an identity that is not a known prefix as a record key.
+- `CreateHomeEntry`, `SetHome` and the import of a document resolve the `page_of`
+  and the `target` of a record entry (by code, key or name, as `ResolveHomePart`
+  does) and save the key. A reference that matches no record, or more than one, is
+  saved as it was written, since a home may be written before its records are.
+
 ## A workflow's subject and the row a run is started on
 
 A workflow may name a **subject record**: `subject_record` on `Workflow` and on
