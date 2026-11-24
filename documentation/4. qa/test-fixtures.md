@@ -7,7 +7,7 @@ Every test in this repo reads only files inside this repo (`testdata/`, plus `ag
 | Fixture | Used by | Copied from |
 |---|---|---|
 | `testdata/mwanachama-wakala.agency.json` | `import_test.go` | the developer repo, `documentation/4. qa/mwanachama-wakala/agency.json` |
-| `testdata/hub-demo/farmers/agency.json`, `siaya-lab`, `boda-boda-riders` | `permission_hub_templates_test.go`, `risk_permissions_test.go` | the Hub Steward demo, `submission/demo/<name>/agency.json` |
+| `testdata/hub-demo/farmers/agency.json`, `siaya-lab`, `boda-boda-riders` | `permission_hub_templates_test.go`, `permission_mount_list_test.go`, `risk_permissions_test.go`, `hub_demo_fixture_shape_test.go` | the Hub Steward demo, `submission/demo/<name>/agency.json` |
 | `testdata/operations/comm.operations.json` | `permission_hub_agent_test.go` | `mwanachama-backend-comm/comm.operations.json` |
 | `testdata/operations/forms.operations.json` | `permission_hub_agent_test.go` | `mwanachama-backend-forms/forms.operations.json` |
 | `testdata/operations/sources.operations.json` | `permission_hub_agent_test.go` | `mwanachama-backend-sources/sources.operations.json` |
@@ -15,7 +15,20 @@ Every test in this repo reads only files inside this repo (`testdata/`, plus `ag
 | `testdata/operations/ai.operations.json` | `permission_hub_agent_test.go` | `mwanachama-backend-ai/ai.operations.json` |
 | `testdata/operations/riskmanager.operations.json` | `risk_permissions_test.go` | `mwanachama-backend-riskmanager/riskmanager.operations.json` |
 
-The agency templates are in the AGD-009 shape: `workflow_objectives` link workflows to objectives and a step names its accountable role in `accountable_role_id`. The three hub-demo files still carry `role_assignments`; import folds the accountable ones into the field.
+The agency templates are in the AGD-009 shape: `workflow_objectives` link workflows to objectives and a step names its accountable role in `accountable_role_id`.
+
+The three hub-demo files carry no `role_assignments`, no `groups` or `tags` key, no `powers` on a role and no `role_id`, `edit_role_id`, `delete_role_id` or `viewer_role_id` on a record. `hub_demo_fixture_shape_test.go` asserts it.
+
+## Who may do what with a record in the hub-demo files
+
+A record has no role of its own; a role may act on it only by carrying its permission codes. The record codes are the readable ones (`payments`, `paid_rides`).
+
+| File | Record | Role that holds it | Carries |
+|---|---|---|---|
+| `farmers/agency.json` | `payments` | Group coordinator | `record.payments.add.*`, `.edit.*`, `.view.*` and `record.payments.delete` |
+| `boda-boda-riders/agency.json` | `paid_rides` | Rider | `record.paid_rides.add.*`, `.edit.*`, `.view.*` and `record.paid_rides.delete` |
+
+No other role carries a code of these records, and no step of these files is about a record, so no role gets a view through a step. `siaya-lab/agency.json` declares no record.
 
 ## What the fixtures are for
 
