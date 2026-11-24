@@ -42,7 +42,7 @@ func TestIssueScan_ARecordNoRoleMayAddToIsAnErrorNamingTheRecordAndRefusesThePub
 	if len(found) != 1 {
 		t.Fatalf("errors of the record = %+v, want exactly one", found)
 	}
-	for _, part := range []string{w.record.Code, "Payments", "no role may add"} {
+	for _, part := range []string{w.record.Code, "Payments", "no role that may add"} {
 		if !strings.Contains(found[0].Message, part) {
 			t.Errorf("finding = %q, want it to say %q", found[0].Message, part)
 		}
@@ -55,7 +55,7 @@ func TestIssueScan_ARecordNoRoleMayAddToIsAnErrorNamingTheRecordAndRefusesThePub
 
 func TestIssueScan_ARecordWithNoRoleAtAllIsFlaggedOnce(t *testing.T) {
 	w := newRecordPermissionWorld(t)
-	if found := w.addScanErrors(t); len(found) != 1 || !strings.Contains(found[0].Message, "no role may add") {
+	if found := w.addScanErrors(t); len(found) != 1 || !strings.Contains(found[0].Message, "no role that may add") {
 		t.Fatalf("errors of the record = %+v, want one finding that no role may add", found)
 	}
 }
@@ -151,5 +151,13 @@ func TestIssueScan_AnAgencyWithoutRecordsScansAsBefore(t *testing.T) {
 	}
 	if len(issues) != 0 {
 		t.Fatalf("issues = %+v, want none", issues)
+	}
+}
+
+func mayAdd(t *testing.T, mgr mwanachamaagency.AgencyManager, record models.Record) {
+	t.Helper()
+	code := mwanachamaagency.RecordPermissionCode(record.Code, models.RowActionAdd, mwanachamaagency.RecordFieldStar)
+	if _, err := mgr.CreateRole(context.Background(), models.Role{DraftID: record.DraftID, Name: "Adder of " + record.Name, Permissions: []string{code}}); err != nil {
+		t.Fatalf("CreateRole adder of %s: %v", record.Name, err)
 	}
 }

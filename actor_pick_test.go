@@ -218,9 +218,11 @@ func TestGroupActors_TheDraftScanFlagsOnlyTheOnesThePickersDoNotOffer(t *testing
 	}
 	rec := paymentsRecord(w, wf)
 	rec.RoleID = farmersGroupID
-	if _, err := w.mgr.CreateRecord(ctx, rec); err != nil {
+	made, err := w.mgr.CreateRecord(ctx, rec)
+	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, made)
 
 	issues, err := w.mgr.ListIssues(ctx, w.draftID, mwanachamaagency.IssueFilter{})
 	if err != nil {

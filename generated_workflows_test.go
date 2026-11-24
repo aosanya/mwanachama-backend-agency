@@ -60,6 +60,7 @@ func newGenWorld(t *testing.T) genWorld {
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, mgr, record)
 	return genWorld{rowStepWorld: rowStepWorld{world: w, record: record}, db: db, sp: sp}
 }
 

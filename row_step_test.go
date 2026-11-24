@@ -31,6 +31,7 @@ func buildRowStepWorld(t *testing.T) rowStepWorld {
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, record)
 	return rowStepWorld{world: w, record: record}
 }
 

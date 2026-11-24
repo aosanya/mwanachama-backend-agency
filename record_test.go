@@ -71,6 +71,7 @@ func buildRoutedOrder(t *testing.T) routedOrder {
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, record)
 	return routedOrder{world: w, workflow: wf, steps: steps, record: record}
 }
 

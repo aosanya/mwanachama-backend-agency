@@ -345,6 +345,7 @@ func TestImport_AFileWhoseRecordsShareACodeIsRefusedAndNothingIsKept(t *testing.
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	mayAdd(t, w.mgr, second)
 	pub, err := w.mgr.PublishAgency(ctx, w.draftID, "two-records", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
