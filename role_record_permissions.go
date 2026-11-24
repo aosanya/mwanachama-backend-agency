@@ -11,7 +11,7 @@ import (
 )
 
 func recordPermissionCodesOf(records []models.Record) map[string]bool {
-	given := make(map[string]bool, len(records)*4)
+	given := make(map[string]bool, len(records)*8)
 	for _, r := range records {
 		for _, p := range RecordPermissionsOf(r) {
 			given[p.Code] = true
@@ -61,7 +61,7 @@ func (m *agencyManager) checkRoleRecordPermissions(ctx context.Context, tx *gorm
 func validateDocumentRolePermissions(doc models.AgencyDocument) error {
 	records := make([]models.Record, 0, len(doc.Records))
 	for _, r := range doc.Records {
-		records = append(records, models.Record{Code: r.Code, Name: r.Name, FormName: r.FormName, ItemName: r.ItemName})
+		records = append(records, models.Record{Code: r.Code, Name: r.Name, FormName: r.FormName, ItemName: r.ItemName, Questions: keyedFields(r.Code, r.Questions)})
 	}
 	given := recordPermissionCodesOf(records)
 	for _, role := range doc.Roles {
