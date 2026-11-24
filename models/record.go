@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 type Record struct {
 	ID           string         `json:"id"`
 	Code         string         `json:"code"`
@@ -33,6 +35,7 @@ type RecordRow struct {
 	PlaceRefs    map[string]string `json:"place_refs,omitempty"`
 	OrderID      string            `json:"order_id,omitempty"`
 	SubjectRowID string            `json:"subject_row_id,omitempty"`
+	Tags         []string          `json:"tags"`
 	Replaces     string            `json:"replaces,omitempty"`
 	CorrectedOn  string            `json:"corrected_on,omitempty"`
 	SendKey      string            `json:"-"`
@@ -66,4 +69,12 @@ type DocumentRecord struct {
 	AddReplacedBy    string `json:"add_replaced_by,omitempty"`
 	EditReplacedBy   string `json:"edit_replaced_by,omitempty"`
 	DeleteReplacedBy string `json:"delete_replaced_by,omitempty"`
+}
+
+func (r RecordRow) MarshalJSON() ([]byte, error) {
+	type plain RecordRow
+	if r.Tags == nil {
+		r.Tags = []string{}
+	}
+	return json.Marshal(plain(r))
 }

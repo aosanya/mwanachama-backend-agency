@@ -3,6 +3,7 @@ package mwanachamaagency
 import (
 	"context"
 	"maps"
+	"slices"
 	"time"
 
 	"github.com/aosanya/mwanachama-backend-agency/models"
@@ -47,6 +48,10 @@ func (m *agencyManager) settleReplacement(ctx context.Context, row *models.Recor
 	}
 	if len(taken) > 0 {
 		return invalidRow("the row to replace was already corrected")
+	}
+	row.Tags = slices.Clone(old.Tags)
+	if row.Tags == nil {
+		row.Tags = []string{}
 	}
 	row.CorrectedOn = row.CreatedAt
 	return nil
