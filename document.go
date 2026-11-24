@@ -393,7 +393,7 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 		row := models.Record{
 			ID: recordIDs[r.ID], Code: r.Code, DraftID: draftID, WorkflowID: remap(workflowIDs, r.WorkflowID),
 			Name: r.Name, RoleID: remap(roleIDs, r.RoleID), ViewerRoleID: remap(roleIDs, r.ViewerRoleID),
-			FormName: r.FormName, Questions: r.Questions, CreatedAt: now, LastUpdated: now,
+			FormName: r.FormName, Questions: keyedFields(r.Code, r.Questions), CreatedAt: now, LastUpdated: now,
 			ItemName: r.ItemName, EditRoleID: remap(roleIDs, r.EditRoleID), DeleteRoleID: remap(roleIDs, r.DeleteRoleID),
 			AddReplacedBy: r.AddReplacedBy, EditReplacedBy: r.EditReplacedBy, DeleteReplacedBy: r.DeleteReplacedBy,
 		}

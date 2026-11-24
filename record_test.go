@@ -116,7 +116,7 @@ func TestRecord_GroupOrderReadsBackWithEightStepsAndItsPaymentsRecord(t *testing
 	got := records[0]
 	if got.Name != "Payments" || got.WorkflowID != o.workflow.ID || got.RoleID != w.roles[coordinator].ID ||
 		got.FormName != "Payment" || got.Code == "" ||
-		!reflect.DeepEqual(got.Questions, paymentsRecord(w, o.workflow).Questions) {
+		!reflect.DeepEqual(withoutIdentity(got.Questions), paymentsRecord(w, o.workflow).Questions) {
 		t.Errorf("Payments came back as %+v", got)
 	}
 	one, err := w.mgr.GetRecord(ctx, got.ID)
@@ -204,7 +204,7 @@ func TestRecordRow_IsRefusedForARoleThatDoesNotAddRows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListRecordRows: %v", err)
 	}
-	if len(rows) != 1 || rows[0].ID != made.ID || rows[0].Answers["Enter the amount paid"] != "1200" {
+	if len(rows) != 1 || rows[0].ID != made.ID || answerTo(o.record, rows[0], "Enter the amount paid") != "1200" {
 		t.Fatalf("rows = %+v, want only the one the coordinator added", rows)
 	}
 }

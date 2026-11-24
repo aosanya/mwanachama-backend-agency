@@ -59,7 +59,7 @@ func rowStepFormFits(wi models.WorkItem, record models.Record) error {
 		}
 		return nil
 	}
-	if wi.FormName != record.FormName || !reflect.DeepEqual(wi.Questions, record.Questions) {
+	if wi.FormName != record.FormName || !reflect.DeepEqual(withoutFieldIdentity(wi.Questions), withoutFieldIdentity(record.Questions)) {
 		return invalidStep("a step that %ss a row takes the form of the record %s: %q and its questions", wi.RowAction, record.Code, record.FormName)
 	}
 	return nil

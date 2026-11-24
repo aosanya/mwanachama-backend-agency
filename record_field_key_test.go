@@ -3,6 +3,7 @@ package mwanachamaagency_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -18,6 +19,23 @@ func fieldOf(t *testing.T, record models.Record, prompt string) models.StepQuest
 	}
 	t.Fatalf("the record %s has no field %q: %+v", record.Code, prompt, record.Questions)
 	return models.StepQuestion{}
+}
+
+func answerTo(record models.Record, row models.RecordRow, prompt string) string {
+	for _, q := range record.Questions {
+		if q.Prompt == prompt {
+			return row.Answers[q.Key]
+		}
+	}
+	return ""
+}
+
+func withoutIdentity(questions []models.StepQuestion) []models.StepQuestion {
+	out := append([]models.StepQuestion(nil), questions...)
+	for i := range out {
+		out[i].Key, out[i].Code = "", ""
+	}
+	return out
 }
 
 func rowAdded(w stepWorld, o routedOrder, answers map[string]string) models.RecordRow {
@@ -274,5 +292,84 @@ func TestRecordField_AForkAndAPublicationCarryTheKeysAndCodes(t *testing.T) {
 	restored, _ := w.mgr.ListRecords(ctx, back.ID, mwanachamaagency.RecordFilter{})
 	if len(restored) != 1 || fieldOf(t, restored[0], "Enter the amount paid").Key != amount.Key {
 		t.Errorf("the restored fields = %+v, want the key %q", restored, amount.Key)
+	}
+}
+
+func TestRecordField_RenamingACodeIsAChangeToPublishAndKeysAloneAreNot(t *testing.T) {
+	o := buildRoutedOrder(t)
+	w := o.world
+	ctx := context.Background()
+	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
+		DraftID: w.draftID, WorkItemID: o.steps["Open"].ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
+	}); err != nil {
+		t.Fatalf("CreateRoleAssignment: %v", err)
+	}
+	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "release-1", ""); err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+	again := o.record
+	again.Questions = withoutIdentity(o.record.Questions)
+	if _, err := w.mgr.UpdateRecord(ctx, again); err != nil {
+		t.Fatalf("UpdateRecord with the same form: %v", err)
+	}
+	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "release-2", ""); !errors.Is(err, mwanachamaagency.ErrNoChangesDetected) {
+		t.Fatalf("the same fields sent again: want ErrNoChangesDetected, got %v", err)
+	}
+
+	renamed := o.record
+	renamed.Questions = append([]models.StepQuestion(nil), o.record.Questions...)
+	renamed.Questions[1].Code = "amount_paid"
+	if _, err := w.mgr.UpdateRecord(ctx, renamed); err != nil {
+		t.Fatalf("UpdateRecord renaming a code: %v", err)
+	}
+	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "release-2", ""); err != nil {
+		t.Errorf("a renamed code is a change to publish: %v", err)
+	}
+}
+
+func TestRecordField_TheGeneratedStepsFollowACodeRename(t *testing.T) {
+	o := buildRoutedOrder(t)
+	w := o.world
+	ctx := context.Background()
+	renamed := o.record
+	renamed.Questions = append([]models.StepQuestion(nil), o.record.Questions...)
+	renamed.Questions[1].Code = "amount_paid"
+	if _, err := w.mgr.UpdateRecord(ctx, renamed); err != nil {
+		t.Fatalf("UpdateRecord: %v", err)
+	}
+	steps, err := w.mgr.ListWorkItems(ctx, w.draftID, mwanachamaagency.WorkItemFilter{})
+	if err != nil {
+		t.Fatalf("ListWorkItems: %v", err)
+	}
+	seen := 0
+	for _, s := range steps {
+		if s.RowRecord != o.record.Code || s.RowAction == models.RowActionDelete {
+			continue
+		}
+		seen++
+		if got := fieldOf(t, models.Record{Code: s.RowRecord, Questions: s.Questions}, "Enter the amount paid"); got.Code != "amount_paid" {
+			t.Errorf("the %s step asks %+v, want the renamed code", s.RowAction, got)
+		}
+	}
+	if seen != 2 {
+		t.Errorf("saw %d generated steps that write the record's form, want 2", seen)
+	}
+	issues, err := w.mgr.ListIssues(ctx, w.draftID, mwanachamaagency.IssueFilter{EntityType: "record"})
+	if err != nil {
+		t.Fatalf("ListIssues: %v", err)
+	}
+	for _, issue := range issues {
+		if issue.Severity == "error" && strings.Contains(issue.Message, "generated") {
+			t.Errorf("the scan reports %+v after a rename", issue)
+		}
+	}
+}
+
+func TestRecordField_ADesignedRowStepWithTheFormAndNoKeysStillFits(t *testing.T) {
+	r := buildRowStepWorld(t)
+	step := r.step(t, "Stand-in add", models.RowActionAdd)
+	step.Questions = withoutIdentity(r.record.Questions)
+	if _, err := r.world.mgr.CreateWorkItem(context.Background(), step); err != nil {
+		t.Errorf("a row step whose form is the record's, with no keys: %v", err)
 	}
 }
