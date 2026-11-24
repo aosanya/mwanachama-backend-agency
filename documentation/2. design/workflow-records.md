@@ -66,7 +66,8 @@ The studio has no screen for adding one. `models.RecordRow` is stored in the
 | Operation | Tool | Meaning |
 |---|---|---|
 | `POST /record-rows` | `agency_create_record_row` | Add a row. |
-| `GET /record-rows?draft_id=` | `agency_list_record_rows` | List rows, narrowed by `record_id` or by `record_code`. |
+| `GET /record-rows?draft_id=` | `agency_list_record_rows` | List rows, narrowed by `record_id` or by `record_code`, and by `tags`. |
+| `POST /record-rows/{row_id}/tags` | `agency_add_record_row_tag` | Add one tag id to a row. Nothing takes one off. |
 
 A row names the draft whose record it was added to (any draft that exists, not
 only an open one, because the app serves the published draft), the `record_id`,
@@ -525,6 +526,44 @@ on. `CreateRecordRow` takes it from the caller and:
 on one row reads back together. A row without one, and every row written before
 the column existed, behaves as before; no row is migrated, and the column is
 added to an existing table by `Provision`.
+
+## Row tags (ISS-186, decisions D23, D27 and D28)
+
+The row dimension of record permissions is the tag. `RecordRow` carries `tags`,
+a json list of tag ids kept as plain strings, a column of `record_row` in
+`agency.blueprint.json`. The agency knows no tag table and does not check that a
+tag exists: the hub keeps the tag list, and a row holds only the ids, so
+renaming a tag in the hub moves nothing here. The sibling stores no owner of a
+row for reach; who added a row or who it names never decides who reaches it
+(D47).
+
+| Case | What the agency does |
+|---|---|
+| Add a row | `CreateRecordRow` keeps the `tags` it is given (the hub passes the tags of the group the person assumed, D27), without duplicates and in the order given. A blank tag is refused with `ErrInvalidRecordRow` (400). A row given none carries an empty list. |
+| Add a tag | `AddRecordRowTag(ctx, rowID, tag)`, tool `agency_add_record_row_tag`, route `POST /record-rows/{row_id}/tags` with `tag` in the body. It appends the tag, and a tag the row already carries changes nothing. It refuses with `ErrInvalidRecordRow` (400) a blank tag and a row that does not exist, is retired, was returned or was replaced by a correction, as the retire and return operations do, because a tag added to a history row would never be seen. The row is locked in the transaction, so two adds of different tags both stay. |
+| Take a tag off | No operation does. The manager has no method for it and the routes have no verb for it (`TestRecordRowTags_NothingTakesATagOffARow`, `TestRecordRowTagRoutes`). After the add, tags change only by adding a further tag (D27). |
+| Edit a row | An edit is a replacing row (`replaces`). `settleReplacement` gives it the tags of the row it replaces and ignores any the replacing request names, so an edit never adds or drops a tag (D27, D53). |
+| Rows from before | A row written before the column existed has no tags and lists as an empty list; no row is migrated, and `Provision` adds the column to an existing table. |
+
+`ListRecordRows` takes `RecordRowFilter.Tags` (`tags` on the route, repeated
+for several) and keeps the rows that carry any one of them, so the hub does not
+read every row of a publication to filter in memory. A row is reached when it
+and the group share a tag; the system tag `all` reaches every row (D28), so a
+filter that is empty or names `all` keeps every row. A filter that names only a
+blank tag keeps none, so a malformed call never widens the list. The filter
+adds to the other filters (`record_id`, `order_id` and the rest) and to the
+default hiding of retired and returned rows.
+
+The filter reads the json column with a `LIKE` on the tag as encoded, then
+checks each row's tag list exactly, so `north` does not match `north-east`. A
+json text column has no portable index a contains test could use, so the filter
+narrows by draft, record and order first and scans the rest of the rows of the
+draft; a table of tagged rows that is too large for that is the case for a row
+tag table, and the hub's choice of reach does not depend on which holds the tags.
+
+A `RecordRow` always serialises `tags` as a list, an empty one when it carries
+none, never `null`. Code: `record_row_tags.go`, `settleReplacement` in
+`record_row_correction.go`, the `Tags` filter in `filters.go`.
 
 ## What the Issue scan flags
 
