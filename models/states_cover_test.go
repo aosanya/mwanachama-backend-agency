@@ -96,15 +96,7 @@ func TestTargetType_ValidForControlAddsTheRiskSidesToTheFiveBaseTypes(t *testing
 	}
 }
 
-func TestRACILabelAndRiskSideAndOpensIn_RefuseUnknownValues(t *testing.T) {
-	for _, l := range []RACILabel{RACILabelResponsible, RACILabelAccountable, RACILabelConsulted, RACILabelInformed} {
-		if !l.Valid() {
-			t.Errorf("label %q must be valid", l)
-		}
-	}
-	if RACILabel("").Valid() || RACILabel("Responsible").Valid() || RACILabel("owner").Valid() {
-		t.Error("an empty, wrongly cased or unknown RACI label must be refused")
-	}
+func TestRiskSideAndOpensIn_RefuseUnknownValues(t *testing.T) {
 	if !RiskSideThreat.Valid() || !RiskSideConsequence.Valid() || RiskSide("").Valid() || RiskSide("barrier").Valid() {
 		t.Error("only threat and consequence are risk sides")
 	}

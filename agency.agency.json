@@ -94,12 +94,6 @@
       "description": "A seat somebody or something holds in this organization."
     },
     {
-      "role": "role_assignment",
-      "name": "role_assignment",
-      "table": "role_assignments",
-      "description": "One RACI label: which seat takes part in which step, and how."
-    },
-    {
       "role": "workflow_objective",
       "name": "workflow_objective",
       "table": "workflow_objectives",

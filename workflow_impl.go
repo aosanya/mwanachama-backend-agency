@@ -154,10 +154,6 @@ func (m *agencyManager) DeleteWorkflow(ctx context.Context, id string) error {
 		if err := m.sendBack(ctx, tx, existing.DraftID, usageKey("workflow", existing.Code)); err != nil {
 			return err
 		}
-		stepsOfWorkflow := "work_item_id IN (select id from " + m.table(roleWorkItem) + " where workflow_id = ?)"
-		if err := m.deleteInDraft(ctx, tx, roleRoleAssignment, existing.DraftID, stepsOfWorkflow, id); err != nil {
-			return err
-		}
 		if err := m.deleteWorkflowObjectivesWhere(ctx, tx, existing.DraftID, "workflow_id = ?", id); err != nil {
 			return err
 		}

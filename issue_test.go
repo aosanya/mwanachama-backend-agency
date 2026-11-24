@@ -197,7 +197,7 @@ func TestListIssues_UnlinkingTheLastObjectiveFlagsTheWorkflow(t *testing.T) {
 	}
 }
 
-func TestListIssues_AccountableIsNotPoliced(t *testing.T) {
+func TestListIssues_AStepWithOrWithoutAnAccountableRoleScansClean(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	d, _, _ := seedDraftForIssues(t, mgr, ctx)
@@ -214,29 +214,21 @@ func TestListIssues_AccountableIsNotPoliced(t *testing.T) {
 		t.Fatalf("a step with no Accountable at all must scan clean, got %+v", none)
 	}
 
-	for _, name := range []string{"first-owner", "second-owner"} {
-		role, err := mgr.CreateRole(ctx, models.Role{Name: name, DraftID: d.ID})
-		if err != nil {
-			t.Fatalf("CreateRole: %v", err)
-		}
-		if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-			RoleID: role.ID, WorkItemID: items[0].ID, Label: models.RACILabelAccountable, DraftID: d.ID,
-		}); err != nil {
-			t.Fatalf("CreateRoleAssignment(%s): %v", name, err)
-		}
+	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner", DraftID: d.ID})
+	if err != nil {
+		t.Fatalf("CreateRole: %v", err)
+	}
+	items[0].AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, items[0]); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
-	two, err := mgr.ListIssues(ctx, d.ID, mwanachamaagency.IssueFilter{})
+	named, err := mgr.ListIssues(ctx, d.ID, mwanachamaagency.IssueFilter{})
 	if err != nil {
 		t.Fatalf("ListIssues: %v", err)
 	}
-	if len(two) != 0 {
-		t.Fatalf("two Accountables on one step must scan clean, got %+v", two)
-	}
-	for _, i := range two {
-		if strings.Contains(i.Message, "Accountable") {
-			t.Errorf("the scan still talks about Accountable: %q", i.Message)
-		}
+	if len(named) != 0 {
+		t.Fatalf("a step with an accountable role must scan clean, got %+v", named)
 	}
 }
 
@@ -322,46 +314,6 @@ func TestListIssues_DanglingWorkflowObjective(t *testing.T) {
 	found = issuesFor(t, mgr, ctx, d.ID, "workflow_objective")
 	if len(found) != 1 || !strings.Contains(found[0].Message, "ghost-workflow") {
 		t.Fatalf("expected one error naming the missing workflow, got %+v", found)
-	}
-}
-
-func TestListIssues_DanglingRoleAssignment(t *testing.T) {
-	mgr, db, s := newTestManagerDB(t)
-	ctx := context.Background()
-	d, _, _ := seedDraftForIssues(t, mgr, ctx)
-	items, err := mgr.ListWorkItems(ctx, d.ID, mwanachamaagency.WorkItemFilter{})
-	if err != nil || len(items) != 1 {
-		t.Fatalf("ListWorkItems: %v, %+v", err, items)
-	}
-	role, err := mgr.CreateRole(ctx, models.Role{Name: "owner", DraftID: d.ID})
-	if err != nil {
-		t.Fatalf("CreateRole: %v", err)
-	}
-	a, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		RoleID: role.ID, WorkItemID: items[0].ID, Label: models.RACILabelResponsible, DraftID: d.ID,
-	})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
-	table := tableOf(t, s, "role_assignment")
-
-	if err := db.Exec("update "+table+" set work_item_id = ? where id = ?", "ghost-step", a.ID).Error; err != nil {
-		t.Fatalf("pointing the assignment at a missing step: %v", err)
-	}
-	found := issuesFor(t, mgr, ctx, d.ID, "role_assignment")
-	if len(found) != 1 || found[0].EntityID != a.ID || found[0].Severity != models.IssueSeverityError {
-		t.Fatalf("expected one error for the assignment with a missing step, got %+v", found)
-	}
-	if !strings.Contains(found[0].Message, "ghost-step") {
-		t.Errorf("expected the message to name the missing step, got %q", found[0].Message)
-	}
-
-	if err := db.Exec("update "+table+" set work_item_id = ?, role_id = ? where id = ?", items[0].ID, "ghost-role", a.ID).Error; err != nil {
-		t.Fatalf("pointing the assignment at a missing role: %v", err)
-	}
-	found = issuesFor(t, mgr, ctx, d.ID, "role_assignment")
-	if len(found) != 1 || !strings.Contains(found[0].Message, "ghost-role") {
-		t.Fatalf("expected one error naming the missing role, got %+v", found)
 	}
 }
 

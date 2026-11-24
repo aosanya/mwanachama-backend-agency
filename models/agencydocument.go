@@ -10,7 +10,7 @@ type AgencyDocument struct {
 	Workflows          []DocumentWorkflow          `json:"workflows"`
 	WorkflowObjectives []DocumentWorkflowObjective `json:"workflow_objectives"`
 	WorkItems          []DocumentWorkItem          `json:"work_items"`
-	RoleAssignments    []DocumentRoleAssignment    `json:"role_assignments"`
+	RoleAssignments    []DocumentRoleAssignment    `json:"role_assignments,omitempty"`
 	Values             []DocumentStatement         `json:"values"`
 	Rules              []DocumentStatement         `json:"rules"`
 	ValueAttachments   []DocumentAttachment        `json:"value_attachments"`
@@ -150,12 +150,13 @@ type DocumentWorkItem struct {
 
 	LegacyObjectiveID string `json:"objective_id,omitempty"`
 
-	Kind          StepKind       `json:"kind,omitempty"`
-	RoleID        string         `json:"role_id,omitempty"`
-	RunWorkflowID string         `json:"run_workflow_id,omitempty"`
-	FormName      string         `json:"form_name,omitempty"`
-	Questions     []StepQuestion `json:"questions,omitempty"`
-	Tool          string         `json:"tool,omitempty"`
+	Kind              StepKind       `json:"kind,omitempty"`
+	RoleID            string         `json:"role_id,omitempty"`
+	AccountableRoleID string         `json:"accountable_role_id,omitempty"`
+	RunWorkflowID     string         `json:"run_workflow_id,omitempty"`
+	FormName          string         `json:"form_name,omitempty"`
+	Questions         []StepQuestion `json:"questions,omitempty"`
+	Tool              string         `json:"tool,omitempty"`
 
 	RecipientRoleID string      `json:"recipient_role_id,omitempty"`
 	SentStepID      string      `json:"sent_step_id,omitempty"`

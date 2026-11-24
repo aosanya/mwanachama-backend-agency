@@ -7,19 +7,18 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
-func TestARoleAssignmentLineNamesBothEndsOfTheLink(t *testing.T) {
-	got := describe([]models.RoleAssignment{{
-		ID:         "assignment-1",
-		DraftID:    "draft-1",
-		RoleID:     "role-7",
-		WorkItemID: "item-3",
-		Label:      models.RACILabelAccountable,
-		CreatedAt:  "2026-09-25T10:00:00Z",
+func TestAWorkItemLineNamesItsAccountableRole(t *testing.T) {
+	got := describe([]models.WorkItem{{
+		ID:                "item-3",
+		DraftID:           "draft-1",
+		Title:             "Open the tender",
+		AccountableRoleID: "role-7",
+		CreatedAt:         "2026-09-25T10:00:00Z",
 	}})
 
-	for _, want := range []string{"accountable", "role id: role-7", "work item id: item-3", "id: assignment-1"} {
+	for _, want := range []string{"accountable role id: role-7", "id: item-3"} {
 		if !strings.Contains(got, want) {
-			t.Errorf("a RACI line without %q cannot be correlated to a role or a step:\n%s", want, got)
+			t.Errorf("a step line without %q cannot be correlated to the role accountable for it:\n%s", want, got)
 		}
 	}
 	if strings.Contains(got, "draft-1") {
@@ -83,7 +82,7 @@ func TestAnAttachmentLineNamesWhatItAttachesToWhat(t *testing.T) {
 }
 
 func TestAnEmptyListingSaysSo(t *testing.T) {
-	if got := describe([]models.RoleAssignment{}); got != "There are none yet." {
+	if got := describe([]models.Role{}); got != "There are none yet." {
 		t.Errorf("got %q", got)
 	}
 }

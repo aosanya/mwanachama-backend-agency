@@ -94,7 +94,7 @@ func counts(doc models.AgencyDocument) []countOf {
 		{"workflows", len(doc.Workflows)},
 		{"work items", len(doc.WorkItems)},
 		{"workflow objectives", workflowObjectiveCount(doc)},
-		{"RACI links", stepRaciCount(doc)},
+		{"accountable roles", stepAccountableCount(doc)},
 		{"values", len(doc.Values)},
 		{"rules", len(doc.Rules)},
 		{"attachments", len(doc.ValueAttachments) + len(doc.RuleAttachments)},
@@ -116,10 +116,10 @@ func workflowObjectiveCount(doc models.AgencyDocument) int {
 	return len(pairs)
 }
 
-func stepRaciCount(doc models.AgencyDocument) int {
+func stepAccountableCount(doc models.AgencyDocument) int {
 	n := 0
-	for _, a := range doc.RoleAssignments {
-		if a.WorkItemID != "" {
+	for _, w := range doc.WorkItems {
+		if w.AccountableRoleID != "" {
 			n++
 		}
 	}

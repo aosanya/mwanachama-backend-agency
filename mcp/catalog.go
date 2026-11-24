@@ -38,13 +38,8 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "Role",
-		WhatItIs: "A persona that can be given a part in a WorkItem via RACI (e.g. \"bug-hunter\", \"code-reviewer\"). Belongs to a Draft, freely editable there.",
+		WhatItIs: "A persona that can be made accountable for a WorkItem (e.g. \"bug-hunter\", \"code-reviewer\"). Belongs to a Draft, freely editable there.",
 		HowToAdd: "agency_create_role (name, optional description).",
-	},
-	{
-		Name:     "RoleAssignment (RACI)",
-		WhatItIs: "Gives one Role a part in one WorkItem with a RACI label — responsible, accountable, consulted, or informed. A WorkItem may have any number of Roles under any label; only the same Role with the same label on the same WorkItem twice is refused.",
-		HowToAdd: "agency_set_raci (role_id, work_item_id, label).",
 	},
 	{
 		Name:     "Value",
@@ -63,8 +58,8 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "WorkItem",
-		WhatItIs: "A single unit of work, owned by exactly one Workflow; Roles take part in it through RACI.",
-		HowToAdd: "agency_create_work_item (workflow_id, title).",
+		WhatItIs: "A single unit of work, owned by exactly one Workflow; one Role may be named accountable for it.",
+		HowToAdd: "agency_create_work_item (workflow_id, title, optional accountable_role_id).",
 	},
 	{
 		Name:     "EventFlowStep",
@@ -73,7 +68,7 @@ var domainTypeCatalog = []typeInfo{
 	},
 	{
 		Name:     "Draft",
-		WhatItIs: "The unit of editing — every Goal/Workflow/WorkItem/Role/RoleAssignment/etc. row belongs to exactly one Draft, always. There is no separate \"live\" copy; publishing reads a Draft's rows directly.",
+		WhatItIs: "The unit of editing — every Goal/Workflow/WorkItem/Role/etc. row belongs to exactly one Draft, always. There is no separate \"live\" copy; publishing reads a Draft's rows directly.",
 		HowToAdd: "agency_create_draft — though in this chat, one is already open and managed by the host; never call it yourself.",
 	},
 	{
@@ -95,7 +90,7 @@ var domainTypeCatalog = []typeInfo{
 func registerCatalogTools(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "agency_list_types", Title: "List Domain Types",
-		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, RACI, Value, Rule, Workflow, WorkItem, EventFlowStep, Draft, AgencyPublication, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
+		Description: "Look up what a domain type is and, if it has one, which tool creates it — Agency, Goal, Objective, Role, Value, Rule, Workflow, WorkItem, EventFlowStep, Draft, AgencyPublication, Issue. Use this to answer an operator's \"what is an Objective\" or \"how do I add a Role\" question rather than guessing. Omit name to list every type; name does a case-insensitive substring match.",
 	}, mcpListTypes())
 }
 

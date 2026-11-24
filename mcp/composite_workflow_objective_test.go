@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
-	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
 func strings1(v any) []string {
@@ -101,7 +100,37 @@ func TestDesignFromSpec_ANamedObjectiveThatIsNotInTheSpecIsReportedAndTheWorkflo
 	}
 }
 
-func TestDesignFromSpec_RaciNamesAStepByKeyOrId(t *testing.T) {
+func TestDesignFromSpec_AStepNamesItsAccountableRoleByKeyOrId(t *testing.T) {
+	d := newStepDesign(t)
+
+	sc := d.mustCall(t, "agency_design_from_spec", map[string]any{
+		"draft_id": d.draft.ID,
+		"roles":    []any{map[string]any{"key": "lead", "name": "Lead"}},
+		"workflows": []any{
+			map[string]any{"key": "w", "name": "Handle", "objective_ids": []any{d.objectiveA.ID}},
+		},
+		"work_items": []any{
+			map[string]any{"key": "s1", "workflow_key": "w", "title": "Triage", "accountable_role_key": "lead"},
+			map[string]any{"key": "s2", "workflow_key": "w", "title": "Close", "accountable_role_id": d.owner.ID},
+			map[string]any{"key": "s3", "workflow_key": "w", "title": "Archive"},
+		},
+	})
+	if errs, _ := sc["errors"].([]any); len(errs) != 0 {
+		t.Fatalf("got errors %+v", errs)
+	}
+	roles, _ := sc["roles"].(map[string]any)
+	created, _ := sc["work_items"].(map[string]any)
+	want := map[string]string{"s1": roles["lead"].(string), "s2": d.owner.ID, "s3": ""}
+	for key, role := range want {
+		id, _ := created[key].(string)
+		got, err := d.mgr.GetWorkItem(ctxT(t), id)
+		if err != nil || got.AccountableRoleID != role {
+			t.Errorf("step %s accountable role = %q err=%v, want %q", key, got.AccountableRoleID, err, role)
+		}
+	}
+}
+
+func TestDesignFromSpec_AnAccountableRoleNeedsOneKnownRole(t *testing.T) {
 	d := newStepDesign(t)
 
 	sc := d.mustCall(t, "agency_design_from_spec", map[string]any{
@@ -109,86 +138,31 @@ func TestDesignFromSpec_RaciNamesAStepByKeyOrId(t *testing.T) {
 		"workflows": []any{
 			map[string]any{"key": "w", "name": "Handle", "objective_ids": []any{d.objectiveA.ID}},
 		},
-		"work_items": []any{map[string]any{"key": "s1", "workflow_key": "w", "title": "Triage"}},
-		"raci": []any{
-			map[string]any{"role_id": d.owner.ID, "work_item_key": "s1", "label": "accountable"},
-			map[string]any{"role_id": d.helper.ID, "work_item_key": "s1", "label": "accountable"},
-			map[string]any{"role_id": d.owner.ID, "work_item_key": "s1", "label": "responsible"},
-			map[string]any{"role_id": d.helper.ID, "work_item_id": d.step.ID, "label": "informed"},
-		},
-	})
-	if errs, _ := sc["errors"].([]any); len(errs) != 0 {
-		t.Fatalf("a step may have any number of accountable seats, got errors %+v", errs)
-	}
-	if ids := strings1(sc["role_assignments"]); len(ids) != 4 {
-		t.Fatalf("role_assignments = %+v, want 4", sc["role_assignments"])
-	}
-
-	created, _ := sc["work_items"].(map[string]any)
-	triage, _ := created["s1"].(string)
-	seats, err := d.mgr.ListRoleAssignmentsForWorkItem(ctxT(t), triage, d.draft.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(seats) != 3 {
-		t.Fatalf("the spec's step holds %+v err=%v, want 3 seats", seats, err)
-	}
-	existing, err := d.mgr.ListRoleAssignmentsForWorkItem(ctxT(t), d.step.ID, d.draft.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(existing) != 1 || existing[0].Label != models.RACILabelInformed {
-		t.Errorf("the step that already existed holds %+v err=%v, want the one informed seat", existing, err)
-	}
-}
-
-func TestDesignFromSpec_RaciRefusesOnlyTheSameSeatAndLabelOnAStepTwice(t *testing.T) {
-	d := newStepDesign(t)
-
-	sc := d.mustCall(t, "agency_design_from_spec", map[string]any{
-		"draft_id": d.draft.ID,
-		"raci": []any{
-			map[string]any{"role_id": d.owner.ID, "work_item_id": d.step.ID, "label": "accountable"},
-			map[string]any{"role_id": d.owner.ID, "work_item_id": d.step.ID, "label": "accountable"},
-			map[string]any{"role_id": d.owner.ID, "work_item_id": d.step.ID, "label": "consulted"},
-		},
-	})
-	if errs, _ := sc["errors"].([]any); len(errs) != 1 {
-		t.Errorf("errors = %+v, want exactly the repeated seat refused", sc["errors"])
-	}
-	if ids := strings1(sc["role_assignments"]); len(ids) != 2 {
-		t.Errorf("role_assignments = %+v, want the first accountable and the consulted", sc["role_assignments"])
-	}
-	if seats, _ := d.mgr.ListRoleAssignmentsForWorkItem(ctxT(t), d.step.ID, d.draft.ID, mwanachamaagency.RoleAssignmentFilter{}); len(seats) != 2 {
-		t.Errorf("the step holds %+v, want 2 seats", seats)
-	}
-}
-
-func TestDesignFromSpec_RaciNeedsAStepAndASeat(t *testing.T) {
-	d := newStepDesign(t)
-
-	sc := d.mustCall(t, "agency_design_from_spec", map[string]any{
-		"draft_id": d.draft.ID,
-		"raci": []any{
-			map[string]any{"role_id": d.owner.ID, "label": "accountable"},
-			map[string]any{"role_id": d.owner.ID, "work_item_key": "never-made", "label": "accountable"},
-			map[string]any{"work_item_id": d.step.ID, "label": "accountable"},
-			map[string]any{"role_key": "never-made", "work_item_id": d.step.ID, "label": "accountable"},
+		"work_items": []any{
+			map[string]any{"key": "both", "workflow_key": "w", "title": "Both", "accountable_role_key": "x", "accountable_role_id": d.owner.ID},
+			map[string]any{"key": "unknown", "workflow_key": "w", "title": "Unknown", "accountable_role_key": "never-made"},
+			map[string]any{"key": "ghost", "workflow_key": "w", "title": "Ghost", "accountable_role_id": "no-such-role"},
 		},
 	})
 	errs, _ := sc["errors"].([]any)
-	if len(errs) != 4 {
-		t.Fatalf("errors = %+v, want each of the four incomplete raci entries refused", errs)
+	if len(errs) != 3 {
+		t.Fatalf("errors = %+v, want each of the three refused", errs)
 	}
 	joined := ""
 	for _, e := range errs {
 		joined += e.(string) + "\n"
 	}
-	for _, want := range []string{"work_item_key or work_item_id", `unknown work_item_key "never-made"`, "role_key or role_id", `unknown role_key "never-made"`} {
+	for _, want := range []string{"accountable_role_key or accountable_role_id", `unknown accountable_role_key "never-made"`} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("errors do not say %q:\n%s", want, joined)
 		}
 	}
-	if seats, _ := d.mgr.ListRoleAssignments(ctxT(t), d.draft.ID, mwanachamaagency.RoleAssignmentFilter{}); len(seats) != 0 {
-		t.Errorf("incomplete raci entries were stored: %+v", seats)
+	if created, _ := sc["work_items"].(map[string]any); len(created) != 0 {
+		t.Errorf("refused steps were created: %+v", created)
 	}
 }
 
-func TestDesignFromSpec_TheSchemaPutsObjectivesOnAWorkflowAndRaciOnAStep(t *testing.T) {
+func TestDesignFromSpec_TheSchemaPutsObjectivesOnAWorkflowAndTheAccountableRoleOnAStep(t *testing.T) {
 	d := newStepDesign(t)
 	tools, err := d.cs.ListTools(ctxT(t), nil)
 	if err != nil {
@@ -219,8 +193,8 @@ func TestDesignFromSpec_TheSchemaPutsObjectivesOnAWorkflowAndRaciOnAStep(t *test
 		return ok
 	}
 	for section, fields := range map[string][]string{
-		"workflows": {"objective_keys", "objective_ids"},
-		"raci":      {"work_item_key", "work_item_id", "role_key", "role_id", "label"},
+		"workflows":  {"objective_keys", "objective_ids"},
+		"work_items": {"accountable_role_key", "accountable_role_id"},
 	} {
 		for _, f := range fields {
 			if !has(section, f) {
@@ -231,7 +205,7 @@ func TestDesignFromSpec_TheSchemaPutsObjectivesOnAWorkflowAndRaciOnAStep(t *test
 	if has("work_items", "objective_key") || has("work_items", "objective_id") {
 		t.Errorf("work_items entries still offer an objective: %+v", doc.Properties["work_items"].Items.Properties)
 	}
-	if has("raci", "objective_id") || has("raci", "objective_key") {
-		t.Errorf("raci entries still name an objective: %+v", doc.Properties["raci"].Items.Properties)
+	if _, ok := doc.Properties["raci"]; ok {
+		t.Errorf("the spec still offers a raci section")
 	}
 }

@@ -63,9 +63,8 @@ func TestEntityCountAddsEveryEntryAndEveryWorkflowLink(t *testing.T) {
 			{},
 		},
 		WorkItems: []specWorkItem{{}, {}, {}},
-		RACI:      []specRACI{{}},
 	}
-	if got := params.entityCount(); got != 2+1+1+2+3+1+3 {
+	if got := params.entityCount(); got != 2+1+1+2+3+3 {
 		t.Fatalf("entityCount = %d", got)
 	}
 	if (mcpDesignFromSpecParams{}).entityCount() != 0 {

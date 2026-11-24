@@ -161,9 +161,6 @@ func (m *agencyManager) insertGeneratedRow(ctx context.Context, tx *gorm.DB, rol
 
 func (m *agencyManager) removeGeneratedWorkflow(ctx context.Context, tx *gorm.DB, draftID, workflowID string) error {
 	stepsOfWorkflow := "select id from " + m.table(roleWorkItem) + " where workflow_id = ?"
-	if err := m.deleteInDraft(ctx, tx, roleRoleAssignment, draftID, "work_item_id IN ("+stepsOfWorkflow+")", workflowID); err != nil {
-		return err
-	}
 	if err := m.deleteInDraft(ctx, tx, roleScenarioInput, draftID, "step_id IN ("+stepsOfWorkflow+")", workflowID); err != nil {
 		return err
 	}

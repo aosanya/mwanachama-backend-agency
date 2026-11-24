@@ -49,7 +49,7 @@ func TestDeleteWorkflow_NoWorkItems(t *testing.T) {
 	}
 }
 
-func TestDeleteWorkflow_RemovesItsObjectiveLinksAndTheAssignmentsOfItsSteps(t *testing.T) {
+func TestDeleteWorkflow_RemovesItsObjectiveLinksAndLeavesTheAccountableRoleOfOtherWorkflows(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	draftID := newDraftAgency(t, mgr, ctx)
@@ -76,25 +76,14 @@ func TestDeleteWorkflow_RemovesItsObjectiveLinksAndTheAssignmentsOfItsSteps(t *t
 	doomedLink := linkWorkflowToObjective(t, mgr, draftID, doomed.ID, o.ID)
 	keptLink := linkWorkflowToObjective(t, mgr, draftID, kept.ID, o.ID)
 
-	var doomedAssignments []models.RoleAssignment
 	for _, title := range []string{"Write charter", "Send charter"} {
-		step, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: doomed.ID, Title: title})
-		if err != nil {
+		if _, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: doomed.ID, Title: title, AccountableRoleID: role.ID}); err != nil {
 			t.Fatalf("CreateWorkItem %s: %v", title, err)
 		}
-		a, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: draftID, WorkItemID: step.ID, RoleID: role.ID, Label: models.RACILabelAccountable})
-		if err != nil {
-			t.Fatalf("CreateRoleAssignment: %v", err)
-		}
-		doomedAssignments = append(doomedAssignments, a)
 	}
-	keptStep, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: kept.ID, Title: "Close account"})
+	keptStep, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: kept.ID, Title: "Close account", AccountableRoleID: role.ID})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
-	}
-	keptAssignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: draftID, WorkItemID: keptStep.ID, RoleID: role.ID, Label: models.RACILabelAccountable})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
 	if err := mgr.DeleteWorkflow(ctx, doomed.ID); err != nil {
@@ -104,16 +93,11 @@ func TestDeleteWorkflow_RemovesItsObjectiveLinksAndTheAssignmentsOfItsSteps(t *t
 	if _, err := mgr.GetWorkflowObjective(ctx, doomedLink.ID); !errors.Is(err, mwanachamaagency.ErrWorkflowObjectiveNotFound) {
 		t.Errorf("link of the deleted workflow: err = %v, want ErrWorkflowObjectiveNotFound", err)
 	}
-	for _, a := range doomedAssignments {
-		if _, err := mgr.GetRoleAssignment(ctx, a.ID); !errors.Is(err, mwanachamaagency.ErrRoleAssignmentNotFound) {
-			t.Errorf("assignment %s of a deleted step: err = %v, want ErrRoleAssignmentNotFound", a.ID, err)
-		}
-	}
 	if _, err := mgr.GetWorkflowObjective(ctx, keptLink.ID); err != nil {
 		t.Errorf("the link of another workflow was removed: %v", err)
 	}
-	if _, err := mgr.GetRoleAssignment(ctx, keptAssignment.ID); err != nil {
-		t.Errorf("the assignment of a step in another workflow was removed: %v", err)
+	if got, err := mgr.GetWorkItem(ctx, keptStep.ID); err != nil || got.AccountableRoleID != role.ID {
+		t.Errorf("the step of another workflow was changed: %+v, %v", got, err)
 	}
 	if _, err := mgr.GetObjective(ctx, o.ID); err != nil {
 		t.Errorf("the objective was removed with the workflow: %v", err)

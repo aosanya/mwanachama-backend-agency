@@ -61,7 +61,7 @@ A measure follows its objective everywhere an objective goes:
   a republish accepts.
 - **Fork from a publication** reads them back onto the objectives it creates.
 - **Removing an objective** removes its measures with it, in the same transaction
-  as its role assignments and work items. Removing a goal
+  as its work items. Removing a goal
   removes the measures of every objective under it. Nothing refuses, because
   nothing in the neighbouring removals refuses either.
 

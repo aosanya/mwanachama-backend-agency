@@ -49,16 +49,6 @@ var (
 	// ErrRoleNotFound is returned when a Role id has no match in the
 	// expected scope.
 	ErrRoleNotFound = errors.New("mwanachamaagency: role not found")
-	// ErrRoleAssignmentNotFound is returned when a RoleAssignment id has no
-	// match.
-	ErrRoleAssignmentNotFound = errors.New("mwanachamaagency: role assignment not found")
-	// ErrInvalidRACILabel is returned by CreateRoleAssignment/
-	// UpdateRoleAssignment when Label is not one of the four RACI values.
-	ErrInvalidRACILabel = errors.New("mwanachamaagency: invalid RACI label")
-	// ErrDuplicateRoleAssignment is returned by CreateRoleAssignment/
-	// UpdateRoleAssignment when the same role already holds the same label
-	// on the same step.
-	ErrDuplicateRoleAssignment = errors.New("mwanachamaagency: role already holds this label on the step")
 	// ErrWorkflowObjectiveNotFound is returned when a WorkflowObjective id
 	// has no match.
 	ErrWorkflowObjectiveNotFound = errors.New("mwanachamaagency: workflow objective not found")

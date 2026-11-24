@@ -83,11 +83,7 @@ func TestRecordViewer_AForkAndAPublicationCarryItOntoTheCopiedRole(t *testing.T)
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, WorkItemID: madeStep.ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
+	assignOn(t, w.mgr, ctx, w.draftID, w.roles[coordinator], madeStep)
 
 	viewerNameIn := func(draftID string) string {
 		records, err := w.mgr.ListRecords(ctx, draftID, mwanachamaagency.RecordFilter{})
@@ -139,11 +135,7 @@ func TestRecordViewer_ChangingOnlyTheViewerIsAChangeToPublish(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, WorkItemID: step.ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
+	assignOn(t, w.mgr, ctx, w.draftID, w.roles[coordinator], step)
 	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "release-1", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}

@@ -2,7 +2,6 @@ package mwanachamaagency_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	mwanachamaagency "github.com/aosanya/mwanachama-backend-agency"
@@ -53,37 +52,17 @@ func TestSeedSWELab(t *testing.T) {
 		t.Fatal("expected a \"Review pull request\" work item to have been seeded")
 	}
 
-	assignments, err := mgr.ListRoleAssignmentsForWorkItem(ctx, reviewItem.ID, seed.Draft.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil {
-		t.Fatalf("ListRoleAssignmentsForWorkItem: %v", err)
+	techLead := seed.Roles["tech-lead"]
+	if len(seed.WorkItems) != 3 {
+		t.Fatalf("expected three seeded work items, got %d", len(seed.WorkItems))
 	}
-	if len(assignments) != 4 {
-		t.Fatalf("expected all four RACI labels on the review item, got %d assignments", len(assignments))
-	}
-	byLabel := map[models.RACILabel]bool{}
-	for _, a := range assignments {
-		byLabel[a.Label] = true
-	}
-	for _, want := range []models.RACILabel{
-		models.RACILabelResponsible, models.RACILabelAccountable,
-		models.RACILabelConsulted, models.RACILabelInformed,
-	} {
-		if !byLabel[want] {
-			t.Errorf("expected a %q assignment on the review item, got %+v", want, assignments)
+	for _, wi := range seed.WorkItems {
+		if wi.AccountableRoleID != techLead.ID {
+			t.Errorf("expected the tech lead accountable for %q, got %q", wi.Title, wi.AccountableRoleID)
 		}
 	}
-
-	otherRole := seed.Roles["business-analyst"]
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: seed.Draft.ID, RoleID: otherRole.ID, WorkItemID: reviewItem.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("a second accountable on the review step must be allowed, got %v", err)
-	}
-	_, err = mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: seed.Draft.ID, RoleID: otherRole.ID, WorkItemID: reviewItem.ID, Label: models.RACILabelAccountable,
-	})
-	if !errors.Is(err, mwanachamaagency.ErrDuplicateRoleAssignment) {
-		t.Fatalf("expected ErrDuplicateRoleAssignment repeating the same role and label on one step, got %v", err)
+	if reviewItem.AccountableRoleID != techLead.ID {
+		t.Errorf("expected the review item to name the tech lead as accountable, got %+v", reviewItem)
 	}
 
 	if len(seed.WorkflowObjectives) != len(seed.Objectives) {

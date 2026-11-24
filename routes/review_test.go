@@ -37,14 +37,14 @@ func TestReviewRoutes_StartRecordAndReadOverHTTP(t *testing.T) {
 		t.Fatalf("second POST /reviews = %d %s, want 409 with the running sentence", rec.Code, rec.Body.String())
 	}
 
-	body := `{"status":"done","summary":"Fine.","tokens":12,"findings":[{"title":"Name the goal owner","then":[{"tool":"agency_set_raci","arguments":{"label":"accountable"}}]}]}`
+	body := `{"status":"done","summary":"Fine.","tokens":12,"findings":[{"title":"Name the goal owner","then":[{"tool":"agency_update_work_item","arguments":{"title":"Name the goal owner"}}]}]}`
 	rec = call(http.MethodPut, "/reviews/"+started.Review.ID+"/areas/goals", body)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"review_status":"running"`) {
 		t.Fatalf("PUT area = %d %s", rec.Code, rec.Body.String())
 	}
 
 	rec = call(http.MethodGet, "/review?draft_id="+draftID, "")
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Name the goal owner") || !strings.Contains(rec.Body.String(), `"then":[{"tool":"agency_set_raci"`) {
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Name the goal owner") || !strings.Contains(rec.Body.String(), `"then":[{"tool":"agency_update_work_item"`) {
 		t.Fatalf("GET /review = %d %s", rec.Code, rec.Body.String())
 	}
 

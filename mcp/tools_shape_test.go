@@ -45,7 +45,6 @@ func TestPublishedToolNamesSurvive(t *testing.T) {
 	}
 	for _, name := range []string{
 		"agency_create_goal", "agency_list_goals", "agency_update_goal", "agency_delete_goal",
-		"agency_set_raci", "agency_list_role_assignments_for_work_item",
 		"agency_link_workflow_objective", "agency_list_workflow_objectives",
 		"agency_get_workflow_objective", "agency_delete_workflow_objective",
 		"agency_set_module_enabled", "agency_set_module_mounts",
@@ -161,15 +160,16 @@ func TestTheObjectiveListOfAStepIsGone(t *testing.T) {
 	}
 }
 
-func TestSetRaciNamesAStepAndNoObjective(t *testing.T) {
-	tool := toolNamed(t, "agency_set_raci")
-	for _, want := range []string{"work_item_id", "role_id", "label", "draft_id"} {
-		if _, ok := tool.Properties[want]; !ok {
-			t.Errorf("agency_set_raci offers no %s", want)
-		}
+func TestTheRoleAssignmentToolsAreGone(t *testing.T) {
+	gone := map[string]bool{
+		"agency_set_raci": true, "agency_list_role_assignments": true, "agency_get_role_assignment": true,
+		"agency_update_role_assignment": true, "agency_delete_role_assignment": true,
+		"agency_list_role_assignments_for_work_item": true,
 	}
-	if _, offered := tool.Properties["objective_id"]; offered {
-		t.Errorf("agency_set_raci still offers objective_id")
+	for _, tool := range declaredTools(t) {
+		if gone[tool.Name] {
+			t.Errorf("%s is still published", tool.Name)
+		}
 	}
 }
 
@@ -181,16 +181,11 @@ func TestStepToolsOfferNoObjective(t *testing.T) {
 	}
 }
 
-func TestListRoleAssignmentsForWorkItemTakesTheStep(t *testing.T) {
-	tool := toolNamed(t, "agency_list_role_assignments_for_work_item")
-	if _, ok := tool.Properties["work_item_id"]; !ok {
-		t.Errorf("agency_list_role_assignments_for_work_item offers no work_item_id")
-	}
-	if !requires(tool, "work_item_id") {
-		t.Errorf("agency_list_role_assignments_for_work_item does not require work_item_id")
-	}
-	if _, ok := tool.Properties["draft_id"]; !ok {
-		t.Errorf("agency_list_role_assignments_for_work_item offers no draft_id")
+func TestStepToolsOfferTheAccountableRole(t *testing.T) {
+	for _, name := range []string{"agency_create_work_item", "agency_update_work_item"} {
+		if _, offered := toolNamed(t, name).Properties["accountable_role_id"]; !offered {
+			t.Errorf("%s offers no accountable_role_id", name)
+		}
 	}
 }
 

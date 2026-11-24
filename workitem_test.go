@@ -29,7 +29,7 @@ func TestDeleteWorkItem(t *testing.T) {
 	}
 }
 
-func TestDeleteWorkItem_RemovesItsRoleAssignmentsAndNoOthers(t *testing.T) {
+func TestDeleteWorkItem_LeavesTheAccountableRoleOfOtherSteps(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	draftID := newDraftAgency(t, mgr, ctx)
@@ -41,41 +41,26 @@ func TestDeleteWorkItem_RemovesItsRoleAssignmentsAndNoOthers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	doomed, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Write charter"})
+	doomed, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Write charter", AccountableRoleID: role.ID})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
-	kept, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Send charter"})
+	kept, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: draftID, WorkflowID: wf.ID, Title: "Send charter", AccountableRoleID: role.ID})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
-	}
-	var doomedAssignments []models.RoleAssignment
-	for _, label := range []models.RACILabel{models.RACILabelAccountable, models.RACILabelResponsible} {
-		a, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: draftID, WorkItemID: doomed.ID, RoleID: role.ID, Label: label})
-		if err != nil {
-			t.Fatalf("CreateRoleAssignment %s: %v", label, err)
-		}
-		doomedAssignments = append(doomedAssignments, a)
-	}
-	survivor, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{DraftID: draftID, WorkItemID: kept.ID, RoleID: role.ID, Label: models.RACILabelAccountable})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
 	}
 
 	if err := mgr.DeleteWorkItem(ctx, doomed.ID); err != nil {
 		t.Fatalf("DeleteWorkItem: %v", err)
 	}
 
-	for _, a := range doomedAssignments {
-		if _, err := mgr.GetRoleAssignment(ctx, a.ID); !errors.Is(err, mwanachamaagency.ErrRoleAssignmentNotFound) {
-			t.Errorf("assignment %s (%s) of the deleted step: err = %v, want ErrRoleAssignmentNotFound", a.ID, a.Label, err)
-		}
+	if _, err := mgr.GetWorkItem(ctx, doomed.ID); !errors.Is(err, mwanachamaagency.ErrWorkItemNotFound) {
+		t.Errorf("the deleted step: err = %v, want ErrWorkItemNotFound", err)
 	}
-	if _, err := mgr.GetRoleAssignment(ctx, survivor.ID); err != nil {
-		t.Errorf("the assignment of another step was removed: %v", err)
+	if got, err := mgr.GetWorkItem(ctx, kept.ID); err != nil || got.AccountableRoleID != role.ID {
+		t.Errorf("the other step lost its accountable role: %+v, %v", got, err)
 	}
-	left, err := mgr.ListRoleAssignmentsForWorkItem(ctx, doomed.ID, draftID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(left) != 0 {
-		t.Errorf("assignments left on the deleted step = %+v, %v", left, err)
+	if _, err := mgr.GetRole(ctx, role.ID); err != nil {
+		t.Errorf("the role was removed with the step: %v", err)
 	}
 }

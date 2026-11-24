@@ -21,7 +21,6 @@
     "ErrDraftNotFound": 404,
     "ErrDraftNotOpen": 409,
     "ErrDraftRequired": 400,
-    "ErrDuplicateRoleAssignment": 409,
     "ErrDuplicateAttachment": 409,
     "ErrDuplicateModule": 409,
     "ErrDuplicateTag": 409,
@@ -32,7 +31,6 @@
     "ErrInvalidLookup": 400,
     "ErrInvalidModule": 400,
     "ErrInvalidModuleMounts": 400,
-    "ErrInvalidRACILabel": 400,
     "ErrInvalidRole": 400,
     "ErrUnknownPermission": 400,
     "ErrLockedPermission": 400,
@@ -49,7 +47,6 @@
     "ErrWorkflowObjectiveNotFound": 404,
     "ErrPublicationNotFound": 404,
     "ErrPublishValidationFailed": 409,
-    "ErrRoleAssignmentNotFound": 404,
     "ErrRoleNotFound": 404,
     "ErrRuleAttachmentNotFound": 404,
     "ErrRuleNotFound": 404,
@@ -665,7 +662,7 @@
       "action": "agency.work_item.create",
       "status": 201,
       "title": "Create work item",
-      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only. A fill_form step a role acts on, that writes no row, may also be sendable back: send_back_decision (the prompt of one yes or no question of its own form: yes is Approve, no is Send back) and send_back_reason (the prompt of one free text question of its own form) are set together, and a step with only one, on another kind, with no role, with a prompt its form does not ask or of the wrong answer type is refused. A fill_form step may also name, in record_code, the code of the record its form writes (lower-case letters, digits and single underscores, such as bid_decision); a record_code on any other kind of step is refused, and the platform checks the format of the code and finds or derives the record by it.",
+      "description": "Add one step of a workflow, with the instruction whoever performs it works from. A step may also say what it is: its kind (fill_form, send_form, notify, yes_no, route, run_workflow or chat), the one role that acts on it (none when the agency takes it; send_form and route are always the agency's), the one role that is accountable for it (accountable_role_id, any step, empty when none is named), the form it takes with its questions, the one tool the person uses to do it, by name (tool, on a step a role acts on: a step does one thing, and a test of it lets the person use that tool and nothing else), for run_workflow the workflow it starts, and, for a fill_form or yes_no step a role acts on, a time_limit_minutes with the cancel_workflow_id that runs when it passes with no answer. A chat step (only in a workflow that opens in a chat, one for each) holds the role that opens it in role_id and, boxed in, agent_role_id (the role it chats with), topic, opening_line, up to three prompts, tools (plain names, not checked) and start_workflow_ids (the workflows it may lead to, never its own). A step with more than one role, a run_workflow that names no existing workflow, a time limit with no cancel workflow or on a step nobody waits on, is refused. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only. A fill_form step a role acts on, that writes no row, may also be sendable back: send_back_decision (the prompt of one yes or no question of its own form: yes is Approve, no is Send back) and send_back_reason (the prompt of one free text question of its own form) are set together, and a step with only one, on another kind, with no role, with a prompt its form does not ask or of the wrong answer type is refused. A fill_form step may also name, in record_code, the code of the record its form writes (lower-case letters, digits and single underscores, such as bid_decision); a record_code on any other kind of step is refused, and the platform checks the format of the code and finds or derives the record by it.",
       "args": [
         {
           "from": "body",
@@ -732,7 +729,7 @@
       "call": "UpdateWorkItem",
       "action": "agency.work_item.update",
       "title": "Update work item",
-      "description": "Replace a work item's title, description, position, prompt, kind, role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only. A fill_form step a role acts on, that writes no row, may also be sendable back: send_back_decision (the prompt of one yes or no question of its own form: yes is Approve, no is Send back) and send_back_reason (the prompt of one free text question of its own form) are set together, and a step with only one, on another kind, with no role, with a prompt its form does not ask or of the wrong answer type is refused. A fill_form step may also name, in record_code, the code of the record its form writes (lower-case letters, digits and single underscores, such as bid_decision); a record_code on any other kind of step is refused, and the platform checks the format of the code and finds or derives the record by it.",
+      "description": "Replace a work item's title, description, position, prompt, kind, role, accountable role, form and questions, the workflow it runs, its time limit and cancel workflow, and the workflow it belongs to. The same refusals as creating one apply. A calculating step (kind compute) also holds function (library.function@N), bindings (one per input: input and source_type answer, record_field, ledger_balance or fixed, with step_id and question, record_id and question, or value), result_name, on_failure ({\"choice\":\"stop\"} or {\"choice\":\"go_to_step\",\"step_id\":...}) and hold ({\"expires_after_days\":N}). A posting step (kind post) holds amount_step_id, debit_account, credit_account and reason. A yes_no or posting step may hold held_step_id, the held calculating step it releases. agency_list_input_sources lists what a binding may pick. A fill_form step may also write a row of a record of the draft: row_record (the record's code, such as RC-1) and row_action (add, edit or delete) are set together; the step is held by the role that does that to the record, an add or edit takes the record's form and questions, a delete asks one required free_text question, the reason, and the workflow holds that one step only. A fill_form step a role acts on, that writes no row, may also be sendable back: send_back_decision (the prompt of one yes or no question of its own form: yes is Approve, no is Send back) and send_back_reason (the prompt of one free text question of its own form) are set together, and a step with only one, on another kind, with no role, with a prompt its form does not ask or of the wrong answer type is refused. A fill_form step may also name, in record_code, the code of the record its form writes (lower-case letters, digits and single underscores, such as bid_decision); a record_code on any other kind of step is refused, and the platform checks the format of the code and finds or derives the record by it.",
       "args": [
         {
           "from": "body",
@@ -752,37 +749,6 @@
         }
       ],
       "tool": "agency_update_work_item"
-    },
-    "list_work_item_raci": {
-      "method": "GET",
-      "path": "/work-items/{work_item_id}/role-assignments",
-      "call": "ListRoleAssignmentsForWorkItem",
-      "action": "agency.work_item.list_raci",
-      "title": "Read work item RACI",
-      "description": "Answer which seats take part in one step, and how. This is the lookup anything asking \"who do I notify\" uses.",
-      "args": [
-        {
-          "from": "path",
-          "as": "work_item_id",
-          "refers": "agency.work_item",
-          "description": "The work item whose seats to read."
-        },
-        {
-          "from": "query",
-          "as": "draft_id",
-          "description": "The draft to read it in."
-        },
-        {
-          "from": "query",
-          "whole": true
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_list_role_assignments_for_work_item"
     },
     "create_role": {
       "method": "POST",
@@ -858,7 +824,7 @@
       "call": "GetRoleBrief",
       "action": "agency.role.brief",
       "title": "Read seat brief",
-      "description": "Gather what one seat needs from the production publication: its name and description, the work items it takes part in through RACI with the label it holds on each, the objectives their workflows serve and those objectives' goals, the values and rules attached to it, to those objectives or goals or to the whole organization, and the prompt of each of those work items. Returns plain text and its named parts.",
+      "description": "Gather what one seat needs from the production publication: its name and description, the work items it is accountable for, or acts on when no one is named accountable, the objectives their workflows serve and those objectives' goals, the values and rules attached to it, to those objectives or goals or to the whole organization, and the prompt of each of those work items. Returns plain text and its named parts.",
       "args": [
         {
           "from": "path",
@@ -935,7 +901,7 @@
       "action": "agency.role.delete",
       "status": 204,
       "title": "Delete role",
-      "description": "Remove a seat and every RACI link that named it. Refused with 409 while an actor of a scenario holds the seat.",
+      "description": "Remove a seat. A step that named it as accountable no longer does. Refused with 409 while an actor of a scenario holds the seat.",
       "args": [
         {
           "from": "path",
@@ -950,121 +916,6 @@
         }
       ],
       "tool": "agency_delete_role"
-    },
-    "create_raci": {
-      "method": "POST",
-      "path": "/role-assignments",
-      "call": "CreateRoleAssignment",
-      "action": "agency.raci.create",
-      "status": 201,
-      "title": "Assign RACI",
-      "description": "Give a seat a part in one step of a workflow: responsible, accountable, consulted or informed. Both ends must be in the same draft. A step may have any number of seats under any label; only the same seat with the same label on the same step twice is refused.",
-      "args": [
-        {
-          "from": "body",
-          "whole": true
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_set_raci"
-    },
-    "list_raci": {
-      "method": "GET",
-      "path": "/role-assignments",
-      "call": "ListRoleAssignments",
-      "action": "agency.raci.list",
-      "title": "List RACI",
-      "description": "List one draft's RACI links, narrowed by the filter (label, work item or role).",
-      "args": [
-        {
-          "from": "query",
-          "as": "draft_id",
-          "description": "The draft whose links to read."
-        },
-        {
-          "from": "query",
-          "whole": true
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_list_role_assignments"
-    },
-    "get_raci": {
-      "method": "GET",
-      "path": "/role-assignments/{assignment_id}",
-      "call": "GetRoleAssignment",
-      "action": "agency.raci.read",
-      "title": "Read RACI link",
-      "description": "Read one RACI link by its id — which seat it names, which work item, and how the two relate.",
-      "args": [
-        {
-          "from": "path",
-          "as": "assignment_id",
-          "description": "The link to read."
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_get_role_assignment"
-    },
-    "update_raci": {
-      "method": "PATCH",
-      "path": "/role-assignments/{assignment_id}",
-      "call": "UpdateRoleAssignment",
-      "action": "agency.raci.update",
-      "title": "Change a RACI link",
-      "description": "Point a RACI link at a different seat or work item, or change how it relates.",
-      "args": [
-        {
-          "from": "body",
-          "whole": true
-        },
-        {
-          "from": "path",
-          "as": "assignment_id",
-          "into": "ID",
-          "description": "The link to change."
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_update_role_assignment"
-    },
-    "delete_raci": {
-      "method": "DELETE",
-      "path": "/role-assignments/{assignment_id}",
-      "call": "DeleteRoleAssignment",
-      "action": "agency.raci.delete",
-      "status": 204,
-      "title": "Remove a RACI link",
-      "description": "Remove one RACI link, leaving both the seat and the work item in place.",
-      "args": [
-        {
-          "from": "path",
-          "as": "assignment_id",
-          "description": "The link to remove."
-        }
-      ],
-      "returns": [
-        {
-          "body": true
-        }
-      ],
-      "tool": "agency_delete_role_assignment"
     },
     "list_modules": {
       "method": "GET",
@@ -2014,7 +1865,7 @@
       "tool": "agency_delete_workflow",
       "status": 204,
       "title": "Delete workflow",
-      "description": "Remove a workflow, every work item it owns, its objective links and the RACI links of its steps. Refused with 409 while a scenario mirrors it, and with 409 for a generated workflow, which goes with its record.",
+      "description": "Remove a workflow, every work item it owns, and its objective links. Refused with 409 while a scenario mirrors it, and with 409 for a generated workflow, which goes with its record.",
       "args": [
         {
           "from": "path",
@@ -2037,7 +1888,7 @@
       "tool": "agency_delete_work_item",
       "status": 204,
       "title": "Delete work item",
-      "description": "Remove one work item. It carries no RACI of its own, so nothing else goes with it. A step of a generated workflow is refused with 409.",
+      "description": "Remove one work item. A step of a generated workflow is refused with 409.",
       "args": [
         {
           "from": "path",

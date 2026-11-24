@@ -23,7 +23,7 @@ func targetKey(t models.TargetType, code string) string {
 }
 
 func briefFromDocument(pub models.AgencyPublication, roleID string) (models.RoleBrief, error) {
-	doc := pub.Document
+	doc := foldLegacyRoleAssignments(pub.Document)
 	var role *models.DocumentRole
 	for i := range doc.Roles {
 		if doc.Roles[i].ID == roleID || doc.Roles[i].Code == roleID {
@@ -61,35 +61,27 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 		objectivesByWorkflow[l.WorkflowID] = append(objectivesByWorkflow[l.WorkflowID], l.ObjectiveID)
 	}
 
-	labelsByWorkflow := map[string]map[string]bool{}
-	labelsByStep := map[string]map[string]bool{}
+	stepsOfRole := map[string]bool{}
+	workflowsOfRole := map[string]bool{}
 	var workflowOrder []string
-	for _, a := range doc.RoleAssignments {
-		step, ok := stepsByID[a.WorkItemID]
-		if a.RoleID != role.ID || !ok {
+	for _, w := range doc.WorkItems {
+		if effectiveRoleID(w) != role.ID {
 			continue
 		}
-		if labelsByWorkflow[step.WorkflowID] == nil {
-			labelsByWorkflow[step.WorkflowID] = map[string]bool{}
-			workflowOrder = append(workflowOrder, step.WorkflowID)
+		stepsOfRole[w.ID] = true
+		if !workflowsOfRole[w.WorkflowID] {
+			workflowsOfRole[w.WorkflowID] = true
+			workflowOrder = append(workflowOrder, w.WorkflowID)
 		}
-		labelsByWorkflow[step.WorkflowID][a.Label] = true
-		if labelsByStep[step.ID] == nil {
-			labelsByStep[step.ID] = map[string]bool{}
-		}
-		labelsByStep[step.ID][a.Label] = true
 	}
 
-	labelsByObjective := map[string]map[string]bool{}
+	seenObjective := map[string]bool{}
 	var objectiveOrder []string
 	for _, workflowID := range workflowOrder {
 		for _, objectiveID := range objectivesByWorkflow[workflowID] {
-			if labelsByObjective[objectiveID] == nil {
-				labelsByObjective[objectiveID] = map[string]bool{}
+			if !seenObjective[objectiveID] {
+				seenObjective[objectiveID] = true
 				objectiveOrder = append(objectiveOrder, objectiveID)
-			}
-			for label := range labelsByWorkflow[workflowID] {
-				labelsByObjective[objectiveID][label] = true
 			}
 		}
 	}
@@ -104,7 +96,7 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 		objectiveCodeByID[o.ID] = o.Code
 		g := goals[o.GoalID]
 		brief.Objectives = append(brief.Objectives, models.BriefObjective{
-			Code: o.Code, Title: o.Title, Description: o.Description, Label: joinLabels(labelsByObjective[o.ID]),
+			Code: o.Code, Title: o.Title, Description: o.Description,
 			GoalCode: g.Code, GoalTitle: g.Title, GoalDescription: g.Description,
 		})
 		scopeByTarget[targetKey(models.TargetTypeObjective, o.Code)] = "objective " + o.Code
@@ -116,7 +108,7 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 	brief.Controls = briefControls(doc, scopeByTarget)
 
 	for _, w := range doc.WorkItems {
-		if labelsByStep[w.ID] == nil || w.Prompt == "" {
+		if !stepsOfRole[w.ID] || w.Prompt == "" {
 			continue
 		}
 		objectiveCode := ""
@@ -127,7 +119,7 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 			}
 		}
 		brief.WorkItems = append(brief.WorkItems, models.BriefWorkItem{
-			Code: w.Code, Title: w.Title, ObjectiveCode: objectiveCode, Labels: orderedLabels(labelsByStep[w.ID]), Prompt: w.Prompt,
+			Code: w.Code, Title: w.Title, ObjectiveCode: objectiveCode, Accountable: w.AccountableRoleID == role.ID, Prompt: w.Prompt,
 		})
 	}
 
@@ -135,22 +127,11 @@ func briefFromDocument(pub models.AgencyPublication, roleID string) (models.Role
 	return brief, nil
 }
 
-var raciOrder = []models.RACILabel{
-	models.RACILabelResponsible, models.RACILabelAccountable, models.RACILabelConsulted, models.RACILabelInformed,
-}
-
-func orderedLabels(held map[string]bool) []string {
-	var out []string
-	for _, l := range raciOrder {
-		if held[string(l)] {
-			out = append(out, string(l))
-		}
+func effectiveRoleID(w models.DocumentWorkItem) string {
+	if w.AccountableRoleID != "" {
+		return w.AccountableRoleID
 	}
-	return out
-}
-
-func joinLabels(held map[string]bool) string {
-	return strings.Join(orderedLabels(held), ", ")
+	return w.RoleID
 }
 
 func briefControls(doc models.AgencyDocument, scopeByTarget map[string]string) []models.BriefStatement {
@@ -204,7 +185,7 @@ func renderBrief(b models.RoleBrief) string {
 		s.WriteString("- none\n")
 	}
 	for _, o := range b.Objectives {
-		fmt.Fprintf(&s, "- %s %s [%s] under goal %s %s\n", o.Code, o.Title, o.Label, o.GoalCode, o.GoalTitle)
+		fmt.Fprintf(&s, "- %s %s under goal %s %s\n", o.Code, o.Title, o.GoalCode, o.GoalTitle)
 	}
 	writeStatements(&s, "Controls", b.Controls)
 	s.WriteString("\nWork items:\n")
@@ -212,9 +193,16 @@ func renderBrief(b models.RoleBrief) string {
 		s.WriteString("- none\n")
 	}
 	for _, w := range b.WorkItems {
-		fmt.Fprintf(&s, "- %s %s [%s] (serves objective %s): %s\n", w.Code, w.Title, strings.Join(w.Labels, ", "), w.ObjectiveCode, w.Prompt)
+		fmt.Fprintf(&s, "- %s %s%s (serves objective %s): %s\n", w.Code, w.Title, accountableMark(w), w.ObjectiveCode, w.Prompt)
 	}
 	return s.String()
+}
+
+func accountableMark(w models.BriefWorkItem) string {
+	if w.Accountable {
+		return " [accountable]"
+	}
+	return ""
 }
 
 func writeStatements(s *strings.Builder, heading string, items []models.BriefStatement) {

@@ -34,14 +34,6 @@ func TestDesignFromSpec_StoresNothingInAnArchivedUnknownOrUnnamedDraft(t *testin
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	keptFlow, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: archived.ID, Name: "kept"})
-	if err != nil {
-		t.Fatalf("CreateWorkflow: %v", err)
-	}
-	keptStep, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: archived.ID, WorkflowID: keptFlow.ID, Title: "kept"})
-	if err != nil {
-		t.Fatalf("CreateWorkItem: %v", err)
-	}
 	if _, err := mgr.ArchiveDraft(ctx, archived.ID); err != nil {
 		t.Fatalf("ArchiveDraft: %v", err)
 	}
@@ -53,12 +45,12 @@ func TestDesignFromSpec_StoresNothingInAnArchivedUnknownOrUnnamedDraft(t *testin
 	defer srv.Close()
 	cs := mcpConnect(t, srv.URL)
 
-	type counts struct{ workflows, assignments, links int }
+	type counts struct{ workflows, steps, links int }
 	count := func(draftID string) counts {
 		workflows, _ := mgr.ListWorkflows(ctx, draftID, mwanachamaagency.WorkflowFilter{})
-		assigned, _ := mgr.ListRoleAssignments(ctx, draftID, mwanachamaagency.RoleAssignmentFilter{})
+		steps, _ := mgr.ListWorkItems(ctx, draftID, mwanachamaagency.WorkItemFilter{})
 		links, _ := mgr.ListWorkflowObjectives(ctx, draftID, mwanachamaagency.WorkflowObjectiveFilter{})
-		return counts{len(workflows), len(assigned), len(links)}
+		return counts{len(workflows), len(steps), len(links)}
 	}
 	before := map[string]counts{}
 	for _, draftID := range []string{archived.ID, "no-such-draft", ""} {
@@ -76,8 +68,7 @@ func TestDesignFromSpec_StoresNothingInAnArchivedUnknownOrUnnamedDraft(t *testin
 				"goals":       []any{map[string]any{"key": "g", "title": "planted goal"}},
 				"objectives":  []any{map[string]any{"key": "o", "goal_key": "g", "title": "planted objective"}},
 				"workflows":   []any{map[string]any{"key": "w", "name": "planted workflow", "objective_keys": []any{"o"}, "objective_ids": []any{objective.ID}}},
-				"work_items":  []any{map[string]any{"key": "wi", "workflow_key": "w", "title": "planted item"}},
-				"raci":        []any{map[string]any{"role_id": role.ID, "work_item_id": keptStep.ID, "label": "accountable"}},
+				"work_items":  []any{map[string]any{"key": "wi", "workflow_key": "w", "title": "planted item", "accountable_role_id": role.ID}},
 			},
 		})
 		if err != nil {
@@ -88,16 +79,13 @@ func TestDesignFromSpec_StoresNothingInAnArchivedUnknownOrUnnamedDraft(t *testin
 			t.Fatalf("%s: structuredContent is %T, want map[string]any", name, result.StructuredContent)
 		}
 		errs, _ := sc["errors"].([]any)
-		if len(errs) != 6 {
-			t.Errorf("%s draft: want every one of the six spec entries refused, got errors %+v", name, errs)
+		if len(errs) != 5 {
+			t.Errorf("%s draft: want every one of the five spec entries refused, got errors %+v", name, errs)
 		}
 		for _, section := range []string{"roles", "goals", "objectives", "workflows", "work_items"} {
 			if created, _ := sc[section].(map[string]any); len(created) != 0 {
 				t.Errorf("%s draft: the spec's %s were reported created: %+v", name, section, created)
 			}
-		}
-		if assigned, _ := sc["role_assignments"].([]any); len(assigned) != 0 {
-			t.Errorf("%s draft: a RACI assignment was reported created: %+v", name, assigned)
 		}
 		if linked, _ := sc["workflow_objectives"].([]any); len(linked) != 0 {
 			t.Errorf("%s draft: a workflow objective link was reported created: %+v", name, linked)

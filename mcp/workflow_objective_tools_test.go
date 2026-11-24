@@ -236,98 +236,38 @@ func TestWorkflowObjectiveTools_ALinkedWorkflowStopsBeingAnIssue(t *testing.T) {
 	}
 }
 
-func TestRaciTools_SeatsAreLabelledOnAStep(t *testing.T) {
+func TestTheRaciToolsAreGoneAndAStepTakesItsAccountableRoleThroughTheStepTools(t *testing.T) {
 	d := newStepDesign(t)
-
-	set := func(stepID, roleID, label string) *gosdkmcp.CallToolResult {
-		return d.call(t, "agency_set_raci", map[string]any{"draft_id": d.draft.ID, "work_item_id": stepID, "role_id": roleID, "label": label})
+	listed := map[string]bool{}
+	tools, err := d.cs.ListTools(ctxT(t), nil)
+	if err != nil {
+		t.Fatalf("ListTools: %v", err)
 	}
-	for _, c := range []struct{ step, role, label string }{
-		{d.step.ID, d.owner.ID, "accountable"},
-		{d.step.ID, d.helper.ID, "accountable"},
-		{d.step.ID, d.owner.ID, "responsible"},
-		{d.step.ID, d.helper.ID, "informed"},
-		{d.otherStep.ID, d.helper.ID, "consulted"},
-	} {
-		if result := set(c.step, c.role, c.label); result.IsError {
-			t.Fatalf("agency_set_raci %+v refused: %s", c, textOf(result))
+	for _, tl := range tools.Tools {
+		listed[tl.Name] = true
+	}
+	for _, gone := range []string{"agency_set_raci", "agency_list_role_assignments", "agency_get_role_assignment", "agency_update_role_assignment", "agency_delete_role_assignment", "agency_list_role_assignments_for_work_item"} {
+		if listed[gone] {
+			t.Errorf("%s is still listed", gone)
 		}
 	}
 
-	set1 := d.mustCall(t, "agency_list_role_assignments_for_work_item", map[string]any{"draft_id": d.draft.ID, "work_item_id": d.step.ID})
-	seats := itemsOf(t, set1)
-	if len(seats) != 4 {
-		t.Fatalf("agency_list_role_assignments_for_work_item = %+v, want the 4 seats of the step and none of the other step's", seats)
+	updated := d.mustCall(t, "agency_update_work_item", map[string]any{
+		"work_item_id": d.step.ID, "draft_id": d.draft.ID, "workflow_id": d.flow.ID, "title": d.step.Title,
+		"accountable_role_id": d.owner.ID,
+	})
+	if updated["accountable_role_id"] != d.owner.ID {
+		t.Errorf("agency_update_work_item answered %+v, want the accountable role set", updated)
 	}
-	for _, seat := range seats {
-		if seat["work_item_id"] != d.step.ID {
-			t.Errorf("a seat of another step was listed: %+v", seat)
-		}
-		if _, hasObjective := seat["objective_id"]; hasObjective {
-			t.Errorf("a seat still carries an objective_id: %+v", seat)
-		}
+	if bad := d.call(t, "agency_update_work_item", map[string]any{
+		"work_item_id": d.step.ID, "draft_id": d.draft.ID, "workflow_id": d.flow.ID, "title": d.step.Title,
+		"accountable_role_id": "no-such-role",
+	}); !bad.IsError {
+		t.Errorf("an accountable role that is not there was accepted: %+v", bad.StructuredContent)
 	}
-	accountable := 0
-	for _, seat := range seats {
-		if seat["label"] == "accountable" {
-			accountable++
-		}
-	}
-	if accountable != 2 {
-		t.Errorf("a step holds %d accountable seats, want the 2 that were set", accountable)
-	}
-
-	onlyAccountable := itemsOf(t, d.mustCall(t, "agency_list_role_assignments_for_work_item", map[string]any{
-		"draft_id": d.draft.ID, "work_item_id": d.step.ID, "label": "accountable",
-	}))
-	if len(onlyAccountable) != 2 {
-		t.Errorf("label filter returned %+v, want the 2 accountable seats", onlyAccountable)
-	}
-	onlyHelper := itemsOf(t, d.mustCall(t, "agency_list_role_assignments_for_work_item", map[string]any{
-		"draft_id": d.draft.ID, "work_item_id": d.step.ID, "role_id": d.helper.ID,
-	}))
-	if len(onlyHelper) != 2 {
-		t.Errorf("role filter returned %+v, want the helper's 2 seats", onlyHelper)
-	}
-
-	other := itemsOf(t, d.mustCall(t, "agency_list_role_assignments_for_work_item", map[string]any{"draft_id": d.draft.ID, "work_item_id": d.otherStep.ID}))
-	if len(other) != 1 || other[0]["label"] != "consulted" {
-		t.Errorf("the other step lists %+v, want its one consulted seat", other)
-	}
-}
-
-func TestRaciTools_TheSameSeatAndLabelOnAStepIsTheOnlyRefusal(t *testing.T) {
-	d := newStepDesign(t)
-	args := map[string]any{"draft_id": d.draft.ID, "work_item_id": d.step.ID, "role_id": d.owner.ID, "label": "accountable"}
-	d.mustCall(t, "agency_set_raci", args)
-
-	if again := d.call(t, "agency_set_raci", args); !again.IsError {
-		t.Fatalf("the same seat with the same label on the same step twice was accepted: %+v", again.StructuredContent)
-	}
-	elsewhere := d.call(t, "agency_set_raci", map[string]any{"draft_id": d.draft.ID, "work_item_id": d.otherStep.ID, "role_id": d.owner.ID, "label": "accountable"})
-	if elsewhere.IsError {
-		t.Errorf("the same seat and label on another step was refused: %s", textOf(elsewhere))
-	}
-	seats, err := d.mgr.ListRoleAssignmentsForWorkItem(ctxT(t), d.step.ID, d.draft.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(seats) != 1 {
-		t.Errorf("the step holds %+v err=%v, want the one seat", seats, err)
-	}
-}
-
-func TestRaciTools_RefuseAStepOrSeatThatIsNotThere(t *testing.T) {
-	d := newStepDesign(t)
-	for name, args := range map[string]map[string]any{
-		"unknown step": {"work_item_id": "no-such-step", "role_id": d.owner.ID, "label": "accountable"},
-		"unknown role": {"work_item_id": d.step.ID, "role_id": "no-such-role", "label": "accountable"},
-		"bad label":    {"work_item_id": d.step.ID, "role_id": d.owner.ID, "label": "boss"},
-	} {
-		args["draft_id"] = d.draft.ID
-		if result := d.call(t, "agency_set_raci", args); !result.IsError {
-			t.Errorf("%s: agency_set_raci accepted %+v", name, result.StructuredContent)
-		}
-	}
-	if seats, _ := d.mgr.ListRoleAssignments(ctxT(t), d.draft.ID, mwanachamaagency.RoleAssignmentFilter{}); len(seats) != 0 {
-		t.Errorf("refused calls stored seats: %+v", seats)
+	got, err := d.mgr.GetWorkItem(ctxT(t), d.step.ID)
+	if err != nil || got.AccountableRoleID != d.owner.ID {
+		t.Errorf("the step holds %+v err=%v, want the one accountable role set", got, err)
 	}
 }
 
@@ -336,8 +276,6 @@ func TestDeletingAStepOrAWorkflowOrAnObjectiveLeavesNoDanglingJoinRow(t *testing
 	ctx := ctxT(t)
 	d.mustCall(t, "agency_link_workflow_objective", map[string]any{"draft_id": d.draft.ID, "workflow_id": d.flow.ID, "objective_id": d.objectiveA.ID})
 	d.mustCall(t, "agency_link_workflow_objective", map[string]any{"draft_id": d.draft.ID, "workflow_id": d.otherFlow.ID, "objective_id": d.objectiveB.ID})
-	d.mustCall(t, "agency_set_raci", map[string]any{"draft_id": d.draft.ID, "work_item_id": d.step.ID, "role_id": d.owner.ID, "label": "accountable"})
-	d.mustCall(t, "agency_set_raci", map[string]any{"draft_id": d.draft.ID, "work_item_id": d.otherStep.ID, "role_id": d.owner.ID, "label": "informed"})
 
 	d.mustCall(t, "agency_delete_objective", map[string]any{"objective_id": d.objectiveB.ID})
 	links, _ := d.mgr.ListWorkflowObjectives(ctx, d.draft.ID, mwanachamaagency.WorkflowObjectiveFilter{})
@@ -347,11 +285,11 @@ func TestDeletingAStepOrAWorkflowOrAnObjectiveLeavesNoDanglingJoinRow(t *testing
 
 	d.mustCall(t, "agency_delete_workflow", map[string]any{"workflow_id": d.flow.ID})
 	links, _ = d.mgr.ListWorkflowObjectives(ctx, d.draft.ID, mwanachamaagency.WorkflowObjectiveFilter{})
-	seats, _ := d.mgr.ListRoleAssignments(ctx, d.draft.ID, mwanachamaagency.RoleAssignmentFilter{})
+	steps, _ := d.mgr.ListWorkItems(ctx, d.draft.ID, mwanachamaagency.WorkItemFilter{})
 	if len(links) != 0 {
 		t.Errorf("deleting a workflow left its objective links: %+v", links)
 	}
-	if len(seats) != 1 || seats[0].WorkItemID != d.otherStep.ID {
-		t.Errorf("deleting a workflow left %+v, want only the seat of the other workflow's step", seats)
+	if len(steps) != 1 || steps[0].ID != d.otherStep.ID {
+		t.Errorf("deleting a workflow left %+v, want only the other workflow's step", steps)
 	}
 }

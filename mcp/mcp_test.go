@@ -64,7 +64,6 @@ func TestRegisterTools_ListsExpectedTools(t *testing.T) {
 	}
 	want := []string{
 		"agency_get_agency", "agency_create_goal", "agency_create_objective", "agency_create_workflow",
-		"agency_set_raci",
 		"agency_create_value", "agency_create_rule", "agency_design_from_spec",
 		"agency_list_types",
 		"agency_set_module_enabled", "agency_list_modules", "agency_get_module",
@@ -238,7 +237,7 @@ func TestDesignFromSpec_RaciAgainstExistingWorkItem(t *testing.T) {
 	if _, err := mgr.CreateWorkflowObjective(ctxT(t), models.WorkflowObjective{DraftID: draft.ID, WorkflowID: workflow.ID, ObjectiveID: objective.ID}); err != nil {
 		t.Fatalf("CreateWorkflowObjective: %v", err)
 	}
-	workItem, err := mgr.CreateWorkItem(ctxT(t), models.WorkItem{DraftID: draft.ID, WorkflowID: workflow.ID, Title: "Cut the release"})
+	_, err = mgr.CreateWorkItem(ctxT(t), models.WorkItem{DraftID: draft.ID, WorkflowID: workflow.ID, Title: "Cut the release"})
 	if err != nil {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
@@ -249,7 +248,8 @@ func TestDesignFromSpec_RaciAgainstExistingWorkItem(t *testing.T) {
 			"instance_id": "any",
 			"draft_id":    draft.ID,
 			"roles":       []map[string]any{{"key": "r1", "name": "wire-check-role"}},
-			"raci":        []map[string]any{{"role_key": "r1", "work_item_id": workItem.ID, "label": "informed"}},
+			"work_items":  []map[string]any{{"key": "w1", "workflow_key": "wf", "title": "Sign off", "accountable_role_key": "r1"}},
+			"workflows":   []map[string]any{{"key": "wf", "name": "Wire check flow"}},
 		},
 	})
 	if err != nil {
@@ -262,17 +262,15 @@ func TestDesignFromSpec_RaciAgainstExistingWorkItem(t *testing.T) {
 	if errs, _ := got["errors"].([]any); len(errs) != 0 {
 		t.Fatalf("agency_design_from_spec unexpected errors: %+v", errs)
 	}
-	assignments, _ := got["role_assignments"].([]any)
-	if len(assignments) != 1 {
-		t.Fatalf("agency_design_from_spec role_assignments = %+v", got["role_assignments"])
-	}
-
-	list, err := mgr.ListRoleAssignmentsForWorkItem(ctxT(t), workItem.ID, draft.ID, mwanachamaagency.RoleAssignmentFilter{})
+	made, _ := got["work_items"].(map[string]any)
+	madeID, _ := made["w1"].(string)
+	step, err := mgr.GetWorkItem(ctxT(t), madeID)
 	if err != nil {
-		t.Fatalf("ListRoleAssignmentsForWorkItem: %v", err)
+		t.Fatalf("GetWorkItem: %v", err)
 	}
-	if len(list) != 1 || list[0].Label != models.RACILabelInformed || list[0].WorkItemID != workItem.ID {
-		t.Fatalf("ListRoleAssignmentsForWorkItem = %+v", list)
+	roles, _ := got["roles"].(map[string]any)
+	if step.AccountableRoleID == "" || step.AccountableRoleID != roles["r1"] {
+		t.Fatalf("the spec's step names accountable role %q, want %v", step.AccountableRoleID, roles["r1"])
 	}
 }
 

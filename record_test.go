@@ -331,11 +331,7 @@ func TestRecord_APublicationKeepsTheRecordAndTheRoutingAndForksBack(t *testing.T
 	o := buildRoutedOrder(t)
 	ctx := context.Background()
 	w := o.world
-	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, WorkItemID: o.steps["Open"].ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
+	assignOn(t, w.mgr, ctx, w.draftID, w.roles[coordinator], o.steps["Open"])
 	pub, err := w.mgr.PublishAgency(ctx, w.draftID, "release-1", "")
 	if err != nil {
 		t.Fatalf("PublishAgency: %v", err)
@@ -361,11 +357,7 @@ func TestRecord_ChangingOnlyARecordIsAChangeToPublish(t *testing.T) {
 	o := buildRoutedOrder(t)
 	ctx := context.Background()
 	w := o.world
-	if _, err := w.mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: w.draftID, WorkItemID: o.steps["Open"].ID, RoleID: w.roles[coordinator].ID, Label: models.RACILabelResponsible,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
-	}
+	assignOn(t, w.mgr, ctx, w.draftID, w.roles[coordinator], o.steps["Open"])
 	if _, err := w.mgr.PublishAgency(ctx, w.draftID, "release-1", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
 	}

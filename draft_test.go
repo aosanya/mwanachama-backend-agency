@@ -153,7 +153,7 @@ func TestCreateDraft_ForkFromDraft(t *testing.T) {
 	}
 }
 
-func TestCreateDraft_ForksRoleAssignments(t *testing.T) {
+func TestCreateDraft_ForksTheAccountableRole(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, _, o, _, wi := seedLiveAgency(t, mgr, ctx)
@@ -163,11 +163,9 @@ func TestCreateDraft_ForksRoleAssignments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	assignment, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: seedDraftID, RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable,
-	})
-	if err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	wi.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, wi); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
 	d, err := mgr.CreateDraft(ctx, "restaff the objective", seedDraftID, "draft")
@@ -182,25 +180,9 @@ func TestCreateDraft_ForksRoleAssignments(t *testing.T) {
 	if len(draftRoles) != 1 || draftRoles[0].ID == role.ID {
 		t.Fatalf("expected one draft-scoped role copy with a new id, got %+v", draftRoles)
 	}
-
 	draftItems, _ := mgr.ListWorkItems(ctx, d.ID, mwanachamaagency.WorkItemFilter{})
-	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil {
-		t.Fatalf("ListRoleAssignments(draft): %v", err)
-	}
-	if len(draftAssignments) != 1 || draftAssignments[0].ID == assignment.ID {
-		t.Fatalf("expected one draft-scoped assignment copy with a new id, got %+v", draftAssignments)
-	}
-	if draftAssignments[0].RoleID != draftRoles[0].ID {
-		t.Fatalf("expected RoleAssignment.RoleID remapped to the draft-scoped role copy, got %q want %q",
-			draftAssignments[0].RoleID, draftRoles[0].ID)
-	}
-	if len(draftItems) != 1 || draftAssignments[0].WorkItemID != draftItems[0].ID {
-		t.Fatalf("expected RoleAssignment.WorkItemID remapped to the draft-scoped step copy, got %q want %+v",
-			draftAssignments[0].WorkItemID, draftItems)
-	}
-	if draftAssignments[0].Label != models.RACILabelAccountable {
-		t.Fatalf("expected the label carried across the fork, got %q", draftAssignments[0].Label)
+	if len(draftItems) != 1 || draftItems[0].AccountableRoleID != draftRoles[0].ID {
+		t.Fatalf("expected the step's accountable role remapped to the draft-scoped role copy %q, got %+v", draftRoles[0].ID, draftItems)
 	}
 }
 
@@ -314,10 +296,9 @@ func TestCreateDraft_ForkOfAForkKeepsBothJoinsAndCodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelResponsible,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	wi.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, wi); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
 	first, err := mgr.CreateDraft(ctx, "first", o.DraftID, "draft")
@@ -347,8 +328,7 @@ func TestCreateDraft_ForkOfAForkKeepsBothJoinsAndCodes(t *testing.T) {
 	if links[0].WorkflowID != workflows[0].ID || links[0].ObjectiveID != objectives[0].ID {
 		t.Fatalf("workflow objective not remapped into the second fork: %+v", links[0])
 	}
-	assignments, err := mgr.ListRoleAssignmentsForWorkItem(ctx, items[0].ID, second.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(assignments) != 1 {
-		t.Fatalf("ListRoleAssignmentsForWorkItem(second): %v, %+v", err, assignments)
+	if items[0].AccountableRoleID == "" {
+		t.Fatalf("the accountable role was lost across two forks: %+v", items[0])
 	}
 }

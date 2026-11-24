@@ -15,7 +15,7 @@ Every test in this repo reads only files inside this repo (`testdata/`, plus `ag
 | `testdata/operations/ai.operations.json` | `permission_hub_agent_test.go` | `mwanachama-backend-ai/ai.operations.json` |
 | `testdata/operations/riskmanager.operations.json` | `risk_permissions_test.go` | `mwanachama-backend-riskmanager/riskmanager.operations.json` |
 
-The agency templates are in the AGD-009 shape: `workflow_objectives` link workflows to objectives and RACI is a step-scoped `role_assignments` row.
+The agency templates are in the AGD-009 shape: `workflow_objectives` link workflows to objectives and a step names its accountable role in `accountable_role_id`. The three hub-demo files still carry `role_assignments`; import folds the accountable ones into the field.
 
 ## What the fixtures are for
 

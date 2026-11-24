@@ -9,10 +9,50 @@ import (
 	"github.com/aosanya/mwanachama-backend-agency/models"
 )
 
+type stepSeed struct {
+	draftID string
+	step    models.WorkItem
+	other   models.WorkItem
+	roleA   models.Role
+	roleB   models.Role
+}
+
+func seedStepsAndRoles(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx context.Context) stepSeed {
+	t.Helper()
+	if _, err := mgr.CreateAgency(ctx, models.Agency{Name: "SWELab"}); err != nil {
+		t.Fatalf("CreateAgency: %v", err)
+	}
+	d, err := mgr.CreateDraft(ctx, "seed", "", "")
+	if err != nil {
+		t.Fatalf("CreateDraft: %v", err)
+	}
+	w, err := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: d.ID, Name: "Onboarding"})
+	if err != nil {
+		t.Fatalf("CreateWorkflow: %v", err)
+	}
+	step, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: d.ID, WorkflowID: w.ID, Title: "Write charter"})
+	if err != nil {
+		t.Fatalf("CreateWorkItem: %v", err)
+	}
+	other, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: d.ID, WorkflowID: w.ID, Title: "Review charter"})
+	if err != nil {
+		t.Fatalf("CreateWorkItem(other): %v", err)
+	}
+	roleA, err := mgr.CreateRole(ctx, models.Role{DraftID: d.ID, Name: "bug-hunter"})
+	if err != nil {
+		t.Fatalf("CreateRole(A): %v", err)
+	}
+	roleB, err := mgr.CreateRole(ctx, models.Role{DraftID: d.ID, Name: "tech-lead"})
+	if err != nil {
+		t.Fatalf("CreateRole(B): %v", err)
+	}
+	return stepSeed{draftID: d.ID, step: step, other: other, roleA: roleA, roleB: roleB}
+}
+
 func TestRV23_CreateWorkItemInForeignOrMissingWorkflow(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	s := seedRaci(t, mgr, ctx)
+	s := seedStepsAndRoles(t, mgr, ctx)
 	d2, _ := mgr.CreateDraft(ctx, "o", "", "")
 	w2, _ := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: d2.ID, Name: "W2"})
 	if _, err := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: s.draftID, WorkflowID: w2.ID, Title: "x"}); !errors.Is(err, mwanachamaagency.ErrWorkflowNotFound) {
@@ -34,46 +74,36 @@ func TestRV23_CreateWorkItemInForeignOrMissingWorkflow(t *testing.T) {
 func TestRV11_CrossDraftRepointing(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	s := seedRaci(t, mgr, ctx)
+	s := seedStepsAndRoles(t, mgr, ctx)
 	d2, _ := mgr.CreateDraft(ctx, "other", "", "")
 	w2, _ := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: d2.ID, Name: "W2"})
-	st2, _ := mgr.CreateWorkItem(ctx, models.WorkItem{DraftID: d2.ID, WorkflowID: w2.ID, Title: "x"})
 	r2, _ := mgr.CreateRole(ctx, models.Role{DraftID: d2.ID, Name: "r2"})
-	a, _ := mgr.CreateRoleAssignment(ctx, s.assignment(s.roleA.ID, models.RACILabelResponsible))
 
-	b := a
-	b.WorkItemID = st2.ID
-	if _, err := mgr.UpdateRoleAssignment(ctx, b); err == nil {
-		t.Errorf("update repointed to foreign step")
-	}
-	b = a
-	b.RoleID = r2.ID
-	if _, err := mgr.UpdateRoleAssignment(ctx, b); err == nil {
-		t.Errorf("update repointed to foreign role")
+	foreignRole := s.step
+	foreignRole.AccountableRoleID = r2.ID
+	if _, err := mgr.UpdateWorkItem(ctx, foreignRole); err == nil {
+		t.Errorf("update named a foreign role as accountable")
 	}
 	wi := s.step
 	wi.WorkflowID = w2.ID
 	if _, err := mgr.UpdateWorkItem(ctx, wi); err == nil {
 		t.Errorf("step moved to a workflow in another draft")
 	}
-	ras, _ := mgr.ListRoleAssignments(ctx, d2.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if len(ras) != 0 {
-		t.Errorf("foreign draft holds assignments")
-	}
-	ras, _ = mgr.ListRoleAssignmentsForWorkItem(ctx, s.step.ID, d2.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if len(ras) != 0 {
-		t.Errorf("list for work item leaks across draft")
+	steps, _ := mgr.ListWorkItems(ctx, d2.ID, mwanachamaagency.WorkItemFilter{})
+	for _, st := range steps {
+		if st.AccountableRoleID != "" {
+			t.Errorf("foreign draft holds an accountable role: %+v", st)
+		}
 	}
 }
 
-func TestRV24_FullPathSeesAssignmentsThroughForeignWorkflowMove(t *testing.T) {
+func TestRV24_FullPathThroughForeignWorkflowMove(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	s := seedRaci(t, mgr, ctx)
+	s := seedStepsAndRoles(t, mgr, ctx)
 	g, _ := mgr.CreateGoal(ctx, models.Goal{DraftID: s.draftID, Title: "G"})
 	o, _ := mgr.CreateObjective(ctx, models.Objective{DraftID: s.draftID, GoalID: g.ID, Title: "O"})
 	mgr.CreateWorkflowObjective(ctx, models.WorkflowObjective{DraftID: s.draftID, WorkflowID: s.step.WorkflowID, ObjectiveID: o.ID})
-	mgr.CreateRoleAssignment(ctx, s.assignment(s.roleA.ID, models.RACILabelResponsible))
 	d2, _ := mgr.CreateDraft(ctx, "o", "", "")
 	w2, _ := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: d2.ID, Name: "W2"})
 	wi := s.step

@@ -26,10 +26,9 @@ func seedPublishableAgency(t *testing.T, mgr mwanachamaagency.AgencyManager, ctx
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	wi.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, wi); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 	return ag, o, role
 }
@@ -72,7 +71,7 @@ func TestPublishAgency_NoDraft(t *testing.T) {
 	}
 }
 
-func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
+func TestPublishAgency_AccountableRoleOnlyChangeIsAChange(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
 	_, o, _ := seedPublishableAgency(t, mgr, ctx)
@@ -83,19 +82,19 @@ func TestPublishAgency_RACIOnlyChangeIsAChange(t *testing.T) {
 		t.Fatalf("PublishAgency: %v", err)
 	}
 
-	consulted, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "bug-hunter"})
+	successor, err := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "bug-hunter"})
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: draftID, RoleID: consulted.ID, WorkItemID: onlyStep(t, mgr, ctx, draftID).ID, Label: models.RACILabelConsulted,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	step := onlyStep(t, mgr, ctx, draftID)
+	step.AccountableRoleID = successor.ID
+	if _, err := mgr.UpdateWorkItem(ctx, step); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 
 	p2, err := mgr.PublishAgency(ctx, draftID, "", "")
 	if err != nil {
-		t.Fatalf("expected a RACI-only change to require republishing, got %v", err)
+		t.Fatalf("expected an accountable-role-only change to require republishing, got %v", err)
 	}
 	if p2.Version != p1.Version+1 {
 		t.Fatalf("expected version %d, got %d", p1.Version+1, p2.Version)
@@ -262,33 +261,21 @@ func TestPublishAgency_NoAccountableDoesNotBlock(t *testing.T) {
 	}
 }
 
-func TestPublishAgency_TwoAccountablesDoNotBlock(t *testing.T) {
+func TestPublishAgency_TheAccountableRoleIsInTheDocument(t *testing.T) {
 	mgr := newTestManager(t)
 	ctx := context.Background()
-	_, o, _ := seedPublishableAgency(t, mgr, ctx)
+	_, o, role := seedPublishableAgency(t, mgr, ctx)
 	step := onlyStep(t, mgr, ctx, o.DraftID)
-	second, err := mgr.CreateRole(ctx, models.Role{DraftID: o.DraftID, Name: "co-owner"})
-	if err != nil {
-		t.Fatalf("CreateRole: %v", err)
-	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: o.DraftID, RoleID: second.ID, WorkItemID: step.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("a second Accountable on one step must be allowed: %v", err)
-	}
 
 	pub, err := mgr.PublishAgency(ctx, o.DraftID, "", "")
 	if err != nil {
-		t.Fatalf("two Accountables on one step must publish, got %v", err)
+		t.Fatalf("PublishAgency: %v", err)
 	}
-	accountable := 0
-	for _, a := range pub.Document.RoleAssignments {
-		if a.Label == string(models.RACILabelAccountable) && a.WorkItemID == step.ID {
-			accountable++
-		}
+	if len(pub.Document.WorkItems) != 1 || pub.Document.WorkItems[0].ID != step.ID || pub.Document.WorkItems[0].AccountableRoleID != role.ID {
+		t.Fatalf("expected the step's accountable role in the document, got %+v", pub.Document.WorkItems)
 	}
-	if accountable != 2 {
-		t.Fatalf("expected both Accountables in the document, got %+v", pub.Document.RoleAssignments)
+	if len(pub.Document.RoleAssignments) != 0 {
+		t.Fatalf("a new document carries no role assignments, got %+v", pub.Document.RoleAssignments)
 	}
 }
 
@@ -310,15 +297,12 @@ func TestPublishAgency_DanglingJoinsAreRefused(t *testing.T) {
 		t.Fatalf("restoring the join: %v", err)
 	}
 
-	assignments, err := mgr.ListRoleAssignments(ctx, o.DraftID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(assignments) != 1 {
-		t.Fatalf("ListRoleAssignments: %v, %+v", err, assignments)
-	}
-	if err := db.Exec("update "+tableOf(t, s, "role_assignment")+" set work_item_id = ? where id = ?", "ghost-step", assignments[0].ID).Error; err != nil {
-		t.Fatalf("dangling the assignment: %v", err)
+	step := onlyStep(t, mgr, ctx, o.DraftID)
+	if err := db.Exec("update "+tableOf(t, s, "work_item")+" set accountable_role_id = ? where id = ?", "ghost-role", step.ID).Error; err != nil {
+		t.Fatalf("dangling the accountable role: %v", err)
 	}
 	if _, err := mgr.PublishAgency(ctx, o.DraftID, "", ""); !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {
-		t.Fatalf("expected a dangling role assignment to block the publish, got %v", err)
+		t.Fatalf("expected a dangling accountable role to block the publish, got %v", err)
 	}
 }
 
@@ -484,10 +468,9 @@ func TestPublishAgency_CarriesDocument(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: draftID, RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	wi.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, wi); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 	link, err := mgr.ListWorkflowObjectives(ctx, draftID, mwanachamaagency.WorkflowObjectiveFilter{})
 	if err != nil || len(link) != 1 {
@@ -519,12 +502,11 @@ func TestPublishAgency_CarriesDocument(t *testing.T) {
 		doc.WorkflowObjectives[0].ObjectiveID != o.ID || doc.WorkflowObjectives[0].ID != link[0].ID {
 		t.Errorf("expected the workflow objective carried by workflow and objective id, got %+v", doc.WorkflowObjectives)
 	}
-	if len(doc.RoleAssignments) != 1 || doc.RoleAssignments[0].Label != string(models.RACILabelAccountable) ||
-		doc.RoleAssignments[0].WorkItemID != wi.ID || doc.RoleAssignments[0].RoleID != role.ID {
-		t.Errorf("expected the step-scoped RACI assignment, got %+v", doc.RoleAssignments)
+	if doc.WorkItems[0].AccountableRoleID != role.ID {
+		t.Errorf("expected the step's accountable role, got %+v", doc.WorkItems[0])
 	}
-	if doc.RoleAssignments[0].LegacyObjectiveID != "" || doc.WorkItems[0].LegacyObjectiveID != "" {
-		t.Errorf("a new document must not carry the old objective keys: %+v %+v", doc.RoleAssignments[0], doc.WorkItems[0])
+	if len(doc.RoleAssignments) != 0 || doc.WorkItems[0].LegacyObjectiveID != "" {
+		t.Errorf("a new document must not carry role assignments or the old objective keys: %+v %+v", doc.RoleAssignments, doc.WorkItems[0])
 	}
 	if len(doc.Roles) != 1 || doc.Roles[0].ID != role.ID {
 		t.Errorf("expected the Role, got %+v", doc.Roles)
@@ -543,9 +525,9 @@ func TestPublishAgency_CarriesDocument(t *testing.T) {
 	if len(reread.Document.WorkItems) != 1 {
 		t.Fatalf("expected the published WorkItem to survive the draft-side delete, got %+v", reread.Document.WorkItems)
 	}
-	if len(reread.Document.WorkflowObjectives) != 1 || len(reread.Document.RoleAssignments) != 1 {
-		t.Fatalf("expected both joins to survive the draft-side delete, got %+v / %+v",
-			reread.Document.WorkflowObjectives, reread.Document.RoleAssignments)
+	if len(reread.Document.WorkflowObjectives) != 1 || len(reread.Document.WorkItems) != 1 || reread.Document.WorkItems[0].AccountableRoleID != role.ID {
+		t.Fatalf("expected the join and the accountable role to survive the draft-side delete, got %+v / %+v",
+			reread.Document.WorkflowObjectives, reread.Document.WorkItems)
 	}
 }
 
@@ -558,10 +540,9 @@ func TestCreateDraft_ForkFromPublication(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
-	if _, err := mgr.CreateRoleAssignment(ctx, models.RoleAssignment{
-		DraftID: draftID, RoleID: role.ID, WorkItemID: wi.ID, Label: models.RACILabelAccountable,
-	}); err != nil {
-		t.Fatalf("CreateRoleAssignment: %v", err)
+	wi.AccountableRoleID = role.ID
+	if _, err := mgr.UpdateWorkItem(ctx, wi); err != nil {
+		t.Fatalf("UpdateWorkItem: %v", err)
 	}
 	if _, err := mgr.PublishAgency(ctx, draftID, "release-1", ""); err != nil {
 		t.Fatalf("PublishAgency: %v", err)
@@ -626,19 +607,12 @@ func TestCreateDraft_ForkFromPublication(t *testing.T) {
 		t.Errorf("expected the workflow objective remapped onto both draft rows, got %+v", draftLinks[0])
 	}
 
-	draftAssignments, err := mgr.ListRoleAssignments(ctx, d.ID, mwanachamaagency.RoleAssignmentFilter{})
-	if err != nil || len(draftAssignments) != 1 {
-		t.Fatalf("ListRoleAssignments(draft): %v, %+v", err, draftAssignments)
-	}
 	draftRoles, err := mgr.ListRoles(ctx, d.ID, mwanachamaagency.RoleFilter{})
 	if err != nil || len(draftRoles) != 1 {
 		t.Fatalf("ListRoles(draft): %v, %+v", err, draftRoles)
 	}
-	if draftAssignments[0].RoleID != draftRoles[0].ID || draftAssignments[0].WorkItemID != draftItems[0].ID {
-		t.Errorf("expected the RACI assignment remapped onto the draft Role and step, got %+v", draftAssignments[0])
-	}
-	if draftAssignments[0].Label != models.RACILabelAccountable {
-		t.Errorf("expected the label carried, got %q", draftAssignments[0].Label)
+	if draftItems[0].AccountableRoleID != draftRoles[0].ID {
+		t.Errorf("expected the accountable role remapped onto the draft Role %q, got %+v", draftRoles[0].ID, draftItems[0])
 	}
 }
 
