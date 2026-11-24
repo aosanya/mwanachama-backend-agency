@@ -24,13 +24,14 @@ published with the rest of its design.
 `checkPermissions` in the Issue scan raises an `error` (so publishing is refused
 with `ErrPublishValidationFailed`) when a role declares:
 
-- a code not in the vocabulary, unless it is a `record.<record code>.<action>`
-  code that a record of the draft gives (ISS-151, see
+- a code not in the vocabulary, unless it is a record code that a record of the draft
+  gives: `record.<record code>.<add|edit|view>.<field code or *>` or
+  `record.<record code>.delete` (ISS-151, ISS-182, see
   [workflow-records.md](workflow-records.md)), or
-- a `record.` code that no record of the draft gives (the field part of a code,
-  `record.<record code>.<action>.<field code>`, is settled with the field
-  permissions; a field's code is its own stored label on a hidden key, so a
-  renamed code is followed by the roles that carry it, see
+- a `record.` code that no record of the draft gives, among them the plain
+  `record.<record code>.add`, `.edit` and `.view`, which no longer exist, a field the
+  record does not have, and a `delete` with a field part (a field's code is its own
+  stored label on a hidden key; following a rename is not built yet, see
   [workflow-records.md](workflow-records.md)), or
 - a permission locked to owners (decision 265). Locked permissions are held by owners
   whatever the definition says, so no role may claim one.
