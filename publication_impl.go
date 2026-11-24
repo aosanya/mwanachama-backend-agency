@@ -169,6 +169,9 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 			optionalField{"edit_role_id", r.EditRoleID}, optionalField{"delete_role_id", r.DeleteRoleID},
 			optionalField{"add_replaced_by", r.AddReplacedBy}, optionalField{"edit_replaced_by", r.EditReplacedBy},
 			optionalField{"delete_replaced_by", r.DeleteReplacedBy}))
+		records = append(records, hashRecord("RecordPermissions", map[string]any{
+			"id": r.ID, "permissions": RecordPermissionsOf(r),
+		}))
 	}
 
 	steps, err := list[models.EventFlowStep](m, scoped(roleEventFlowStep), roleEventFlowStep)
