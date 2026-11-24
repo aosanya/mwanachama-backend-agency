@@ -18,6 +18,7 @@ type AgencyDocument struct {
 	Modules            []DocumentModule            `json:"modules"`
 	EventFlowSteps     []EventFlowStep             `json:"event_flow_steps"`
 	Records            []DocumentRecord            `json:"records,omitempty"`
+	RecordPermissions  []Permission                `json:"record_permissions,omitempty"`
 	Measures           []DocumentMeasure           `json:"measures,omitempty"`
 	Home               []DocumentHomeNode          `json:"home,omitempty"`
 	Scenarios          []DocumentScenario          `json:"scenarios,omitempty"`
