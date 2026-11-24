@@ -21,16 +21,6 @@ func ValidRowAction(action string) bool {
 	return false
 }
 
-func (r Record) RoleOfRowAction(action string) string {
-	switch {
-	case action == RowActionEdit && r.EditRoleID != "":
-		return r.EditRoleID
-	case action == RowActionDelete && r.DeleteRoleID != "":
-		return r.DeleteRoleID
-	}
-	return r.RoleID
-}
-
 func DeleteReasonQuestion() StepQuestion {
 	return StepQuestion{Prompt: DeleteReasonPrompt, AnswerType: AnswerFreeText, Required: true}
 }

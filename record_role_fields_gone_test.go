@@ -51,6 +51,8 @@ func TestRecordRoleFields_AnImportThatCarriesOneIsRefusedNamingTheFieldAndTheCod
 	for field, codes := range goneRecordRoleFields {
 		t.Run(field, func(t *testing.T) {
 			mgr := newTestManager(t)
+			before, listErr := mgr.ListDrafts(context.Background(), mwanachamaagency.DraftFilter{})
+			must(t, listErr)
 			doc := recordDocument(t, fmt.Sprintf(`, %q: "r1"`, field), "")
 			_, err := mgr.ImportDocument(context.Background(), "imp", doc)
 			if !errors.Is(err, mwanachamaagency.ErrInvalidRecord) {
@@ -62,8 +64,8 @@ func TestRecordRoleFields_AnImportThatCarriesOneIsRefusedNamingTheFieldAndTheCod
 				}
 			}
 			drafts, listErr := mgr.ListDrafts(context.Background(), mwanachamaagency.DraftFilter{})
-			if listErr != nil || len(drafts) != 0 {
-				t.Errorf("a refused import kept %d drafts, %v", len(drafts), listErr)
+			if listErr != nil || len(drafts) != len(before) {
+				t.Errorf("a refused import kept %d drafts beside %d, %v", len(drafts), len(before), listErr)
 			}
 		})
 	}
@@ -137,5 +139,37 @@ func TestRecordRoleFields_ARecordBodyThatCarriesOneIsRefusedByCreateAndUpdate(t 
 				t.Errorf("update with %s: want ErrInvalidRecord, got %v", field, err)
 			}
 		})
+	}
+}
+
+func TestRecordRoleFields_AFieldAddCodeLetsARoleAddRowsAndOtherRecordCodesDoNot(t *testing.T) {
+	o := buildRoutedOrder(t)
+	ctx := context.Background()
+	w := o.world
+	row := func(role models.Role) models.RecordRow {
+		return models.RecordRow{DraftID: w.draftID, RecordID: o.record.ID, RoleID: role.ID, AddedBy: "member-1",
+			Answers: map[string]string{"Select the farmer": "Wanjiru", "Enter the amount paid": "1200"}}
+	}
+	for name, code := range map[string]string{
+		"view star": mwanachamaagency.RecordPermissionCode(o.record.Code, mwanachamaagency.RecordViewAction, mwanachamaagency.RecordFieldStar),
+		"edit star": mwanachamaagency.RecordPermissionCode(o.record.Code, models.RowActionEdit, mwanachamaagency.RecordFieldStar),
+		"delete":    mwanachamaagency.RecordPermissionCode(o.record.Code, models.RowActionDelete),
+		"catalogue": "report.read",
+	} {
+		holder := w.roles[supplier]
+		if _, err := w.mgr.SetRolePermissions(ctx, holder.ID, []string{code}); err != nil {
+			t.Fatalf("%s: SetRolePermissions: %v", name, err)
+		}
+		if _, err := w.mgr.CreateRecordRow(ctx, row(holder)); !errors.Is(err, mwanachamaagency.ErrRecordRowRefused) {
+			t.Errorf("a role that carries only %s adds a row: want ErrRecordRowRefused, got %v", name, err)
+		}
+	}
+	field := fieldOf(t, o.record, "Enter the amount paid")
+	named := mwanachamaagency.RecordPermissionCode(o.record.Code, models.RowActionAdd, field.Code)
+	if _, err := w.mgr.SetRolePermissions(ctx, w.roles[supplier].ID, []string{named}); err != nil {
+		t.Fatalf("SetRolePermissions: %v", err)
+	}
+	if _, err := w.mgr.CreateRecordRow(ctx, row(w.roles[supplier])); err != nil {
+		t.Errorf("a role that carries %s adds a row: %v", named, err)
 	}
 }

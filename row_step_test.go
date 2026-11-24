@@ -25,7 +25,7 @@ func buildRowStepWorld(t *testing.T) rowStepWorld {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
 	record, err := w.mgr.CreateRecord(context.Background(), models.Record{
-		DraftID: w.draftID, WorkflowID: home.ID, Name: "Tenders", RoleID: w.roles[coordinator].ID, FormName: "Tender",
+		DraftID: w.draftID, WorkflowID: home.ID, Name: "Tenders", FormName: "Tender",
 		Questions: []models.StepQuestion{ask("Title", models.AnswerFreeText), ask("Value", models.AnswerCurrency)},
 	})
 	if err != nil {
@@ -39,7 +39,7 @@ func (r rowStepWorld) step(t *testing.T, workflowName, action string) models.Wor
 	wf := r.world.workflow(t, workflowName)
 	wi := models.WorkItem{
 		DraftID: r.world.draftID, WorkflowID: wf.ID, Title: workflowName, Ordinality: 1, Kind: models.StepKindFillForm,
-		RoleID: r.record.RoleID, RowRecord: r.record.Key, RowAction: action,
+		RoleID: r.world.roles[coordinator].ID, RowRecord: r.record.Key, RowAction: action,
 		FormName: r.record.FormName, Questions: r.record.Questions,
 	}
 	if action == "delete" {
@@ -75,7 +75,6 @@ func TestRowStep_IsRefusedWhenItDoesNotFit(t *testing.T) {
 			w.Kind = models.StepKindYesNo
 		},
 		"a step with no kind":             func(w *models.WorkItem) { w.Kind = ""; w.RoleID = ""; w.FormName, w.Questions = "", nil },
-		"a role other than the record's":  func(w *models.WorkItem) { w.RoleID = r.world.roles[farmer].ID },
 		"an add with another form":        func(w *models.WorkItem) { w.Questions = []models.StepQuestion{ask("Title", models.AnswerFreeText)} },
 		"an edit with another form name":  func(w *models.WorkItem) { w.RowAction = "edit"; w.FormName = "Something else" },
 		"a delete with the record's form": func(w *models.WorkItem) { w.RowAction = "delete" },

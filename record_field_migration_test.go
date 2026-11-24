@@ -127,6 +127,7 @@ func newOlderFieldsDatabase(t *testing.T) (olderFieldsDatabase, routedOrder) {
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
 	}
+	w.letAdd(t, w.roles[coordinator], record)
 	o := routedOrder{world: w, workflow: workflow, record: record}
 	row, err := mgr.CreateRecordRow(ctx, rowAdded(w, o, map[string]string{
 		"Select the farmer": "Wanjiru", "Enter the amount paid": "1200", "Approved by": "amina", "Changed: Enter the amount paid": "was 90",

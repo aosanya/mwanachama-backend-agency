@@ -68,7 +68,7 @@ func buildPaymentFlow(t *testing.T) paymentFlow {
 		questions: []models.StepQuestion{ask("Amount requested", models.AnswerCurrency)},
 	}))
 	record, err := w.mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: wf.ID, Name: termsName, RoleID: w.roles[coordinator].ID,
+		DraftID: w.draftID, WorkflowID: wf.ID, Name: termsName,
 		FormName: "Terms", Questions: []models.StepQuestion{ask("Months", models.AnswerNumber)},
 	})
 	if err != nil {
@@ -459,7 +459,7 @@ func TestStepCopy_AnImportKeepsFewBindingsNoAmountSourceAndAHoldWithNoReleasingS
 			Questions: []models.StepQuestion{{Prompt: "Approved", AnswerType: models.AnswerYesNo, Required: true}}, HeldStepID: "s2"},
 		{ID: "s5", WorkflowID: "w1", Title: postTitle, Ordinality: 5, Kind: models.StepKindPost, CreditAccount: "Member loans"},
 	}
-	records := []models.DocumentRecord{{ID: "rc1", WorkflowID: "w1", Name: termsName, RoleID: "r1", FormName: "Terms",
+	records := []models.DocumentRecord{{ID: "rc1", WorkflowID: "w1", Name: termsName, FormName: "Terms",
 		Questions: []models.StepQuestion{{Prompt: "Months", AnswerType: models.AnswerNumber, Required: true}}}}
 	out, err := mgr.ImportDocument(ctx, "lakeside", lakesideDocument(steps, records))
 	if err != nil {

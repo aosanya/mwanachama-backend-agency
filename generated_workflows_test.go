@@ -54,7 +54,7 @@ func newGenWorld(t *testing.T) genWorld {
 		t.Fatalf("CreateWorkItem: %v", err)
 	}
 	record, err := mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: home.ID, Name: "Tenders", RoleID: w.roles[coordinator].ID, FormName: "Tender",
+		DraftID: w.draftID, WorkflowID: home.ID, Name: "Tenders", FormName: "Tender",
 		Questions: []models.StepQuestion{ask("Title", models.AnswerFreeText), ask("Value", models.AnswerCurrency)},
 	})
 	if err != nil {
@@ -155,7 +155,7 @@ func TestGenerated_ARecordHasAnAddAnEditAndADeleteWorkflowWithOneFormStepEach(t 
 		}
 		step := g.stepOf(t, g.world.draftID, wf)
 		if step.Kind != models.StepKindFillForm || step.RowRecord != g.record.Key || step.RowAction != w.action ||
-			step.RoleID != g.record.RoleID || step.FormName != w.form || step.Ordinality != 1 {
+			step.RoleID != "" || step.FormName != w.form || step.Ordinality != 1 {
 			t.Errorf("%s step = %+v", code, step)
 		}
 		wantQuestions := g.record.Questions
@@ -211,7 +211,6 @@ func TestGenerated_AChangedRecordUpdatesTheStepAndFormInPlace(t *testing.T) {
 	ctx := context.Background()
 	before := g.generatedIn(t, g.world.draftID)
 	record := g.record
-	record.RoleID = g.world.roles[farmer].ID
 	record.Questions = append(append([]models.StepQuestion{}, record.Questions...), ask("Closing date", models.AnswerDate))
 	if _, err := g.world.mgr.UpdateRecord(ctx, record); err != nil {
 		t.Fatalf("UpdateRecord: %v", err)
@@ -222,35 +221,23 @@ func TestGenerated_AChangedRecordUpdatesTheStepAndFormInPlace(t *testing.T) {
 			t.Errorf("%s was replaced instead of updated", code)
 		}
 		step := g.stepOf(t, g.world.draftID, after[code])
-		if step.RoleID != record.RoleID || len(step.Questions) != 3 {
-			t.Errorf("%s step = role %s with %d questions", code, step.RoleID, len(step.Questions))
+		if step.RoleID != "" || len(step.Questions) != 3 {
+			t.Errorf("%s step = role %q with %d questions", code, step.RoleID, len(step.Questions))
 		}
 	}
 	del := g.stepOf(t, g.world.draftID, after[g.record.Key+".delete"])
-	if del.RoleID != record.RoleID || len(del.Questions) != 1 {
-		t.Errorf("the delete step follows the role and keeps its one question: %+v", del)
+	if del.RoleID != "" || len(del.Questions) != 1 {
+		t.Errorf("the delete step names no role and keeps its one question: %+v", del)
 	}
 }
 
-func TestGenerated_EditAndDeleteAreHeldByTheirOwnRolesWhenTheRecordNamesThem(t *testing.T) {
+func TestGenerated_NoGeneratedStepNamesARole(t *testing.T) {
 	g := newGenWorld(t)
-	ctx := context.Background()
-	record := g.record
-	record.EditRoleID = g.world.roles[supplier].ID
-	record.DeleteRoleID = g.world.roles[farmer].ID
-	if _, err := g.world.mgr.UpdateRecord(ctx, record); err != nil {
-		t.Fatalf("UpdateRecord: %v", err)
-	}
 	got := g.generatedIn(t, g.world.draftID)
-	roles := map[string]string{g.record.Key + ".add": record.RoleID, g.record.Key + ".edit": record.EditRoleID, g.record.Key + ".delete": record.DeleteRoleID}
-	for code, role := range roles {
-		if step := g.stepOf(t, g.world.draftID, got[code]); step.RoleID != role {
-			t.Errorf("%s is held by %s, want %s", code, step.RoleID, role)
+	for _, code := range []string{g.record.Key + ".add", g.record.Key + ".edit", g.record.Key + ".delete"} {
+		if step := g.stepOf(t, g.world.draftID, got[code]); step.RoleID != "" {
+			t.Errorf("%s is held by %q, want no role", code, step.RoleID)
 		}
-	}
-	record.EditRoleID = "no-such-role"
-	if _, err := g.world.mgr.UpdateRecord(ctx, record); err == nil {
-		t.Errorf("an edit role that is not a role of the draft must be refused")
 	}
 }
 
@@ -474,21 +461,12 @@ func TestGenerated_ThePublishGuardNamesAMissingAlteredOrStaleGeneratedWorkflow(t
 	}
 
 	reroled := newGenWorld(t)
-	reroled.setRecordColumn(t, "edit_role_id", reroled.world.roles[farmer].ID)
+	if err := reroled.db.Exec("update "+steps(reroled)+" set role_id = ? where workflow_id in (select id from "+wf(reroled)+" where code = ?)",
+		reroled.world.roles[farmer].ID, reroled.record.Key+".edit").Error; err != nil {
+		t.Fatal(err)
+	}
 	if got := findingsOf(t, reroled.world.mgr, reroled.world.draftID, models.IssueSeverityError, reroled.record.Key+".edit"); len(got) == 0 {
-		t.Errorf("a generated edit workflow held by another role than the record's edit role is an error")
-	}
-}
-
-func TestGenerated_ARecordWithNoAddingRoleBlocksThePublishWithAFinding(t *testing.T) {
-	g := newGenWorld(t)
-	ctx := context.Background()
-	g.setRecordColumn(t, "role_id", "")
-	if got := findingsOf(t, g.world.mgr, g.world.draftID, models.IssueSeverityError, g.record.Code, "adding role"); len(got) == 0 {
-		t.Errorf("a record with no adding role is an error")
-	}
-	if _, err := g.world.mgr.PublishAgency(ctx, g.world.draftID, "", ""); !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) {
-		t.Errorf("publishing is refused, got %v", err)
+		t.Errorf("a generated edit workflow held by a role, when none is stored for it, is an error")
 	}
 }
 

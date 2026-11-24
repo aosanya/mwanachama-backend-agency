@@ -102,7 +102,7 @@ func newComputeWorld(t *testing.T, opts ...mwanachamaagency.Option) computeWorld
 		questions: []models.StepQuestion{ask("Amount requested", models.AnswerCurrency)},
 	}))
 	record, err := mgr.CreateRecord(ctx, models.Record{
-		DraftID: w.draftID, WorkflowID: c.wf.ID, Name: "Loan terms", RoleID: r.ID, FormName: "Terms",
+		DraftID: w.draftID, WorkflowID: c.wf.ID, Name: "Loan terms", FormName: "Terms",
 		Questions: []models.StepQuestion{ask("Months", models.AnswerNumber)},
 	})
 	if err != nil {

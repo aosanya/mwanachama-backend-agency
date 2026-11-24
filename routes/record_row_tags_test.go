@@ -16,10 +16,13 @@ func TestRecordRowTagRoutes(t *testing.T) {
 	ctx := t.Context()
 	wf, _ := mgr.CreateWorkflow(ctx, models.Workflow{DraftID: draftID, Name: "Group order"})
 	coordinator, _ := mgr.CreateRole(ctx, models.Role{DraftID: draftID, Name: "Group coordinator"})
-	record, err := mgr.CreateRecord(ctx, models.Record{DraftID: draftID, WorkflowID: wf.ID, Name: "Payments", RoleID: coordinator.ID, FormName: "Payment",
+	record, err := mgr.CreateRecord(ctx, models.Record{DraftID: draftID, WorkflowID: wf.ID, Name: "Payments", FormName: "Payment",
 		Questions: []models.StepQuestion{{Prompt: "Enter the amount paid", AnswerType: "currency", Required: true}}})
 	if err != nil {
 		t.Fatalf("CreateRecord: %v", err)
+	}
+	if _, err := mgr.SetRolePermissions(ctx, coordinator.ID, []string{"record." + record.Code + ".add.*"}); err != nil {
+		t.Fatalf("SetRolePermissions: %v", err)
 	}
 	send := func(method, path, payload string) *httptest.ResponseRecorder {
 		rec := httptest.NewRecorder()
