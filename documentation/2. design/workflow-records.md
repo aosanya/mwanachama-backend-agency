@@ -906,9 +906,18 @@ All are `error`, so none can be published:
   carries `record.<code>.add.*` or `record.<code>.add.<field>` of that field. The
   finding names the record and the field code. It is raised only for a record
   that some role may add to, so a record no role may add to is one finding and
-  not one more per field.
+  not one more per field;
+- a record with no required field (ISS-250, D87): none of its fields is marked
+  required. The finding names the record by code and name. It is raised for each
+  record whether or not a role may add to it.
 
-The two findings read the permission codes of the roles only (`record_add_scan.go`,
+Owner list (ISS-250): the converted agency files that declare a record with no
+required field. Every `records` entry of the agency documents under `projects/` and
+`testdata/hub-demo` has at least one required field, so none is listed. The
+`custody.json` files under the archived agency templates use a `records` key for
+custody records, not agency records, and are not read by this scan.
+
+The add findings read the permission codes of the roles only (`record_add_scan.go`,
 `checkRecordAdds`). They do not check that a role that may add can also view
 (D44), a role that may edit and cannot view (D43), a delete without view, or
 anything about groups or tags, which exist only after the publish (D24, D35). An
