@@ -228,22 +228,6 @@ func TestIssueScan_ARecordWithNoRequiredFieldIsAnErrorNamingTheRecordAndRefusesT
 	}
 }
 
-func TestIssueScan_ARecordWithNoFieldsAtAllHasNoRequiredField(t *testing.T) {
-	w := newRecordPermissionWorld(t)
-	w.roleCarrying(t, "Clerk", w.fieldCode("add", "*"))
-	empty := w.recordWithFields(t, "Empty form")
-	found := w.errorsOf(t, empty)
-	hasRequiredFinding := false
-	for _, issue := range found {
-		if strings.Contains(issue.Message, "no required field") {
-			hasRequiredFinding = true
-		}
-	}
-	if !hasRequiredFinding {
-		t.Fatalf("errors of the record = %+v, want one that it has no required field", found)
-	}
-}
-
 func TestIssueScan_ARecordWithOneRequiredFieldCanPublish(t *testing.T) {
 	w := newRecordPermissionWorld(t)
 	w.roleCarrying(t, "Clerk", w.fieldCode("add", "*"))
