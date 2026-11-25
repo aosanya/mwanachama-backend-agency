@@ -67,11 +67,14 @@ func validFieldCode(code string) bool {
 	return fieldCodePattern.MatchString(code) && !fieldKeyPattern.MatchString(code)
 }
 
-func proposedFieldCodes(questions []models.StepQuestion) []string {
-	taken := map[string]bool{}
-	codes := make([]string, len(questions))
-	for i, q := range questions {
-		codes[i] = uniqueFieldCode(FieldCodeOf(q.Prompt), taken)
+func ProposeFieldCodes(prompts []string) []string {
+	return proposeFieldCodesAvoiding(prompts, map[string]bool{})
+}
+
+func proposeFieldCodesAvoiding(prompts []string, taken map[string]bool) []string {
+	codes := make([]string, len(prompts))
+	for i, prompt := range prompts {
+		codes[i] = uniqueFieldCode(FieldCodeOf(prompt), taken)
 		taken[codes[i]] = true
 	}
 	return codes
@@ -187,11 +190,16 @@ func (s fieldSettlement) settleCodes(out []models.StepQuestion) error {
 		}
 		taken[q.Code] = true
 	}
+	var unnamed []int
+	var prompts []string
 	for i := range out {
 		if out[i].Code == "" {
-			out[i].Code = uniqueFieldCode(FieldCodeOf(out[i].Prompt), taken)
-			taken[out[i].Code] = true
+			unnamed = append(unnamed, i)
+			prompts = append(prompts, out[i].Prompt)
 		}
+	}
+	for n, code := range proposeFieldCodesAvoiding(prompts, taken) {
+		out[unnamed[n]].Code = code
 	}
 	return nil
 }
@@ -218,7 +226,11 @@ func withoutFieldIdentity(questions []models.StepQuestion) []models.StepQuestion
 
 func withoutDefaultFieldIdentity(questions []models.StepQuestion) []models.StepQuestion {
 	out := withoutFieldIdentity(questions)
-	proposed := proposedFieldCodes(questions)
+	prompts := make([]string, len(questions))
+	for i, q := range questions {
+		prompts[i] = q.Prompt
+	}
+	proposed := ProposeFieldCodes(prompts)
 	for i := range out {
 		if questions[i].Code != proposed[i] {
 			out[i].Code = questions[i].Code

@@ -579,6 +579,20 @@ A step's questions leave `key` and `code` empty. They only matter for a record.
   migrated in a stored database all get the same key. A file whose fields repeat a
   code is refused.
 
+### Proposing codes for a list of prompts
+
+`ProposeFieldCodes(prompts []string) []string` in `record_field.go` is the one
+place the numbering rule lives. It gives each prompt the code `FieldCodeOf` makes
+from it and adds `_2`, `_3` when an earlier prompt of the list already took the
+code: `Closing date`, `closing date` and `Closing date` give `closing_date`,
+`closing_date_2` and `closing_date_3`; a prompt with no letters or digits gives
+`field`, then `field_2`. The create path (`settleCodes`) numbers the fields that
+sent no code through the same loop, with the codes that were given already taken,
+so a record whose fields send no code gets exactly the codes the function
+returns for its prompts. A caller outside this repo that has to know the codes
+before the record is made, such as the hub's import checking role permissions,
+calls this function and keeps no copy of the rule.
+
 ### Renaming a code
 
 A code is a label, so renaming it changes nothing that is saved: the key stays,
