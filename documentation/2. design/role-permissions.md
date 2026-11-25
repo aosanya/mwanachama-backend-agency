@@ -395,6 +395,8 @@ The tables above leave some permissions out or give them only a paragraph. This 
 | `task.edit` | Add and change tasks, and move them between steps and backlogs | no | `taskmanager` | Create, update, place and move tasks, move one to a step, and create and delete the relationships between tasks. |
 | `backlog.manage` | Add, change and delete backlogs and their steps | no | `taskmanager` | Create, rename, archive, unarchive, delete and manage backlogs, add, rename, remove and reorder their steps, give and take access to a backlog, and set its owner group. |
 | `late_matters.read` | See the raised items past their answer time | no | `forms` | List the raised items whose answer time has passed. |
+| `rule.read` | Read rules, decisions and questions | no | `taskmanager` | Read and list rules, decisions and questions, list the issues of a rule and the rules of an issue, list the file links of a rule, the rules a decision produced and the rules that may contradict each other, and list the rules, decisions and questions that bear on a backlog. |
+| `rule.edit` | Write and change rules, decisions and questions | no | `taskmanager` | Create, update, set the status of, supersede and answer rules, decisions and questions, link a rule to an issue and unlink it, add and remove a rule's file links, and add a reach tag to a backlog. |
 | `case.vote` | Vote on cases, see the votes and take back your own | no | `taskmanager` | Vote on a case, take the caller's own vote back, and list the votes on a case. |
 | `consent.read` | Read the consent text in force and one's own consent | no | `custody` | Read the consent text in force and the caller's own consent. |
 | `consent.give` | Agree to the consent text and withdraw | no | `custody` | Agree to the consent text in force and withdraw that agreement. |
@@ -434,3 +436,17 @@ A record gives its field permissions as `models.Permission` values, each with a 
 - Shown in the hub console, outside this repository: `data/permissionNames.ts` reads `agency_list_permissions` into a code to name map, and `pages/spec/rolesDetail.tsx` writes the name with the code beside it (ISS-148, ISS-160). The console builds no wording of its own for a record permission.
 
 The wording (D66): a field permission reads `Add the closing date of a tender`, `Edit the closing date of a tender` or `See the closing date of a tender`; a star reads `Add every field of a tender`; delete reads `Delete a tender`. The code is the permission's own `code`, shown beside the name. The full rules are in [workflow-records.md](workflow-records.md).
+
+## Rules, decisions and questions (ISS-267)
+
+Two permissions carry the twenty `taskmanager` actions that read and write rules, decisions and questions, so a role is no longer refused them unless it is owner or operator. They are read from `mwanachama-backend-taskmanager/taskmanager.operations.json`.
+
+Read, held by `rule.read`: `taskmanager.rule.read`, `list`, `issue_list`, `list_for_issue`, `file_list`, `produced_list` and `overlap_list`, and `taskmanager.backlog.rules_list`, `decisions_list` and `questions_list`.
+
+Write, held by `rule.edit`: `taskmanager.rule.create`, `update`, `set_status`, `supersede`, `answer`, `link`, `unlink`, `file_add` and `file_remove`, and `taskmanager.backlog_tag.add`.
+
+The split follows the catalogue's own: a list or a read of one record is a read; a call that creates, changes, links or removes something is a write. `rule.edit` carries no read, as `task.edit` carries none of the repeating-task reads, so a role that posts rules is given both ticks. `taskmanager.backlog_tag.add` sits with the writes because it changes a backlog's reach, but not in `backlog.manage`, which also deletes backlogs and steps and would give an agent that files rules far more than it needs.
+
+The host's guard is a separate matter: the hub's `backlogReadActions` and `backlogWriteActions` in `group_role_access.go` (hub repo) decide there whether these actions join those two lists. This repository only declares the vocabulary.
+
+Tested in `models/permission_catalog_rules_test.go` (each action is carried by its permission, the permissions are unlocked and of module `taskmanager`, a role holding both may call every action, a role without them or with only one of them is refused the actions of the other) and `permission_rule_roles_test.go` (a role may declare both and publish, and the permission list serves them).
