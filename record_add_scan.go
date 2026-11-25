@@ -12,6 +12,9 @@ func (s *issueScan) checkRecordAdds() error {
 	if len(records) == 0 {
 		return nil
 	}
+	for _, r := range records {
+		s.checkRecordRequiredField(r)
+	}
 	roles, err := list[models.Role](s.m, s.scoped(roleRole), roleRole)
 	if err != nil {
 		return err
@@ -39,6 +42,16 @@ func (s *issueScan) checkRecordAdd(r models.Record, carried map[string]bool) {
 				RecordPermissionCode(r.Code, models.RowActionAdd, field.Code))
 		}
 	}
+}
+
+func (s *issueScan) checkRecordRequiredField(r models.Record) {
+	for _, field := range r.Questions {
+		if field.Required {
+			return
+		}
+	}
+	s.add(models.IssueSeverityError, "record", r.ID,
+		"Record %s %q has no required field: mark at least one field required", r.Code, r.Name)
 }
 
 func carriedCodesOf(roles []models.Role) map[string]bool {
