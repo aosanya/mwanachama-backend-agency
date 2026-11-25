@@ -61,6 +61,7 @@ type RecordRow struct {
 	DeletedOn     string `json:"deleted_on,omitempty"`
 
 	ReturnedBy     string `json:"returned_by,omitempty"`
+	ReturnedByID   string `json:"returned_by_id,omitempty"`
 	ReturnedReason string `json:"returned_reason,omitempty"`
 	ReturnedOn     string `json:"returned_on,omitempty"`
 }
