@@ -173,3 +173,84 @@ func mayAdd(t *testing.T, mgr mwanachamaagency.AgencyManager, record models.Reco
 		t.Fatalf("SetRolePermissions: %v", err)
 	}
 }
+
+func (w recordPermissionWorld) recordWithFields(t *testing.T, name string, fields ...models.StepQuestion) models.Record {
+	t.Helper()
+	workflow := w.workflow(t, name+" workflow")
+	record, err := w.mgr.CreateRecord(context.Background(), models.Record{
+		DraftID: w.draftID, WorkflowID: workflow.ID, Name: name, FormName: name, Questions: fields,
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord %s: %v", name, err)
+	}
+	return record
+}
+
+func (w recordPermissionWorld) errorsOf(t *testing.T, record models.Record) []models.Issue {
+	t.Helper()
+	issues, err := w.mgr.ListIssues(context.Background(), w.draftID, mwanachamaagency.IssueFilter{})
+	if err != nil {
+		t.Fatalf("ListIssues: %v", err)
+	}
+	var found []models.Issue
+	for _, issue := range issues {
+		if issue.Severity == models.IssueSeverityError && issue.EntityType == "record" && issue.EntityID == record.ID {
+			found = append(found, issue)
+		}
+	}
+	return found
+}
+
+func optionalField(prompt string) models.StepQuestion {
+	field := ask(prompt, models.AnswerFreeText)
+	field.Required = false
+	return field
+}
+
+func TestIssueScan_ARecordWithNoRequiredFieldIsAnErrorNamingTheRecordAndRefusesThePublish(t *testing.T) {
+	w := newRecordPermissionWorld(t)
+	w.roleCarrying(t, "Clerk", w.fieldCode("add", "*"))
+	loose := w.recordWithFields(t, "Visit note", optionalField("Closing note"))
+	w.roleCarrying(t, "Note clerk", "record."+loose.Code+".add.*")
+
+	found := w.errorsOf(t, loose)
+	if len(found) != 1 {
+		t.Fatalf("errors of the record = %+v, want exactly one", found)
+	}
+	for _, part := range []string{loose.Code, "Visit note", "no required field"} {
+		if !strings.Contains(found[0].Message, part) {
+			t.Errorf("finding = %q, want it to say %q", found[0].Message, part)
+		}
+	}
+	_, err := w.mgr.PublishAgency(context.Background(), w.draftID, "", "")
+	if !errors.Is(err, mwanachamaagency.ErrPublishValidationFailed) || !strings.Contains(err.Error(), loose.Code) {
+		t.Fatalf("PublishAgency = %v, want ErrPublishValidationFailed naming %s", err, loose.Code)
+	}
+}
+
+func TestIssueScan_ARecordWithNoFieldsAtAllHasNoRequiredField(t *testing.T) {
+	w := newRecordPermissionWorld(t)
+	w.roleCarrying(t, "Clerk", w.fieldCode("add", "*"))
+	empty := w.recordWithFields(t, "Empty form")
+	found := w.errorsOf(t, empty)
+	hasRequiredFinding := false
+	for _, issue := range found {
+		if strings.Contains(issue.Message, "no required field") {
+			hasRequiredFinding = true
+		}
+	}
+	if !hasRequiredFinding {
+		t.Fatalf("errors of the record = %+v, want one that it has no required field", found)
+	}
+}
+
+func TestIssueScan_ARecordWithOneRequiredFieldCanPublish(t *testing.T) {
+	w := newRecordPermissionWorld(t)
+	w.roleCarrying(t, "Clerk", w.fieldCode("add", "*"))
+	if found := w.errorsOf(t, w.record); len(found) != 0 {
+		t.Fatalf("errors of the record = %+v, want none", found)
+	}
+	if _, err := w.mgr.PublishAgency(context.Background(), w.draftID, "", ""); err != nil {
+		t.Fatalf("PublishAgency: %v", err)
+	}
+}
