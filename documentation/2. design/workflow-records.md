@@ -276,6 +276,24 @@ returned is refused, so the two reasons never share one row.
 
 Code: `record_row_return.go`.
 
+### Where a return is written and read (ISS-247, decision D85)
+
+Writers of `returned_by`:
+
+- `ReturnRecordRow` in `record_row_return.go`, the only writer: the update map
+  and the returned struct. It is the place the sender's id is set.
+- The route `POST /record-rows/{row_id}/return` and the tool
+  `agency_return_record_row` reach it with the caller as `returned_by`.
+
+Readers of the returned fields:
+
+- `models.RecordRow` and the `record_row` columns in `agency.blueprint.json`,
+  read whole by `ListRecordRows` with `include_returned`, by `GetRecordRow` and
+  by the row readers of the document, the fork and the publication restore.
+- `record_row_correction.go` and `record_row_retire.go` read only `returned_on`
+  to refuse a replace or a retire of a returned row.
+- `notReturned` in `record_row_return.go` filters on `returned_on`.
+
 ## A form step names its record (ISS-140)
 
 One optional field on `models.WorkItem` and `models.DocumentWorkItem`:
