@@ -639,6 +639,7 @@
         {"name": "deleted_reason", "type": "text", "description": "Why the row was retired, in the words of the person who retired it. Empty for a row that is not retired."},
         {"name": "deleted_on", "type": "timestamp", "description": "When the row was retired. Empty for a row that is not retired."},
         {"name": "returned_by", "type": "string", "description": "Who sent the row back, as the app names them. Empty for a row that was never returned."},
+        {"name": "returned_by_id", "type": "string", "description": "The account id of who sent the row back, kept beside returned_by. Empty for a row that was never returned and for one returned before the id was kept."},
         {"name": "returned_reason", "type": "text", "description": "Why the row was sent back, in the words of the person who sent it. Empty for a row that was never returned."},
         {"name": "returned_on", "type": "timestamp", "description": "When the row was sent back. A row is returned exactly when this is not empty."},
         {"name": "send_key", "type": "string", "description": "The step and run a workflow step sent this row for, written by the step's own send and by nothing else. Empty for every other row, including the ones kept from before the key existed."},

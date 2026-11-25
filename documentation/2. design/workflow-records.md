@@ -276,6 +276,35 @@ returned is refused, so the two reasons never share one row.
 
 Code: `record_row_return.go`.
 
+### Where a return is written and read (ISS-247, decision D85)
+
+Writers of `returned_by`:
+
+- `ReturnRecordRow` in `record_row_return.go`, the only writer: the update map
+  and the returned struct. It is the place the sender's id is set.
+- The route `POST /record-rows/{row_id}/return` and the tool
+  `agency_return_record_row` reach it with the caller as `returned_by`.
+
+Readers of the returned fields:
+
+- `models.RecordRow` and the `record_row` columns in `agency.blueprint.json`,
+  read whole by `ListRecordRows` with `include_returned`, and by the row readers of the document, the fork and the publication restore.
+- `record_row_correction.go` and `record_row_retire.go` read only `returned_on`
+  to refuse a replace or a retire of a returned row.
+- `notReturned` in `record_row_return.go` filters on `returned_on`.
+
+The sender's id (ISS-247, decision D85): `returned_by_id`, a fourth column of
+`record_row` and field `ReturnedByID` of `models.RecordRow`, written in the same
+update as `returned_by` and by nothing else. `returned_by` keeps the sender's
+display name; the id is the sender's account id, so a reader can tell two people
+with one name apart and find the account. A host that knows the account sets it
+with `WithReturnedByID(ctx, id)` on the context it passes to `ReturnRecordRow`.
+The route and the tool carry only the caller's name, so a return made through
+them leaves the id empty. An empty id is a valid value: rows returned before
+the field existed, and returns made without an id, read exactly as they did,
+and a send that follows a return neither copies nor clears the id of the
+returned row. The field is read wherever the row is, with `include_returned`.
+
 ## A form step names its record (ISS-140)
 
 One optional field on `models.WorkItem` and `models.DocumentWorkItem`:
