@@ -31,6 +31,7 @@ func (m *agencyManager) scanIssues(ctx context.Context, tx *gorm.DB, draftID str
 		s.checkRecords,
 		s.checkRowSteps,
 		s.checkWorkflowSubjects,
+		s.checkSubjectSettings,
 		s.checkGeneratedWorkflows,
 		s.checkRiskPathways,
 		s.checkEventFlowSteps,

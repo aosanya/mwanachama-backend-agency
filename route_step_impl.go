@@ -2,6 +2,7 @@ package mwanachamaagency
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -51,21 +52,28 @@ func validateRoute(number int, r models.StepRoute) error {
 		return invalidStep("route %d has no rule", number)
 	}
 	for i, rule := range r.Rules {
-		if strings.TrimSpace(rule.Question) == "" {
-			return invalidStep("route %d rule %d names no question", number, i+1)
+		if err := validateRule(fmt.Sprintf("route %d rule %d", number, i+1), rule); err != nil {
+			return err
 		}
-		if !rule.Operator.Valid() {
-			return invalidStep("route %d rule %d: operator %q is not one of %v", number, i+1, rule.Operator, models.RouteOperators())
-		}
-		if strings.TrimSpace(rule.Value) == "" {
-			return invalidStep("route %d rule %d has no value", number, i+1)
-		}
-		if _, err := strconv.ParseFloat(strings.TrimSpace(rule.Value), 64); rule.Operator.Numeric() && err != nil {
-			return invalidStep("route %d rule %d compares with %q, which is not a number", number, i+1, rule.Value)
-		}
-		if _, err := time.Parse(writtenDayLayout, strings.TrimSpace(rule.Value)); rule.Operator.Day() && err != nil {
-			return invalidStep("route %d rule %d compares with %q, which is not a day written as %s", number, i+1, rule.Value, writtenDayLayout)
-		}
+	}
+	return nil
+}
+
+func validateRule(label string, rule models.RouteRule) error {
+	if strings.TrimSpace(rule.Question) == "" {
+		return invalidStep("%s names no question", label)
+	}
+	if !rule.Operator.Valid() {
+		return invalidStep("%s: operator %q is not one of %v", label, rule.Operator, models.RouteOperators())
+	}
+	if strings.TrimSpace(rule.Value) == "" {
+		return invalidStep("%s has no value", label)
+	}
+	if _, err := strconv.ParseFloat(strings.TrimSpace(rule.Value), 64); rule.Operator.Numeric() && err != nil {
+		return invalidStep("%s compares with %q, which is not a number", label, rule.Value)
+	}
+	if _, err := time.Parse(writtenDayLayout, strings.TrimSpace(rule.Value)); rule.Operator.Day() && err != nil {
+		return invalidStep("%s compares with %q, which is not a day written as %s", label, rule.Value, writtenDayLayout)
 	}
 	return nil
 }

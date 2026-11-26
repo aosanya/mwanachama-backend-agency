@@ -95,6 +95,7 @@ func (m *agencyManager) buildDocument(ctx context.Context, tx *gorm.DB, draftID 
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: wi.StartWorkflowIDs,
 			RowRecord: wi.RowRecord, RowAction: wi.RowAction,
 			SendBackDecision: wi.SendBackDecision, SendBackReason: wi.SendBackReason, RecordCode: wi.RecordCode,
+			SetsSubject: wi.SetsSubject,
 		}
 		documentOfRegisteredKind(wi, &docStep)
 		doc.WorkItems = append(doc.WorkItems, docStep)
@@ -303,6 +304,9 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 	if err := validateDocumentSubjects(doc); err != nil {
 		return fail(err)
 	}
+	if err := validateDocumentSubjectSettings(doc); err != nil {
+		return fail(err)
+	}
 	if err := validateDocumentRolePermissions(doc); err != nil {
 		return fail(err)
 	}
@@ -379,7 +383,8 @@ func applyDocumentToDraft(ctx context.Context, m *agencyManager, tx *gorm.DB, dr
 			Prompts: wi.Prompts, Tools: wi.Tools, StartWorkflowIDs: remapAll(workflowIDs, wi.StartWorkflowIDs),
 			RowRecord: wi.RowRecord, RowAction: wi.RowAction,
 			SendBackDecision: wi.SendBackDecision, SendBackReason: wi.SendBackReason, RecordCode: wi.RecordCode,
-			CreatedAt: now, LastUpdated: now,
+			SetsSubject: wi.SetsSubject,
+			CreatedAt:   now, LastUpdated: now,
 		}
 		rowOfRegisteredKind(wi, &row, StepIDMaps{Workflows: workflowIDs, Roles: roleIDs, Steps: stepIDs, Records: recordIDs})
 		if err := m.copyRow(ctx, tx, roleWorkItem, row); err != nil {

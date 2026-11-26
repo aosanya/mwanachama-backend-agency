@@ -321,6 +321,33 @@ code, that a record with that code exists, or that no other step names it: the
 platform that imports the file owns those checks and derives the record. Code:
 `record_code_step.go`, called from `validateStepShape`.
 
+## A form step sets a choice on its subject record (ISS-67)
+
+A workflow that names a `subject_record` is started on a row of that record. Until now a step could only record its own answers, so a choice on the subject row (an order's Status) changed only when a person who may edit the record changed it. A fill_form step may now say what its answers do to that row.
+
+`WorkItem.SetsSubject` (`sets_subject`, a list of `SubjectSetting`) holds the settings in order. Each has:
+
+| Part | Meaning |
+|---|---|
+| `when` | A `RouteRule`: `question` (a question of this step's own form), `operator` and `value`, with the operators and the checks of a route rule (`validateRule`) |
+| `field` | The prompt of a single_choice question of the subject record |
+| `to` | One of that question's options |
+
+When the rule holds on the answers just given, the hub makes `field` read `to` on the subject row. A setting whose rule does not hold sets nothing; a later setting for the same field wins.
+
+What is refused, in words that name the part:
+
+| Where | Refusal |
+|---|---|
+| `validateSubjectSettingShape`, at create and update | A step that is not fill_form, that no role acts on, or that writes a row; a rule with no question, an unknown operator or no value; a question the form does not ask; no field; no option |
+| `validateSubjectSettingReferences`, at create and update | A workflow with no subject record; a field the subject record does not ask or that is not a choice; an option the choice does not offer |
+| `validateDocumentSubjectSettings`, at import | The same two reads, against the file's own records |
+| The Issue scan (`checkSubjectSettings`) | An `error` for a step whose setting no longer fits, such as an option taken off the record after the step was written |
+
+A fork, a publication, a restore and an import carry the list; it enters the content hash as `WorkItemSetsSubject` only when it is not empty, so an agency that sets nothing keeps its hashes. An update that leaves `sets_subject` out keeps it, and one that sends it empty clears it.
+
+The sibling only declares and checks the settings. Writing the changed row is the host's: it runs when the step is sent.
+
 ## Generated workflows (ISS-121)
 
 An agency has designed workflows, written in its file, and generated workflows,

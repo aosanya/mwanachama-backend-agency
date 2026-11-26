@@ -24,6 +24,9 @@ func validateStepShape(wi models.WorkItem) error {
 	if err := validateSendBackShape(wi); err != nil {
 		return err
 	}
+	if err := validateSubjectSettingShape(wi); err != nil {
+		return err
+	}
 	if err := validateRecordCodeShape(wi); err != nil {
 		return err
 	}
@@ -219,6 +222,9 @@ func (m *agencyManager) validateStepReferences(ctx context.Context, tx *gorm.DB,
 		return err
 	}
 	if err := m.validateRowStepReferences(ctx, tx, wi); err != nil {
+		return err
+	}
+	if err := m.validateSubjectSettingReferences(ctx, tx, wi); err != nil {
 		return err
 	}
 	if wi.Kind == models.StepKindChat {

@@ -140,6 +140,11 @@ func (m *agencyManager) contentHashFor(ctx context.Context, tx *gorm.DB, draftID
 				"id": r.ID, "send_back_decision": r.SendBackDecision, "send_back_reason": r.SendBackReason,
 			}))
 		}
+		if hasSubjectSettings(r) {
+			records = append(records, hashRecord("WorkItemSetsSubject", map[string]any{
+				"id": r.ID, "sets_subject": r.SetsSubject,
+			}))
+		}
 		if r.AccountableRoleID != "" {
 			records = append(records, hashRecord("WorkItemAccountable", map[string]any{
 				"id": r.ID, "accountable_role_id": r.AccountableRoleID,

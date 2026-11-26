@@ -91,6 +91,9 @@ func (m *agencyManager) UpdateWorkItem(ctx context.Context, wi models.WorkItem) 
 		if !wi.Carries("send_back_reason") {
 			wi.SendBackReason = existing.SendBackReason
 		}
+		if !wi.Carries("sets_subject") {
+			wi.SetsSubject = existing.SetsSubject
+		}
 		if !wi.Carries("record_code") {
 			wi.RecordCode = existing.RecordCode
 		}

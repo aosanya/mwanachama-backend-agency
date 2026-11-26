@@ -187,9 +187,10 @@ type DocumentWorkItem struct {
 	RowRecord     string        `json:"row_record,omitempty"`
 	RowAction     string        `json:"row_action,omitempty"`
 
-	SendBackDecision string `json:"send_back_decision,omitempty"`
-	SendBackReason   string `json:"send_back_reason,omitempty"`
-	RecordCode       string `json:"record_code,omitempty"`
+	SendBackDecision string           `json:"send_back_decision,omitempty"`
+	SendBackReason   string           `json:"send_back_reason,omitempty"`
+	SetsSubject      []SubjectSetting `json:"sets_subject,omitempty"`
+	RecordCode       string           `json:"record_code,omitempty"`
 }
 
 type DocumentWorkflowObjective struct {

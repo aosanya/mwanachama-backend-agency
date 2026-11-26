@@ -136,6 +136,12 @@ type RouteRule struct {
 	Value    string        `json:"value"`
 }
 
+type SubjectSetting struct {
+	When  RouteRule `json:"when"`
+	Field string    `json:"field"`
+	To    string    `json:"to"`
+}
+
 type StepRoute struct {
 	Match    RouteMatch  `json:"match"`
 	Rules    []RouteRule `json:"rules"`
