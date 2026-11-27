@@ -862,10 +862,17 @@ A run is the register rows that share an `order_id`. `RecordRow` gains
 `subject_row_id` beside it: the row of the subject record the run was started
 on. `CreateRecordRow` takes it from the caller and:
 
-- refuses an id that is not a current row of the draft, naming it;
+- refuses an id that is not a row of the agency, or is retired, naming it;
 - gives a row of a run the `subject_row_id` its run already carries when it
   names none, and refuses one that names another;
 - gives a replacing row the one of the row it replaces.
+
+Both reads look in every draft of the agency, not only the new row's draft
+(ISS-75). Rows are not copied by a fork, so a subject row written under one
+version stays in that version's draft while its runs go on, and its rows are
+edited, under the next. A replaced subject row is history, not retired, so a
+row of a run keeps naming it; the hub follows the subject's chain of edits when
+it needs the current row.
 
 `ListRecordRows` narrows by `subject_row_id`, so every row of the runs started
 on one row reads back together. A row without one, and every row written before
